@@ -1,0 +1,81 @@
+name: CI - Code Quality
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  quality-checks:
+    name: Code Quality & Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install system dependencies (Qt/UI)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libegl1 \
+            libxcb-cursor0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-render-util0 \
+            libxcb-xinerama0 \
+            libxcb-xinput0 \
+            libxkbcommon-x11-0 \
+            libfontconfig1 \
+            libdbus-1-3 \
+            xvfb
+
+      - name: Sync deps (dev extras)
+        run: uv sync --extra dev
+
+      - name: Install types-requests
+        run: uv pip install requests types-requests
+
+      - name: Lint (ruff)
+        run: uv run ruff check src --output-format=github
+        continue-on-error: false
+
+      - name: Format check (ruff)
+        run: uv run ruff format --check src
+        continue-on-error: false
+
+      - name: Type check (mypy)
+        run: uv run mypy --install-types --non-interactive src/sok --ignore-missing-imports --no-strict-optional
+        continue-on-error: false
+
+      - name: Type check (ty)
+        run: uv run ty check src
+
+      - name: Tests (pytest)
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+        run: uv run pytest tests/ -v
+        continue-on-error: false
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-sok
+          fail_ci_if_error: false
+
+      - name: Quality checks passed
+        run: echo "All quality checks passed!"

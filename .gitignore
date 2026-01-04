@@ -1,0 +1,38 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+*.spec
+
+# Virtual environments
+.venv
+
+# Variable environment files
+.env
+*.key
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# OS-specific files
+.DS_Store
+
+# MkDocs build directory
+/site
+
+# Cache files
+.*_cache/
+
+# Data
+data/
+
+# Logs
+logs/
+
+# Other
+REPORT_CODE_QUALITY.md
+GEMINI.md

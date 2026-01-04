@@ -1,0 +1,282 @@
+/* ==========================================================================
+   1. DESIGN TOKENS S.O.K (BASÉS SUR THEME.PY)
+   ========================================================================== */
+:root {
+  /* Couleurs S.O.K */
+  --sok-orange: #FB6048;
+  --sok-orange-dark: #DD513F; /* dropdown_bg */
+  --sok-radius: 10px;         /* Theme.R */
+
+  /* Typographie */
+  --md-text-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif !important;
+
+  /* Couleurs Interface - Mode CLAIR */
+  --md-primary-fg-color: var(--sok-orange) !important;
+  --md-default-bg-color: #ffffff !important;
+  --header-text: #ffffff;
+}
+
+html {
+  /* Active le défilement fluide pour tous les liens d'ancrage internes */
+  scroll-behavior: smooth !important;
+}
+
+[data-md-color-scheme="slate"] {
+  /* Couleurs Interface - Mode SOMBRE */
+  --sok-orange: #FB6048;
+  --md-primary-fg-color: #1E1E1E !important;
+  --md-default-bg-color: #121212 !important;
+  --header-text: #ffffff;
+}
+
+/* ==========================================================================
+   2. FIX DÉFINITIF BARRE DU HAUT (TOP NAV BAR)
+   ========================================================================== */
+
+.md-header {
+  background-color: var(--sok-orange) !important;
+  color: var(--header-text) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+  box-shadow: none !important;
+}
+
+/* On ajuste la couleur des icônes et boutons du header */
+.md-header__button, .md-search__extra {
+  color: var(--header-text) !important;
+}
+
+/* FORCE HEADER TITLE VISIBILITY */
+.md-header__title {
+  visibility: visible !important;
+  opacity: 1 !important;
+  overflow: visible !important;
+}
+
+/* Container for topics */
+.md-header__ellipsis {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  overflow: visible !important;
+}
+
+/* Both topics (Site Name and Page Name) */
+.md-header__topic {
+  display: block !important;
+  width: auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: none !important; /* Kill animation */
+  transform: none !important; /* Kill transform animation */
+  position: static !important;
+  color: var(--header-text) !important;
+  font-weight: 700;
+}
+
+/* Second topic (Page Name) */
+.md-header__topic + .md-header__topic {
+  font-weight: 400;
+  margin-left: 0 !important;
+}
+
+/* Separator */
+.md-header__topic + .md-header__topic::before {
+  content: "-";
+  display: inline-block;
+  margin: 0 0.5em;
+  opacity: 0.8;
+}
+
+/* Style des onglets (Navigation Tabs) */
+.md-tabs {
+  background-color: transparent !important;
+}
+
+.md-tabs__link {
+  color: var(--header-text) !important;
+  font-weight: 600;
+  opacity: 0.7;
+  transition: all 0.25s;
+  padding: 0 10px !important;
+  border-radius: 4px;
+  transition: all 0.3s ease-in-out !important;
+}
+
+.md-tabs__link--active {
+  opacity: 1 !important;
+  border-bottom: 2px solid #ffffff !important;
+  background-color: var(--sok-orange-dark) !important;
+}
+
+/* Alignement du logo avec la barre latérale */
+.md-header__button.md-logo {
+  margin-right: 1.5rem !important;
+}
+
+/* Barre de recherche intégrée */
+/* --- BARRE DE RECHERCHE S.O.K --- */
+.md-search__form {
+  background-color: var(--sok-orange-dark) !important; /* dropdown_bg #DD513F */
+  border-radius: var(--sok-radius) !important;         /* R = 10 */
+  transition: background-color 0.25s ease !important;
+}
+
+.md-search__form:hover {
+  background-color: var(--sok-orange-dark) !important;     /* Effet de survol discret */
+}
+
+.md-search__input {
+  color: #ffffff !important;                           /* Texte saisi en blanc */
+}
+
+.md-search__input::placeholder {
+  color: rgba(255, 255, 255, 0.7) !important;          /* Texte d'incitation plus clair */
+}
+
+.md-search__icon {
+  color: #ffffff !important;                           /* Icône loupe en blanc */
+}
+
+[data-md-color-scheme="slate"] .md-search__form {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* ==========================================================================
+   3. SIDEBAR (NAVIGATION LATÉRALE)
+   ========================================================================== */
+
+[data-md-color-scheme="slate"] .md-sidebar--primary {
+  background-color: #121212 !important;
+  border-right: 1px solid #333333 !important;
+}
+
+/* On nettoie le halo blanc au-dessus de la sidebar */
+.md-nav__title, .md-nav, .md-sidebar__scrollwrap {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 1. Supprime le dégradé blanc de défilement en haut de la liste */
+.md-sidebar__scrollwrap::before {
+    display: none !important;
+    background: none !important;
+}
+
+/* 2. Supprime l'ombre portée et le fond du titre de navigation */
+.md-nav__title,
+.md-nav__item--nested > .md-nav__link {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+/* 3. Supprime l'ombre "glow" spécifique aux boutons actifs */
+.md-nav__link--active {
+    box-shadow: none !important;
+    background-image: none !important; /* Enlève d'éventuels dégradés par défaut */
+}
+
+.md-nav__link {
+  margin: 2px 10px !important;
+  padding: 8px 12px !important;
+  border-radius: var(--sok-radius) !important; /* R = 10 */
+  font-size: 0.85rem !important;
+  transition: background-color 0.25s ease, color 0.25s ease !important;
+}
+
+/* --- AJOUT HOVER SIDEBAR --- */
+.md-nav__link:hover {
+  background-color: rgba(251, 96, 72, 0.1) !important; /* 10% de l'orange principal */
+  color: var(--sok-orange) !important;
+}
+
+.md-nav__link--active {
+  background-color: var(--sok-orange) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+/* Hover sur l'item déjà actif */
+.md-nav__link--active:hover {
+  background-color: var(--sok-orange-dark) !important; /* dropdown_bg */
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   4. ZONE DE CONTENU ET TABLEAUX
+   ========================================================================== */
+
+.md-content {
+  max-width: 52rem !important;
+  margin: 2.5rem auto !important;
+}
+
+h1 { color: var(--sok-orange) !important; font-weight: 800 !important; }
+
+[data-md-color-scheme="slate"] h1 { color: #ffffff !important; }
+
+/* --- AJOUT STYLE DES LIENS DANS LE TEXTE --- */
+.md-typeset a {
+  color: var(--sok-orange) !important;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.md-typeset a:hover {
+  color: var(--sok-orange-dark) !important; /* dropdown_bg */
+  border-bottom: 1px solid var(--sok-orange-dark);
+}
+
+.md-typeset table {
+  border-radius: var(--sok-radius) !important; /* R = 10 */
+  overflow: hidden !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+.md-typeset th {
+  background-color: #fbfbfd !important;
+  color: var(--sok-orange) !important;
+}
+
+.md-footer {
+  display: none !important;
+}
+
+/* --- CORRECTIF BOUTON RETOUR EN HAUT (SANS DÉPLACEMENT) --- */
+.md-top {
+  background-color: var(--sok-orange) !important;      /* #FB6048 */
+  color: #ffffff !important;
+  border-radius: var(--sok-radius) !important;        /* R = 10 */
+  transition: background-color 0.3s ease, opacity 0.3s ease !important;
+}
+
+.md-top:hover {
+  /* On utilise l'orange foncé dropdown_bg pour le survol */
+  background-color: var(--sok-orange-dark) !important; /* #DD513F */
+
+  /* On ne définit pas de transform ici pour éviter le décalage horizontal */
+}
+
+/* --- TRANSITION DE SECTION S.O.K --- */
+
+/* On cible le conteneur principal qui change lors de la navigation instantanée */
+.md-main__inner {
+  animation: fadeSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); /* Courbe de vitesse Apple */
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px); /* Décalage vers le bas au départ */
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);    /* Retour à la position normale */
+  }
+}
+
+/* Barre de chargement en haut de l'écran (pendant le changement de section) */
+.md-progress {
+  background-color: var(--sok-orange) !important; /* Orange #FB6048 */
+  height: 3px !important;
+}

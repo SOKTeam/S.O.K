@@ -1,0 +1,142 @@
+site_name: S.O.K Developer Documentation
+site_description: Developer documentation for S.O.K - Storage Organisation Kit
+site_author: S.O.K Team
+site_url: https://sokteam.github.io/sok
+
+repo_name: sok
+repo_url: https://github.com/SOKTeam/S.O.K
+
+theme:
+  name: material
+  language: en
+  font: false
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.tracking
+    - navigation.indexes
+    - toc.follow
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            docstring_options:
+              ignore_init_summary: true
+            merge_init_into_class: true
+            show_source: false
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            members_order: source
+            show_signature_annotations: true
+            separate_signature: true
+            signature_crossrefs: true
+            heading_level: 2
+            show_if_no_docstring: false
+
+markdown_extensions:
+  - md_in_html
+  - attr_list
+  - admonition
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: materialx.emoji.twemoji
+      emoji_generator: materialx.emoji.to_svg
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+  - Architecture:
+    - Overview: architecture/overview.md
+    - Project Structure: architecture/structure.md
+  - API Reference:
+    - api/index.md
+    - Core:
+      - api/core/index.md
+      - Interfaces: api/core/interfaces.md
+      - Media Manager: api/core/media_manager.md
+      - Exceptions: api/core/exceptions.md
+      - Utils: api/core/utils.md
+    - APIs:
+      - api/apis/index.md
+      - Base API: api/apis/base_api.md
+      - Video APIs: api/apis/video.md
+      - Music APIs: api/apis/music.md
+      - Books APIs: api/apis/books.md
+      - Games APIs: api/apis/games.md
+    - Media:
+      - api/media/index.md
+      - Base Media: api/media/base_media.md
+      - Video: api/media/video.md
+      - Music: api/media/music.md
+      - Books: api/media/books.md
+      - Games: api/media/games.md
+    - File Operations:
+      - api/file_operations/index.md
+      - Base Operations: api/file_operations/base_operations.md
+      - Video Operations: api/file_operations/video_operations.md
+      - Music Operations: api/file_operations/music_operations.md
+      - Book Operations: api/file_operations/book_operations.md
+      - Game Operations: api/file_operations/game_operations.md
+    - Configuration:
+      - api/config/index.md
+      - Config Manager: api/config/config_manager.md
+      - Session Manager: api/config/session_manager.md
+      - API Registry: api/config/api_registry.md
+  - Contributing: contributing.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/SOKTeam/S.O.K

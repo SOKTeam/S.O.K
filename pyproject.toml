@@ -1,0 +1,68 @@
+[project]
+name = "sok"
+version = "1.0.0"
+description = "Storage Organisation Kit - Universal Media Manager"
+authors = [
+    {name = "S.O.K Team", email = "contact@sok.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+keywords = ["media", "organizer", "kodi", "video", "music", "books", "games"]
+
+dependencies = [
+    "aiohttp>=3.13.2",
+    "cryptography>=46.0.3",
+    "mutagen>=1.47.0",
+    "pypdf2>=3.0.1",
+    "pypresence>=4.6.1",
+    "pyside6>=6.10.0",
+    "requests>=2.32.5",
+    "zstandard>=0.25.0",
+    "packaging>=23.0",
+]
+
+[project.optional-dependencies]
+build = [
+    "pip>=25.3",
+    "setuptools>=80.9.0",
+    "uv>=0.9.9",
+    "nuitka>=2.8.9",
+    "tomli>=2.3.0",
+]
+docs = [
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.7.0",
+    "mkdocstrings-python>=1.19.0",
+]
+dev = [
+    "python-dotenv>=1.2.1",
+    "pytest>=7.4.0",
+    "pytest-qt>=4.5.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.9.0",
+    "mypy>=1.5.0",
+    "ty>=0.0.8",
+]
+
+[project.scripts]
+sok = "sok.main:main"
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["sok", "sok.apis", "sok.apis.video", "sok.apis.music", "sok.apis.books", "sok.apis.games", "sok.core", "sok.media", "sok.media.video", "sok.media.music", "sok.media.books", "sok.media.games", "sok.file_operations", "sok.ui", "sok.ui.components", "sok.config"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"sok" = ["*.json", "*.ui", "*.ico", "*.png"]
+"sok.ui" = ["*.ui", "designer/*.ui", "generated/*.py"]
+"sok.config" = ["*.json"]
+
+[tool.ty]
+analysis.respect-type-ignore-comments = true
+
+[tool.ty.src]
+include = ["src", "tests"]
