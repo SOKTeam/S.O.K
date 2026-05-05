@@ -1,8 +1,8 @@
 ; --- CONFIGURATION GENERALE ---
 #define MyAppName "S.O.K"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "SOK Team"
-#define MyAppURL "https://www.example.com/"
+#define MyAppURL "https://github.com/SOKTeam/S.O.K"
 #define MyAppExeName "SOK.exe"
 
 ; Chemin vers le dossier généré par Nuitka (main.dist)
@@ -25,7 +25,7 @@ PrivilegesRequiredOverridesAllowed=dialog
 
 ; Sortie de l'installeur
 OutputDir=..\dist
-OutputBaseFilename=SOK_Setup_v1.0.0
+OutputBaseFilename=SOK_Setup_v{#MyAppVersion}
 SetupIconFile=..\src\sok\resources\assets\logo.ico
 SolidCompression=yes
 WizardStyle=modern windows11
