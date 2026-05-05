@@ -93,9 +93,7 @@ class MainWindow(QMainWindow):
         self.resize(950, 680)
         self.setMinimumSize(850, 550)
 
-        self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint
-        )
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         icon = ASSETS_DIR / "logo.ico"
@@ -235,7 +233,9 @@ class MainWindow(QMainWindow):
         self._status = self.statusBar()
         if self._status:
             self._status.setObjectName("StatusBar")
-            self._status.showMessage(tr("ready", "Ready"), 3000)
+            self._status.setSizeGripEnabled(False)
+            self._status.setFixedHeight(0)
+            self._status.hide()
 
         return right_col
 
@@ -362,7 +362,8 @@ class MainWindow(QMainWindow):
                 hit = hit_test_resize(x, y, self.frameGeometry())
                 if hit is not None:
                     return True, hit
-        return super().nativeEvent(eventType, message)
+            return False, 0
+        return False, 0
 
     def _toggle_maximize(self):
         """Toggle between maximized and normal window states.

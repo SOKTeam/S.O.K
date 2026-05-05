@@ -91,9 +91,19 @@ class WorkerRunner:
         if on_progress and hasattr(worker, "progress"):
             worker.progress.connect(on_progress)
 
+        thread_ref = self._thread
+        worker_ref = worker
+
+        def _clear_if_current():
+            """Clear refs only if they still point to this finished thread/worker."""
+            if self._thread is thread_ref:
+                self._thread = None
+            if self._current_worker is worker_ref:
+                self._current_worker = None
+
         self._thread.finished.connect(worker.deleteLater)
         self._thread.finished.connect(self._thread.deleteLater)
-        self._thread.finished.connect(self._clear_refs)
+        self._thread.finished.connect(_clear_if_current)
 
         self._thread.start()
         return worker
@@ -113,12 +123,6 @@ class WorkerRunner:
         if not parent:
             return
         message = str(err) if err else tr("unknown_error", "An error occurred")
-
-        if hasattr(parent, "statusBar") and callable(parent.statusBar):
-            status = parent.statusBar()
-            if status:
-                status.showMessage(message, 8000)
-                return
 
         QMessageBox.critical(
             parent,
