@@ -99,37 +99,39 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         }
 
         rest = ""
-        series_pattern = r"(?P<title>.*?)[.\s-]+S(?P<season>\d{1,2})E(?P<episode>\d{1,2})(?P<rest>.*)"
-        match = re.search(series_pattern, filename, re.IGNORECASE)
+        series_patterns = [
+            r"(?P<title>.*?)[.\s_\-]+S(?P<season>\d{1,2})[.\s_\-]?E(?P<episode>\d{1,3})(?P<rest>.*)",
+            r"(?P<title>.*?)[.\s_\-]+(?P<season>\d{1,2})x(?P<episode>\d{1,3})(?P<rest>.*)",
+            r"(?P<title>.*?)[.\s_\-]+Season[.\s_\-]?(?P<season>\d{1,2})[.\s_\-]+(?:Episode|Ep|E)[.\s_\-]?(?P<episode>\d{1,3})(?P<rest>.*)",
+            r"(?P<title>.*?)[.\s_\-]+Saison[.\s_\-]?(?P<season>\d{1,2})[.\s_\-]+(?:Episode|Ep|E)[.\s_\-]?(?P<episode>\d{1,3})(?P<rest>.*)",
+            r"(?P<title>.*?)[.\s_\-]+\[?S(?P<season>\d{1,2})\]?[.\s_\-]?\[?E(?P<episode>\d{1,3})\]?(?P<rest>.*)",
+            r"(?P<title>.*?)[.\s_\-]+(?P<season>\d{1,2})\.(?P<episode>\d{2,3})(?:[.\s_\-]|$)(?P<rest>.*)",
+            r"(?P<title>.*?)[.\s_\-]+Ep(?:isode)?[.\s_\-]?(?P<episode>\d{1,3})(?P<rest>.*)",
+        ]
+
+        match = None
+        for idx, pattern in enumerate(series_patterns):
+            match = re.search(pattern, filename, re.IGNORECASE)
+            if match:
+                break
 
         if match:
             info["type"] = "series"
             info["title"] = self.clean_title(match.group("title"))
-            info["season"] = int(match.group("season"))
-            info["episode"] = int(match.group("episode"))
-            rest = match.group("rest")
+            groups = match.groupdict()
+            info["season"] = int(groups["season"]) if groups.get("season") else 1
+            info["episode"] = int(groups["episode"])
+            rest = match.group("rest") or ""
         else:
-            alt_pattern = r"(?P<title>.*?)[.\s-]+(?P<season>\d{1,2})x(?P<episode>\d{1,2})(?P<rest>.*)"
-            match = re.search(alt_pattern, filename, re.IGNORECASE)
+            info["type"] = "movie"
 
-            if match:
-                info["type"] = "series"
-                info["title"] = self.clean_title(match.group("title"))
-                info["season"] = int(match.group("season"))
-                info["episode"] = int(match.group("episode"))
-                rest = match.group("rest")
+            info["year"] = self.extract_year(filename)
+            if info["year"]:
+                info["title"] = self.clean_title(filename.split(str(info["year"]))[0])
             else:
-                info["type"] = "movie"
+                info["title"] = self.clean_title(os.path.splitext(filename)[0])
 
-                info["year"] = self.extract_year(filename)
-                if info["year"]:
-                    info["title"] = self.clean_title(
-                        filename.split(str(info["year"]))[0]
-                    )
-                else:
-                    info["title"] = self.clean_title(os.path.splitext(filename)[0])
-
-                rest = filename
+            rest = filename
 
         if rest:
             quality_info = self.extract_quality_metadata(rest)

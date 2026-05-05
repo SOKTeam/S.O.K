@@ -140,7 +140,8 @@ class OptionsPanel(QWidget):
         Args:
             paths: List of dropped folder paths (only first used).
         """
-        self.destination_changed.emit(self._dest_drop.get_path())
+        dest_path = self._dest_drop.get_path()
+        self.destination_changed.emit(str(dest_path) if dest_path else "")
 
     def get_destination_path(self) -> Path | None:
         """Get the selected destination path.
