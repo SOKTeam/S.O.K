@@ -1,6 +1,6 @@
 [project]
 name = "sok"
-version = "1.0.0"
+version = "1.0.1"
 description = "Storage Organisation Kit - Universal Media Manager"
 authors = [
     {name = "S.O.K Team", email = "contact@sok.com"}
