@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/SOKTeam/S.O.K/compare/v1.0.1...v1.1.0) (2026-06-02)
+
+
+### Features
+
+* **ui:** add dedicated movies page with batch rename ([1f0be8e](https://github.com/SOKTeam/S.O.K/commit/1f0be8e7ae40645d68a12f18809c2a0c24e6b72b))
+
 ## [1.0.1](https://github.com/SOKTeam/S.O.K/compare/v1.0.0...v1.0.1) (2026-05-05)
 
 
