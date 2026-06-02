@@ -43,6 +43,7 @@ from sok.ui.components.window import WindowControlButton
 from sok.ui.controllers.window_chrome import hit_test_resize
 from sok.ui.pages.home_page import HomePage
 from sok.ui.pages.organize_page import OrganizePage
+from sok.ui.pages.movies_page import MoviesPage
 from sok.ui.pages.settings_page import SettingsPage
 from sok.ui.components.integrations.discord import setup_discord_rpc
 from sok.ui.components.integrations.updates import check_and_show_updates
@@ -177,13 +178,15 @@ class MainWindow(QMainWindow):
         self._nav.append(home_btn)
 
         for text_key, icon_name, idx in [
-            ("videos", "video", 1),
-            ("music", "music", 2),
-            ("books", "book", 3),
-            ("games", "game", 4),
+            ("tv_shows", "video", 1),
+            ("movies", "video", 2),
+            ("music", "music", 3),
+            ("books", "book", 4),
+            ("games", "game", 5),
         ]:
             default_text = {
-                "videos": "Videos",
+                "tv_shows": "TV Shows",
+                "movies": "Movies",
                 "music": "Music",
                 "books": "Books",
                 "games": "Games",
@@ -204,7 +207,7 @@ class MainWindow(QMainWindow):
         sb_layout.addWidget(self.lbl_general)
 
         settings_btn = SidebarButton(tr("settings", "Settings"), "settings")
-        settings_btn.clicked.connect(lambda: self._go(5))
+        settings_btn.clicked.connect(lambda: self._go(6))
         sb_layout.addWidget(settings_btn)
         self._nav.append(settings_btn)
 
@@ -283,10 +286,10 @@ class MainWindow(QMainWindow):
         self._max_btn.clicked.connect(self._toggle_maximize)
         header_layout.addWidget(self._max_btn)
 
-        close_btn = WindowControlButton("cross", "#FF5555")
-        close_btn.top_right_radius = 12
-        close_btn.clicked.connect(self.close)
-        header_layout.addWidget(close_btn)
+        self._close_btn = WindowControlButton("cross", "#FF5555")
+        self._close_btn.top_right_radius = 12
+        self._close_btn.clicked.connect(self.close)
+        header_layout.addWidget(self._close_btn)
 
         return header
 
@@ -300,6 +303,7 @@ class MainWindow(QMainWindow):
         self._pages.addWidget(home_page)
 
         self._pages.addWidget(OrganizePage("video"))
+        self._pages.addWidget(MoviesPage())
         self._pages.addWidget(OrganizePage("music"))
         self._pages.addWidget(OrganizePage("book"))
         self._pages.addWidget(OrganizePage("game"))
@@ -338,6 +342,21 @@ class MainWindow(QMainWindow):
                 btn.setText(titles[i])
 
         self._update_title_by_index(self._pages.currentIndex())
+
+    def changeEvent(self, event):
+        """Re-apply styles when the maximized state flips.
+
+        Window radii must be 0 when maximized (so corners fill the screen)
+        and 12 when restored. Reads the state from the windowState bitmask
+        directly — ``isMaximized()`` can lag the event during animated
+        transitions.
+        """
+        from PySide6.QtCore import QEvent
+
+        if event.type() == QEvent.Type.WindowStateChange:
+            is_max = bool(self.windowState() & Qt.WindowState.WindowMaximized)
+            self._style(is_maximized=is_max)
+        super().changeEvent(event)
 
     def nativeEvent(self, eventType, message):
         """Handle native Windows events for frameless window resize.
@@ -389,6 +408,7 @@ class MainWindow(QMainWindow):
                 self.showNormal()
                 self._max_btn._icon_name = "square"
                 self._max_btn.update()
+                self._style(is_maximized=False)
 
             self._anim_geo.finished.connect(on_restore_finished)
             self._anim_geo.start()
@@ -408,6 +428,7 @@ class MainWindow(QMainWindow):
                 self.showMaximized()
                 self._max_btn._icon_name = "restore"
                 self._max_btn.update()
+                self._style(is_maximized=True)
 
             self._anim_geo.finished.connect(on_max_finished)
             self._anim_geo.start()
@@ -499,7 +520,8 @@ class MainWindow(QMainWindow):
         """
         return [
             tr("home", "Home"),
-            tr("videos", "Videos"),
+            tr("tv_shows", "TV Shows"),
+            tr("movies", "Movies"),
             tr("music", "Music"),
             tr("books", "Books"),
             tr("games", "Games"),
@@ -574,13 +596,24 @@ class MainWindow(QMainWindow):
         self._style()
         self.update()
 
-    def _style(self):
+    def _style(self, is_maximized: bool | None = None):
         """Apply current theme stylesheet to the window.
 
         Generates and applies CSS based on current color theme.
+
+        Args:
+            is_maximized: Optional explicit override. When None, falls back
+                to ``self.isMaximized()`` — but during animated transitions
+                that flag is not reliable, so callers should pass it.
         """
         c = self.c
         font = Theme.FONT
+        if is_maximized is None:
+            is_maximized = self.isMaximized()
+        outer_radius = 0 if is_maximized else 12
+        if hasattr(self, "_close_btn"):
+            self._close_btn.top_right_radius = outer_radius
+            self._close_btn.update()
 
         self.setStyleSheet(
             f"""
@@ -597,8 +630,8 @@ class MainWindow(QMainWindow):
             #Sidebar {{
                 background: {c["card"]};
                 border-right: 1px solid {c["separator"]};
-                border-top-left-radius: 12px;
-                border-bottom-left-radius: 12px;
+                border-top-left-radius: {outer_radius}px;
+                border-bottom-left-radius: {outer_radius}px;
             }}
 
             #SidebarSection {{
@@ -613,8 +646,8 @@ class MainWindow(QMainWindow):
             /* Right Column (Background + Radius) */
             #RightCol {{
                 background: {c["bg"]};
-                border-top-right-radius: 12px;
-                border-bottom-right-radius: 12px;
+                border-top-right-radius: {outer_radius}px;
+                border-bottom-right-radius: {outer_radius}px;
             }}
 
             /* Header */

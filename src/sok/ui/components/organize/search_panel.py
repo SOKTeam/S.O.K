@@ -121,6 +121,8 @@ class SearchPanel(QWidget):
         self._type_combo.currentIndexChanged.connect(self._on_type_changed)
         self._populate_type_combo()
         sr_layout.addWidget(self._type_combo)
+        if self._type_combo.count() <= 1:
+            self._type_combo.hide()
 
         self._search_input = SearchBar("")
         self._search_input.setFixedHeight(28)
@@ -179,7 +181,6 @@ class SearchPanel(QWidget):
 
         if self._media_type == "video":
             self._type_combo.addItem(tr("tv_series", "TV Series"), "tv")
-            self._type_combo.addItem(tr("movie", "Movie"), "movie")
         elif self._media_type == "music":
             self._type_combo.addItem(tr("album", "Album"), "album")
             self._type_combo.addItem(tr("artist", "Artist"), "artist")
@@ -404,3 +405,4 @@ class SearchPanel(QWidget):
             if self._type_combo.itemData(i) == current_data:
                 self._type_combo.setCurrentIndex(i)
                 break
+        self._type_combo.setVisible(self._type_combo.count() > 1)

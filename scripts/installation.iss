@@ -1,6 +1,6 @@
 ; --- CONFIGURATION GENERALE ---
 #define MyAppName "S.O.K"
-#define MyAppVersion "1.0.1"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "SOK Team"
 #define MyAppURL "https://github.com/SOKTeam/S.O.K"
 #define MyAppExeName "SOK.exe"

@@ -428,19 +428,24 @@ class HomePage(QScrollArea):
         self.video_btn.clicked.connect(lambda: self.navigate.emit(1))
         self.video_btn.setGraphicsEffect(card_shadow())
 
+        self.movie_btn = QuickActionCard("", "", "video")
+        self.movie_btn.clicked.connect(lambda: self.navigate.emit(2))
+        self.movie_btn.setGraphicsEffect(card_shadow())
+
         self.music_btn = QuickActionCard("", "", "music")
-        self.music_btn.clicked.connect(lambda: self.navigate.emit(2))
+        self.music_btn.clicked.connect(lambda: self.navigate.emit(3))
         self.music_btn.setGraphicsEffect(card_shadow())
 
         self.book_btn = QuickActionCard("", "", "book")
-        self.book_btn.clicked.connect(lambda: self.navigate.emit(3))
+        self.book_btn.clicked.connect(lambda: self.navigate.emit(4))
         self.book_btn.setGraphicsEffect(card_shadow())
 
         self.game_btn = QuickActionCard("", "", "game")
-        self.game_btn.clicked.connect(lambda: self.navigate.emit(4))
+        self.game_btn.clicked.connect(lambda: self.navigate.emit(5))
         self.game_btn.setGraphicsEffect(card_shadow())
 
         actions_layout.addWidget(self.video_btn)
+        actions_layout.addWidget(self.movie_btn)
         actions_layout.addWidget(self.music_btn)
         actions_layout.addWidget(self.book_btn)
         actions_layout.addWidget(self.game_btn)
@@ -466,11 +471,13 @@ class HomePage(QScrollArea):
         self.status_label.setText(tr("drive_monitors", "DRIVE MONITORS"))
         self.actions_label.setText(tr("quick_access", "QUICK ACCESS"))
 
-        self.video_btn._title = tr("videos", "Videos")
-        self.video_btn._subtitle = tr(
-            "organize_movies_tv", "Organize movies & TV shows"
-        )
+        self.video_btn._title = tr("tv_shows", "TV Shows")
+        self.video_btn._subtitle = tr("organize_tv_shows", "Organize TV shows")
         self.video_btn.update()
+
+        self.movie_btn._title = tr("movies", "Movies")
+        self.movie_btn._subtitle = tr("organize_movies", "Batch rename movies")
+        self.movie_btn.update()
 
         self.music_btn._title = tr("music", "Music")
         self.music_btn._subtitle = tr("organize_music_library", "Tag your albums")
