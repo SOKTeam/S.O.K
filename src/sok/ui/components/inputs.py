@@ -174,17 +174,30 @@ class DropZone(QFrame):
 
     files_dropped = Signal(list)
 
-    def __init__(self, multi_select: bool = False, parent=None):
+    def __init__(
+        self,
+        multi_select: bool = False,
+        file_mode: bool = False,
+        file_extensions: list[str] | None = None,
+        placeholder: str | None = None,
+        parent=None,
+    ):
         """Initialize the drop zone.
 
         Args:
-            multi_select: Allow multiple folder selection.
+            multi_select: Allow multiple selection.
+            file_mode: If True, pick files instead of folders.
+            file_extensions: Allowed extensions (with leading dot) when in file_mode.
+            placeholder: Optional custom placeholder text shown when empty.
             parent: Parent widget.
         """
         super().__init__(parent)
         self._files: list[Path] = []
         self._hover = False
         self._multi_select = multi_select
+        self._file_mode = file_mode
+        self._file_extensions = [e.lower() for e in (file_extensions or [])]
+        self._placeholder = placeholder
         self.setAcceptDrops(True)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setObjectName("DropZone")
@@ -234,7 +247,12 @@ class DropZone(QFrame):
                 self._layout.addWidget(row)
 
             if self._multi_select:
-                add_btn = QPushButton(tr("add_folder", "+ Add Folder"))
+                add_btn_label = (
+                    tr("add_files", "+ Add files")
+                    if self._file_mode
+                    else tr("add_folder", "+ Add Folder")
+                )
+                add_btn = QPushButton(add_btn_label)
                 add_btn.setCursor(Qt.CursorShape.PointingHandCursor)
                 add_btn.setStyleSheet(
                     """
@@ -269,7 +287,33 @@ class DropZone(QFrame):
             self.files_dropped.emit(self._files)
 
     def _open_dialog(self):
-        """Open the file selection dialog."""
+        """Open the file or folder selection dialog."""
+        if self._file_mode:
+            filter_str = ""
+            if self._file_extensions:
+                exts = " ".join(f"*{e}" for e in self._file_extensions)
+                filter_str = f"{tr('files', 'Files')} ({exts})"
+            files, _ = QFileDialog.getOpenFileNames(
+                self, tr("select_files_dialog", "Select files"), "", filter_str
+            )
+            if not files:
+                return
+            paths = [Path(f) for f in files if Path(f).is_file()]
+            if self._multi_select:
+                changed = False
+                for p in paths:
+                    if p not in self._files:
+                        self._files.append(p)
+                        changed = True
+                if changed:
+                    self._update_ui()
+                    self.files_dropped.emit(self._files)
+            else:
+                self._files = paths[:1]
+                self._update_ui()
+                self.files_dropped.emit(self._files)
+            return
+
         if self._multi_select:
             folder = QFileDialog.getExistingDirectory(
                 self, tr("select_folder_dialog", "Add a folder")
@@ -316,11 +360,22 @@ class DropZone(QFrame):
             e: Drop event.
         """
         self._hover = False
-        new_files = [
-            Path(u.toLocalFile())
-            for u in e.mimeData().urls()
-            if Path(u.toLocalFile()).is_dir()
-        ]
+        if self._file_mode:
+            new_files = []
+            for u in e.mimeData().urls():
+                p = Path(u.toLocalFile())
+                if p.is_file():
+                    if (
+                        not self._file_extensions
+                        or p.suffix.lower() in self._file_extensions
+                    ):
+                        new_files.append(p)
+        else:
+            new_files = [
+                Path(u.toLocalFile())
+                for u in e.mimeData().urls()
+                if Path(u.toLocalFile()).is_dir()
+            ]
         if not new_files:
             return
 
@@ -378,8 +433,10 @@ class DropZone(QFrame):
         if not self._files:
             p.setPen(parse_color(c["secondary"]))
             p.setFont(QFont(Theme.FONT, 12))
-            p.drawText(
-                rect,
-                Qt.AlignmentFlag.AlignCenter,
-                tr("drag_drop_folder", "Glissez un dossier ou cliquez"),
-            )
+            if self._placeholder:
+                placeholder = self._placeholder
+            elif self._file_mode:
+                placeholder = tr("drag_drop_files", "Drag and drop files or click")
+            else:
+                placeholder = tr("drag_drop_folder", "Drag and drop a folder or click")
+            p.drawText(rect, Qt.AlignmentFlag.AlignCenter, placeholder)

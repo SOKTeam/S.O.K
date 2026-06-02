@@ -228,7 +228,7 @@ class OrganizePage(QScrollArea):
         self._translations = get_config_manager().load_language()
 
         titles = {
-            "video": tr("videos", "Videos"),
+            "video": tr("tv_shows", "TV Shows"),
             "music": tr("music", "Music"),
             "book": tr("books", "Books"),
             "game": tr("games", "Games"),

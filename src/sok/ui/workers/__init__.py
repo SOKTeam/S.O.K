@@ -17,6 +17,10 @@ from sok.ui.workers.search_worker import SearchWorker
 from sok.ui.workers.details_worker import DetailsWorker
 from sok.ui.workers.organize_worker import OrganizeWorker
 from sok.ui.workers.folder_worker import CreateFoldersWorker
+from sok.ui.workers.movie_batch_worker import (
+    MovieBatchSearchWorker,
+    MovieBatchOrganizeWorker,
+)
 
 __all__ = [
     "BaseWorker",
@@ -24,4 +28,6 @@ __all__ = [
     "DetailsWorker",
     "OrganizeWorker",
     "CreateFoldersWorker",
+    "MovieBatchSearchWorker",
+    "MovieBatchOrganizeWorker",
 ]

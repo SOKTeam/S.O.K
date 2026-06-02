@@ -539,6 +539,98 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
 
         return report
 
+    def organize_movies_batch(
+        self,
+        mappings: List[tuple],
+        dest_path: str,
+        dry_run: bool = False,
+        progress_callback: Optional[Callable[[int, int, str], None]] = None,
+    ) -> Dict[str, Any]:
+        """Organize a list of movie files, each with its own Movie metadata.
+
+        Unlike organize_files_list, this method accepts per-file media items,
+        enabling batch renaming where each file maps to a different movie.
+
+        Args:
+            mappings: List of (Path, Movie) pairs. Files without a movie are
+                reported as errors.
+            dest_path: Destination folder.
+            dry_run: If True, simulate without making changes.
+            progress_callback: Called with (current, total, filename).
+
+        Returns:
+            Organization report with moved/errors/skipped.
+        """
+        config = get_config_manager()
+        skip_duplicates = config.get("skip_duplicates", False)
+        backup_before_rename = config.get("backup_before_rename", False)
+        log_operations = config.get("log_operations", True)
+
+        report: Dict[str, Any] = {
+            "moved": [],
+            "errors": [],
+            "skipped": [],
+            "total_files": len(mappings),
+            "total_moved": 0,
+        }
+
+        for idx, (file_path, movie) in enumerate(mappings):
+            file = file_path.name
+            source_file = str(file_path)
+
+            if progress_callback:
+                progress_callback(idx + 1, len(mappings), file)
+
+            if movie is None:
+                report["errors"].append(
+                    {"file": source_file, "error": "No movie selected"}
+                )
+                continue
+
+            if not isinstance(movie, Movie):
+                report["errors"].append(
+                    {"file": source_file, "error": "Invalid media item"}
+                )
+                continue
+
+            new_filename = self.generate_new_filename(movie, file)
+            dest_file = os.path.join(dest_path, new_filename)
+
+            if skip_duplicates and os.path.exists(dest_file):
+                report["skipped"].append(
+                    {"file": source_file, "reason": "File already exists"}
+                )
+                if log_operations:
+                    logger.info("Skipped duplicate: %s", source_file)
+                continue
+
+            if dry_run:
+                report["moved"].append({"from": source_file, "to": dest_file})
+                report["total_moved"] += 1
+                continue
+
+            try:
+                if backup_before_rename and os.path.exists(dest_file):
+                    backup_path = f"{dest_file}.backup"
+                    if os.path.exists(backup_path):
+                        os.remove(backup_path)
+                    shutil.copy2(dest_file, backup_path)
+                    if log_operations:
+                        logger.info("Backup created: %s", backup_path)
+
+                os.rename(source_file, dest_file)
+                report["moved"].append({"from": source_file, "to": dest_file})
+                report["total_moved"] += 1
+                if log_operations:
+                    logger.info("Moved: %s -> %s", source_file, dest_file)
+            except OSError as e:
+                logger.exception(
+                    "Movie batch move failed for %s", source_file, exc_info=e
+                )
+                report["errors"].append({"file": source_file, "error": str(e)})
+
+        return report
+
     def detect_video_info(self, file_path: str) -> Dict[str, Any]:
         """Detect video information (resolution, codec, duration, etc.).
 
