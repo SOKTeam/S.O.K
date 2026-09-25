@@ -330,7 +330,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         all_video_files = []
         for root, dirs, files in os.walk(source_path):
             for file in files:
-                if any(file.endswith(ext) for ext in self.supported_extensions):
+                if any(file.lower().endswith(ext) for ext in self.supported_extensions):
                     all_video_files.append((root, file))
 
         total_files = len(all_video_files)
