@@ -181,5 +181,22 @@
     "select_files_dialog": "Select files",
     "drag_drop_files": "Drag and drop files or click",
     "drag_drop_dest_folder": "Drop the destination folder here or click to choose",
-    "add_more_movies": "+ Add more movies"
+    "add_more_movies": "+ Add more movies",
+    "download_and_install": "Download and Install",
+    "download_failed": "Download failed:\n{msg}",
+    "download_link_not_found": "Unable to find the download link.",
+    "errors": "error(s)",
+    "files_processed": "file(s) processed",
+    "go": "Go",
+    "ignore": "Ignore",
+    "log_title": "Log",
+    "no_logs": "No operation in progress",
+    "operation_completed": "Operation completed",
+    "operation_completed_with_errors": "Operation completed with errors",
+    "succeeded": "succeeded",
+    "task_failed": "Task failed",
+    "unknown_error": "An error occurred",
+    "update_available_header": "A new version (v{version}) is available!",
+    "update_available_title": "Update available: v{version}",
+    "update_error": "Update error"
 }

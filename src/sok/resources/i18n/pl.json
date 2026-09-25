@@ -181,5 +181,22 @@
     "select_files_dialog": "Wybierz pliki",
     "drag_drop_files": "Przeciągnij pliki lub kliknij",
     "drag_drop_dest_folder": "Przeciągnij folder docelowy lub kliknij",
-    "add_more_movies": "+ Dodaj więcej filmów"
+    "add_more_movies": "+ Dodaj więcej filmów",
+    "download_and_install": "Pobierz i zainstaluj",
+    "download_failed": "Pobieranie nie powiodło się:\n{msg}",
+    "download_link_not_found": "Nie znaleziono linku do pobrania.",
+    "errors": "błąd(ów)",
+    "files_processed": "plik(ów) przetworzono",
+    "go": "OK",
+    "ignore": "Ignoruj",
+    "log_title": "Dziennik",
+    "no_logs": "Brak operacji w toku",
+    "operation_completed": "Operacja zakończona",
+    "operation_completed_with_errors": "Operacja zakończona z błędami",
+    "succeeded": "udanych",
+    "task_failed": "Zadanie nie powiodło się",
+    "unknown_error": "Wystąpił błąd",
+    "update_available_header": "Dostępna jest nowa wersja (v{version})!",
+    "update_available_title": "Dostępna aktualizacja: v{version}",
+    "update_error": "Błąd aktualizacji"
 }

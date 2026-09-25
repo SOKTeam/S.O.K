@@ -55,6 +55,9 @@ jobs:
         run: uv run ruff format --check src
         continue-on-error: false
 
+      - name: Translation keys (i18n)
+        run: uv run python tools/verify_i18n.py
+
       - name: Type check (mypy)
         run: uv run mypy --install-types --non-interactive src/sok --ignore-missing-imports --no-strict-optional
         continue-on-error: false

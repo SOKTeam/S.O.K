@@ -15,6 +15,7 @@ Scans source code for tr("key", ...) calls and compares with JSON translation fi
 """
 
 import re
+import sys
 import json
 from pathlib import Path
 from typing import Set, Dict
@@ -23,7 +24,7 @@ from typing import Set, Dict
 def scan_code_for_keys(src_dir: Path) -> Set[str]:
     """Scans Python files for tr("key", ...) patterns."""
     keys = set()
-    pattern = re.compile(r'tr([\'"])(.+?)\1\s*[,)]')
+    pattern = re.compile(r'\btr\(\s*([\'"])(.+?)\1\s*[,)]')
 
     for path in src_dir.rglob("*.py"):
         try:
@@ -65,7 +66,7 @@ def main():
 
     if not lang_keys:
         print("No translation files found!")
-        return
+        sys.exit(1)
 
     all_ok = True
 
@@ -93,6 +94,7 @@ def main():
         print("Perfect! All code keys are translated in all languages.")
     else:
         print("Some translations are missing. Please update your JSON files.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
