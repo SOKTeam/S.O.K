@@ -46,7 +46,7 @@ from sok.ui.platform import (
     use_native_title_bar,
 )
 from sok.ui.macos_menu import MacMenuBar
-from sok.ui.components.sidebar import SidebarButton
+from sok.ui.components.sidebar import SidebarButton, SidebarToggleButton
 from sok.ui.components.window import WindowControlButton
 from sok.ui.controllers.window_chrome import hit_test_resize
 from sok.ui.pages.home_page import HomePage
@@ -150,6 +150,14 @@ class MainWindow(QMainWindow):
         right_col = self._build_right_column()
         main_layout.addWidget(right_col, 1)
 
+        if IS_MACOS:
+            # Stays next to the traffic lights whatever the sidebar width.
+            toggle = SidebarToggleButton(central)
+            toggle.setToolTip(tr("toggle_sidebar", "Show/Hide Sidebar"))
+            toggle.clicked.connect(self._toggle_sidebar)
+            toggle.move(74, (MACOS_TITLEBAR_HEIGHT - toggle.height()) // 2)
+            toggle.raise_()
+
         self._nav[0].setChecked(True)
         self._go(0)
 
@@ -178,9 +186,13 @@ class MainWindow(QMainWindow):
         sb_layout.setContentsMargins(0, top_margin, 0, 12)
         sb_layout.setSpacing(0)
 
-        self._menu_btn = SidebarButton("", "menu")
-        self._menu_btn.clicked.connect(self._toggle_sidebar)
-        sb_layout.addWidget(self._menu_btn)
+        # macOS shows a sidebar button next to the traffic lights instead
+        # (see _build).
+        self._menu_btn: SidebarButton | None = None
+        if not IS_MACOS:
+            self._menu_btn = SidebarButton("", "menu")
+            self._menu_btn.clicked.connect(self._toggle_sidebar)
+            sb_layout.addWidget(self._menu_btn)
 
         self.lbl_library = QLabel(tr("library", "Library"))
         self.lbl_library.setObjectName("SidebarSection")
@@ -623,7 +635,8 @@ class MainWindow(QMainWindow):
 
             for btn in self._nav:
                 btn.set_progress(value)
-            self._menu_btn.set_progress(value)
+            if self._menu_btn:
+                self._menu_btn.set_progress(value)
 
             for effect in self._sidebar_labels:
                 effect.setOpacity(value)
@@ -735,6 +748,19 @@ class MainWindow(QMainWindow):
             self._close_btn.update()
         tone_rules = tone_stylesheet(c)
         mac_rules = self._mac_rules(c) if IS_MACOS else ""
+        # Finder sidebar headings: gray, not capitalized.
+        sidebar_section_mac = (
+            f"""
+            #SidebarSection {{
+                color: {c["secondary"]};
+                padding: 14px 18px 4px 18px;
+                text-transform: none;
+                letter-spacing: 0;
+            }}
+            """
+            if IS_MACOS
+            else ""
+        )
 
         self.setStyleSheet(
             f"""
@@ -763,6 +789,8 @@ class MainWindow(QMainWindow):
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
             }}
+
+            {sidebar_section_mac}
 
             /* Right Column (Background + Radius) */
             #RightCol {{
