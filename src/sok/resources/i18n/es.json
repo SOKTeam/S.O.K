@@ -181,5 +181,22 @@
     "select_files_dialog": "Seleccionar archivos",
     "drag_drop_files": "Arrastra y suelta archivos o haz clic",
     "drag_drop_dest_folder": "Arrastra la carpeta de destino o haz clic",
-    "add_more_movies": "+ Añadir más películas"
+    "add_more_movies": "+ Añadir más películas",
+    "download_and_install": "Descargar e instalar",
+    "download_failed": "Error en la descarga:\n{msg}",
+    "download_link_not_found": "No se encontró el enlace de descarga.",
+    "errors": "error(es)",
+    "files_processed": "archivo(s) procesado(s)",
+    "go": "Ir",
+    "ignore": "Ignorar",
+    "log_title": "Registro",
+    "no_logs": "Ninguna operación en curso",
+    "operation_completed": "Operación completada",
+    "operation_completed_with_errors": "Operación completada con errores",
+    "succeeded": "correcto(s)",
+    "task_failed": "La tarea ha fallado",
+    "unknown_error": "Se ha producido un error",
+    "update_available_header": "¡Hay una nueva versión (v{version}) disponible!",
+    "update_available_title": "Actualización disponible: v{version}",
+    "update_error": "Error de actualización"
 }

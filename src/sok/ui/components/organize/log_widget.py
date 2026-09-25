@@ -82,7 +82,7 @@ class OrganizeLogWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
-        self._title_label = QLabel(tr("log_title", "Journal"))
+        self._title_label = QLabel(tr("log_title", "Log"))
         self._title_label.setObjectName("SectionLabel")
         layout.addWidget(self._title_label)
 

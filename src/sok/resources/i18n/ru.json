@@ -181,5 +181,22 @@
     "select_files_dialog": "Выбрать файлы",
     "drag_drop_files": "Перетащите файлы или нажмите",
     "drag_drop_dest_folder": "Перетащите папку назначения или нажмите",
-    "add_more_movies": "+ Добавить ещё фильмы"
+    "add_more_movies": "+ Добавить ещё фильмы",
+    "download_and_install": "Скачать и установить",
+    "download_failed": "Ошибка загрузки:\n{msg}",
+    "download_link_not_found": "Не удалось найти ссылку для загрузки.",
+    "errors": "ошибок",
+    "files_processed": "файл(ов) обработано",
+    "go": "ОК",
+    "ignore": "Пропустить",
+    "log_title": "Журнал",
+    "no_logs": "Нет выполняемых операций",
+    "operation_completed": "Операция завершена",
+    "operation_completed_with_errors": "Операция завершена с ошибками",
+    "succeeded": "успешно",
+    "task_failed": "Задача не выполнена",
+    "unknown_error": "Произошла ошибка",
+    "update_available_header": "Доступна новая версия (v{version})!",
+    "update_available_title": "Доступно обновление: v{version}",
+    "update_error": "Ошибка обновления"
 }
