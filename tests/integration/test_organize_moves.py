@@ -120,3 +120,17 @@ class TestMoveFile:
 
         assert destination.read_text() == "old"
         assert not (tmp_path / "file.mkv.backup").exists()
+
+
+class TestVideoOrganizeFiles:
+    def test_files_are_moved_without_progress_callback(self, tmp_path, movie):
+        source = tmp_path / "downloads"
+        source.mkdir()
+        (source / "matrix.1999.mkv").write_text("video")
+        dest = tmp_path / "library"
+
+        report = VideoFileOperations().organize_files(str(source), str(dest), movie)
+
+        assert report["errors"] == []
+        assert report["total_moved"] == 1
+        assert not (source / "matrix.1999.mkv").exists()

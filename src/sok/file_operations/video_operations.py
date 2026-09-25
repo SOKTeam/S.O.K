@@ -357,44 +357,44 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             if progress_callback:
                 progress_callback(idx + 1, total_files, file)
 
-                info = self.extract_info_from_filename(file)
+            info = self.extract_info_from_filename(file)
 
-                if isinstance(media_item, Series) and info["season"] is not None:
-                    season_num = info["season"]
+            if isinstance(media_item, Series) and info["season"] is not None:
+                season_num = info["season"]
 
-                    existing_season_folder = self._find_existing_season_folder(
-                        base_path, season_num
+                existing_season_folder = self._find_existing_season_folder(
+                    base_path, season_num
+                )
+
+                if existing_season_folder:
+                    dest_folder = existing_season_folder
+                else:
+                    season_folder_name = self._find_season_in_structure(
+                        folder_structure, season_num
                     )
+                    dest_folder = os.path.join(base_path, season_folder_name)
+            else:
+                dest_folder = base_path
 
-                    if existing_season_folder:
-                        dest_folder = existing_season_folder
-                    else:
-                        season_folder_name = self._find_season_in_structure(
-                            folder_structure, season_num
-                        )
-                        dest_folder = os.path.join(base_path, season_folder_name)
-                else:
-                    dest_folder = base_path
+            new_filename = self.generate_new_filename(media_item, file)
+            dest_file = os.path.join(dest_folder, new_filename)
 
-                new_filename = self.generate_new_filename(media_item, file)
-                dest_file = os.path.join(dest_folder, new_filename)
+            if not dry_run:
+                try:
+                    if not os.path.exists(dest_folder):
+                        os.makedirs(dest_folder, exist_ok=True)
 
-                if not dry_run:
-                    try:
-                        if not os.path.exists(dest_folder):
-                            os.makedirs(dest_folder, exist_ok=True)
-
-                        move_file(source_file, dest_file)
-                        report["moved"].append({"from": source_file, "to": dest_file})
-                        report["total_moved"] += 1
-                    except OSError as e:
-                        logger.exception(
-                            "Video organize move failed for %s", source_file, exc_info=e
-                        )
-                        report["errors"].append({"file": source_file, "error": str(e)})
-                else:
+                    move_file(source_file, dest_file)
                     report["moved"].append({"from": source_file, "to": dest_file})
                     report["total_moved"] += 1
+                except OSError as e:
+                    logger.exception(
+                        "Video organize move failed for %s", source_file, exc_info=e
+                    )
+                    report["errors"].append({"file": source_file, "error": str(e)})
+            else:
+                report["moved"].append({"from": source_file, "to": dest_file})
+                report["total_moved"] += 1
 
         return report
 
