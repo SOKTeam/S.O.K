@@ -49,7 +49,11 @@ def configure_logging():
         return
 
     log_level = os.getenv("SOK_LOG_LEVEL", "INFO").upper()
-    log_dir = get_app_data_dir() / "logs"
+    if IS_COMPILED and sys.platform == "darwin":
+        # The .app bundle is read-only; macOS apps log to ~/Library/Logs.
+        log_dir = Path.home() / "Library" / "Logs" / "S.O.K"
+    else:
+        log_dir = get_app_data_dir() / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_dir / "sok.log"
 

@@ -40,9 +40,13 @@ def get_base_path() -> Path:
     """Get the base path for the application.
 
     Returns:
-        Path to executable directory if compiled,
-        or project root directory if running from source.
+        Path to executable directory if compiled (the user Application
+        Support folder on macOS), or project root directory if running
+        from source.
     """
+    if IS_COMPILED and sys.platform == "darwin":
+        # The .app bundle is read-only and replaced by updates.
+        return Path.home() / "Library" / "Application Support" / "S.O.K"
     if IS_COMPILED:
         return Path(sys.executable).parent
     return Path(__file__).resolve().parents[3]
