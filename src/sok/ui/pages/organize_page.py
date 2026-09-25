@@ -47,6 +47,7 @@ from sok.config import get_config_manager
 from sok.ui.i18n import tr
 from sok.ui.pages.organize_preview_panel import PreviewPanel
 from sok.ui import message_box
+from sok.ui.platform import request_attention
 from sok.media.video.series import Series
 
 FileOperations = (
@@ -601,6 +602,7 @@ class OrganizePage(QScrollArea):
         num_created = report.get("created", 0)
         errors = report.get("errors", [])
         dest = self._destination_folder()
+        request_attention(self)
 
         if errors:
             message_box.warning(
@@ -631,6 +633,7 @@ class OrganizePage(QScrollArea):
             error: Error message string describing the failure.
         """
         self._set_progress(False)
+        request_attention(self)
         self._options_panel.set_create_folders_enabled(True)
         self._options_panel.set_create_folders_text(
             tr("create_series_folders", "Create series folders")
@@ -798,6 +801,7 @@ class OrganizePage(QScrollArea):
         self._set_progress(False)
         self._options_panel.set_action_enabled(True)
         dest = self._destination_folder()
+        request_attention(self)
 
         if report["errors"]:
             message_box.warning(
@@ -831,6 +835,7 @@ class OrganizePage(QScrollArea):
             error: Error message string describing the failure.
         """
         self._set_progress(False)
+        request_attention(self)
         self._options_panel.set_action_enabled(True)
         message_box.critical(
             self, tr("error", "Error"), f"{tr('error_prefix', 'Error:')} {error}"

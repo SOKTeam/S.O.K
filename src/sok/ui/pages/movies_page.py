@@ -55,6 +55,7 @@ from sok.ui.workers import (
     SearchWorker,
 )
 from sok.ui import message_box
+from sok.ui.platform import request_attention
 
 logger = logging.getLogger(__name__)
 
@@ -354,6 +355,7 @@ class MoviesPage(QScrollArea):
         errors = report.get("errors", [])
         dest = self._dest_drop.get_path()
         reveal = Path(dest) if dest and Path(dest).is_dir() else None
+        request_attention(self)
 
         if errors:
             message_box.warning(
@@ -377,6 +379,7 @@ class MoviesPage(QScrollArea):
 
     def _on_organize_error(self, error: str) -> None:
         self._set_progress(False)
+        request_attention(self)
         self._action_btn.setEnabled(True)
         self._rescan_all_btn.setEnabled(True)
         message_box.critical(
