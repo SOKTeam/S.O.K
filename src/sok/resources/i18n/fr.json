@@ -162,7 +162,7 @@
     "movies": "Films",
     "organize_tv_shows": "Organiser les séries",
     "organize_movies": "Renommer plusieurs films",
-    "movies_drop_hint": "Glissez des dossiers pour commencer",
+    "movies_drop_hint": "Glissez des fichiers vidéo ou des dossiers, ou cliquez pour parcourir",
     "movie_title_year": "Titre (année optionnelle)",
     "rescan": "Re-scanner",
     "rescan_all": "Tout re-scanner",
