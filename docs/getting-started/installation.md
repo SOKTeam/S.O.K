@@ -1,5 +1,26 @@
 # Installation
 
+## Installing on macOS
+
+S.O.K runs on Macs with Apple Silicon (M1 or later).
+
+1. Download `SOK_macOS_v<version>.dmg` from the S.O.K website.
+2. Open it and drag **S.O.K** onto the **Applications** folder.
+3. Open S.O.K from the Applications folder.
+
+S.O.K is not notarized by Apple, so the first launch is blocked with a
+message saying Apple cannot check it for malicious software. To allow it:
+
+1. Click **Done** in that message.
+2. Open **System Settings** > **Privacy & Security**.
+3. Next to the message about S.O.K, click **Open Anyway**, then confirm.
+
+You only need to do this once. Later updates downloaded by S.O.K itself
+open the new disk image directly: drag the new app onto the old one.
+
+Settings are stored in `~/Library/Application Support/S.O.K` and logs in
+`~/Library/Logs/S.O.K`, so replacing the app keeps them.
+
 ## Requirements
 
 - **Python 3.13+**
@@ -83,6 +104,18 @@ pip install -e ".[dev,docs]"
 ```bash
 python -c "import sok; print(sok.__version__)"
 ```
+
+## Building the macOS App
+
+On a Mac with Apple Silicon:
+
+```bash
+python scripts/build_sok.py
+```
+
+The script compiles S.O.K with Nuitka into `dist/S.O.K.app` (ad-hoc
+signed, as there is no Apple Developer ID) and packages it into
+`dist/SOK_macOS_v<version>.dmg`.
 
 ## Building Documentation
 

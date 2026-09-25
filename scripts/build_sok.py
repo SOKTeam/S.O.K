@@ -70,6 +70,84 @@ def inject_env_vars(src_sok_dir, root_dir):
     return True
 
 
+MACOS_BUNDLE_ID = "com.sokteam.sok"
+
+
+def finalize_app_bundle(dist_dir: Path) -> Path:
+    """Give the Nuitka app bundle its final layout and signature.
+
+    Nuitka puts the resources in Contents/MacOS, where codesign treats
+    each file as code and stores its signature in extended attributes,
+    which copies drop. In Contents/Resources they are sealed by the bundle
+    signature instead.
+
+    Args:
+        dist_dir: Nuitka output folder containing main.app.
+
+    Returns:
+        Path to S.O.K.app.
+    """
+    app = dist_dir / "S.O.K.app"
+    (dist_dir / "main.app").rename(app)
+    shutil.rmtree(dist_dir / "main.dist", ignore_errors=True)
+
+    contents = app / "Contents"
+    (contents / "MacOS" / "resources").rename(contents / "Resources" / "resources")
+
+    subprocess.run(["xattr", "-cr", str(app)], check=True)
+    subprocess.run(
+        [
+            "codesign",
+            "--force",
+            "--deep",
+            "--sign",
+            "-",
+            "--identifier",
+            MACOS_BUNDLE_ID,
+            str(app),
+        ],
+        check=True,
+    )
+    subprocess.run(["codesign", "--verify", "--deep", "--strict", str(app)], check=True)
+    return app
+
+
+def make_dmg(app: Path, build_dir: Path, version: str) -> Path:
+    """Package the macOS app bundle into a drag-to-install disk image.
+
+    Args:
+        app: Signed S.O.K.app bundle.
+        build_dir: Scratch folder for the disk image contents.
+        version: Application version, used in the file name.
+
+    Returns:
+        Path to the created .dmg file.
+    """
+    staging = build_dir / "dmg"
+    staging.mkdir()
+    subprocess.run(["ditto", str(app), str(staging / app.name)], check=True)
+    (staging / "Applications").symlink_to("/Applications")
+
+    dmg = app.parent / f"SOK_macOS_v{version}.dmg"
+    print(f">>> Creating {dmg.name}...")
+    subprocess.run(
+        [
+            "hdiutil",
+            "create",
+            "-volname",
+            "S.O.K",
+            "-srcfolder",
+            str(staging),
+            "-ov",
+            "-format",
+            "UDZO",
+            str(dmg),
+        ],
+        check=True,
+    )
+    return dmg
+
+
 def build():
     """Build S.O.K executable using Nuitka."""
     SCRIPT_DIR = Path(__file__).resolve().parent
@@ -131,6 +209,24 @@ def build():
             ]
         )
 
+    if os_name == "darwin":
+        # Apple Silicon .app bundle, ad-hoc signed (no Apple Developer ID).
+        nuitka_cmd = [
+            arg
+            for arg in nuitka_cmd
+            if not arg.startswith(("--output-filename=", "--windows-icon-from-ico="))
+        ]
+        nuitka_cmd[-1:-1] = [
+            "--output-filename=SOK",
+            "--macos-create-app-bundle",
+            "--macos-target-arch=arm64",
+            "--macos-app-mode=gui",
+            "--macos-app-name=S.O.K",
+            f"--macos-app-version={version}",
+            f"--macos-signed-app-name={MACOS_BUNDLE_ID}",
+            f"--macos-app-icon={ROOT_DIR}/src/sok/resources/assets/logo.icns",
+        ]
+
     current_env = os.environ.copy()
     current_env["PYTHONPATH"] = (
         str(temp_src) + os.pathsep + current_env.get("PYTHONPATH", "")
@@ -142,6 +238,10 @@ def build():
         print("\n!!! NUITKA ERROR !!!")
         print("Check the output above for details.")
         raise e
+
+    if os_name == "darwin":
+        app = finalize_app_bundle(dist_dir)
+        make_dmg(app, build_dir, version)
 
     print(f"\n>>> [3/3] SUCCESS: Build completed in {dist_dir}")
 

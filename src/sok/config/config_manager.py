@@ -40,15 +40,35 @@ def get_base_path() -> Path:
     """Get the base path for the application.
 
     Returns:
-        Path to executable directory if compiled,
-        or project root directory if running from source.
+        Path to executable directory if compiled (the user Application
+        Support folder on macOS), or project root directory if running
+        from source.
     """
+    if IS_COMPILED and sys.platform == "darwin":
+        # The .app bundle is read-only and replaced by updates.
+        return Path.home() / "Library" / "Application Support" / "S.O.K"
     if IS_COMPILED:
         return Path(sys.executable).parent
     return Path(__file__).resolve().parents[3]
 
 
 BASE_PATH = get_base_path()
+
+
+def resources_dir() -> Path:
+    """Return the folder of the bundled resources (assets, translations).
+
+    Returns:
+        Contents/Resources/resources in the macOS app bundle, where the
+        bundle signature seals them; the resources folder next to the
+        executable in other compiled builds; the package folder otherwise.
+    """
+    if IS_COMPILED and sys.platform == "darwin":
+        return Path(sys.executable).parents[1] / "Resources" / "resources"
+    if IS_COMPILED:
+        return Path(sys.executable).parent / "resources"
+    return Path(__file__).resolve().parent.parent / "resources"
+
 
 try:
     HAS_SECURE_CONSTANTS = True
@@ -453,9 +473,7 @@ class ConfigManager:
         Returns:
             Path to the i18n directory containing language JSON files.
         """
-        if IS_COMPILED:
-            return Path(sys.executable).parent / "resources" / "i18n"
-        return Path(__file__).resolve().parent.parent / "resources" / "i18n"
+        return resources_dir() / "i18n"
 
     def get_language_file(self) -> Path:
         """
