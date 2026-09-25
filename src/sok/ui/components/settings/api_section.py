@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
 from sok.ui.components.base import Card, ActionButton
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.i18n import tr
-from sok.ui.theme import card_shadow
+from sok.ui.theme import card_shadow, set_tone
 from sok.core.constants import (
     SERVICE_TMDB,
     SERVICE_TVDB,
@@ -282,7 +282,7 @@ class ApiSection(QWidget):
         else:
             info_lbl = QLabel(subtitle)
             info_lbl.setObjectName("RowSubtitle")
-            info_lbl.setStyleSheet("color: rgba(255, 255, 255, 0.7);")
+            set_tone(info_lbl, "info")
             layout.addWidget(info_lbl)
         return row
 
@@ -416,7 +416,7 @@ class ApiSection(QWidget):
             disconnect_btn = getattr(self, f"_{service}_disconnect_btn", None)
             if status_lbl:
                 status_lbl.setText(tr("not_connected", "Not connected"))
-                status_lbl.setStyleSheet("")
+                set_tone(status_lbl, None)
             if connect_btn:
                 connect_btn.setVisible(True)
             if disconnect_btn:
@@ -431,7 +431,7 @@ class ApiSection(QWidget):
         status_lbl = getattr(self, f"_{service}_status", None)
         if status_lbl:
             status_lbl.setText(tr("connection_in_progress", "Connecting..."))
-            status_lbl.setStyleSheet("color: #FFB86C;")
+            set_tone(status_lbl, "warn")
 
     def _on_auth_success(self, service: str, data: dict):
         """Handle authentication success.
@@ -452,7 +452,7 @@ class ApiSection(QWidget):
                 status_lbl.setText(f"{tr('connected', 'Connected')} ({username})")
             else:
                 status_lbl.setText(tr("connected", "Connected"))
-            status_lbl.setStyleSheet("color: #50FA7B;")
+            set_tone(status_lbl, "ok")
         if connect_btn:
             connect_btn.setVisible(False)
         if disconnect_btn:
@@ -475,7 +475,7 @@ class ApiSection(QWidget):
         status_lbl = getattr(self, f"_{service}_status", None)
         if status_lbl:
             status_lbl.setText(tr("error", "Error"))
-            status_lbl.setStyleSheet("color: #FF6B6B;")
+            set_tone(status_lbl, "error")
         QMessageBox.warning(
             self,
             tr("connection_error", "Connection error"),
@@ -534,7 +534,7 @@ class ApiSection(QWidget):
                 if session and api_key:
                     if status_lbl:
                         status_lbl.setText(tr("connected", "Connected"))
-                        status_lbl.setStyleSheet("color: #50FA7B;")
+                        set_tone(status_lbl, "ok")
                     if connect_btn:
                         connect_btn.setVisible(False)
                     if disconnect_btn:
@@ -542,7 +542,7 @@ class ApiSection(QWidget):
                 elif api_key:
                     if status_lbl:
                         status_lbl.setText(tr("key_configured", "Key configured"))
-                        status_lbl.setStyleSheet("")
+                        set_tone(status_lbl, None)
                     if connect_btn:
                         connect_btn.setVisible(True)
                     if disconnect_btn:
@@ -550,7 +550,7 @@ class ApiSection(QWidget):
                 else:
                     if status_lbl:
                         status_lbl.setText(tr("not_connected", "Not connected"))
-                        status_lbl.setStyleSheet("")
+                        set_tone(status_lbl, None)
                     if connect_btn:
                         connect_btn.setVisible(True)
                     if disconnect_btn:
@@ -559,17 +559,17 @@ class ApiSection(QWidget):
                 if not service_config.config_key:
                     if status_lbl:
                         status_lbl.setText(tr("available_free", "Available (free)"))
-                        status_lbl.setStyleSheet("color: #50FA7B;")
+                        set_tone(status_lbl, "ok")
                 else:
                     api_key = self._config.get(service_config.config_key, "")
                     if api_key:
                         if status_lbl:
                             status_lbl.setText(tr("operational", "Operational"))
-                            status_lbl.setStyleSheet("color: #50FA7B;")
+                            set_tone(status_lbl, "ok")
                     else:
                         if status_lbl:
                             status_lbl.setText(tr("not_configured", "Not configured"))
-                            status_lbl.setStyleSheet("")
+                            set_tone(status_lbl, None)
 
     def retranslate(self):
         """Update translatable UI text."""

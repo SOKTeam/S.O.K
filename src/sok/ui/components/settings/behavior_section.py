@@ -21,7 +21,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePo
 from sok.ui.components.base import Card, Toggle
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.i18n import tr
-from sok.ui.theme import card_shadow
+from sok.ui.theme import card_shadow, set_tone
 
 
 class BehaviorSection(QWidget):
@@ -103,7 +103,7 @@ class BehaviorSection(QWidget):
 
         # Gray out text if disabled
         if not enabled:
-            title_lbl.setStyleSheet("color: rgba(255, 255, 255, 0.4);")
+            set_tone(title_lbl, "disabled")
             title_lbl.setToolTip(tr("coming_soon", "Coming soon"))
 
         toggle = Toggle()

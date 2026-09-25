@@ -19,7 +19,7 @@ from sok.ui.components.base import Card
 from sok.ui.components.inputs import ModernComboBox
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.i18n import tr
-from sok.ui.theme import card_shadow
+from sok.ui.theme import card_shadow, set_tone
 from sok.core.constants import SERVICE_LASTFM
 from sok.config.api_registry import get_services_by_media_type
 from sok.config.api_registry import get_service
@@ -105,7 +105,8 @@ class ApiPreferencesSection(QWidget):
         layout.addStretch()
 
         warning_lbl = QLabel()
-        warning_lbl.setStyleSheet("color: #FFB86C; font-size: 11px; font-weight: bold;")
+        warning_lbl.setStyleSheet("font-size: 11px; font-weight: bold;")
+        set_tone(warning_lbl, "warn")
         warning_lbl.setVisible(False)
         layout.addWidget(warning_lbl)
 

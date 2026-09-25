@@ -37,7 +37,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QIcon
 
-from sok.ui.theme import Theme, ASSETS_DIR
+from sok.ui.theme import Theme, ASSETS_DIR, tone_stylesheet
 from sok.ui.platform import (
     IS_MACOS,
     MACOS_TITLEBAR_HEIGHT,
@@ -653,6 +653,67 @@ class MainWindow(QMainWindow):
         if is_dark_theme(theme) != self.dark:
             self._toggle_theme(is_dark_theme(theme))
 
+    @staticmethod
+    def _mac_rules(c: dict[str, str]) -> str:
+        """Return the stylesheet rules of widgets themed only on macOS.
+
+        On Windows these widgets keep their own fixed stylesheets.
+
+        Args:
+            c: Current color palette.
+        """
+        return f"""
+            #MatchCombo {{
+                background: {c["input_bg"]};
+                border: 1px solid {c["separator"]};
+                border-radius: 6px;
+                padding: 2px 8px;
+                color: {c["text"]};
+            }}
+
+            #MatchCombo QAbstractItemView {{
+                background: {c["dropdown_bg"]};
+                border: 1px solid {c["separator"]};
+                border-radius: 6px;
+                padding: 4px;
+                color: {c["text"]};
+                selection-background-color: {c["accent"]};
+                selection-color: {c["accent_text"]};
+            }}
+
+            #MatchCombo QAbstractItemView::item {{
+                min-height: 24px;
+                padding-left: 8px;
+                color: {c["text"]};
+            }}
+
+            #DashedButton {{
+                background: transparent;
+                color: {c["secondary"]};
+                border: 1px dashed {c["tertiary"]};
+                border-radius: 6px;
+            }}
+
+            #DashedButton:hover {{
+                color: {c["text"]};
+                border-color: {c["secondary"]};
+                background: {c["hover"]};
+            }}
+
+            #RemoveFileBtn {{
+                background: {c["hover"]};
+                border-radius: 10px;
+                color: {c["text"]};
+                font-weight: bold;
+                padding-bottom: 2px;
+            }}
+
+            #RemoveFileBtn:hover {{
+                background: {c["red"]};
+                color: white;
+            }}
+        """
+
     def _style(self, is_maximized: bool | None = None):
         """Apply current theme stylesheet to the window.
 
@@ -672,6 +733,8 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_close_btn"):
             self._close_btn.top_right_radius = outer_radius
             self._close_btn.update()
+        tone_rules = tone_stylesheet(c)
+        mac_rules = self._mac_rules(c) if IS_MACOS else ""
 
         self.setStyleSheet(
             f"""
@@ -686,7 +749,7 @@ class MainWindow(QMainWindow):
 
             /* Sidebar */
             #Sidebar {{
-                background: {c["card"]};
+                background: {c.get("sidebar", c["card"])};
                 border-right: 1px solid {c["separator"]};
                 border-top-left-radius: {outer_radius}px;
                 border-bottom-left-radius: {outer_radius}px;
@@ -915,6 +978,10 @@ class MainWindow(QMainWindow):
             QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
                 background: none;
             }}
+
+            {tone_rules}
+
+            {mac_rules}
         """
         )
 
