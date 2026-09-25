@@ -45,7 +45,8 @@ python scripts/make_macos_assets.py
 Keeps the application version identical everywhere. `pyproject.toml` is the
 source of truth; the version is copied to `src/sok/__version__.py` and
 `uv.lock`. The Windows executable gets it at build time (`build_sok.py`) and
-the installer (`installation.iss`) reads it from the executable.
+the installer (`packaging/windows/installation.iss`) reads it from the
+executable.
 
 ```bash
 python scripts/bump_version.py 1.2.0   # write 1.2.0 everywhere

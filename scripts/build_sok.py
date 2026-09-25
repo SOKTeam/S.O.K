@@ -192,7 +192,8 @@ def build():
     if os_name == "windows":
         nuitka_cmd.append("--windows-console-mode=disable")
         # Version info shown in the .exe properties (Details tab). The
-        # installer reads ProductVersion from it (see installation.iss).
+        # installer reads ProductVersion from it (see
+        # packaging/windows/installation.iss).
         nuitka_cmd.extend(
             [
                 "--product-name=S.O.K",
