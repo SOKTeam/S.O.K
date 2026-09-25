@@ -198,5 +198,21 @@
     "unknown_error": "Si è verificato un errore",
     "update_available_header": "È disponibile una nuova versione (v{version})!",
     "update_available_title": "Aggiornamento disponibile: v{version}",
-    "update_error": "Errore di aggiornamento"
+    "update_error": "Errore di aggiornamento",
+    "menu_file": "File",
+    "menu_edit": "Modifica",
+    "menu_view": "Vista",
+    "menu_window": "Finestra",
+    "menu_help": "Aiuto",
+    "about_app": "Informazioni su S.O.K",
+    "app_description": "Storage Organisation Kit",
+    "quit": "Esci",
+    "close_window": "Chiudi finestra",
+    "find": "Cerca",
+    "toggle_sidebar": "Mostra/nascondi barra laterale",
+    "full_screen": "Attiva modalità a tutto schermo",
+    "minimize": "Contrai",
+    "zoom": "Ridimensiona",
+    "documentation": "Documentazione di S.O.K",
+    "follow_system_theme": "Usa l'aspetto del sistema"
 }

@@ -251,6 +251,10 @@ class OrganizePage(QScrollArea):
         """
         self._search_panel.reset()
 
+    def focus_search(self) -> None:
+        """Focus the media search field (Find shortcut)."""
+        self._search_panel.focus_search()
+
     def stop_workers(self):
         """Stop all running background workers.
 

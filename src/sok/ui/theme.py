@@ -42,13 +42,15 @@ class Theme:
     font selection.
 
     Attributes:
-        FONT: System font name (SF Pro, Segoe UI, or Inter).
+        FONT: System font name (macOS system font, Segoe UI, or Inter).
         LIGHT: Orange theme color dictionary.
         DARK: Dark theme color dictionary.
     """
 
     FONT = (
-        "SF Pro Text"
+        # Name Qt gives the macOS system font (SF Pro): "SF Pro Text" is not
+        # an installed family name, so Qt fell back to it with a warning.
+        ".AppleSystemUIFont"
         if sys.platform == "darwin"
         else ("Segoe UI Variable" if os.name == "nt" else "Inter")
     )
