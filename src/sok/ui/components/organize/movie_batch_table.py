@@ -38,7 +38,8 @@ from sok.ui.components.base import Card
 from sok.ui.components.window import StopPropagationScrollArea
 from sok.ui.controllers.ui_state import set_empty_state
 from sok.ui.i18n import tr
-from sok.ui.theme import Theme, card_shadow
+from sok.ui.platform import IS_MACOS
+from sok.ui.theme import Theme, card_shadow, set_tone
 
 logger = logging.getLogger(__name__)
 
@@ -88,16 +89,14 @@ class MovieRow(QWidget):
         left = QVBoxLayout()
         left.setSpacing(2)
         self._original_lbl = QLabel(file.name)
-        self._original_lbl.setStyleSheet(
-            f"color: {Theme.DARK['secondary']}; font-size: 11px;"
-        )
+        self._original_lbl.setStyleSheet("font-size: 11px;")
+        set_tone(self._original_lbl, "file")
         self._original_lbl.setSizePolicy(
             QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred
         )
         self._new_name_lbl = QLabel("...")
-        self._new_name_lbl.setStyleSheet(
-            f"color: {Theme.DARK['tertiary']}; font-size: 12px; font-style: italic;"
-        )
+        self._new_name_lbl.setStyleSheet("font-size: 12px; font-style: italic;")
+        set_tone(self._new_name_lbl, "pending")
         self._new_name_lbl.setSizePolicy(
             QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred
         )
@@ -130,8 +129,12 @@ class MovieRow(QWidget):
 
         self._match_combo = QComboBox()
         self._match_combo.setFixedHeight(24)
-        self._match_combo.setStyleSheet(
-            f"""
+        if IS_MACOS:
+            # Colors come from the main window stylesheet and follow the theme.
+            self._match_combo.setObjectName("MatchCombo")
+        else:
+            self._match_combo.setStyleSheet(
+                f"""
             QComboBox {{
                 background: {Theme.DARK["input_bg"]};
                 border: 1px solid {Theme.DARK["separator"]};
@@ -155,7 +158,7 @@ class MovieRow(QWidget):
                 color: {Theme.DARK["text"]};
             }}
             """
-        )
+            )
         self._match_combo.currentIndexChanged.connect(self._on_match_changed)
         mid.addWidget(self._match_combo)
         layout.addLayout(mid, 3)
@@ -163,9 +166,8 @@ class MovieRow(QWidget):
         self._status_lbl = QLabel("…")
         self._status_lbl.setFixedWidth(80)
         self._status_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._status_lbl.setStyleSheet(
-            f"color: {Theme.DARK['secondary']}; font-size: 11px; font-weight: 600;"
-        )
+        self._status_lbl.setStyleSheet("font-size: 11px; font-weight: 600;")
+        set_tone(self._status_lbl, "file")
         layout.addWidget(self._status_lbl)
 
     @property
@@ -238,30 +240,26 @@ class MovieRow(QWidget):
         self._new_name = name
         if name:
             self._new_name_lbl.setText(name)
-            self._new_name_lbl.setStyleSheet(
-                f"color: {Theme.DARK['green']}; font-size: 12px; font-weight: 600;"
-            )
+            self._new_name_lbl.setStyleSheet("font-size: 12px; font-weight: 600;")
+            set_tone(self._new_name_lbl, "renamed")
         else:
             self._new_name_lbl.setText("...")
-            self._new_name_lbl.setStyleSheet(
-                f"color: {Theme.DARK['tertiary']}; font-size: 12px; font-style: italic;"
-            )
+            self._new_name_lbl.setStyleSheet("font-size: 12px; font-style: italic;")
+            set_tone(self._new_name_lbl, "pending")
 
     def set_status(self, status: str) -> None:
         """Set the visual status badge."""
         self._status = status
         if status == STATUS_OK:
-            text, color = "✓ " + tr("status_ready", "Ready"), Theme.DARK["green"]
+            text, tone = "✓ " + tr("status_ready", "Ready"), "renamed"
         elif status == STATUS_AMBIGUOUS:
-            text, color = "⚠ " + tr("status_ambiguous", "Pick one"), "#FFB347"
+            text, tone = "⚠ " + tr("status_ambiguous", "Pick one"), "ambiguous"
         elif status == STATUS_MISSING:
-            text, color = "✗ " + tr("status_missing", "Missing"), Theme.DARK["red"]
+            text, tone = "✗ " + tr("status_missing", "Missing"), "missing"
         else:
-            text, color = "…", Theme.DARK["secondary"]
+            text, tone = "…", "file"
         self._status_lbl.setText(text)
-        self._status_lbl.setStyleSheet(
-            f"color: {color}; font-size: 11px; font-weight: 600;"
-        )
+        set_tone(self._status_lbl, tone)
 
     def get_status(self) -> str:
         """Return the current status code."""
@@ -409,8 +407,12 @@ class MovieBatchTable(QWidget):
         btn = QPushButton(tr("add_more_movies", "+ Add more movies"))
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setFixedHeight(34)
-        btn.setStyleSheet(
-            """
+        if IS_MACOS:
+            btn.setObjectName("DashedButton")
+            btn.setStyleSheet("QPushButton { margin: 6px; font-size: 12px; }")
+        else:
+            btn.setStyleSheet(
+                """
             QPushButton {
                 background: transparent;
                 color: rgba(255, 255, 255, 0.6);
@@ -425,7 +427,7 @@ class MovieBatchTable(QWidget):
                 background: rgba(255, 255, 255, 0.05);
             }
             """
-        )
+            )
         btn.clicked.connect(self._browse)
         self._add_more_btn = btn
         self._inner.add(btn, last=True)

@@ -104,7 +104,7 @@ class OptionsPanel(QWidget):
         self._create_folders_btn.clicked.connect(self.create_folders_clicked.emit)
         layout.addWidget(self._create_folders_btn)
 
-        self._lbl_source = make_section_label("source_folders", "SOURCE FOLDERS")
+        self._lbl_source = make_section_label("source_folders", "Source Folders")
         layout.addWidget(self._lbl_source)
 
         self._source_drop = DropZone(multi_select=True)
@@ -112,7 +112,7 @@ class OptionsPanel(QWidget):
         self._source_drop.setGraphicsEffect(card_shadow())
         layout.addWidget(self._source_drop)
 
-        self._lbl_destination = make_section_label("destination", "DESTINATION")
+        self._lbl_destination = make_section_label("destination", "Destination")
         layout.addWidget(self._lbl_destination)
 
         self._dest_drop = DropZone()
@@ -240,8 +240,8 @@ class OptionsPanel(QWidget):
 
     def retranslate_ui(self):
         """Updates texts after a language change."""
-        self._lbl_source.setText(tr("source_folders", "SOURCE FOLDERS"))
-        self._lbl_destination.setText(tr("destination", "DESTINATION"))
+        self._lbl_source.setText(tr("source_folders", "Source Folders"))
+        self._lbl_destination.setText(tr("destination", "Destination"))
         self._action_btn.setText(tr("organize_action", "Organize files"))
         self._create_folders_btn.setText(
             tr("create_series_folders", "Create series folders")

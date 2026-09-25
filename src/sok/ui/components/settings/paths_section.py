@@ -56,7 +56,7 @@ class PathsSection(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        self.label = make_section_label("default_folders", "DEFAULT FOLDERS")
+        self.label = make_section_label("default_folders", "Default Folders")
         layout.addWidget(self.label)
 
         card = Card()
@@ -146,7 +146,7 @@ class PathsSection(QWidget):
 
     def retranslate(self):
         """Update translatable UI text."""
-        self.label.setText(tr("default_folders", "DEFAULT FOLDERS"))
+        self.label.setText(tr("default_folders", "Default Folders"))
         for key, title_lbl in self._title_labels.items():
             tr_key = title_lbl.property("tr_key")
             default = title_lbl.property("tr_default")

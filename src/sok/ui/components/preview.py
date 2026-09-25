@@ -14,7 +14,7 @@ Preview Components - File rows for organization preview
 
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSizePolicy
 
-from sok.ui.theme import Theme, svg_icon
+from sok.ui.theme import set_tone, svg_icon
 
 
 class FileRow(QWidget):
@@ -53,18 +53,15 @@ class FileRow(QWidget):
         layout.addWidget(self.icon_lbl)
 
         self.name_lbl = QLabel(filename)
-        self.name_lbl.setStyleSheet(
-            f"color: {Theme.DARK['secondary']}; font-size: 12px;"
-        )
+        self.name_lbl.setStyleSheet("font-size: 12px;")
+        set_tone(self.name_lbl, "file")
         self.name_lbl.setSizePolicy(
             QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred
         )
         layout.addWidget(self.name_lbl, 1)
 
         self.arrow_lbl = QLabel("→")
-        self.arrow_lbl.setStyleSheet(
-            f"color: {Theme.DARK['tertiary']}; font-weight: bold;"
-        )
+        self.arrow_lbl.setStyleSheet("font-weight: bold;")
         layout.addWidget(self.arrow_lbl)
 
         self.new_name_lbl = QLabel(new_name if new_name else "...")
@@ -90,17 +87,15 @@ class FileRow(QWidget):
         """Update styling based on filename change status."""
         # Green if changed and valid, grey otherwise
         if self.new_name and self.new_name != self.filename:
-            self.new_name_lbl.setStyleSheet(
-                f"color: {Theme.DARK['green']}; font-weight: bold; font-size: 12px;"
-            )
-            self.arrow_lbl.setStyleSheet(
-                f"color: {Theme.DARK['green']}; font-weight: bold;"
-            )
+            self.new_name_lbl.setStyleSheet("font-weight: bold; font-size: 12px;")
+            self.arrow_lbl.setStyleSheet("font-weight: bold;")
+            tone = "renamed"
         else:
-            self.new_name_lbl.setStyleSheet(
-                f"color: {Theme.DARK['tertiary']}; font-size: 12px; font-style: italic;"
-            )
-            self.arrow_lbl.setStyleSheet(f"color: {Theme.DARK['tertiary']};")
+            self.new_name_lbl.setStyleSheet("font-size: 12px; font-style: italic;")
+            self.arrow_lbl.setStyleSheet("")
+            tone = "pending"
+        set_tone(self.new_name_lbl, tone)
+        set_tone(self.arrow_lbl, tone)
 
     def resizeEvent(self, event):
         """Handle resize event.

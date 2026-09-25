@@ -21,7 +21,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePo
 from sok.ui.components.base import Card, Toggle
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.i18n import tr
-from sok.ui.theme import card_shadow
+from sok.ui.theme import card_shadow, set_tone
 
 
 class BehaviorSection(QWidget):
@@ -49,7 +49,7 @@ class BehaviorSection(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        self.label = make_section_label("behavior", "BEHAVIOR")
+        self.label = make_section_label("behavior", "Behavior")
         layout.addWidget(self.label)
 
         card = Card()
@@ -103,7 +103,7 @@ class BehaviorSection(QWidget):
 
         # Gray out text if disabled
         if not enabled:
-            title_lbl.setStyleSheet("color: rgba(255, 255, 255, 0.4);")
+            set_tone(title_lbl, "disabled")
             title_lbl.setToolTip(tr("coming_soon", "Coming soon"))
 
         toggle = Toggle()
@@ -129,7 +129,7 @@ class BehaviorSection(QWidget):
 
     def retranslate(self):
         """Update translatable UI text."""
-        self.label.setText(tr("behavior", "BEHAVIOR"))
+        self.label.setText(tr("behavior", "Behavior"))
         for toggle in self._toggles.values():
             parent = toggle.parentWidget()
             if not parent:

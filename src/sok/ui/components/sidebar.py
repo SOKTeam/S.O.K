@@ -13,11 +13,15 @@ Sidebar Components - Navigation buttons and menus
 """
 
 from PySide6.QtWidgets import QPushButton
-from PySide6.QtCore import Qt, Property
-from PySide6.QtGui import QPainter, QColor, QFont
+from PySide6.QtCore import Property, QPointF, QRectF, Qt
+from PySide6.QtGui import QColor, QFont, QPainter, QPen
 
+from sok.ui.platform import IS_MACOS
 from sok.ui.theme import Theme, svg_icon
 from sok.ui.components.base import parse_color
+
+# macOS sidebar rows are shorter than the Windows 11 ones.
+BUTTON_HEIGHT = 36 if IS_MACOS else 48
 
 
 class SidebarButton(QPushButton):
@@ -41,7 +45,7 @@ class SidebarButton(QPushButton):
         self._icon = icon_name
         self._hovered = False
         self._progress = 1.0
-        self.setFixedHeight(48)
+        self.setFixedHeight(BUTTON_HEIGHT)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setCheckable(True)
         self.setAttribute(Qt.WidgetAttribute.WA_Hover)
@@ -94,6 +98,9 @@ class SidebarButton(QPushButton):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         c = self.window().c if hasattr(self.window(), "c") else Theme.DARK  # type: ignore[union-attr]
+        if IS_MACOS:
+            self._paint_macos(p, c)
+            return
         prog = self._progress
 
         left_margin = 8 + (4 * prog)
@@ -157,6 +164,99 @@ class SidebarButton(QPushButton):
             p.drawText(
                 rect.adjusted(32, 0, 0, 0), Qt.AlignmentFlag.AlignVCenter, self.text()
             )
+
+    def _paint_macos(self, p: QPainter, c: dict[str, str]):
+        """Paint the button like a Finder sidebar item.
+
+        The selection is a discreet rounded gray with an accent icon, and
+        rows have no hover highlight.
+
+        Args:
+            p: Active painter.
+            c: Current color palette.
+        """
+        prog = self._progress
+        margin = int(8 + 2 * prog)
+        rect = self.rect().adjusted(margin, 3, -margin, -3)
+
+        if self.isChecked():
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(parse_color(c["sidebar_selection"]))
+            p.drawRoundedRect(rect, 7, 7)
+
+        icon_color = c["accent"] if self.isChecked() else c["icon_secondary"]
+        icon = svg_icon(self._icon, icon_color, 18)
+        icon_x = int(27 + (20 - 27) * prog)
+        p.drawPixmap(icon_x, (self.height() - icon.height()) // 2, icon)
+
+        if prog > 0.3:
+            text_color = parse_color(c["text"])
+            text_color.setAlpha(int(255 * ((prog - 0.3) / 0.7)))
+            p.setPen(text_color)
+            p.setFont(QFont(c.get("font", Theme.FONT), 13))
+            p.drawText(
+                rect.adjusted(48 - margin, 0, 0, 0),
+                Qt.AlignmentFlag.AlignVCenter,
+                self.text(),
+            )
+
+
+class SidebarToggleButton(QPushButton):
+    """macOS "show/hide sidebar" button, next to the traffic lights."""
+
+    def __init__(self, parent=None):
+        """Initialize the toggle button.
+
+        Args:
+            parent: Parent widget.
+        """
+        super().__init__(parent)
+        self._hovered = False
+        self.setFixedSize(30, 22)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover)
+
+    def enterEvent(self, event):
+        """Handle mouse enter.
+
+        Args:
+            event: Enter event.
+        """
+        self._hovered = True
+        self.update()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        """Handle mouse leave.
+
+        Args:
+            event: Leave event.
+        """
+        self._hovered = False
+        self.update()
+        super().leaveEvent(event)
+
+    def paintEvent(self, event):
+        """Paint a window outline with a sidebar panel.
+
+        Args:
+            event: Paint event.
+        """
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        c = self.window().c if hasattr(self.window(), "c") else Theme.DARK  # type: ignore[union-attr]
+
+        if self._hovered:
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(parse_color(c["hover"]))
+            p.drawRoundedRect(self.rect(), 5, 5)
+
+        pen = QPen(parse_color(c["icon_secondary"]), 1.5)
+        p.setPen(pen)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        outline = QRectF(7, 5, 16, 12)
+        p.drawRoundedRect(outline, 3, 3)
+        p.drawLine(QPointF(12.5, 5), QPointF(12.5, 17))
 
 
 class MenuButton(QPushButton):

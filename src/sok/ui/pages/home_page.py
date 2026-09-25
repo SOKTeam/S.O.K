@@ -410,7 +410,7 @@ class HomePage(QScrollArea):
 
         layout.addLayout(header_layout)
 
-        self.status_label = make_section_label("drive_monitors", "DRIVE MONITORS")
+        self.status_label = make_section_label("drive_monitors", "Drive Monitors")
         layout.addWidget(self.status_label)
 
         self.status_container = QWidget()
@@ -418,7 +418,7 @@ class HomePage(QScrollArea):
 
         layout.addWidget(self.status_container)
 
-        self.actions_label = make_section_label("quick_access", "QUICK ACCESS")
+        self.actions_label = make_section_label("quick_access", "Quick Access")
         layout.addWidget(self.actions_label)
 
         actions_container = QWidget()
@@ -468,8 +468,8 @@ class HomePage(QScrollArea):
                 "Storage Organization Kit - Your media library, perfectly organized.",
             )
         )
-        self.status_label.setText(tr("drive_monitors", "DRIVE MONITORS"))
-        self.actions_label.setText(tr("quick_access", "QUICK ACCESS"))
+        self.status_label.setText(tr("drive_monitors", "Drive Monitors"))
+        self.actions_label.setText(tr("quick_access", "Quick Access"))
 
         self.video_btn._title = tr("tv_shows", "TV Shows")
         self.video_btn._subtitle = tr("organize_tv_shows", "Organize TV shows")

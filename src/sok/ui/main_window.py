@@ -37,7 +37,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QIcon
 
-from sok.ui.theme import Theme, ASSETS_DIR
+from sok.ui.theme import Theme, ASSETS_DIR, palette, tone_stylesheet
 from sok.ui.platform import (
     IS_MACOS,
     MACOS_TITLEBAR_HEIGHT,
@@ -46,7 +46,7 @@ from sok.ui.platform import (
     use_native_title_bar,
 )
 from sok.ui.macos_menu import MacMenuBar
-from sok.ui.components.sidebar import SidebarButton
+from sok.ui.components.sidebar import SidebarButton, SidebarToggleButton
 from sok.ui.components.window import WindowControlButton
 from sok.ui.controllers.window_chrome import hit_test_resize
 from sok.ui.pages.home_page import HomePage
@@ -83,7 +83,7 @@ class MainWindow(QMainWindow):
         apply_color_scheme(theme_pref)
 
         self.dark = is_dark_theme(theme_pref)
-        self.c = Theme.DARK if self.dark else Theme.LIGHT
+        self.c = self._palette(self.dark)
         self._theme_name = theme_pref
 
         self._drag_pos = None
@@ -150,6 +150,14 @@ class MainWindow(QMainWindow):
         right_col = self._build_right_column()
         main_layout.addWidget(right_col, 1)
 
+        if IS_MACOS:
+            # Stays next to the traffic lights whatever the sidebar width.
+            toggle = SidebarToggleButton(central)
+            toggle.setToolTip(tr("toggle_sidebar", "Show/Hide Sidebar"))
+            toggle.clicked.connect(self._toggle_sidebar)
+            toggle.move(74, (MACOS_TITLEBAR_HEIGHT - toggle.height()) // 2)
+            toggle.raise_()
+
         self._nav[0].setChecked(True)
         self._go(0)
 
@@ -174,13 +182,17 @@ class MainWindow(QMainWindow):
 
         sb_layout = QVBoxLayout(sidebar)
         # On macOS, leave room for the traffic lights above the menu button.
-        top_margin = MACOS_TITLEBAR_HEIGHT if IS_MACOS else 0
+        top_margin = MACOS_TITLEBAR_HEIGHT + 8 if IS_MACOS else 0
         sb_layout.setContentsMargins(0, top_margin, 0, 12)
         sb_layout.setSpacing(0)
 
-        self._menu_btn = SidebarButton("", "menu")
-        self._menu_btn.clicked.connect(self._toggle_sidebar)
-        sb_layout.addWidget(self._menu_btn)
+        # macOS shows a sidebar button next to the traffic lights instead
+        # (see _build).
+        self._menu_btn: SidebarButton | None = None
+        if not IS_MACOS:
+            self._menu_btn = SidebarButton("", "menu")
+            self._menu_btn.clicked.connect(self._toggle_sidebar)
+            sb_layout.addWidget(self._menu_btn)
 
         self.lbl_library = QLabel(tr("library", "Library"))
         self.lbl_library.setObjectName("SidebarSection")
@@ -379,18 +391,23 @@ class MainWindow(QMainWindow):
         self._update_title_by_index(self._pages.currentIndex())
 
     def changeEvent(self, event):
-        """Re-apply styles when the maximized state flips.
+        """Re-apply styles when the maximized state or the accent changes.
 
         Window radii must be 0 when maximized (so corners fill the screen)
         and 12 when restored. Reads the state from the windowState bitmask
         directly — ``isMaximized()`` can lag the event during animated
-        transitions.
+        transitions. On macOS the accent may follow the system setting.
         """
         from PySide6.QtCore import QEvent
 
         if event.type() == QEvent.Type.WindowStateChange:
             is_max = bool(self.windowState() & Qt.WindowState.WindowMaximized)
             self._style(is_maximized=is_max)
+        elif event.type() == QEvent.Type.ApplicationPaletteChange:
+            c = self._palette(self.dark)
+            if c["accent"] != self.c["accent"]:
+                self.c = c
+                self._style()
         super().changeEvent(event)
 
     def nativeEvent(self, eventType, message):
@@ -623,7 +640,8 @@ class MainWindow(QMainWindow):
 
             for btn in self._nav:
                 btn.set_progress(value)
-            self._menu_btn.set_progress(value)
+            if self._menu_btn:
+                self._menu_btn.set_progress(value)
 
             for effect in self._sidebar_labels:
                 effect.setOpacity(value)
@@ -642,16 +660,150 @@ class MainWindow(QMainWindow):
         """
         self.dark = dark
         self._theme_name = self._config.get("theme", "orange")
-        self.c = Theme.DARK if dark else Theme.LIGHT
+        self.c = self._palette(dark)
 
         self._style()
         self.update()
+
+    def _palette(self, dark: bool) -> dict[str, str]:
+        """Return the palette for the theme and the accent setting.
+
+        Args:
+            dark: True for the dark theme.
+        """
+        return palette(dark, bool(self._config.get("use_system_accent")))
 
     def _on_system_scheme_changed(self, _scheme):
         """Follow the system appearance when the theme is set to "system"."""
         theme = self._config.get("theme", "orange")
         if is_dark_theme(theme) != self.dark:
             self._toggle_theme(is_dark_theme(theme))
+
+    @staticmethod
+    def _scrollbar_rules(c: dict[str, str]) -> str:
+        """Return the stylesheet rules of the custom scroll bars.
+
+        Args:
+            c: Current color palette.
+        """
+        return f"""
+            /* ScrollBar */
+            QScrollBar:vertical {{
+                background: transparent;
+                width: 14px;
+                margin: 0;
+            }}
+
+            QScrollBar::handle:vertical {{
+                background: {c.get("tertiary", "rgba(255,255,255,0.3)")};
+                border-radius: 4px;
+                min-height: 40px;
+                margin: 2px 3px; /* Handle width = 14 - 6 = 8px. Radius 4px makes it fully round */
+            }}
+
+            QScrollBar::handle:vertical:hover {{
+                background: {c.get("secondary", "rgba(255,255,255,0.5)")};
+            }}
+
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0;
+                background: none;
+            }}
+
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                background: none;
+            }}
+        """
+
+    @staticmethod
+    def _mac_rules(c: dict[str, str]) -> str:
+        """Return the macOS stylesheet rules.
+
+        They come last, so they override the shared rules. On Windows the
+        widgets they style keep their own fixed stylesheets.
+
+        Args:
+            c: Current color palette.
+        """
+        return f"""
+            /* Finder sidebar headings: gray, not capitalized */
+            #SidebarSection {{
+                color: {c["secondary"]};
+                padding: 18px 20px 6px 20px;
+                text-transform: none;
+                letter-spacing: 0;
+            }}
+
+            /* Section headings in sentence case, like System Settings */
+            #SectionLabel, #CategoryLabel {{
+                text-transform: none;
+                letter-spacing: 0;
+            }}
+
+            #SectionLabel {{
+                font-size: 13px;
+                color: {c["text"]};
+            }}
+
+            #ActionBtn, #DestructiveBtn {{
+                border-radius: 6px;
+                padding: 0 12px;
+            }}
+
+            #SearchBar, #SettingsInput, #SettingsFormatInput, QComboBox {{
+                border-radius: 6px;
+            }}
+
+            #MatchCombo {{
+                background: {c["input_bg"]};
+                border: 1px solid {c["separator"]};
+                border-radius: 6px;
+                padding: 2px 8px;
+                color: {c["text"]};
+            }}
+
+            #MatchCombo QAbstractItemView {{
+                background: {c["dropdown_bg"]};
+                border: 1px solid {c["separator"]};
+                border-radius: 6px;
+                padding: 4px;
+                color: {c["text"]};
+                selection-background-color: {c["accent"]};
+                selection-color: {c["accent_text"]};
+            }}
+
+            #MatchCombo QAbstractItemView::item {{
+                min-height: 24px;
+                padding-left: 8px;
+                color: {c["text"]};
+            }}
+
+            #DashedButton {{
+                background: transparent;
+                color: {c["secondary"]};
+                border: 1px dashed {c["tertiary"]};
+                border-radius: 6px;
+            }}
+
+            #DashedButton:hover {{
+                color: {c["text"]};
+                border-color: {c["secondary"]};
+                background: {c["hover"]};
+            }}
+
+            #RemoveFileBtn {{
+                background: {c["hover"]};
+                border-radius: 10px;
+                color: {c["text"]};
+                font-weight: bold;
+                padding-bottom: 2px;
+            }}
+
+            #RemoveFileBtn:hover {{
+                background: {c["red"]};
+                color: white;
+            }}
+        """
 
     def _style(self, is_maximized: bool | None = None):
         """Apply current theme stylesheet to the window.
@@ -672,6 +824,10 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_close_btn"):
             self._close_btn.top_right_radius = outer_radius
             self._close_btn.update()
+        tone_rules = tone_stylesheet(c)
+        mac_rules = self._mac_rules(c) if IS_MACOS else ""
+        # macOS keeps its native overlay scroll bars, shown while scrolling.
+        scrollbar_rules = "" if IS_MACOS else self._scrollbar_rules(c)
 
         self.setStyleSheet(
             f"""
@@ -686,7 +842,7 @@ class MainWindow(QMainWindow):
 
             /* Sidebar */
             #Sidebar {{
-                background: {c["card"]};
+                background: {c.get("sidebar", c["card"])};
                 border-right: 1px solid {c["separator"]};
                 border-top-left-radius: {outer_radius}px;
                 border-bottom-left-radius: {outer_radius}px;
@@ -889,32 +1045,11 @@ class MainWindow(QMainWindow):
                 margin-bottom: -1px;
             }}
 
-            /* ScrollBar */
-            QScrollBar:vertical {{
-                background: transparent;
-                width: 14px;
-                margin: 0;
-            }}
+            {scrollbar_rules}
 
-            QScrollBar::handle:vertical {{
-                background: {c.get("tertiary", "rgba(255,255,255,0.3)")};
-                border-radius: 4px;
-                min-height: 40px;
-                margin: 2px 3px; /* Handle width = 14 - 6 = 8px. Radius 4px makes it fully round */
-            }}
+            {tone_rules}
 
-            QScrollBar::handle:vertical:hover {{
-                background: {c.get("secondary", "rgba(255,255,255,0.5)")};
-            }}
-
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
-                height: 0;
-                background: none;
-            }}
-
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
-                background: none;
-            }}
+            {mac_rules}
         """
         )
 

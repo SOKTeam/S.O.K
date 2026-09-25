@@ -16,6 +16,7 @@ from PySide6.QtWidgets import QFrame, QVBoxLayout, QWidget, QPushButton
 from PySide6.QtCore import Qt, Signal, QPropertyAnimation, QEasingCurve, Property, QRect
 from PySide6.QtGui import QPainter, QColor, QFont
 
+from sok.ui.platform import IS_MACOS
 from sok.ui.theme import Theme
 import logging
 
@@ -339,7 +340,8 @@ class ActionButton(QPushButton):
             parent: Parent widget.
         """
         super().__init__(text, parent)
-        self.setFixedHeight(32)
+        # macOS push buttons are smaller than the Windows 11 ones.
+        self.setFixedHeight(28 if IS_MACOS else 32)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setObjectName("ActionBtn")
         self.setStyleSheet("padding: 0 15px;")
