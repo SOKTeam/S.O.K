@@ -21,7 +21,22 @@ python scripts/build_sok.py
 - Bundles all resources (images, translations) into the `dist/` folder.
 - Generates the final installer (Inno Setup) if configured.
 - On macOS: builds `dist/S.O.K.app` (arm64, ad-hoc signed) and
-  `dist/SOK_macOS_v<version>.dmg` with an Applications shortcut.
+  `dist/SOK_macOS_v<version>.dmg` with dmgbuild: custom background,
+  icon layout and Applications shortcut (`packaging/macos/dmg_settings.py`).
+  Install the build extras first: `uv sync --extra build`.
+
+---
+
+### `make_macos_assets.py`
+
+Draws the macOS artwork from vectors: the app icon (`logo.icns`, on the
+macOS icon grid with the brand orange) and the disk image background
+(`packaging/macos/dmg_background.tiff`, standard and Retina). Run it on
+macOS after changing the logo or the colors.
+
+```bash
+python scripts/make_macos_assets.py
+```
 
 ---
 

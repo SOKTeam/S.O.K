@@ -28,6 +28,7 @@ build = [
     "uv>=0.9.9",
     "nuitka>=2.8.9",
     "tomli>=2.3.0",
+    "dmgbuild>=1.6",
 ]
 docs = [
     "mkdocs>=1.6.1",

@@ -112,38 +112,33 @@ def finalize_app_bundle(dist_dir: Path) -> Path:
     return app
 
 
-def make_dmg(app: Path, build_dir: Path, version: str) -> Path:
+def make_dmg(app: Path, version: str) -> Path:
     """Package the macOS app bundle into a drag-to-install disk image.
+
+    The window layout (background, icon positions) is described in
+    packaging/macos/dmg_settings.py and written by dmgbuild, without
+    scripting the Finder.
 
     Args:
         app: Signed S.O.K.app bundle.
-        build_dir: Scratch folder for the disk image contents.
         version: Application version, used in the file name.
 
     Returns:
         Path to the created .dmg file.
     """
-    staging = build_dir / "dmg"
-    staging.mkdir()
-    subprocess.run(["ditto", str(app), str(staging / app.name)], check=True)
-    (staging / "Applications").symlink_to("/Applications")
+    import dmgbuild
 
+    packaging = Path(__file__).resolve().parent.parent / "packaging" / "macos"
     dmg = app.parent / f"SOK_macOS_v{version}.dmg"
     print(f">>> Creating {dmg.name}...")
-    subprocess.run(
-        [
-            "hdiutil",
-            "create",
-            "-volname",
-            "S.O.K",
-            "-srcfolder",
-            str(staging),
-            "-ov",
-            "-format",
-            "UDZO",
-            str(dmg),
-        ],
-        check=True,
+    dmgbuild.build_dmg(
+        str(dmg),
+        "S.O.K",
+        settings_file=str(packaging / "dmg_settings.py"),
+        defines={
+            "app": str(app),
+            "background": str(packaging / "dmg_background.tiff"),
+        },
     )
     return dmg
 
@@ -241,7 +236,7 @@ def build():
 
     if os_name == "darwin":
         app = finalize_app_bundle(dist_dir)
-        make_dmg(app, build_dir, version)
+        make_dmg(app, version)
 
     print(f"\n>>> [3/3] SUCCESS: Build completed in {dist_dir}")
 
