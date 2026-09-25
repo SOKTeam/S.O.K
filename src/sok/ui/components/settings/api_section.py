@@ -29,6 +29,7 @@ from sok.ui.components.base import Card, ActionButton
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.i18n import tr
 from sok.ui.theme import card_shadow, set_tone
+from sok.ui import message_box
 from sok.core.constants import (
     SERVICE_TMDB,
     SERVICE_TVDB,
@@ -340,7 +341,7 @@ class ApiSection(QWidget):
             name, url, config_key = fallback_info.get(service, (service, "", ""))
 
         if url:
-            reply = QMessageBox.question(
+            reply = message_box.question(
                 self,
                 tr("api_key_required", "{name} API key required").format(name=name),
                 tr(
@@ -388,7 +389,7 @@ class ApiSection(QWidget):
         Args:
             service: Service identifier.
         """
-        reply = QMessageBox.question(
+        reply = message_box.question(
             self,
             tr("disconnect_title", "Disconnect"),
             tr(
@@ -457,7 +458,7 @@ class ApiSection(QWidget):
             connect_btn.setVisible(False)
         if disconnect_btn:
             disconnect_btn.setVisible(True)
-        QMessageBox.information(
+        message_box.information(
             self,
             tr("connection_success", "Connection successful"),
             tr("connected_to", "You are now connected to {service}!").format(
@@ -476,7 +477,7 @@ class ApiSection(QWidget):
         if status_lbl:
             status_lbl.setText(tr("error", "Error"))
             set_tone(status_lbl, "error")
-        QMessageBox.warning(
+        message_box.warning(
             self,
             tr("connection_error", "Connection error"),
             f"{tr('connection_failed', 'Failed to connect:')}\n{error}",

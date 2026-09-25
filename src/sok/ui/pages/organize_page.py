@@ -46,6 +46,7 @@ from sok.core.media_manager import get_media_manager
 from sok.config import get_config_manager
 from sok.ui.i18n import tr
 from sok.ui.pages.organize_preview_panel import PreviewPanel
+from sok.ui import message_box
 from sok.media.video.series import Series
 
 FileOperations = (
@@ -482,7 +483,7 @@ class OrganizePage(QScrollArea):
             return
         dest = self._options_panel.get_destination_path()
         if not dest or not Path(dest).exists():
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("warning", "Warning"),
                 tr("select_dest_warning", "Please select a destination folder."),
@@ -491,7 +492,7 @@ class OrganizePage(QScrollArea):
 
         series_id = selected_media.get("id")
         if not series_id:
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("error", "Error"),
                 tr("series_id_not_found", "Series ID not found."),
@@ -525,7 +526,7 @@ class OrganizePage(QScrollArea):
             self._options_panel.set_create_folders_text(
                 tr("create_series_folders", "Create series folders")
             )
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("warning", "Warning"),
                 tr("no_seasons_found", "No seasons found for '{title}'.").format(
@@ -575,7 +576,7 @@ class OrganizePage(QScrollArea):
             self._options_panel.set_create_folders_text(
                 tr("create_series_folders", "Create series folders")
             )
-            QMessageBox.critical(
+            message_box.critical(
                 self,
                 tr("error", "Error"),
                 tr("creation_error", "Error during creation: {e}").format(e=e),
@@ -601,13 +602,13 @@ class OrganizePage(QScrollArea):
         errors = report.get("errors", [])
 
         if errors:
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("finished_with_errors", "Finished with errors"),
                 f"Structure created for '{title}':\n{num_created} folder(s) created\n{len(errors)} error(s)",
             )
         else:
-            QMessageBox.information(
+            message_box.information(
                 self,
                 tr("success", "Success"),
                 f"Structure created for '{title}':\n{num_created} folder(s) created",
@@ -626,7 +627,7 @@ class OrganizePage(QScrollArea):
         self._options_panel.set_create_folders_text(
             tr("create_series_folders", "Create series folders")
         )
-        QMessageBox.critical(
+        message_box.critical(
             self,
             tr("error", "Error"),
             tr("creation_error", "Error during creation:\n{error}").format(error=error),
@@ -644,7 +645,7 @@ class OrganizePage(QScrollArea):
         self._options_panel.set_create_folders_text(
             tr("create_series_folders", "Create series folders")
         )
-        QMessageBox.critical(
+        message_box.critical(
             self,
             tr("error", "Error"),
             tr("details_error", "Unable to retrieve details:\n{error}").format(
@@ -667,7 +668,7 @@ class OrganizePage(QScrollArea):
         content_type = self._search_panel.get_content_type()
 
         if self._type == "video" and not selected_media:
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("warning", "Warning"),
                 tr("select_media_warning", "Please select a media."),
@@ -682,6 +683,7 @@ class OrganizePage(QScrollArea):
         msg.setStandardButtons(
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
+        message_box.as_sheet(msg, self)
         if msg.exec() != QMessageBox.StandardButton.Yes:
             return
 
@@ -789,7 +791,7 @@ class OrganizePage(QScrollArea):
         self._options_panel.set_action_enabled(True)
 
         if report["errors"]:
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("finished_with_errors", "Finished with errors"),
                 tr("success_count", "{0}/{1} succeeded.").format(
@@ -797,7 +799,7 @@ class OrganizePage(QScrollArea):
                 ),
             )
         else:
-            QMessageBox.information(
+            message_box.information(
                 self,
                 tr("success", "Success"),
                 tr("files_organized", "✓ {0} file(s) organized!").format(
@@ -819,6 +821,6 @@ class OrganizePage(QScrollArea):
         """
         self._set_progress(False)
         self._options_panel.set_action_enabled(True)
-        QMessageBox.critical(
+        message_box.critical(
             self, tr("error", "Error"), f"{tr('error_prefix', 'Error:')} {error}"
         )

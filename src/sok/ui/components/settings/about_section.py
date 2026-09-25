@@ -28,6 +28,7 @@ from sok.ui.components.base import Card, Row, ActionButton, Toggle
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.i18n import tr
 from sok.ui.theme import card_shadow
+from sok.ui import message_box
 
 
 class AboutSection(QWidget):
@@ -128,7 +129,7 @@ class AboutSection(QWidget):
 
     def _confirm_reset(self):
         """Show reset confirmation dialog."""
-        reply = QMessageBox.question(
+        reply = message_box.question(
             self,
             tr("reset_title", "Reset"),
             tr("reset_confirm", "Are you sure you want to reset all settings?"),

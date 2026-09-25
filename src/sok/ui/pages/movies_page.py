@@ -54,6 +54,7 @@ from sok.ui.workers import (
     MovieBatchSearchWorker,
     SearchWorker,
 )
+from sok.ui import message_box
 
 logger = logging.getLogger(__name__)
 
@@ -210,7 +211,7 @@ class MoviesPage(QScrollArea):
     def _on_search_error(self, error: str) -> None:
         self._set_progress(False)
         self._rescan_all_btn.setEnabled(bool(self._files))
-        QMessageBox.warning(
+        message_box.warning(
             self,
             tr("error", "Error"),
             f"{tr('search_failed', 'Search failed:')} {error}",
@@ -297,7 +298,7 @@ class MoviesPage(QScrollArea):
     def _start_rename(self) -> None:
         dest = self._dest_drop.get_path()
         if not dest or not Path(dest).exists():
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("warning", "Warning"),
                 tr("select_dest_warning", "Please select a destination folder."),
@@ -315,7 +316,7 @@ class MoviesPage(QScrollArea):
             mappings.append((file, movie))
 
         if not mappings:
-            QMessageBox.information(
+            message_box.information(
                 self,
                 tr("info", "Info"),
                 tr("no_movies_ready", "No movies are ready to rename."),
@@ -330,6 +331,7 @@ class MoviesPage(QScrollArea):
         msg.setStandardButtons(
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
+        message_box.as_sheet(msg, self)
         if msg.exec() != QMessageBox.StandardButton.Yes:
             return
 
@@ -352,13 +354,13 @@ class MoviesPage(QScrollArea):
         errors = report.get("errors", [])
 
         if errors:
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("finished_with_errors", "Finished with errors"),
                 tr("success_count", "{0}/{1} successful.").format(success, total),
             )
         else:
-            QMessageBox.information(
+            message_box.information(
                 self,
                 tr("success", "Success"),
                 tr("files_organized", "✓ {0} file(s) organized!").format(success),
@@ -373,7 +375,7 @@ class MoviesPage(QScrollArea):
         self._set_progress(False)
         self._action_btn.setEnabled(True)
         self._rescan_all_btn.setEnabled(True)
-        QMessageBox.critical(
+        message_box.critical(
             self,
             tr("error", "Error"),
             f"{tr('error_prefix', 'Error:')} {error}",

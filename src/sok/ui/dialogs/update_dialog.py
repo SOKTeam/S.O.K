@@ -22,13 +22,13 @@ from PySide6.QtWidgets import (
     QTextBrowser,
     QHBoxLayout,
     QProgressBar,
-    QMessageBox,
 )
 from PySide6.QtCore import Qt, Signal, QObject
 from sok.core.updater import UpdateManager
 from sok.ui.theme import Theme
 from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.i18n import tr
+from sok.ui import message_box
 import webbrowser
 
 
@@ -208,7 +208,7 @@ class UpdateDialog(QDialog):
             return
         url = self.update_manager.get_download_url()
         if not url:
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("error", "Error"),
                 tr("download_link_not_found", "Unable to find the download link."),
@@ -246,7 +246,7 @@ class UpdateDialog(QDialog):
         Args:
             msg: Error message to display.
         """
-        QMessageBox.critical(
+        message_box.critical(
             self,
             tr("update_error", "Update error"),
             tr("download_failed", "Download failed:\n{msg}").format(msg=msg),
