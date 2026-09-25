@@ -30,12 +30,15 @@ from sok.file_operations.base_operations import (
     FileValidationMixin,
     move_file,
 )
+from sok.file_operations.organize import FileListOrganizerMixin
 from mutagen import File
 
 logger = logging.getLogger(__name__)
 
 
-class MusicFileOperations(FileOperations, FileParsingMixin, FileValidationMixin):
+class MusicFileOperations(
+    FileOperations, FileParsingMixin, FileValidationMixin, FileListOrganizerMixin
+):
     """File operations for music files.
 
     Provides methods to extract metadata from audio filenames,

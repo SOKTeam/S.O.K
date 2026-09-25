@@ -29,6 +29,7 @@ from sok.file_operations.base_operations import (
     FileValidationMixin,
     move_file,
 )
+from sok.file_operations.organize import FileListOrganizerMixin
 import zipfile
 import xml.etree.ElementTree as ET
 from PyPDF2 import PdfReader
@@ -36,7 +37,9 @@ from PyPDF2 import PdfReader
 logger = logging.getLogger(__name__)
 
 
-class BookFileOperations(FileOperations, FileParsingMixin, FileValidationMixin):
+class BookFileOperations(
+    FileOperations, FileParsingMixin, FileValidationMixin, FileListOrganizerMixin
+):
     """File operations for electronic books.
 
     Provides methods to extract metadata from ebook filenames,
