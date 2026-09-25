@@ -667,6 +667,42 @@ class MainWindow(QMainWindow):
             self._toggle_theme(is_dark_theme(theme))
 
     @staticmethod
+    def _scrollbar_rules(c: dict[str, str]) -> str:
+        """Return the stylesheet rules of the custom scroll bars.
+
+        Args:
+            c: Current color palette.
+        """
+        return f"""
+            /* ScrollBar */
+            QScrollBar:vertical {{
+                background: transparent;
+                width: 14px;
+                margin: 0;
+            }}
+
+            QScrollBar::handle:vertical {{
+                background: {c.get("tertiary", "rgba(255,255,255,0.3)")};
+                border-radius: 4px;
+                min-height: 40px;
+                margin: 2px 3px; /* Handle width = 14 - 6 = 8px. Radius 4px makes it fully round */
+            }}
+
+            QScrollBar::handle:vertical:hover {{
+                background: {c.get("secondary", "rgba(255,255,255,0.5)")};
+            }}
+
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0;
+                background: none;
+            }}
+
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                background: none;
+            }}
+        """
+
+    @staticmethod
     def _mac_rules(c: dict[str, str]) -> str:
         """Return the macOS stylesheet rules.
 
@@ -777,6 +813,8 @@ class MainWindow(QMainWindow):
             self._close_btn.update()
         tone_rules = tone_stylesheet(c)
         mac_rules = self._mac_rules(c) if IS_MACOS else ""
+        # macOS keeps its native overlay scroll bars, shown while scrolling.
+        scrollbar_rules = "" if IS_MACOS else self._scrollbar_rules(c)
 
         self.setStyleSheet(
             f"""
@@ -994,32 +1032,7 @@ class MainWindow(QMainWindow):
                 margin-bottom: -1px;
             }}
 
-            /* ScrollBar */
-            QScrollBar:vertical {{
-                background: transparent;
-                width: 14px;
-                margin: 0;
-            }}
-
-            QScrollBar::handle:vertical {{
-                background: {c.get("tertiary", "rgba(255,255,255,0.3)")};
-                border-radius: 4px;
-                min-height: 40px;
-                margin: 2px 3px; /* Handle width = 14 - 6 = 8px. Radius 4px makes it fully round */
-            }}
-
-            QScrollBar::handle:vertical:hover {{
-                background: {c.get("secondary", "rgba(255,255,255,0.5)")};
-            }}
-
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
-                height: 0;
-                background: none;
-            }}
-
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
-                background: none;
-            }}
+            {scrollbar_rules}
 
             {tone_rules}
 
