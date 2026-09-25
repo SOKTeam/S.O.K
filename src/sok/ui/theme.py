@@ -14,27 +14,16 @@ Design Tokens and Theme Utilities for S.O.K
 
 import sys
 import os
-from pathlib import Path
 from PySide6.QtGui import QColor, QPainter, QPixmap
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
 from PySide6.QtSvg import QSvgRenderer
 import re
 
+from sok.config.config_manager import resources_dir
 from sok.ui.platform import IS_MACOS, system_accent_color
 
-# 1. Detect if running as executable or in script mode
-if "__compiled__" in globals():
-    # In a Nuitka build, assets are next to the executable
-    # or in the .dist folder (if standalone)
-    # We assume the 'resources' folder is distributed with the app
-    ROOT_DIR = Path(sys.executable).parent
-    ASSETS_DIR = ROOT_DIR / "resources" / "assets"
-else:
-    # Development mode:
-    # src/sok/ui/theme.py -> parent -> src/sok/ui -> parent -> src/sok
-    PACKAGE_ROOT = Path(__file__).resolve().parent.parent
-    ASSETS_DIR = PACKAGE_ROOT / "resources" / "assets"
+ASSETS_DIR = resources_dir() / "assets"
 
 
 class Theme:

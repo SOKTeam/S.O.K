@@ -7,8 +7,8 @@ maintenance of the S.O.K project.
 
 ### `build_sok.py`
 
-The main script for compiling the application into a Windows executable (.exe) via
-Nuitka.
+The main script for compiling the application via Nuitka: a Windows executable
+(.exe) on Windows, an Apple Silicon app bundle and disk image (.dmg) on macOS.
 
 ```bash
 python scripts/build_sok.py
@@ -20,6 +20,8 @@ python scripts/build_sok.py
 - Compiles Python code into optimized C++.
 - Bundles all resources (images, translations) into the `dist/` folder.
 - Generates the final installer (Inno Setup) if configured.
+- On macOS: builds `dist/S.O.K.app` (arm64, ad-hoc signed) and
+  `dist/SOK_macOS_v<version>.dmg` with an Applications shortcut.
 
 ---
 
