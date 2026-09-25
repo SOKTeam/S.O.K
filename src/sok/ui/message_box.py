@@ -16,10 +16,13 @@ a sheet and shows the app icon instead of the generic information and
 question icons.
 """
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QGuiApplication
+from pathlib import Path
+
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QDesktopServices, QGuiApplication
 from PySide6.QtWidgets import QMessageBox, QWidget
 
+from sok.ui.i18n import tr
 from sok.ui.platform import IS_MACOS
 
 StandardButton = QMessageBox.StandardButton
@@ -52,12 +55,23 @@ def _show(
     text: str,
     buttons: StandardButton,
     default: StandardButton,
+    reveal: Path | None = None,
 ) -> StandardButton:
     box = QMessageBox(icon, title, text, buttons, parent)
     if default != StandardButton.NoButton:
         box.setDefaultButton(default)
+    reveal_btn = None
+    if reveal is not None:
+        reveal_btn = box.addButton(
+            tr("show_in_finder", "Show in Finder"),
+            QMessageBox.ButtonRole.ActionRole,
+        )
     as_sheet(box, parent)
-    return StandardButton(box.exec())
+    result = box.exec()
+    if reveal_btn is not None and box.clickedButton() is reveal_btn:
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(reveal)))
+        return StandardButton.NoButton
+    return StandardButton(result)
 
 
 def information(
@@ -66,11 +80,16 @@ def information(
     text: str,
     buttons: StandardButton = StandardButton.Ok,
     default: StandardButton = StandardButton.NoButton,
+    reveal: Path | None = None,
 ) -> StandardButton:
-    """Show an information message, like QMessageBox.information()."""
+    """Show an information message, like QMessageBox.information().
+
+    Args:
+        reveal: Folder to offer to show in the Finder (macOS only).
+    """
     if not IS_MACOS:
         return QMessageBox.information(parent, title, text, buttons, default)
-    return _show(Icon.Information, parent, title, text, buttons, default)
+    return _show(Icon.Information, parent, title, text, buttons, default, reveal)
 
 
 def warning(
@@ -79,11 +98,16 @@ def warning(
     text: str,
     buttons: StandardButton = StandardButton.Ok,
     default: StandardButton = StandardButton.NoButton,
+    reveal: Path | None = None,
 ) -> StandardButton:
-    """Show a warning message, like QMessageBox.warning()."""
+    """Show a warning message, like QMessageBox.warning().
+
+    Args:
+        reveal: Folder to offer to show in the Finder (macOS only).
+    """
     if not IS_MACOS:
         return QMessageBox.warning(parent, title, text, buttons, default)
-    return _show(Icon.Warning, parent, title, text, buttons, default)
+    return _show(Icon.Warning, parent, title, text, buttons, default, reveal)
 
 
 def critical(

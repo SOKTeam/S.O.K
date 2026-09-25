@@ -75,6 +75,45 @@ class TestOnMacOS:
         assert box.windowModality() == modality
 
 
+class TestRevealInFinder:
+    @pytest.fixture
+    def opened(self, monkeypatch):
+        urls = []
+        monkeypatch.setattr(
+            message_box.QDesktopServices, "openUrl", staticmethod(urls.append)
+        )
+        return urls
+
+    def click_reveal(self, monkeypatch):
+        def fake_exec(box):
+            (reveal,) = [
+                b
+                for b in box.buttons()
+                if box.buttonRole(b) == QMessageBox.ButtonRole.ActionRole
+            ]
+            reveal.click()
+            return 0
+
+        monkeypatch.setattr(message_box, "IS_MACOS", True)
+        monkeypatch.setattr(QMessageBox, "exec", fake_exec)
+
+    def test_reveal_button_opens_the_folder(
+        self, window, monkeypatch, opened, tmp_path
+    ):
+        self.click_reveal(monkeypatch)
+
+        message_box.information(window, "Title", "Done", reveal=tmp_path)
+
+        assert [url.toLocalFile() for url in opened] == [str(tmp_path)]
+
+    def test_no_reveal_button_without_folder(self, window, shown):
+        message_box.information(window, "Title", "Done")
+
+        (box,) = shown
+        roles = [box.buttonRole(b) for b in box.buttons()]
+        assert QMessageBox.ButtonRole.ActionRole not in roles
+
+
 class TestOnOtherPlatforms:
     @pytest.mark.parametrize("kind", ["information", "warning", "critical", "question"])
     def test_calls_the_qt_static_function(self, window, monkeypatch, kind):

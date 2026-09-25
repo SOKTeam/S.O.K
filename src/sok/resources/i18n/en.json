@@ -215,5 +215,6 @@
     "zoom": "Zoom",
     "documentation": "S.O.K Documentation",
     "follow_system_theme": "Match system appearance",
-    "use_system_accent": "Use system accent color"
+    "use_system_accent": "Use system accent color",
+    "show_in_finder": "Show in Finder"
 }

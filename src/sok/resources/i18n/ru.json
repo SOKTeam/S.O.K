@@ -215,5 +215,6 @@
     "zoom": "Изменить масштаб",
     "documentation": "Документация S.O.K",
     "follow_system_theme": "Как в системе",
-    "use_system_accent": "Использовать системный цвет акцента"
+    "use_system_accent": "Использовать системный цвет акцента",
+    "show_in_finder": "Показать в Finder"
 }
