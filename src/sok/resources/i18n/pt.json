@@ -215,5 +215,6 @@
     "zoom": "Zoom",
     "documentation": "Documentação do S.O.K",
     "follow_system_theme": "Usar a aparência do sistema",
-    "use_system_accent": "Usar a cor de destaque do sistema"
+    "use_system_accent": "Usar a cor de destaque do sistema",
+    "show_in_finder": "Mostrar no Finder"
 }

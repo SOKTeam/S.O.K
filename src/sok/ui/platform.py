@@ -20,7 +20,7 @@ import warnings
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication, QPalette
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QApplication, QWidget
 
 IS_MACOS = sys.platform == "darwin"
 
@@ -87,3 +87,14 @@ def use_native_title_bar(window: QWidget) -> None:
     window.setWindowFlag(Qt.WindowType.NoTitleBarBackgroundHint, True)
     # Layouts handle the title bar area themselves (see MACOS_TITLEBAR_HEIGHT).
     window.setAttribute(Qt.WidgetAttribute.WA_ContentsMarginsRespectsSafeArea, False)
+
+
+def request_attention(widget: QWidget) -> None:
+    """Bounce the Dock icon when a long task ends in the background (macOS).
+
+    Args:
+        widget: Widget whose window finished the task.
+    """
+    window = widget.window()
+    if IS_MACOS and not window.isActiveWindow():
+        QApplication.alert(window)

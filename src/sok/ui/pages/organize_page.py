@@ -47,6 +47,7 @@ from sok.config import get_config_manager
 from sok.ui.i18n import tr
 from sok.ui.pages.organize_preview_panel import PreviewPanel
 from sok.ui import message_box
+from sok.ui.platform import request_attention
 from sok.media.video.series import Series
 
 FileOperations = (
@@ -600,19 +601,28 @@ class OrganizePage(QScrollArea):
         title = selected_media.get("name", "Unknown") if selected_media else "Unknown"
         num_created = report.get("created", 0)
         errors = report.get("errors", [])
+        dest = self._destination_folder()
+        request_attention(self)
 
         if errors:
             message_box.warning(
                 self,
                 tr("finished_with_errors", "Finished with errors"),
                 f"Structure created for '{title}':\n{num_created} folder(s) created\n{len(errors)} error(s)",
+                reveal=dest,
             )
         else:
             message_box.information(
                 self,
                 tr("success", "Success"),
                 f"Structure created for '{title}':\n{num_created} folder(s) created",
+                reveal=dest,
             )
+
+    def _destination_folder(self) -> Path | None:
+        """Return the selected destination folder, if it exists."""
+        dest = self._options_panel.get_destination_path()
+        return Path(dest) if dest and Path(dest).is_dir() else None
 
     def _on_folders_error(self, error: str):
         """Handle folder creation error.
@@ -623,6 +633,7 @@ class OrganizePage(QScrollArea):
             error: Error message string describing the failure.
         """
         self._set_progress(False)
+        request_attention(self)
         self._options_panel.set_create_folders_enabled(True)
         self._options_panel.set_create_folders_text(
             tr("create_series_folders", "Create series folders")
@@ -789,6 +800,8 @@ class OrganizePage(QScrollArea):
         """
         self._set_progress(False)
         self._options_panel.set_action_enabled(True)
+        dest = self._destination_folder()
+        request_attention(self)
 
         if report["errors"]:
             message_box.warning(
@@ -797,6 +810,7 @@ class OrganizePage(QScrollArea):
                 tr("success_count", "{0}/{1} succeeded.").format(
                     report["success"], report["total"]
                 ),
+                reveal=dest,
             )
         else:
             message_box.information(
@@ -805,6 +819,7 @@ class OrganizePage(QScrollArea):
                 tr("files_organized", "✓ {0} file(s) organized!").format(
                     report["success"]
                 ),
+                reveal=dest,
             )
 
         self._files = []
@@ -820,6 +835,7 @@ class OrganizePage(QScrollArea):
             error: Error message string describing the failure.
         """
         self._set_progress(False)
+        request_attention(self)
         self._options_panel.set_action_enabled(True)
         message_box.critical(
             self, tr("error", "Error"), f"{tr('error_prefix', 'Error:')} {error}"

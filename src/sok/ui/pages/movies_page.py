@@ -55,6 +55,7 @@ from sok.ui.workers import (
     SearchWorker,
 )
 from sok.ui import message_box
+from sok.ui.platform import request_attention
 
 logger = logging.getLogger(__name__)
 
@@ -352,18 +353,23 @@ class MoviesPage(QScrollArea):
         success = report.get("success", 0)
         total = report.get("total", 0)
         errors = report.get("errors", [])
+        dest = self._dest_drop.get_path()
+        reveal = Path(dest) if dest and Path(dest).is_dir() else None
+        request_attention(self)
 
         if errors:
             message_box.warning(
                 self,
                 tr("finished_with_errors", "Finished with errors"),
                 tr("success_count", "{0}/{1} successful.").format(success, total),
+                reveal=reveal,
             )
         else:
             message_box.information(
                 self,
                 tr("success", "Success"),
                 tr("files_organized", "✓ {0} file(s) organized!").format(success),
+                reveal=reveal,
             )
 
         self._files = []
@@ -373,6 +379,7 @@ class MoviesPage(QScrollArea):
 
     def _on_organize_error(self, error: str) -> None:
         self._set_progress(False)
+        request_attention(self)
         self._action_btn.setEnabled(True)
         self._rescan_all_btn.setEnabled(True)
         message_box.critical(
