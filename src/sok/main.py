@@ -80,7 +80,8 @@ def main():
     app.setApplicationVersion(__version__)
     app.setOrganizationName("S.O.K")
 
-    icon_path = Path(__file__).parent / "resources" / "assets" / "logo.ico"
+    icon_name = "logo.icns" if sys.platform == "darwin" else "logo.ico"
+    icon_path = Path(__file__).parent / "resources" / "assets" / icon_name
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
 
