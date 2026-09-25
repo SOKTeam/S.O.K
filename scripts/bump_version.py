@@ -29,7 +29,6 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 VERSION_FILES = {
     "pyproject.toml": r'(?ms)^\[project\]$.*?^version = "(?P<version>[^"]*)"',
     "src/sok/__version__.py": r'(?m)^__version__ = "(?P<version>[^"]*)"',
-    "scripts/installation.iss": r'(?m)^#define MyAppVersion "(?P<version>[^"]*)"',
     "uv.lock": r'(?m)^name = "sok"\nversion = "(?P<version>[^"]*)"',
 }
 

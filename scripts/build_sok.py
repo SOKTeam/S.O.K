@@ -118,6 +118,18 @@ def build():
 
     if os_name == "windows":
         nuitka_cmd.append("--windows-console-mode=disable")
+        # Version info shown in the .exe properties (Details tab). The
+        # installer reads ProductVersion from it (see installation.iss).
+        nuitka_cmd.extend(
+            [
+                "--product-name=S.O.K",
+                f"--product-version={version}",
+                f"--file-version={version}",
+                "--file-description=Storage Organisation Kit",
+                "--company-name=S.O.K Team",
+                "--copyright=© 2026 S.O.K Team",
+            ]
+        )
 
     current_env = os.environ.copy()
     current_env["PYTHONPATH"] = (

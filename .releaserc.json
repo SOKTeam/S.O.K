@@ -22,7 +22,6 @@
           "CHANGELOG.md",
           "pyproject.toml",
           "src/sok/__version__.py",
-          "scripts/installation.iss",
           "uv.lock"
         ],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"

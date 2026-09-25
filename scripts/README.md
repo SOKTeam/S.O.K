@@ -26,8 +26,9 @@ python scripts/build_sok.py
 ### `bump_version.py`
 
 Keeps the application version identical everywhere. `pyproject.toml` is the
-source of truth; the version is copied to `src/sok/__version__.py`,
-`scripts/installation.iss` and `uv.lock`.
+source of truth; the version is copied to `src/sok/__version__.py` and
+`uv.lock`. The Windows executable gets it at build time (`build_sok.py`) and
+the installer (`installation.iss`) reads it from the executable.
 
 ```bash
 python scripts/bump_version.py 1.2.0   # write 1.2.0 everywhere
