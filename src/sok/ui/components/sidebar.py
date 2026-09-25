@@ -20,8 +20,8 @@ from sok.ui.platform import IS_MACOS
 from sok.ui.theme import Theme, svg_icon
 from sok.ui.components.base import parse_color
 
-# macOS sidebars use compact rows, like the Finder.
-BUTTON_HEIGHT = 28 if IS_MACOS else 48
+# macOS sidebar rows are shorter than the Windows 11 ones.
+BUTTON_HEIGHT = 36 if IS_MACOS else 48
 
 
 class SidebarButton(QPushButton):
@@ -177,16 +177,16 @@ class SidebarButton(QPushButton):
         """
         prog = self._progress
         margin = int(8 + 2 * prog)
-        rect = self.rect().adjusted(margin, 2, -margin, -2)
+        rect = self.rect().adjusted(margin, 3, -margin, -3)
 
         if self.isChecked():
             p.setPen(Qt.PenStyle.NoPen)
             p.setBrush(parse_color(c["sidebar_selection"]))
-            p.drawRoundedRect(rect, 5, 5)
+            p.drawRoundedRect(rect, 7, 7)
 
         icon_color = c["accent"] if self.isChecked() else c["icon_secondary"]
-        icon = svg_icon(self._icon, icon_color, 16)
-        icon_x = int(28 + (18 - 28) * prog)
+        icon = svg_icon(self._icon, icon_color, 18)
+        icon_x = int(27 + (20 - 27) * prog)
         p.drawPixmap(icon_x, (self.height() - icon.height()) // 2, icon)
 
         if prog > 0.3:
@@ -195,7 +195,7 @@ class SidebarButton(QPushButton):
             p.setPen(text_color)
             p.setFont(QFont(c.get("font", Theme.FONT), 13))
             p.drawText(
-                rect.adjusted(42 - margin, 0, 0, 0),
+                rect.adjusted(48 - margin, 0, 0, 0),
                 Qt.AlignmentFlag.AlignVCenter,
                 self.text(),
             )

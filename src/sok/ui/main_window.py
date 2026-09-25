@@ -182,7 +182,7 @@ class MainWindow(QMainWindow):
 
         sb_layout = QVBoxLayout(sidebar)
         # On macOS, leave room for the traffic lights above the menu button.
-        top_margin = MACOS_TITLEBAR_HEIGHT if IS_MACOS else 0
+        top_margin = MACOS_TITLEBAR_HEIGHT + 8 if IS_MACOS else 0
         sb_layout.setContentsMargins(0, top_margin, 0, 12)
         sb_layout.setSpacing(0)
 
@@ -729,7 +729,7 @@ class MainWindow(QMainWindow):
             /* Finder sidebar headings: gray, not capitalized */
             #SidebarSection {{
                 color: {c["secondary"]};
-                padding: 14px 18px 4px 18px;
+                padding: 18px 20px 6px 20px;
                 text-transform: none;
                 letter-spacing: 0;
             }}
