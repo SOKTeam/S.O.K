@@ -85,3 +85,24 @@ jobs:
 
       - name: Quality checks passed
         run: echo "All quality checks passed!"
+
+  macos-tests:
+    name: Tests (macOS)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync deps (dev extras)
+        run: uv sync --extra dev
+
+      - name: Tests (pytest)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: uv run pytest tests/ -v
