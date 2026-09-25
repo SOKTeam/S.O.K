@@ -57,7 +57,8 @@ class WorkerRunner:
         Args:
             worker: Worker object with run(), finished, and error signals.
             on_finished: Callback for finished signal.
-            on_error: Callback for error signal.
+            on_error: Callback for error signal. If None, a generic error
+                dialog is shown instead.
             on_progress: Optional callback for progress signal.
 
         Returns:
@@ -79,12 +80,16 @@ class WorkerRunner:
             def _handle_error(err):
                 """Handle worker error signal.
 
+                The generic dialog is only a fallback: a caller-provided
+                on_error is responsible for informing the user.
+
                 Args:
                     err: Error message from worker.
                 """
                 if on_error:
                     on_error(err)
-                self._show_error(err)
+                else:
+                    self._show_error(err)
 
             worker.error.connect(_handle_error)
             worker.error.connect(self._thread.quit)
