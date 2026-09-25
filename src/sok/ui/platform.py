@@ -19,7 +19,7 @@ import sys
 import warnings
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QPalette
 from PySide6.QtWidgets import QWidget
 
 IS_MACOS = sys.platform == "darwin"
@@ -34,6 +34,11 @@ SYSTEM_THEME = "system"
 def system_prefers_dark() -> bool:
     """Return True if the system appearance is dark."""
     return QGuiApplication.styleHints().colorScheme() == Qt.ColorScheme.Dark
+
+
+def system_accent_color() -> str:
+    """Return the accent color chosen in the system settings, as "#RRGGBB"."""
+    return QGuiApplication.palette().color(QPalette.ColorRole.Accent).name()
 
 
 def is_dark_theme(theme: str) -> bool:

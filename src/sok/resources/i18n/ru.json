@@ -214,5 +214,6 @@
     "minimize": "Свернуть в Dock",
     "zoom": "Изменить масштаб",
     "documentation": "Документация S.O.K",
-    "follow_system_theme": "Как в системе"
+    "follow_system_theme": "Как в системе",
+    "use_system_accent": "Использовать системный цвет акцента"
 }

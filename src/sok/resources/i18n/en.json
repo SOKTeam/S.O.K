@@ -214,5 +214,6 @@
     "minimize": "Minimize",
     "zoom": "Zoom",
     "documentation": "S.O.K Documentation",
-    "follow_system_theme": "Match system appearance"
+    "follow_system_theme": "Match system appearance",
+    "use_system_accent": "Use system accent color"
 }

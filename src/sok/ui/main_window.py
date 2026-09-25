@@ -37,7 +37,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QIcon
 
-from sok.ui.theme import Theme, ASSETS_DIR, tone_stylesheet
+from sok.ui.theme import Theme, ASSETS_DIR, palette, tone_stylesheet
 from sok.ui.platform import (
     IS_MACOS,
     MACOS_TITLEBAR_HEIGHT,
@@ -83,7 +83,7 @@ class MainWindow(QMainWindow):
         apply_color_scheme(theme_pref)
 
         self.dark = is_dark_theme(theme_pref)
-        self.c = Theme.DARK if self.dark else Theme.LIGHT
+        self.c = self._palette(self.dark)
         self._theme_name = theme_pref
 
         self._drag_pos = None
@@ -391,18 +391,23 @@ class MainWindow(QMainWindow):
         self._update_title_by_index(self._pages.currentIndex())
 
     def changeEvent(self, event):
-        """Re-apply styles when the maximized state flips.
+        """Re-apply styles when the maximized state or the accent changes.
 
         Window radii must be 0 when maximized (so corners fill the screen)
         and 12 when restored. Reads the state from the windowState bitmask
         directly — ``isMaximized()`` can lag the event during animated
-        transitions.
+        transitions. On macOS the accent may follow the system setting.
         """
         from PySide6.QtCore import QEvent
 
         if event.type() == QEvent.Type.WindowStateChange:
             is_max = bool(self.windowState() & Qt.WindowState.WindowMaximized)
             self._style(is_maximized=is_max)
+        elif event.type() == QEvent.Type.ApplicationPaletteChange:
+            c = self._palette(self.dark)
+            if c["accent"] != self.c["accent"]:
+                self.c = c
+                self._style()
         super().changeEvent(event)
 
     def nativeEvent(self, eventType, message):
@@ -655,10 +660,18 @@ class MainWindow(QMainWindow):
         """
         self.dark = dark
         self._theme_name = self._config.get("theme", "orange")
-        self.c = Theme.DARK if dark else Theme.LIGHT
+        self.c = self._palette(dark)
 
         self._style()
         self.update()
+
+    def _palette(self, dark: bool) -> dict[str, str]:
+        """Return the palette for the theme and the accent setting.
+
+        Args:
+            dark: True for the dark theme.
+        """
+        return palette(dark, bool(self._config.get("use_system_accent")))
 
     def _on_system_scheme_changed(self, _scheme):
         """Follow the system appearance when the theme is set to "system"."""

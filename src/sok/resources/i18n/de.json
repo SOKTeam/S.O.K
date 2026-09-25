@@ -214,5 +214,6 @@
     "minimize": "Im Dock ablegen",
     "zoom": "Zoomen",
     "documentation": "S.O.K-Dokumentation",
-    "follow_system_theme": "Systemdarstellung verwenden"
+    "follow_system_theme": "Systemdarstellung verwenden",
+    "use_system_accent": "Akzentfarbe des Systems verwenden"
 }

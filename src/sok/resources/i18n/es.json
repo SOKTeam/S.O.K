@@ -214,5 +214,6 @@
     "minimize": "Minimizar",
     "zoom": "Zoom",
     "documentation": "Documentación de S.O.K",
-    "follow_system_theme": "Usar la apariencia del sistema"
+    "follow_system_theme": "Usar la apariencia del sistema",
+    "use_system_accent": "Usar el color de acento del sistema"
 }

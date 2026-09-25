@@ -21,7 +21,7 @@ from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
 from PySide6.QtSvg import QSvgRenderer
 import re
 
-from sok.ui.platform import IS_MACOS
+from sok.ui.platform import IS_MACOS, system_accent_color
 
 # 1. Detect if running as executable or in script mode
 if "__compiled__" in globals():
@@ -155,6 +155,20 @@ class Theme:
 
     # Colored text, applied with set_tone(): "tone_ok" styles tone "ok".
     TONE_PREFIX = "tone_"
+
+
+def palette(dark: bool, system_accent: bool = False) -> dict[str, str]:
+    """Return the color palette to use.
+
+    Args:
+        dark: True for the dark theme.
+        system_accent: Replace the orange accent with the system accent
+            color (macOS setting).
+    """
+    c = dict(Theme.DARK if dark else Theme.LIGHT)
+    if system_accent and IS_MACOS:
+        c["accent"] = system_accent_color()
+    return c
 
 
 def tone_stylesheet(c: dict[str, str]) -> str:
