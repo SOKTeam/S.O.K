@@ -20,6 +20,7 @@ This module handles:
 
 import os
 import re
+import shutil
 from typing import Dict, Any, List, Optional
 import logging
 from pathlib import Path
@@ -317,7 +318,7 @@ class MusicFileOperations(FileOperations, FileParsingMixin, FileValidationMixin)
                 if not dry_run:
                     try:
                         os.makedirs(dest_folder, exist_ok=True)
-                        os.rename(source_file, dest_file)
+                        shutil.move(source_file, dest_file)
                         report["moved"].append({"from": source_file, "to": dest_file})
                         report["total_moved"] += 1
                         report["artists"].add(artist)
