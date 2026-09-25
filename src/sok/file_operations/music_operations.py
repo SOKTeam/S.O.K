@@ -20,13 +20,16 @@ This module handles:
 
 import os
 import re
-import shutil
 from typing import Dict, Any, List, Optional
 import logging
 from pathlib import Path
 from sok.core.interfaces import FileOperations, MediaItem
 from sok.core.utils import format_name
-from sok.file_operations.base_operations import FileParsingMixin, FileValidationMixin
+from sok.file_operations.base_operations import (
+    FileParsingMixin,
+    FileValidationMixin,
+    move_file,
+)
 from mutagen import File
 
 logger = logging.getLogger(__name__)
@@ -318,7 +321,7 @@ class MusicFileOperations(FileOperations, FileParsingMixin, FileValidationMixin)
                 if not dry_run:
                     try:
                         os.makedirs(dest_folder, exist_ok=True)
-                        shutil.move(source_file, dest_file)
+                        move_file(source_file, dest_file)
                         report["moved"].append({"from": source_file, "to": dest_file})
                         report["total_moved"] += 1
                         report["artists"].add(artist)

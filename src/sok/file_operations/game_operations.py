@@ -20,13 +20,16 @@ This module handles:
 
 import os
 import re
-import shutil
 import logging
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 from sok.core.interfaces import FileOperations, MediaItem
 from sok.core.utils import format_name
-from sok.file_operations.base_operations import FileParsingMixin, FileValidationMixin
+from sok.file_operations.base_operations import (
+    FileParsingMixin,
+    FileValidationMixin,
+    move_file,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -398,7 +401,7 @@ class GameFileOperations(FileOperations, FileParsingMixin, FileValidationMixin):
                 if not dry_run:
                     try:
                         os.makedirs(dest_folder, exist_ok=True)
-                        shutil.move(source_file, dest_file)
+                        move_file(source_file, dest_file)
                         report["moved"].append({"from": source_file, "to": dest_file})
                         report["total_moved"] += 1
 
