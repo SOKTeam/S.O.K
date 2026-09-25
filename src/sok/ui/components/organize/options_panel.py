@@ -24,6 +24,7 @@ from PySide6.QtCore import Signal
 from sok.ui.theme import card_shadow
 from sok.ui.components.base import ActionButton
 from sok.ui.components.inputs import DropZone
+from sok.ui.controllers.default_paths import apply_default_destination
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.controllers.ui_state import set_progress
 from sok.ui.i18n import tr
@@ -80,6 +81,16 @@ class OptionsPanel(QWidget):
         super().__init__(parent)
         self._media_type = media_type
         self._build_ui()
+        apply_default_destination(self._dest_drop, self._media_type)
+
+    def showEvent(self, event):
+        """Apply the default destination set in the settings since startup.
+
+        Args:
+            event: The show event.
+        """
+        apply_default_destination(self._dest_drop, self._media_type)
+        super().showEvent(event)
 
     def _build_ui(self):
         """Builds the options panel interface."""
