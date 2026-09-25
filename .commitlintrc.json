@@ -32,7 +32,8 @@
         "apis",
         "config",
         "file-ops",
-        "deps"
+        "deps",
+        "macos"
       ]
     ]
   }
