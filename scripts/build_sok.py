@@ -21,6 +21,8 @@ import shutil
 from cryptography.fernet import Fernet
 from pathlib import Path
 
+from bump_version import read_version
+
 
 def inject_env_vars(src_sok_dir, root_dir):
     """Inject encrypted API keys from .env into constants.py."""
@@ -74,7 +76,8 @@ def build():
     ROOT_DIR = SCRIPT_DIR.parent
     os_name = platform.system().lower()
 
-    print(f"\n--- S.O.K. NUITKA COMPILER v1.0.0 | OS: {os_name.upper()} ---")
+    version = read_version("pyproject.toml")
+    print(f"\n--- S.O.K. v{version} NUITKA BUILD | OS: {os_name.upper()} ---")
 
     build_dir = ROOT_DIR / "build" / "nuitka_work"
     dist_dir = ROOT_DIR / "dist"

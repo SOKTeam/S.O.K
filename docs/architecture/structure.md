@@ -109,6 +109,7 @@ tests/
 | `build_sok.py` | Build executable with Nuitka |
 | `build_ui.py` | Compile Qt Designer files |
 | `build_docs.py` | Build documentation |
+| `bump_version.py` | Sync the version in every file |
 | `installation.iss` | Inno Setup installer script |
 
 ## Configuration Files
