@@ -61,7 +61,7 @@ class AppearanceSection(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        self.label = make_section_label("appearance", "APPARENCE")
+        self.label = make_section_label("appearance", "Appearance")
         layout.addWidget(self.label)
 
         card = Card()
@@ -214,7 +214,7 @@ class AppearanceSection(QWidget):
 
     def retranslate(self):
         """Update translatable UI text."""
-        self.label.setText(tr("appearance", "APPEARANCE"))
+        self.label.setText(tr("appearance", "Appearance"))
         self.dark_lbl.setText(tr("dark_mode", "Dark Mode"))
         if self.system_toggle:
             self.system_lbl.setText(

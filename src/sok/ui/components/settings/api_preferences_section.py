@@ -49,7 +49,7 @@ class ApiPreferencesSection(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        self.label = make_section_label("preferred_api", "PREFERRED API")
+        self.label = make_section_label("preferred_api", "Preferred API")
         layout.addWidget(self.label)
 
         self.card = Card()
@@ -195,7 +195,7 @@ class ApiPreferencesSection(QWidget):
 
     def retranslate(self):
         """Update translatable UI text."""
-        self.label.setText(tr("preferred_api", "PREFERRED API"))
+        self.label.setText(tr("preferred_api", "Preferred API"))
         layout = self.card.layout()
         if not layout:
             return

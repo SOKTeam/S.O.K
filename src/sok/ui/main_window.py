@@ -668,14 +668,43 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _mac_rules(c: dict[str, str]) -> str:
-        """Return the stylesheet rules of widgets themed only on macOS.
+        """Return the macOS stylesheet rules.
 
-        On Windows these widgets keep their own fixed stylesheets.
+        They come last, so they override the shared rules. On Windows the
+        widgets they style keep their own fixed stylesheets.
 
         Args:
             c: Current color palette.
         """
         return f"""
+            /* Finder sidebar headings: gray, not capitalized */
+            #SidebarSection {{
+                color: {c["secondary"]};
+                padding: 14px 18px 4px 18px;
+                text-transform: none;
+                letter-spacing: 0;
+            }}
+
+            /* Section headings in sentence case, like System Settings */
+            #SectionLabel, #CategoryLabel {{
+                text-transform: none;
+                letter-spacing: 0;
+            }}
+
+            #SectionLabel {{
+                font-size: 13px;
+                color: {c["text"]};
+            }}
+
+            #ActionBtn, #DestructiveBtn {{
+                border-radius: 6px;
+                padding: 0 12px;
+            }}
+
+            #SearchBar, #SettingsInput, #SettingsFormatInput, QComboBox {{
+                border-radius: 6px;
+            }}
+
             #MatchCombo {{
                 background: {c["input_bg"]};
                 border: 1px solid {c["separator"]};
@@ -748,19 +777,6 @@ class MainWindow(QMainWindow):
             self._close_btn.update()
         tone_rules = tone_stylesheet(c)
         mac_rules = self._mac_rules(c) if IS_MACOS else ""
-        # Finder sidebar headings: gray, not capitalized.
-        sidebar_section_mac = (
-            f"""
-            #SidebarSection {{
-                color: {c["secondary"]};
-                padding: 14px 18px 4px 18px;
-                text-transform: none;
-                letter-spacing: 0;
-            }}
-            """
-            if IS_MACOS
-            else ""
-        )
 
         self.setStyleSheet(
             f"""
@@ -789,8 +805,6 @@ class MainWindow(QMainWindow):
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
             }}
-
-            {sidebar_section_mac}
 
             /* Right Column (Background + Radius) */
             #RightCol {{

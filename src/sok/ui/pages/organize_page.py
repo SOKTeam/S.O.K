@@ -178,7 +178,7 @@ class OrganizePage(QScrollArea):
         right = QVBoxLayout(right_widget)
         right.setSpacing(8)
 
-        self._preview_title_label = make_section_label("preview", "PREVIEW")
+        self._preview_title_label = make_section_label("preview", "Preview")
         right.addWidget(self._preview_title_label)
 
         self._preview_panel = PreviewPanel()
@@ -240,7 +240,7 @@ class OrganizePage(QScrollArea):
 
         if not self._files:
             self._set_empty_preview(tr("select_folder", "Select a folder"))
-            self._preview_title_label.setText(tr("preview", "PREVIEW"))
+            self._preview_title_label.setText(tr("preview", "Preview"))
         else:
             self._on_source([f.parent for f in self._files])
 

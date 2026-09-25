@@ -60,7 +60,7 @@ class AboutSection(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        self.label = make_section_label("about", "ABOUT")
+        self.label = make_section_label("about", "About")
         layout.addWidget(self.label)
 
         card = Card()
@@ -147,7 +147,7 @@ class AboutSection(QWidget):
 
     def retranslate(self):
         """Update translatable UI text."""
-        self.label.setText(tr("about", "ABOUT"))
+        self.label.setText(tr("about", "About"))
         self.version_row.set_title(tr("version", "Version"))
         self.reset_btn.setText(tr("reset_settings", "Reset settings"))
         for toggle in self._toggles.values():

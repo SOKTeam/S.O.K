@@ -91,7 +91,7 @@ class MoviesPage(QScrollArea):
         self._title_lbl.setObjectName("PageTitle")
         layout.addWidget(self._title_lbl)
 
-        self._lbl_source = make_section_label("source_files", "SOURCE FILES")
+        self._lbl_source = make_section_label("source_files", "Source Files")
         layout.addWidget(self._lbl_source)
 
         self._summary_lbl = QLabel("")
@@ -105,7 +105,7 @@ class MoviesPage(QScrollArea):
         self._table.files_added.connect(self._on_files_added)
         layout.addWidget(self._table, 1)
 
-        self._lbl_dest = make_section_label("destination", "DESTINATION")
+        self._lbl_dest = make_section_label("destination", "Destination")
         layout.addWidget(self._lbl_dest)
         self._dest_drop = DropZone()
         self._dest_drop.files_dropped.connect(self._on_dest_changed)
@@ -159,8 +159,8 @@ class MoviesPage(QScrollArea):
     def retranslateUi(self) -> None:
         """Refresh translatable labels."""
         self._title_lbl.setText(tr("movies", "Movies"))
-        self._lbl_source.setText(tr("source_files", "SOURCE FILES"))
-        self._lbl_dest.setText(tr("destination", "DESTINATION"))
+        self._lbl_source.setText(tr("source_files", "Source Files"))
+        self._lbl_dest.setText(tr("destination", "Destination"))
         self._rescan_all_btn.setText(tr("rescan_all", "Re-scan all"))
         self._action_btn.setText(tr("rename_all", "Rename all"))
         self._update_summary()

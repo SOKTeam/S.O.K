@@ -49,7 +49,7 @@ class BehaviorSection(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        self.label = make_section_label("behavior", "BEHAVIOR")
+        self.label = make_section_label("behavior", "Behavior")
         layout.addWidget(self.label)
 
         card = Card()
@@ -129,7 +129,7 @@ class BehaviorSection(QWidget):
 
     def retranslate(self):
         """Update translatable UI text."""
-        self.label.setText(tr("behavior", "BEHAVIOR"))
+        self.label.setText(tr("behavior", "Behavior"))
         for toggle in self._toggles.values():
             parent = toggle.parentWidget()
             if not parent:

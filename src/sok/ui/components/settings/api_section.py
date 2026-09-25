@@ -80,7 +80,7 @@ class ApiSection(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        self.label = make_section_label("api_keys", "API KEYS")
+        self.label = make_section_label("api_keys", "API Keys")
         layout.addWidget(self.label)
 
         try:
@@ -573,12 +573,12 @@ class ApiSection(QWidget):
 
     def retranslate(self):
         """Update translatable UI text."""
-        self.label.setText(tr("api_keys", "API KEYS"))
+        self.label.setText(tr("api_keys", "API Keys"))
         for label in self._api_cat_labels.values():
             tr_key = label.property("tr_key")
             default = label.property("tr_default")
             if tr_key:
-                label.setText(tr(tr_key, default or "").upper())
+                label.setText(tr(tr_key, default or ""))
         for attr in dir(self):
             if (
                 attr.endswith("_connect_btn")
