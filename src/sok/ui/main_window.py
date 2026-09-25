@@ -287,6 +287,8 @@ class MainWindow(QMainWindow):
 
         self._title_label = QLabel(f"S.O.K - {tr('videos', 'Videos')}")
         self._title_label.setObjectName("AppTitle")
+        # macOS draws the window title itself (see _update_title_by_index).
+        self._title_label.setVisible(not IS_MACOS)
         header_layout.addWidget(self._title_label)
 
         self._drag_area = QWidget()
@@ -584,6 +586,8 @@ class MainWindow(QMainWindow):
         titles = self._nav_titles()
         if 0 <= idx < len(titles):
             self._title_label.setText(f"S.O.K - {titles[idx]}")
+            if IS_MACOS:
+                self.setWindowTitle(titles[idx])
 
     def _toggle_sidebar(self):
         """Toggle sidebar between expanded and collapsed states.
