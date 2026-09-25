@@ -381,7 +381,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                         if not os.path.exists(dest_folder):
                             os.makedirs(dest_folder, exist_ok=True)
 
-                        os.rename(source_file, dest_file)
+                        shutil.move(source_file, dest_file)
                         report["moved"].append({"from": source_file, "to": dest_file})
                         report["total_moved"] += 1
                     except OSError as e:
@@ -521,7 +521,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                         shutil.copy2(dest_file, backup_path)
                         if log_operations:
                             logger.info("Backup created: %s", backup_path)
-                    os.rename(source_file, dest_file)
+                    shutil.move(source_file, dest_file)
                     report["moved"].append({"from": source_file, "to": dest_file})
                     report["total_moved"] += 1
                     if log_operations:
@@ -618,7 +618,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                     if log_operations:
                         logger.info("Backup created: %s", backup_path)
 
-                os.rename(source_file, dest_file)
+                shutil.move(source_file, dest_file)
                 report["moved"].append({"from": source_file, "to": dest_file})
                 report["total_moved"] += 1
                 if log_operations:
