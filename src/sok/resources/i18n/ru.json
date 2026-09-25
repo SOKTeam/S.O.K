@@ -213,5 +213,6 @@
     "full_screen": "Включить полноэкранный режим",
     "minimize": "Свернуть в Dock",
     "zoom": "Изменить масштаб",
-    "documentation": "Документация S.O.K"
+    "documentation": "Документация S.O.K",
+    "follow_system_theme": "Как в системе"
 }

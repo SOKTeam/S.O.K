@@ -213,5 +213,6 @@
     "full_screen": "Usar tela cheia",
     "minimize": "Minimizar",
     "zoom": "Zoom",
-    "documentation": "Documentação do S.O.K"
+    "documentation": "Documentação do S.O.K",
+    "follow_system_theme": "Usar a aparência do sistema"
 }

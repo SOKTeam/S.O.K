@@ -213,5 +213,6 @@
     "full_screen": "Vollbildmodus aktivieren",
     "minimize": "Im Dock ablegen",
     "zoom": "Zoomen",
-    "documentation": "S.O.K-Dokumentation"
+    "documentation": "S.O.K-Dokumentation",
+    "follow_system_theme": "Systemdarstellung verwenden"
 }

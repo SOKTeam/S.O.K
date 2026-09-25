@@ -213,5 +213,6 @@
     "full_screen": "Enter Full Screen",
     "minimize": "Minimize",
     "zoom": "Zoom",
-    "documentation": "S.O.K Documentation"
+    "documentation": "S.O.K Documentation",
+    "follow_system_theme": "Match system appearance"
 }

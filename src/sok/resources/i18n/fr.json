@@ -213,5 +213,6 @@
     "full_screen": "Passer en plein écran",
     "minimize": "Placer dans le Dock",
     "zoom": "Réduire/agrandir",
-    "documentation": "Documentation de S.O.K"
+    "documentation": "Documentation de S.O.K",
+    "follow_system_theme": "Suivre l'apparence du système"
 }

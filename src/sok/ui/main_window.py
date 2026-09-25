@@ -38,7 +38,12 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QIcon
 
 from sok.ui.theme import Theme, ASSETS_DIR
-from sok.ui.platform import IS_MACOS, MACOS_TITLEBAR_HEIGHT, use_native_title_bar
+from sok.ui.platform import (
+    IS_MACOS,
+    MACOS_TITLEBAR_HEIGHT,
+    is_dark_theme,
+    use_native_title_bar,
+)
 from sok.ui.macos_menu import MacMenuBar
 from sok.ui.components.sidebar import SidebarButton
 from sok.ui.components.window import WindowControlButton
@@ -75,7 +80,7 @@ class MainWindow(QMainWindow):
         self._config = get_config_manager()
         theme_pref = self._config.get("theme", "orange")
 
-        self.dark = theme_pref == "dark"
+        self.dark = is_dark_theme(theme_pref)
         self.c = Theme.DARK if self.dark else Theme.LIGHT
         self._theme_name = theme_pref
 
@@ -85,6 +90,9 @@ class MainWindow(QMainWindow):
         self._setup_window()
         self._build()
         self._mac_menu = MacMenuBar(self) if IS_MACOS else None
+        style_hints = QApplication.styleHints()
+        if style_hints:
+            style_hints.colorSchemeChanged.connect(self._on_system_scheme_changed)
         self._style()
         self._setup_services()
 
@@ -620,20 +628,24 @@ class MainWindow(QMainWindow):
     def _toggle_theme(self, dark: bool):
         """Switch between light and dark themes.
 
-        Updates theme state, saves preference, and reapplies styles.
+        The preference itself ("dark", "light" or "system") is saved by the
+        appearance settings.
 
         Args:
             dark: True for dark theme, False for light.
         """
         self.dark = dark
-        self._theme_name = "dark" if dark else "orange"
+        self._theme_name = self._config.get("theme", "orange")
         self.c = Theme.DARK if dark else Theme.LIGHT
-
-        if hasattr(self, "_config"):
-            self._config.set("theme", self._theme_name)
 
         self._style()
         self.update()
+
+    def _on_system_scheme_changed(self, _scheme):
+        """Follow the system appearance when the theme is set to "system"."""
+        theme = self._config.get("theme", "orange")
+        if is_dark_theme(theme) != self.dark:
+            self._toggle_theme(is_dark_theme(theme))
 
     def _style(self, is_maximized: bool | None = None):
         """Apply current theme stylesheet to the window.

@@ -19,12 +19,32 @@ import sys
 import warnings
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QWidget
 
 IS_MACOS = sys.platform == "darwin"
 
 # Height of the macOS title bar the content is drawn under.
 MACOS_TITLEBAR_HEIGHT = 28
+
+# Value of the "theme" setting that follows the system appearance.
+SYSTEM_THEME = "system"
+
+
+def system_prefers_dark() -> bool:
+    """Return True if the system appearance is dark."""
+    return QGuiApplication.styleHints().colorScheme() == Qt.ColorScheme.Dark
+
+
+def is_dark_theme(theme: str) -> bool:
+    """Return True if the "theme" setting resolves to the dark palette.
+
+    Args:
+        theme: Setting value: "dark", "light", "orange" or "system".
+    """
+    if theme == SYSTEM_THEME:
+        return system_prefers_dark()
+    return theme == "dark"
 
 
 def use_native_title_bar(window: QWidget) -> None:
