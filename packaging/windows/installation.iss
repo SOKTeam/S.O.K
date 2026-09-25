@@ -5,7 +5,7 @@
 #define MyAppExeName "SOK.exe"
 
 ; Chemin vers le dossier généré par Nuitka (main.dist)
-#define MyNuitkaBuildPath "..\dist\main.dist"
+#define MyNuitkaBuildPath "..\..\dist\main.dist"
 
 ; Version lue dans l'exe (générée par build_sok.py depuis pyproject.toml)
 #define MyAppVersion GetStringFileInfo(AddBackslash(SourcePath) + MyNuitkaBuildPath + "\" + MyAppExeName, "ProductVersion")
@@ -26,9 +26,9 @@ DisableProgramGroupPage=yes
 PrivilegesRequiredOverridesAllowed=dialog
 
 ; Sortie de l'installeur
-OutputDir=..\dist
+OutputDir=..\..\dist
 OutputBaseFilename=SOK_Setup_v{#MyAppVersion}
-SetupIconFile=..\src\sok\resources\assets\logo.ico
+SetupIconFile=..\..\src\sok\resources\assets\logo.ico
 SolidCompression=yes
 WizardStyle=modern windows11
 

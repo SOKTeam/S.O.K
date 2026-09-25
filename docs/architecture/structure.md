@@ -110,7 +110,19 @@ tests/
 | `build_ui.py` | Compile Qt Designer files |
 | `build_docs.py` | Build documentation |
 | `bump_version.py` | Sync the version in every file |
-| `installation.iss` | Inno Setup installer script |
+| `make_macos_assets.py` | Draw the macOS app icon and disk image background |
+
+## Packaging (`packaging/`)
+
+Platform installer files, used by `scripts/build_sok.py` or the installer
+tools.
+
+| File | Purpose |
+| ------ | --------- |
+| `windows/installation.iss` | Inno Setup installer script |
+| `macos/dmg_settings.py` | Disk image window layout (dmgbuild) |
+| `macos/dmg_background.tiff` | Disk image background (standard and Retina) |
+| `macos/icon_1024.png` | 1024 px app icon, for the website |
 
 ## Configuration Files
 
