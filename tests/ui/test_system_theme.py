@@ -111,10 +111,15 @@ class TestApplyColorScheme:
             ("orange", platform.Qt.ColorScheme.Light),
         ],
     )
-    def test_forced_theme_overrides_the_native_chrome(self, hints, theme, expected):
+    def test_forced_theme_overrides_the_native_chrome(
+        self, hints, monkeypatch, theme, expected
+    ):
+        calls = []
+        monkeypatch.setattr(hints, "setColorScheme", calls.append)
+
         platform.apply_color_scheme(theme)
 
-        assert hints.colorScheme() == expected
+        assert calls == [expected]
 
     def test_system_theme_removes_the_override(self, hints, monkeypatch):
         calls = []
