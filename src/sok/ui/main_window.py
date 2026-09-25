@@ -39,6 +39,7 @@ from PySide6.QtGui import QIcon
 
 from sok.ui.theme import Theme, ASSETS_DIR
 from sok.ui.platform import IS_MACOS, MACOS_TITLEBAR_HEIGHT, use_native_title_bar
+from sok.ui.macos_menu import MacMenuBar
 from sok.ui.components.sidebar import SidebarButton
 from sok.ui.components.window import WindowControlButton
 from sok.ui.controllers.window_chrome import hit_test_resize
@@ -83,6 +84,7 @@ class MainWindow(QMainWindow):
 
         self._setup_window()
         self._build()
+        self._mac_menu = MacMenuBar(self) if IS_MACOS else None
         self._style()
         self._setup_services()
 
@@ -341,6 +343,8 @@ class MainWindow(QMainWindow):
         """
         reload_language()
         self.retranslateUi()
+        if self._mac_menu:
+            self._mac_menu.retranslate()
 
         for i in range(self._pages.count()):
             page = self._pages.widget(i)
@@ -542,6 +546,10 @@ class MainWindow(QMainWindow):
             page = self._pages.widget(0)
             if hasattr(page, "refresh"):
                 page.refresh()  # type: ignore[union-attr]
+
+    def current_page(self) -> QWidget:
+        """Return the page currently shown."""
+        return self._pages.currentWidget()
 
     def _nav_titles(self):
         """Get translated navigation button titles.

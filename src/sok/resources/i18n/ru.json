@@ -198,5 +198,20 @@
     "unknown_error": "Произошла ошибка",
     "update_available_header": "Доступна новая версия (v{version})!",
     "update_available_title": "Доступно обновление: v{version}",
-    "update_error": "Ошибка обновления"
+    "update_error": "Ошибка обновления",
+    "menu_file": "Файл",
+    "menu_edit": "Правка",
+    "menu_view": "Вид",
+    "menu_window": "Окно",
+    "menu_help": "Справка",
+    "about_app": "О программе S.O.K",
+    "app_description": "Storage Organisation Kit",
+    "quit": "Завершить",
+    "close_window": "Закрыть окно",
+    "find": "Найти",
+    "toggle_sidebar": "Показать/скрыть боковую панель",
+    "full_screen": "Включить полноэкранный режим",
+    "minimize": "Свернуть в Dock",
+    "zoom": "Изменить масштаб",
+    "documentation": "Документация S.O.K"
 }

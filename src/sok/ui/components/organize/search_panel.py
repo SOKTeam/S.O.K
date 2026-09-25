@@ -241,6 +241,11 @@ class SearchPanel(QWidget):
             self.clear_results()
             self.search_started.emit(query)
 
+    def focus_search(self) -> None:
+        """Focus the search field and select its text."""
+        self._search_input.setFocus()
+        self._search_input.selectAll()
+
     def clear_results(self):
         """Clear the results list."""
         while self._results_layout.count() > 0:
