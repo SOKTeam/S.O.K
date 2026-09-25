@@ -42,6 +42,7 @@ from sok.ui.platform import (
     IS_MACOS,
     MACOS_TITLEBAR_HEIGHT,
     apply_color_scheme,
+    hide_native_title,
     is_dark_theme,
     use_native_title_bar,
 )
@@ -150,7 +151,19 @@ class MainWindow(QMainWindow):
         right_col = self._build_right_column()
         main_layout.addWidget(right_col, 1)
 
+        self._window_title: QLabel | None = None
         if IS_MACOS:
+            # Replaces the native title: builds made with the macOS 26 SDK
+            # left-align it, over the sidebar button. Centered on the whole
+            # window, it lets clicks through to drag the window.
+            self._window_title = QLabel(central)
+            self._window_title.setObjectName("WindowTitle")
+            self._window_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self._window_title.setAttribute(
+                Qt.WidgetAttribute.WA_TransparentForMouseEvents
+            )
+            self._window_title.raise_()
+
             # Stays next to the traffic lights whatever the sidebar width.
             toggle = SidebarToggleButton(central)
             toggle.setToolTip(tr("toggle_sidebar", "Show/Hide Sidebar"))
@@ -301,7 +314,7 @@ class MainWindow(QMainWindow):
 
         self._title_label = QLabel(f"S.O.K - {tr('videos', 'Videos')}")
         self._title_label.setObjectName("AppTitle")
-        # macOS draws the window title itself (see _update_title_by_index).
+        # macOS shows the title across the whole window (see _build).
         self._title_label.setVisible(not IS_MACOS)
         header_layout.addWidget(self._title_label)
 
@@ -485,6 +498,26 @@ class MainWindow(QMainWindow):
             self._anim_geo.finished.connect(on_max_finished)
             self._anim_geo.start()
 
+    def resizeEvent(self, event):
+        """Keep the macOS title across the full window width.
+
+        Args:
+            event: Resize event.
+        """
+        super().resizeEvent(event)
+        title = getattr(self, "_window_title", None)
+        if title:
+            title.setGeometry(0, 0, self.width(), MACOS_TITLEBAR_HEIGHT)
+
+    def showEvent(self, event):
+        """Hide the native macOS title once the window exists.
+
+        Args:
+            event: Show event.
+        """
+        super().showEvent(event)
+        hide_native_title(self)
+
     def mouseDoubleClickEvent(self, event):
         """Handle double-click to toggle maximize.
 
@@ -605,8 +638,10 @@ class MainWindow(QMainWindow):
         titles = self._nav_titles()
         if 0 <= idx < len(titles):
             self._title_label.setText(f"S.O.K - {titles[idx]}")
-            if IS_MACOS:
+            if self._window_title:
+                # Also used by the Window menu and Mission Control.
                 self.setWindowTitle(titles[idx])
+                self._window_title.setText(titles[idx])
 
     def _toggle_sidebar(self):
         """Toggle sidebar between expanded and collapsed states.
@@ -726,6 +761,13 @@ class MainWindow(QMainWindow):
             c: Current color palette.
         """
         return f"""
+            /* Window title, drawn like the native one */
+            #WindowTitle {{
+                font-size: 13px;
+                font-weight: 600;
+                color: {c["text"]};
+            }}
+
             /* Finder sidebar headings: gray, not capitalized */
             #SidebarSection {{
                 color: {c["secondary"]};

@@ -55,3 +55,24 @@ def test_does_nothing_on_other_platforms(child, alerts, monkeypatch):
     platform.request_attention(child)
 
     assert alerts == []
+
+
+class TestHideNativeTitle:
+    def test_does_nothing_on_other_platforms(self, child, monkeypatch):
+        monkeypatch.setattr(platform, "IS_MACOS", False)
+        monkeypatch.setattr(
+            platform.ctypes.cdll, "LoadLibrary", lambda *_: pytest.fail("loaded")
+        )
+
+        platform.hide_native_title(child.window())
+
+    def test_does_nothing_without_native_windows(self, child, monkeypatch):
+        monkeypatch.setattr(platform, "IS_MACOS", True)
+        monkeypatch.setattr(
+            platform.QGuiApplication, "platformName", staticmethod(lambda: "offscreen")
+        )
+        monkeypatch.setattr(
+            platform.ctypes.cdll, "LoadLibrary", lambda *_: pytest.fail("loaded")
+        )
+
+        platform.hide_native_title(child.window())
