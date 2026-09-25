@@ -93,3 +93,42 @@ class TestAppearanceSectionOnMacOS:
         qtbot.addWidget(widget)
 
         assert widget.system_toggle is None
+
+
+class TestApplyColorScheme:
+    @pytest.fixture
+    def hints(self, qapp, monkeypatch):
+        monkeypatch.setattr(platform, "IS_MACOS", True)
+        hints = qapp.styleHints()
+        yield hints
+        hints.setColorScheme(platform.Qt.ColorScheme.Unknown)
+
+    @pytest.mark.parametrize(
+        "theme, expected",
+        [
+            ("dark", platform.Qt.ColorScheme.Dark),
+            ("light", platform.Qt.ColorScheme.Light),
+            ("orange", platform.Qt.ColorScheme.Light),
+        ],
+    )
+    def test_forced_theme_overrides_the_native_chrome(self, hints, theme, expected):
+        platform.apply_color_scheme(theme)
+
+        assert hints.colorScheme() == expected
+
+    def test_system_theme_removes_the_override(self, hints, monkeypatch):
+        calls = []
+        monkeypatch.setattr(hints, "setColorScheme", calls.append)
+
+        platform.apply_color_scheme("system")
+
+        assert calls == [platform.Qt.ColorScheme.Unknown]
+
+    def test_does_nothing_on_other_platforms(self, hints, monkeypatch):
+        monkeypatch.setattr(platform, "IS_MACOS", False)
+        calls = []
+        monkeypatch.setattr(hints, "setColorScheme", calls.append)
+
+        platform.apply_color_scheme("dark")
+
+        assert calls == []

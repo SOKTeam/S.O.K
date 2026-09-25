@@ -22,7 +22,12 @@ from sok.ui.components.base import Card, Toggle
 from sok.ui.components.inputs import ModernComboBox
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.i18n import tr
-from sok.ui.platform import IS_MACOS, SYSTEM_THEME, system_prefers_dark
+from sok.ui.platform import (
+    IS_MACOS,
+    SYSTEM_THEME,
+    apply_color_scheme,
+    system_prefers_dark,
+)
 from sok.ui.theme import card_shadow
 
 
@@ -150,7 +155,9 @@ class AppearanceSection(QWidget):
         Args:
             is_dark: True for dark theme.
         """
-        self._config.set("theme", "dark" if is_dark else "light")
+        theme = "dark" if is_dark else "light"
+        self._config.set("theme", theme)
+        apply_color_scheme(theme)
         self.theme_changed.emit(is_dark)
 
     def _on_system_theme_change(self, follow_system: bool):
@@ -161,10 +168,13 @@ class AppearanceSection(QWidget):
         """
         if follow_system:
             self._config.set("theme", SYSTEM_THEME)
+            apply_color_scheme(SYSTEM_THEME)
             is_dark = system_prefers_dark()
         else:
             is_dark = self.toggle.isChecked()
-            self._config.set("theme", "dark" if is_dark else "light")
+            theme = "dark" if is_dark else "light"
+            self._config.set("theme", theme)
+            apply_color_scheme(theme)
         self.load()
         self.theme_changed.emit(is_dark)
 

@@ -47,6 +47,27 @@ def is_dark_theme(theme: str) -> bool:
     return theme == "dark"
 
 
+def apply_color_scheme(theme: str) -> None:
+    """Make the native macOS chrome match the "theme" setting.
+
+    The title bar, traffic lights and native dialogs follow the application
+    appearance. A forced theme overrides it; "system" removes the override,
+    so system_prefers_dark() reports the real system appearance again.
+
+    Args:
+        theme: Setting value: "dark", "light", "orange" or "system".
+    """
+    if not IS_MACOS:
+        return
+    if theme == SYSTEM_THEME:
+        scheme = Qt.ColorScheme.Unknown
+    elif theme == "dark":
+        scheme = Qt.ColorScheme.Dark
+    else:
+        scheme = Qt.ColorScheme.Light
+    QGuiApplication.styleHints().setColorScheme(scheme)
+
+
 def use_native_title_bar(window: QWidget) -> None:
     """Keep the native macOS window and draw the content under its title bar.
 

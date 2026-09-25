@@ -41,6 +41,7 @@ from sok.ui.theme import Theme, ASSETS_DIR
 from sok.ui.platform import (
     IS_MACOS,
     MACOS_TITLEBAR_HEIGHT,
+    apply_color_scheme,
     is_dark_theme,
     use_native_title_bar,
 )
@@ -79,6 +80,7 @@ class MainWindow(QMainWindow):
 
         self._config = get_config_manager()
         theme_pref = self._config.get("theme", "orange")
+        apply_color_scheme(theme_pref)
 
         self.dark = is_dark_theme(theme_pref)
         self.c = Theme.DARK if self.dark else Theme.LIGHT
