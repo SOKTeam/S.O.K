@@ -224,6 +224,16 @@ class DropZone(QFrame):
         """
         return self._files.copy()
 
+    def set_path(self, path: Path):
+        """Replace the selection with a single path.
+
+        Args:
+            path: Path to select.
+        """
+        self._files = [path]
+        self._update_ui()
+        self.files_dropped.emit(self._files)
+
     def clear(self):
         """Clear all selected files."""
         self._files = []

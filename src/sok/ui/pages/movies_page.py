@@ -42,6 +42,7 @@ from sok.ui.components.organize.movie_batch_table import (
     MovieBatchTable,
     STATUS_OK,
 )
+from sok.ui.controllers.default_paths import apply_default_destination
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.controllers.ui_state import set_progress
 from sok.ui.controllers.worker_runner import WorkerRunner
@@ -75,6 +76,7 @@ class MoviesPage(QScrollArea):
         self.setObjectName("Page")
 
         self._build()
+        apply_default_destination(self._dest_drop, "video")
 
     # ------------------------------------------------------------------ UI
 
@@ -142,6 +144,11 @@ class MoviesPage(QScrollArea):
         self.retranslateUi()
 
     # ----------------------------------------------------------------- I/O
+
+    def showEvent(self, event) -> None:
+        """Apply the default destination set in the settings since startup."""
+        apply_default_destination(self._dest_drop, "video")
+        super().showEvent(event)
 
     def stop_workers(self) -> None:
         """Stop any running worker."""
