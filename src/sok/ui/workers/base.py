@@ -64,6 +64,10 @@ class BaseWorker(QObject):
         except (asyncio.CancelledError, RuntimeError, OSError) as exc:
             logger.exception("Worker execution failed", exc_info=exc)
             self.error.emit(str(exc))
+        except Exception as exc:
+            # Last resort: without an error signal the UI waits forever.
+            logger.exception("Unexpected worker failure", exc_info=exc)
+            self.error.emit(str(exc) or type(exc).__name__)
 
     def execute(self):
         """Execute worker logic (must be implemented by subclasses).

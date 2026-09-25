@@ -30,11 +30,14 @@ from sok.file_operations.base_operations import (
     FileValidationMixin,
     move_file,
 )
+from sok.file_operations.organize import FileListOrganizerMixin
 
 logger = logging.getLogger(__name__)
 
 
-class GameFileOperations(FileOperations, FileParsingMixin, FileValidationMixin):
+class GameFileOperations(
+    FileOperations, FileParsingMixin, FileValidationMixin, FileListOrganizerMixin
+):
     """File operations for video game files.
 
     Provides methods to extract metadata from game filenames,
