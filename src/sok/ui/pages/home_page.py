@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QSizePolicy,
 )
-from PySide6.QtCore import Qt, Signal, QObject
+from PySide6.QtCore import QObject, QStorageInfo, Qt, Signal
 from PySide6.QtGui import QPixmap, QPainter, QFont
 
 from sok.ui.theme import Theme, card_shadow, ASSETS_DIR, svg_icon
@@ -41,6 +41,22 @@ from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.controllers.ui_helpers import make_section_label
 
 logger = logging.getLogger(__name__)
+
+
+def mac_volumes() -> dict[str, str]:
+    """Return the macOS startup disk and mounted volumes.
+
+    Returns:
+        Volume names (such as "Macintosh HD") by root path.
+    """
+    volumes = {}
+    for volume in QStorageInfo.mountedVolumes():
+        root = volume.rootPath()
+        if not (volume.isValid() and volume.isReady()):
+            continue
+        if root == "/" or root.startswith("/Volumes/"):
+            volumes[root] = volume.displayName() or Path(root).name
+    return volumes
 
 
 class StatsWorker(QObject):
@@ -81,8 +97,13 @@ class StatsWorker(QObject):
             drives = []
 
             available_drives = []
+            # Volume names shown on macOS, by root path.
+            volume_names: dict[str, str] = {}
             try:
-                if sys.platform == "win32":
+                if sys.platform == "darwin":
+                    volume_names = mac_volumes()
+                    available_drives.extend(volume_names)
+                elif sys.platform == "win32":
                     bitmask = ctypes.windll.kernel32.GetLogicalDrives()
                     for letter in string.ascii_uppercase:
                         if not self._is_running:
@@ -115,7 +136,9 @@ class StatsWorker(QObject):
                         continue
 
                     percent_free = free / total
-                    label = f"{tr('drive', 'Drive')} {drive_path[0]}"
+                    label = volume_names.get(
+                        drive_path, f"{tr('drive', 'Drive')} {drive_path[0]}"
+                    )
 
                     if free > 1024**4:
                         free_str = f"{free / (1024**4):.2f} {tr('tb_free', 'TB Free')}"
