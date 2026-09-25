@@ -15,6 +15,7 @@ macOS keeps the native window (traffic lights, resize, full screen) and
 extends the content under its title bar.
 """
 
+import ctypes
 import sys
 import warnings
 
@@ -87,6 +88,48 @@ def use_native_title_bar(window: QWidget) -> None:
     window.setWindowFlag(Qt.WindowType.NoTitleBarBackgroundHint, True)
     # Layouts handle the title bar area themselves (see MACOS_TITLEBAR_HEIGHT).
     window.setAttribute(Qt.WidgetAttribute.WA_ContentsMarginsRespectsSafeArea, False)
+
+
+# NSWindowTitleVisibility.NSWindowTitleHidden
+_NS_WINDOW_TITLE_HIDDEN = 1
+
+
+def hide_native_title(window: QWidget) -> None:
+    """Hide the title text macOS centers on the whole window (macOS only).
+
+    The window keeps its title (Window menu, Mission Control); the app
+    draws it centered on the content instead. Uses the Objective-C runtime
+    through ctypes, so no extra dependency is needed.
+
+    Args:
+        window: Shown top-level window.
+    """
+    # winId() is an NSView only on the native platform (not "offscreen").
+    if not IS_MACOS or QGuiApplication.platformName() != "cocoa":
+        return
+    objc = ctypes.cdll.LoadLibrary("/usr/lib/libobjc.A.dylib")
+    objc.sel_registerName.restype = ctypes.c_void_p
+    objc.sel_registerName.argtypes = [ctypes.c_char_p]
+    msg_send = ctypes.cast(objc.objc_msgSend, ctypes.c_void_p).value
+    if msg_send is None:
+        return
+    # arm64 needs the exact prototype of each call (objc_msgSend is not
+    # variadic there).
+    get_object = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p)(
+        msg_send
+    )
+    set_long = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_long)(
+        msg_send
+    )
+
+    ns_view = int(window.winId())
+    ns_window = get_object(ns_view, objc.sel_registerName(b"window"))
+    if ns_window:
+        set_long(
+            ns_window,
+            objc.sel_registerName(b"setTitleVisibility:"),
+            _NS_WINDOW_TITLE_HIDDEN,
+        )
 
 
 def request_attention(widget: QWidget) -> None:
