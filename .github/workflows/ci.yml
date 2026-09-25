@@ -47,6 +47,9 @@ jobs:
       - name: Install types-requests
         run: uv pip install requests types-requests
 
+      - name: Version consistency
+        run: python scripts/bump_version.py --check
+
       - name: Lint (ruff)
         run: uv run ruff check src --output-format=github
         continue-on-error: false
