@@ -342,7 +342,9 @@ class MovieBatchTable(QWidget):
 
         layout.addWidget(self._container)
         self.setAcceptDrops(True)
-        self._show_empty(tr("movies_drop_hint", "Drop video files or click to browse"))
+        self._show_empty(
+            tr("movies_drop_hint", "Drop video files or folders, or click to browse")
+        )
 
     def _show_empty(self, text: str) -> None:
         self.clear()
@@ -363,7 +365,10 @@ class MovieBatchTable(QWidget):
         self.clear()
         if not files:
             self._show_empty(
-                tr("movies_drop_hint", "Drop video files or click to browse")
+                tr(
+                    "movies_drop_hint",
+                    "Drop video files or folders, or click to browse",
+                )
             )
             return
         for f in files:
@@ -503,13 +508,16 @@ class MovieBatchTable(QWidget):
     # ----------------------------------------------------- drag/drop & click
 
     def _filter_supported(self, paths: List[Path]) -> List[Path]:
+        """Return the supported files, looking inside dropped folders."""
+        files: List[Path] = []
+        for p in paths:
+            if p.is_dir():
+                files.extend(sorted(f for f in p.rglob("*") if f.is_file()))
+            elif p.is_file():
+                files.append(p)
         if not self._file_extensions:
-            return [p for p in paths if p.is_file()]
-        return [
-            p
-            for p in paths
-            if p.is_file() and p.suffix.lower() in self._file_extensions
-        ]
+            return files
+        return [f for f in files if f.suffix.lower() in self._file_extensions]
 
     def _browse(self) -> None:
         filter_str = ""

@@ -162,7 +162,7 @@
     "movies": "Movies",
     "organize_tv_shows": "Organize TV shows",
     "organize_movies": "Batch rename movies",
-    "movies_drop_hint": "Drop folders to start",
+    "movies_drop_hint": "Drop video files or folders, or click to browse",
     "movie_title_year": "Title (optional year)",
     "rescan": "Re-scan",
     "rescan_all": "Re-scan all",
