@@ -21,10 +21,13 @@ This module handles:
 from pathlib import Path
 from sok.core.utils import format_name
 from sok.core.interfaces import MediaItem
-from sok.file_operations.base_operations import FileParsingMixin, FileValidationMixin
+from sok.file_operations.base_operations import (
+    FileParsingMixin,
+    FileValidationMixin,
+    move_file,
+)
 
 import os
-import shutil
 import re
 import logging
 from typing import Dict, Any, List, Optional, Callable
@@ -381,7 +384,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                         if not os.path.exists(dest_folder):
                             os.makedirs(dest_folder, exist_ok=True)
 
-                        shutil.move(source_file, dest_file)
+                        move_file(source_file, dest_file)
                         report["moved"].append({"from": source_file, "to": dest_file})
                         report["total_moved"] += 1
                     except OSError as e:
@@ -514,14 +517,11 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                             )
                             continue
 
-                    if backup_before_rename and os.path.exists(dest_file):
-                        backup_path = f"{dest_file}.backup"
-                        if os.path.exists(backup_path):
-                            os.remove(backup_path)
-                        shutil.copy2(dest_file, backup_path)
-                        if log_operations:
-                            logger.info("Backup created: %s", backup_path)
-                    shutil.move(source_file, dest_file)
+                    backup_path = move_file(
+                        source_file, dest_file, backup=backup_before_rename
+                    )
+                    if backup_path and log_operations:
+                        logger.info("Backup created: %s", backup_path)
                     report["moved"].append({"from": source_file, "to": dest_file})
                     report["total_moved"] += 1
                     if log_operations:
@@ -610,15 +610,12 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                 continue
 
             try:
-                if backup_before_rename and os.path.exists(dest_file):
-                    backup_path = f"{dest_file}.backup"
-                    if os.path.exists(backup_path):
-                        os.remove(backup_path)
-                    shutil.copy2(dest_file, backup_path)
-                    if log_operations:
-                        logger.info("Backup created: %s", backup_path)
+                backup_path = move_file(
+                    source_file, dest_file, backup=backup_before_rename
+                )
+                if backup_path and log_operations:
+                    logger.info("Backup created: %s", backup_path)
 
-                shutil.move(source_file, dest_file)
                 report["moved"].append({"from": source_file, "to": dest_file})
                 report["total_moved"] += 1
                 if log_operations:

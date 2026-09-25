@@ -20,6 +20,7 @@ parsing and validation mixins with concrete file operations:
 - Backup creation
 """
 
+import errno
 import os
 import hashlib
 import shutil
@@ -42,6 +43,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "BaseFileOperations",
+    "move_file",
     "FileParsingMixin",
     "FileValidationMixin",
     "VIDEO_QUALITY_PATTERNS",
@@ -51,6 +53,40 @@ __all__ = [
     "LANGUAGE_PATTERNS",
     "INVALID_FILENAME_CHARS",
 ]
+
+
+def move_file(source: str, destination: str, backup: bool = False) -> Optional[str]:
+    """Move a file, replacing the destination if it already exists.
+
+    Args:
+        source: Source file path.
+        destination: Destination file path.
+        backup: Whether to keep the replaced file as '<destination>.backup'.
+
+    Returns:
+        Path of the created backup, or None if no backup was made.
+
+    Raises:
+        OSError: If the move fails. A backup made for this move is restored.
+    """
+    backup_path = None
+    if backup and os.path.exists(destination):
+        backup_path = f"{destination}.backup"
+        os.replace(destination, backup_path)
+
+    try:
+        try:
+            os.replace(source, destination)
+        except OSError as exc:
+            if exc.errno != errno.EXDEV:
+                raise
+            shutil.move(source, destination)
+    except OSError:
+        if backup_path:
+            os.replace(backup_path, destination)
+        raise
+
+    return backup_path
 
 
 class BaseFileOperations(FileParsingMixin, FileValidationMixin):
