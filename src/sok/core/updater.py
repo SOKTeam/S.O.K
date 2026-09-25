@@ -80,13 +80,20 @@ class UpdateManager:
 
     def get_download_url(self) -> Optional[str]:
         """
-        Get the download URL for the Windows installer (.exe).
-        Prioritizes files ending with .exe.
+        Get the download URL of the installer for this platform.
+        Windows: the setup .exe first, then any .exe. macOS: the .dmg.
+        Falls back to the release page.
         """
         if not self.latest_release:
             return None
 
         assets = self.latest_release.get("assets", [])
+        if sys.platform == "darwin":
+            for asset in assets:
+                if asset.get("name", "").lower().endswith(".dmg"):
+                    return asset.get("browser_download_url")
+            return self.latest_release.get("html_url")
+
         for asset in assets:
             name = asset.get("name", "").lower()
             if name.endswith(".exe") and "setup" in name:
@@ -100,12 +107,15 @@ class UpdateManager:
 
     def download_and_install(self, url: str, progress_callback=None):
         """
-        Download the installer and launch it.
+        Download the installer and launch it (on macOS, open the disk image).
         """
 
         try:
             temp_dir = tempfile.gettempdir()
-            target_path = os.path.join(temp_dir, "SOK_Setup_Update.exe")
+            installer = (
+                "SOK_Update.dmg" if sys.platform == "darwin" else "SOK_Setup_Update.exe"
+            )
+            target_path = os.path.join(temp_dir, installer)
 
             with requests.get(url, stream=True) as r:
                 r.raise_for_status()
@@ -121,7 +131,12 @@ class UpdateManager:
                                 percent = int((dl / total_length) * 100)
                                 progress_callback(percent)
 
-            subprocess.Popen([target_path])
+            if sys.platform == "darwin":
+                # Mounts the disk image in the Finder, where the user drags
+                # the new app over the old one.
+                subprocess.Popen(["open", target_path])
+            else:
+                subprocess.Popen([target_path])
             sys.exit(0)
 
         except (requests.RequestException, OSError, ValueError) as exc:
