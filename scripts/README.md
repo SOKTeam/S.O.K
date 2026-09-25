@@ -23,6 +23,23 @@ python scripts/build_sok.py
 
 ---
 
+### `bump_version.py`
+
+Keeps the application version identical everywhere. `pyproject.toml` is the
+source of truth; the version is copied to `src/sok/__version__.py` and
+`uv.lock`. The Windows executable gets it at build time (`build_sok.py`) and
+the installer (`installation.iss`) reads it from the executable.
+
+```bash
+python scripts/bump_version.py 1.2.0   # write 1.2.0 everywhere
+python scripts/bump_version.py --check # fail if a file is out of sync
+```
+
+Releases run it automatically (semantic-release) and the CI runs `--check`:
+never edit these versions by hand.
+
+---
+
 ### `build_docs.py`
 
 Manages documentation generation and preview (MkDocs).

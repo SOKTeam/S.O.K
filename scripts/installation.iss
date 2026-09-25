@@ -1,12 +1,14 @@
 ; --- CONFIGURATION GENERALE ---
 #define MyAppName "S.O.K"
-#define MyAppVersion "1.1.0"
 #define MyAppPublisher "SOK Team"
 #define MyAppURL "https://github.com/SOKTeam/S.O.K"
 #define MyAppExeName "SOK.exe"
 
 ; Chemin vers le dossier généré par Nuitka (main.dist)
 #define MyNuitkaBuildPath "..\dist\main.dist"
+
+; Version lue dans l'exe (générée par build_sok.py depuis pyproject.toml)
+#define MyAppVersion GetStringFileInfo(AddBackslash(SourcePath) + MyNuitkaBuildPath + "\" + MyAppExeName, "ProductVersion")
 
 [Setup]
 AppId={{0AE69055-4736-406C-93BB-0086D3F0E38A}
