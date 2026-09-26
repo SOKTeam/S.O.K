@@ -13,6 +13,7 @@ Build script using Nuitka to compile S.O.K into a standalone executable.
 Handles secure injection of environment variables and Nuitka configuration.
 """
 
+import argparse
 import os
 import sys
 import platform
@@ -22,6 +23,33 @@ from cryptography.fernet import Fernet
 from pathlib import Path
 
 from bump_version import read_version
+
+
+def require_env_file(root_dir: Path, allow_missing: bool) -> bool:
+    """Check that the .env file holding the API keys exists.
+
+    Without it the build would silently ship an app with no API keys.
+
+    Args:
+        root_dir: Repository root, where .env lives.
+        allow_missing: Build without keys instead of failing (test builds).
+
+    Returns:
+        True if .env exists.
+
+    Raises:
+        SystemExit: If .env is missing and allow_missing is False.
+    """
+    if (root_dir / ".env").exists():
+        return True
+    if not allow_missing:
+        sys.exit(
+            "!!! No .env file: the app would be built without its API keys.\n"
+            "Copy .env to the repository root (see .env.example), or pass "
+            "--allow-missing-keys for a test build."
+        )
+    print("!!! WARNING: no .env file, building WITHOUT API keys.")
+    return False
 
 
 def inject_env_vars(src_sok_dir, root_dir):
@@ -143,14 +171,19 @@ def make_dmg(app: Path, version: str) -> Path:
     return dmg
 
 
-def build():
-    """Build S.O.K executable using Nuitka."""
+def build(allow_missing_keys: bool = False):
+    """Build S.O.K executable using Nuitka.
+
+    Args:
+        allow_missing_keys: Build even if .env (the API keys) is missing.
+    """
     SCRIPT_DIR = Path(__file__).resolve().parent
     ROOT_DIR = SCRIPT_DIR.parent
     os_name = platform.system().lower()
 
     version = read_version("pyproject.toml")
     print(f"\n--- S.O.K. v{version} NUITKA BUILD | OS: {os_name.upper()} ---")
+    require_env_file(ROOT_DIR, allow_missing_keys)
 
     build_dir = ROOT_DIR / "build" / "nuitka_work"
     dist_dir = ROOT_DIR / "dist"
@@ -243,4 +276,10 @@ def build():
 
 
 if __name__ == "__main__":
-    build()
+    parser = argparse.ArgumentParser(description="Build S.O.K with Nuitka.")
+    parser.add_argument(
+        "--allow-missing-keys",
+        action="store_true",
+        help="build even without a .env file (the app then has no API keys)",
+    )
+    build(parser.parse_args().allow_missing_keys)

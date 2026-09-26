@@ -16,7 +16,9 @@ python scripts/build_sok.py
 
 **Functionality:**
 
-- Securely injects keys from the `.env` file into the binary.
+- Securely injects keys from the `.env` file into the binary. The build stops
+  if `.env` is missing; pass `--allow-missing-keys` for a test build without
+  API keys.
 - Compiles Python code into optimized C++.
 - Bundles all resources (images, translations) into the `dist/` folder.
 - Generates the final installer (Inno Setup) if configured.
