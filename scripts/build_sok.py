@@ -14,6 +14,7 @@ Handles secure injection of environment variables and Nuitka configuration.
 """
 
 import argparse
+import ast
 import os
 import sys
 import platform
@@ -52,6 +53,30 @@ def require_env_file(root_dir: Path, allow_missing: bool) -> bool:
     return False
 
 
+def declared_constants(source: str) -> set[str]:
+    """List the values the app can read from its Constants class.
+
+    Args:
+        source: Source code of sok/core/constants.py.
+
+    Returns:
+        Names assigned in the Constants class body, except the master key.
+    """
+    names = set()
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.ClassDef) and node.name == "Constants":
+            for stmt in node.body:
+                if isinstance(stmt, ast.Assign):
+                    targets = stmt.targets
+                elif isinstance(stmt, ast.AnnAssign):
+                    targets = [stmt.target]
+                else:
+                    continue
+                names.update(t.id for t in targets if isinstance(t, ast.Name))
+    names.discard("_K")
+    return names
+
+
 def inject_env_vars(src_sok_dir, root_dir):
     """Inject encrypted API keys from .env into constants.py."""
     core_dir = src_sok_dir / "core"
@@ -69,6 +94,7 @@ def inject_env_vars(src_sok_dir, root_dir):
     original = (
         constants_path.read_text(encoding="utf-8") if constants_path.exists() else ""
     )
+    allowed = declared_constants(original)
     split_token = "class Constants"
     header = original.split(split_token, 1)[0] if split_token in original else original
 
@@ -85,6 +111,11 @@ def inject_env_vars(src_sok_dir, root_dir):
             for line in f_env:
                 if "=" in line and not line.startswith("#"):
                     k, v = line.strip().split("=", 1)
+                    # Only what the app reads: tooling secrets stay out of
+                    # the binary.
+                    if k.strip() not in allowed:
+                        print(f"    Skipping {k.strip()}: not used by the app")
+                        continue
                     encrypted_val = f_cipher.encrypt(v.strip().encode()).decode()
                     f.write(f"    {k.strip()} = {encrypted_val!r}\n")
 
