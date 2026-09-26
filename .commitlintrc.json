@@ -33,7 +33,14 @@
         "config",
         "file-ops",
         "deps",
-        "macos"
+        "macos",
+        "windows",
+        "i18n",
+        "movies",
+        "organize",
+        "tools",
+        "release",
+        "merge"
       ]
     ]
   }
