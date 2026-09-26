@@ -314,9 +314,12 @@ class MainWindow(QMainWindow):
 
         self._title_label = QLabel(f"S.O.K - {tr('videos', 'Videos')}")
         self._title_label.setObjectName("AppTitle")
-        # macOS shows the title across the whole window (see _build).
-        self._title_label.setVisible(not IS_MACOS)
         header_layout.addWidget(self._title_label)
+        # macOS shows the title across the whole window (see _build).
+        # Hide only once parented: showing a parentless widget opens it as
+        # a separate top-level window, which flashed at startup on Windows.
+        if IS_MACOS:
+            self._title_label.hide()
 
         self._drag_area = QWidget()
         self._drag_area.setSizePolicy(
