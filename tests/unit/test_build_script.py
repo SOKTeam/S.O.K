@@ -8,14 +8,20 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
+import shutil
 import sys
 from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "scripts"))
 
-from build_sok import require_env_file  # noqa: E402
+from build_sok import (  # noqa: E402
+    declared_constants,
+    inject_env_vars,
+    require_env_file,
+)
 
 
 class TestRequireEnvFile:
@@ -31,3 +37,36 @@ class TestRequireEnvFile:
     def test_warns_when_missing_keys_are_allowed(self, tmp_path, capsys):
         assert require_env_file(tmp_path, allow_missing=True) is False
         assert "WITHOUT API keys" in capsys.readouterr().out
+
+
+class TestInjectEnvVars:
+    @pytest.fixture
+    def sok_dir(self, tmp_path):
+        core = tmp_path / "sok" / "core"
+        core.mkdir(parents=True)
+        shutil.copy(ROOT / "src" / "sok" / "core" / "constants.py", core)
+        return tmp_path / "sok"
+
+    def test_declared_constants_lists_the_app_keys(self):
+        source = (ROOT / "src" / "sok" / "core" / "constants.py").read_text(
+            encoding="utf-8"
+        )
+
+        names = declared_constants(source)
+
+        assert {"API_KEY_TMDB_V4", "IGDB_CLIENT_SECRET", "CHECK_UPDATES"} <= names
+        assert "_K" not in names
+
+    def test_injects_only_the_keys_the_app_reads(self, tmp_path, sok_dir):
+        (tmp_path / ".env").write_text(
+            "# comment\r\nAPI_KEY_TMDB_V4=tmdb-key\r\nGITHUB_TOKEN=secret\r\n",
+            encoding="utf-8",
+        )
+
+        assert inject_env_vars(sok_dir, tmp_path) is True
+
+        namespace = {}
+        exec((sok_dir / "core" / "constants.py").read_text(encoding="utf-8"), namespace)
+        constants = namespace["Constants"]
+        assert constants.get("API_KEY_TMDB_V4") == "tmdb-key"
+        assert not hasattr(constants, "GITHUB_TOKEN")
