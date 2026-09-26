@@ -42,6 +42,7 @@ from sok.ui.components.organize.movie_batch_table import (
     MovieBatchTable,
     STATUS_OK,
 )
+from sok.ui.controllers.default_paths import apply_default_destination
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.controllers.ui_state import set_progress
 from sok.ui.controllers.worker_runner import WorkerRunner
@@ -53,6 +54,8 @@ from sok.ui.workers import (
     MovieBatchSearchWorker,
     SearchWorker,
 )
+from sok.ui import message_box
+from sok.ui.platform import request_attention
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +78,7 @@ class MoviesPage(QScrollArea):
         self.setObjectName("Page")
 
         self._build()
+        apply_default_destination(self._dest_drop, "video")
 
     # ------------------------------------------------------------------ UI
 
@@ -89,7 +93,7 @@ class MoviesPage(QScrollArea):
         self._title_lbl.setObjectName("PageTitle")
         layout.addWidget(self._title_lbl)
 
-        self._lbl_source = make_section_label("source_files", "SOURCE FILES")
+        self._lbl_source = make_section_label("source_files", "Source Files")
         layout.addWidget(self._lbl_source)
 
         self._summary_lbl = QLabel("")
@@ -103,7 +107,7 @@ class MoviesPage(QScrollArea):
         self._table.files_added.connect(self._on_files_added)
         layout.addWidget(self._table, 1)
 
-        self._lbl_dest = make_section_label("destination", "DESTINATION")
+        self._lbl_dest = make_section_label("destination", "Destination")
         layout.addWidget(self._lbl_dest)
         self._dest_drop = DropZone()
         self._dest_drop.files_dropped.connect(self._on_dest_changed)
@@ -143,6 +147,11 @@ class MoviesPage(QScrollArea):
 
     # ----------------------------------------------------------------- I/O
 
+    def showEvent(self, event) -> None:
+        """Apply the default destination set in the settings since startup."""
+        apply_default_destination(self._dest_drop, "video")
+        super().showEvent(event)
+
     def stop_workers(self) -> None:
         """Stop any running worker."""
         self._search_runner.stop()
@@ -152,8 +161,8 @@ class MoviesPage(QScrollArea):
     def retranslateUi(self) -> None:
         """Refresh translatable labels."""
         self._title_lbl.setText(tr("movies", "Movies"))
-        self._lbl_source.setText(tr("source_files", "SOURCE FILES"))
-        self._lbl_dest.setText(tr("destination", "DESTINATION"))
+        self._lbl_source.setText(tr("source_files", "Source Files"))
+        self._lbl_dest.setText(tr("destination", "Destination"))
         self._rescan_all_btn.setText(tr("rescan_all", "Re-scan all"))
         self._action_btn.setText(tr("rename_all", "Rename all"))
         self._update_summary()
@@ -203,7 +212,7 @@ class MoviesPage(QScrollArea):
     def _on_search_error(self, error: str) -> None:
         self._set_progress(False)
         self._rescan_all_btn.setEnabled(bool(self._files))
-        QMessageBox.warning(
+        message_box.warning(
             self,
             tr("error", "Error"),
             f"{tr('search_failed', 'Search failed:')} {error}",
@@ -290,7 +299,7 @@ class MoviesPage(QScrollArea):
     def _start_rename(self) -> None:
         dest = self._dest_drop.get_path()
         if not dest or not Path(dest).exists():
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("warning", "Warning"),
                 tr("select_dest_warning", "Please select a destination folder."),
@@ -308,7 +317,7 @@ class MoviesPage(QScrollArea):
             mappings.append((file, movie))
 
         if not mappings:
-            QMessageBox.information(
+            message_box.information(
                 self,
                 tr("info", "Info"),
                 tr("no_movies_ready", "No movies are ready to rename."),
@@ -323,6 +332,7 @@ class MoviesPage(QScrollArea):
         msg.setStandardButtons(
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
+        message_box.as_sheet(msg, self)
         if msg.exec() != QMessageBox.StandardButton.Yes:
             return
 
@@ -343,18 +353,23 @@ class MoviesPage(QScrollArea):
         success = report.get("success", 0)
         total = report.get("total", 0)
         errors = report.get("errors", [])
+        dest = self._dest_drop.get_path()
+        reveal = Path(dest) if dest and Path(dest).is_dir() else None
+        request_attention(self)
 
         if errors:
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("finished_with_errors", "Finished with errors"),
                 tr("success_count", "{0}/{1} successful.").format(success, total),
+                reveal=reveal,
             )
         else:
-            QMessageBox.information(
+            message_box.information(
                 self,
                 tr("success", "Success"),
                 tr("files_organized", "✓ {0} file(s) organized!").format(success),
+                reveal=reveal,
             )
 
         self._files = []
@@ -364,9 +379,10 @@ class MoviesPage(QScrollArea):
 
     def _on_organize_error(self, error: str) -> None:
         self._set_progress(False)
+        request_attention(self)
         self._action_btn.setEnabled(True)
         self._rescan_all_btn.setEnabled(True)
-        QMessageBox.critical(
+        message_box.critical(
             self,
             tr("error", "Error"),
             f"{tr('error_prefix', 'Error:')} {error}",

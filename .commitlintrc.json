@@ -32,7 +32,15 @@
         "apis",
         "config",
         "file-ops",
-        "deps"
+        "deps",
+        "macos",
+        "windows",
+        "i18n",
+        "movies",
+        "organize",
+        "tools",
+        "release",
+        "merge"
       ]
     ]
   }

@@ -47,6 +47,9 @@ jobs:
       - name: Install types-requests
         run: uv pip install requests types-requests
 
+      - name: Version consistency
+        run: python scripts/bump_version.py --check
+
       - name: Lint (ruff)
         run: uv run ruff check src --output-format=github
         continue-on-error: false
@@ -54,6 +57,9 @@ jobs:
       - name: Format check (ruff)
         run: uv run ruff format --check src
         continue-on-error: false
+
+      - name: Translation keys (i18n)
+        run: uv run python tools/verify_i18n.py
 
       - name: Type check (mypy)
         run: uv run mypy --install-types --non-interactive src/sok --ignore-missing-imports --no-strict-optional
@@ -79,3 +85,24 @@ jobs:
 
       - name: Quality checks passed
         run: echo "All quality checks passed!"
+
+  macos-tests:
+    name: Tests (macOS)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync deps (dev extras)
+        run: uv sync --extra dev
+
+      - name: Tests (pytest)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: uv run pytest tests/ -v

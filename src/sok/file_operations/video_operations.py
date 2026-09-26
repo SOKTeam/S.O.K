@@ -21,10 +21,13 @@ This module handles:
 from pathlib import Path
 from sok.core.utils import format_name
 from sok.core.interfaces import MediaItem
-from sok.file_operations.base_operations import FileParsingMixin, FileValidationMixin
+from sok.file_operations.base_operations import (
+    FileParsingMixin,
+    FileValidationMixin,
+    move_file,
+)
 
 import os
-import shutil
 import re
 import logging
 from typing import Dict, Any, List, Optional, Callable
@@ -330,7 +333,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         all_video_files = []
         for root, dirs, files in os.walk(source_path):
             for file in files:
-                if any(file.endswith(ext) for ext in self.supported_extensions):
+                if any(file.lower().endswith(ext) for ext in self.supported_extensions):
                     all_video_files.append((root, file))
 
         total_files = len(all_video_files)
@@ -354,44 +357,44 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             if progress_callback:
                 progress_callback(idx + 1, total_files, file)
 
-                info = self.extract_info_from_filename(file)
+            info = self.extract_info_from_filename(file)
 
-                if isinstance(media_item, Series) and info["season"] is not None:
-                    season_num = info["season"]
+            if isinstance(media_item, Series) and info["season"] is not None:
+                season_num = info["season"]
 
-                    existing_season_folder = self._find_existing_season_folder(
-                        base_path, season_num
+                existing_season_folder = self._find_existing_season_folder(
+                    base_path, season_num
+                )
+
+                if existing_season_folder:
+                    dest_folder = existing_season_folder
+                else:
+                    season_folder_name = self._find_season_in_structure(
+                        folder_structure, season_num
                     )
+                    dest_folder = os.path.join(base_path, season_folder_name)
+            else:
+                dest_folder = base_path
 
-                    if existing_season_folder:
-                        dest_folder = existing_season_folder
-                    else:
-                        season_folder_name = self._find_season_in_structure(
-                            folder_structure, season_num
-                        )
-                        dest_folder = os.path.join(base_path, season_folder_name)
-                else:
-                    dest_folder = base_path
+            new_filename = self.generate_new_filename(media_item, file)
+            dest_file = os.path.join(dest_folder, new_filename)
 
-                new_filename = self.generate_new_filename(media_item, file)
-                dest_file = os.path.join(dest_folder, new_filename)
+            if not dry_run:
+                try:
+                    if not os.path.exists(dest_folder):
+                        os.makedirs(dest_folder, exist_ok=True)
 
-                if not dry_run:
-                    try:
-                        if not os.path.exists(dest_folder):
-                            os.makedirs(dest_folder, exist_ok=True)
-
-                        os.rename(source_file, dest_file)
-                        report["moved"].append({"from": source_file, "to": dest_file})
-                        report["total_moved"] += 1
-                    except OSError as e:
-                        logger.exception(
-                            "Video organize move failed for %s", source_file, exc_info=e
-                        )
-                        report["errors"].append({"file": source_file, "error": str(e)})
-                else:
+                    move_file(source_file, dest_file)
                     report["moved"].append({"from": source_file, "to": dest_file})
                     report["total_moved"] += 1
+                except OSError as e:
+                    logger.exception(
+                        "Video organize move failed for %s", source_file, exc_info=e
+                    )
+                    report["errors"].append({"file": source_file, "error": str(e)})
+            else:
+                report["moved"].append({"from": source_file, "to": dest_file})
+                report["total_moved"] += 1
 
         return report
 
@@ -514,14 +517,11 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                             )
                             continue
 
-                    if backup_before_rename and os.path.exists(dest_file):
-                        backup_path = f"{dest_file}.backup"
-                        if os.path.exists(backup_path):
-                            os.remove(backup_path)
-                        shutil.copy2(dest_file, backup_path)
-                        if log_operations:
-                            logger.info("Backup created: %s", backup_path)
-                    os.rename(source_file, dest_file)
+                    backup_path = move_file(
+                        source_file, dest_file, backup=backup_before_rename
+                    )
+                    if backup_path and log_operations:
+                        logger.info("Backup created: %s", backup_path)
                     report["moved"].append({"from": source_file, "to": dest_file})
                     report["total_moved"] += 1
                     if log_operations:
@@ -610,15 +610,12 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                 continue
 
             try:
-                if backup_before_rename and os.path.exists(dest_file):
-                    backup_path = f"{dest_file}.backup"
-                    if os.path.exists(backup_path):
-                        os.remove(backup_path)
-                    shutil.copy2(dest_file, backup_path)
-                    if log_operations:
-                        logger.info("Backup created: %s", backup_path)
+                backup_path = move_file(
+                    source_file, dest_file, backup=backup_before_rename
+                )
+                if backup_path and log_operations:
+                    logger.info("Backup created: %s", backup_path)
 
-                os.rename(source_file, dest_file)
                 report["moved"].append({"from": source_file, "to": dest_file})
                 report["total_moved"] += 1
                 if log_operations:

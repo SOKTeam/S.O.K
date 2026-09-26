@@ -27,9 +27,10 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QWidget,
 )
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtGui import QPainter, QDragEnterEvent, QDropEvent, QFont
 
+from sok.ui.platform import IS_MACOS
 from sok.ui.theme import Theme, svg_icon
 from sok.ui.i18n import tr
 from sok.ui.components.base import parse_color
@@ -102,49 +103,67 @@ class FileItemRow(QWidget):
         layout.setContentsMargins(8, 2, 8, 2)
         layout.setSpacing(8)
 
-        folder_icon = svg_icon("folder", "#FFFFFF", 14)
-        icon_lbl = QLabel()
-        icon_lbl.setPixmap(folder_icon)
-        icon_lbl.setFixedSize(16, 16)
-        layout.addWidget(icon_lbl)
+        self._icon_lbl = QLabel()
+        self._icon_lbl.setPixmap(svg_icon("folder", "#FFFFFF", 14))
+        self._icon_lbl.setFixedSize(16, 16)
+        layout.addWidget(self._icon_lbl)
 
         self.lbl = QLabel(path.name)
-        self.lbl.setStyleSheet("color: white; font-size: 12px;")
+        if IS_MACOS:
+            # Text colors come from the palette, which follows the theme.
+            self.lbl.setStyleSheet("font-size: 12px;")
+        else:
+            self.lbl.setStyleSheet("color: white; font-size: 12px;")
         self.lbl.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         layout.addWidget(self.lbl)
 
         btn = QPushButton("×")
         btn.setFixedSize(20, 20)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(
-            """
-            QPushButton {
-                background: rgba(255, 255, 255, 0.1);
-                border-radius: 10px;
-                color: white;
-                font-weight: bold;
-                padding-bottom: 2px;
-            }
-            QPushButton:hover {
-                background: rgba(255, 75, 75, 0.8);
-            }
-        """
-        )
         btn.clicked.connect(self._on_remove)
         layout.addWidget(btn)
 
-        self.setStyleSheet(
+        if IS_MACOS:
+            # Styled by the main window stylesheet, which follows the theme.
+            btn.setObjectName("RemoveFileBtn")
+        else:
+            btn.setStyleSheet(
+                """
+                QPushButton {
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 10px;
+                    color: white;
+                    font-weight: bold;
+                    padding-bottom: 2px;
+                }
+                QPushButton:hover {
+                    background: rgba(255, 75, 75, 0.8);
+                }
             """
-            FileItemRow {
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: 6px;
-            }
-        """
-        )
+            )
+            self.setStyleSheet(
+                """
+                FileItemRow {
+                    background: rgba(255, 255, 255, 0.05);
+                    border-radius: 6px;
+                }
+            """
+            )
 
     def _on_remove(self):
         """Handle remove button click."""
         self.removed.emit(self._path)
+
+    def changeEvent(self, event):
+        """Recolor the folder icon when the theme changes (macOS).
+
+        Args:
+            event: Change event.
+        """
+        super().changeEvent(event)
+        if IS_MACOS and event.type() == QEvent.Type.StyleChange:
+            c = getattr(self.window(), "c", Theme.DARK)
+            self._icon_lbl.setPixmap(svg_icon("folder", c["icon_secondary"], 14))
 
     def resizeEvent(self, event):
         """Handle widget resize by eliding text.
@@ -224,6 +243,16 @@ class DropZone(QFrame):
         """
         return self._files.copy()
 
+    def set_path(self, path: Path):
+        """Replace the selection with a single path.
+
+        Args:
+            path: Path to select.
+        """
+        self._files = [path]
+        self._update_ui()
+        self.files_dropped.emit(self._files)
+
     def clear(self):
         """Clear all selected files."""
         self._files = []
@@ -254,8 +283,15 @@ class DropZone(QFrame):
                 )
                 add_btn = QPushButton(add_btn_label)
                 add_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-                add_btn.setStyleSheet(
-                    """
+                if IS_MACOS:
+                    add_btn.setObjectName("DashedButton")
+                    add_btn.setStyleSheet(
+                        "QPushButton { border-radius: 4px; padding: 4px;"
+                        " font-size: 11px; }"
+                    )
+                else:
+                    add_btn.setStyleSheet(
+                        """
                     QPushButton {
                         background: transparent;
                         color: rgba(255, 255, 255, 0.6);
@@ -270,7 +306,7 @@ class DropZone(QFrame):
                         background: rgba(255, 255, 255, 0.05);
                     }
                 """
-                )
+                    )
                 add_btn.clicked.connect(self._open_dialog)
                 self._layout.addWidget(add_btn)
         self.update()

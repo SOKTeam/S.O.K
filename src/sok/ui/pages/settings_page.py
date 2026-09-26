@@ -23,6 +23,7 @@ from sok.ui.components.settings.appearance_section import AppearanceSection
 from sok.ui.components.settings.behavior_section import BehaviorSection
 from sok.ui.components.settings.about_section import AboutSection
 from sok.ui.i18n import tr
+from sok.ui import message_box
 
 
 class SettingsPage(QScrollArea):
@@ -160,7 +161,7 @@ class SettingsPage(QScrollArea):
         Shows confirmation dialog before resetting all settings
         to their default values.
         """
-        reply = QMessageBox.question(
+        reply = message_box.question(
             self,
             tr("reset_title", "Reset"),
             tr("reset_confirm", "Are you sure you want to reset all settings?"),
@@ -170,7 +171,7 @@ class SettingsPage(QScrollArea):
         if reply == QMessageBox.StandardButton.Yes:
             self._config.reset()
             self._load_settings()
-            QMessageBox.information(
+            message_box.information(
                 self,
                 tr("reset_done_title", "Reset"),
                 tr("reset_done_msg", "Settings have been reset."),

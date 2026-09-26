@@ -7,8 +7,8 @@ maintenance of the S.O.K project.
 
 ### `build_sok.py`
 
-The main script for compiling the application into a Windows executable (.exe) via
-Nuitka.
+The main script for compiling the application via Nuitka: a Windows executable
+(.exe) on Windows, an Apple Silicon app bundle and disk image (.dmg) on macOS.
 
 ```bash
 python scripts/build_sok.py
@@ -16,10 +16,47 @@ python scripts/build_sok.py
 
 **Functionality:**
 
-- Securely injects keys from the `.env` file into the binary.
+- Securely injects keys from the `.env` file into the binary. The build stops
+  if `.env` is missing; pass `--allow-missing-keys` for a test build without
+  API keys.
 - Compiles Python code into optimized C++.
 - Bundles all resources (images, translations) into the `dist/` folder.
 - Generates the final installer (Inno Setup) if configured.
+- On macOS: builds `dist/S.O.K.app` (arm64, ad-hoc signed) and
+  `dist/SOK_macOS_v<version>.dmg` with dmgbuild: custom background,
+  icon layout and Applications shortcut (`packaging/macos/dmg_settings.py`).
+  Install the build extras first: `uv sync --extra build`.
+
+---
+
+### `make_macos_assets.py`
+
+Draws the macOS artwork from vectors: the app icon (`logo.icns`, on the
+macOS icon grid with the brand orange) and the disk image background
+(`packaging/macos/dmg_background.tiff`, standard and Retina). Run it on
+macOS after changing the logo or the colors.
+
+```bash
+python scripts/make_macos_assets.py
+```
+
+---
+
+### `bump_version.py`
+
+Keeps the application version identical everywhere. `pyproject.toml` is the
+source of truth; the version is copied to `src/sok/__version__.py` and
+`uv.lock`. The Windows executable gets it at build time (`build_sok.py`) and
+the installer (`packaging/windows/installation.iss`) reads it from the
+executable.
+
+```bash
+python scripts/bump_version.py 1.2.0   # write 1.2.0 everywhere
+python scripts/bump_version.py --check # fail if a file is out of sync
+```
+
+Releases run it automatically (semantic-release) and the CI runs `--check`:
+never edit these versions by hand.
 
 ---
 

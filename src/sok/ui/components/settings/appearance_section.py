@@ -16,11 +16,18 @@ for customizing the application's visual appearance.
 
 from typing import Dict
 from PySide6.QtCore import Signal
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
 from sok.ui.components.base import Card, Toggle
 from sok.ui.components.inputs import ModernComboBox
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.i18n import tr
+from sok.ui.platform import (
+    IS_MACOS,
+    SYSTEM_THEME,
+    apply_color_scheme,
+    system_prefers_dark,
+)
 from sok.ui.theme import card_shadow
 
 
@@ -54,10 +61,21 @@ class AppearanceSection(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        self.label = make_section_label("appearance", "APPARENCE")
+        self.label = make_section_label("appearance", "Appearance")
         layout.addWidget(self.label)
 
         card = Card()
+
+        # macOS only: follow the system light/dark appearance.
+        self.system_toggle: Toggle | None = None
+        if IS_MACOS:
+            self.system_lbl, self.system_toggle = self._add_toggle_row(
+                card, self._on_system_theme_change
+            )
+
+            hints = QGuiApplication.styleHints()
+            if hints:
+                hints.colorSchemeChanged.connect(lambda _: self.load())
 
         dark_row = QWidget()
         dark_row.setFixedHeight(32)
@@ -77,6 +95,13 @@ class AppearanceSection(QWidget):
         dr_layout.addWidget(self.toggle)
 
         card.add(dark_row)
+
+        # macOS only: use the accent color chosen in the system settings.
+        self.accent_toggle: Toggle | None = None
+        if IS_MACOS:
+            self.accent_lbl, self.accent_toggle = self._add_toggle_row(
+                card, self._on_accent_change
+            )
 
         lang_row = QWidget()
         lang_row.setFixedHeight(32)
@@ -124,8 +149,66 @@ class AppearanceSection(QWidget):
         Args:
             is_dark: True for dark theme.
         """
-        self._config.set("theme", "dark" if is_dark else "light")
+        theme = "dark" if is_dark else "light"
+        self._config.set("theme", theme)
+        apply_color_scheme(theme)
         self.theme_changed.emit(is_dark)
+
+    def _on_system_theme_change(self, follow_system: bool):
+        """Handle the "match system appearance" toggle (macOS).
+
+        Args:
+            follow_system: True to follow the system appearance.
+        """
+        if follow_system:
+            self._config.set("theme", SYSTEM_THEME)
+            apply_color_scheme(SYSTEM_THEME)
+            is_dark = system_prefers_dark()
+        else:
+            is_dark = self.toggle.isChecked()
+            theme = "dark" if is_dark else "light"
+            self._config.set("theme", theme)
+            apply_color_scheme(theme)
+        self.load()
+        self.theme_changed.emit(is_dark)
+
+    @staticmethod
+    def _add_toggle_row(card: Card, on_toggled) -> tuple[QLabel, Toggle]:
+        """Add a row with a label and a toggle to the card.
+
+        Args:
+            card: Card receiving the row.
+            on_toggled: Slot called with the new toggle state.
+
+        Returns:
+            The row label, to translate, and its toggle.
+        """
+        row = QWidget()
+        row.setFixedHeight(32)
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(12, 0, 12, 0)
+
+        label = QLabel()
+        label.setObjectName("RowTitle")
+
+        toggle = Toggle()
+        toggle.toggled.connect(on_toggled)
+
+        row_layout.addWidget(label)
+        row_layout.addStretch()
+        row_layout.addWidget(toggle)
+
+        card.add(row)
+        return label, toggle
+
+    def _on_accent_change(self, use_system: bool):
+        """Handle the "use system accent color" toggle (macOS).
+
+        Args:
+            use_system: True to use the system accent color.
+        """
+        self._config.set("use_system_accent", use_system)
+        self.theme_changed.emit(self.toggle.isChecked())
 
     def _on_language_change(self, index: int):
         """Handle language combo change.
@@ -140,10 +223,22 @@ class AppearanceSection(QWidget):
 
     def load(self):
         """Load settings values into UI."""
-        is_dark = self._config.get("theme", "dark") == "dark"
+        theme = self._config.get("theme", "dark")
+        follow_system = theme == SYSTEM_THEME
+        is_dark = system_prefers_dark() if follow_system else theme == "dark"
         self.toggle.blockSignals(True)
         self.toggle.setChecked(is_dark)
         self.toggle.blockSignals(False)
+        # The dark mode switch shows the system appearance while following it.
+        self.toggle.setEnabled(not follow_system)
+        if self.system_toggle:
+            self.system_toggle.blockSignals(True)
+            self.system_toggle.setChecked(follow_system)
+            self.system_toggle.blockSignals(False)
+        if self.accent_toggle:
+            self.accent_toggle.blockSignals(True)
+            self.accent_toggle.setChecked(bool(self._config.get("use_system_accent")))
+            self.accent_toggle.blockSignals(False)
 
         current_lang = self._config.get("language", "fr")
         for i in range(self.lang_combo.count()):
@@ -155,7 +250,13 @@ class AppearanceSection(QWidget):
 
     def retranslate(self):
         """Update translatable UI text."""
-        self.label.setText(tr("appearance", "APPEARANCE"))
+        self.label.setText(tr("appearance", "Appearance"))
         self.dark_lbl.setText(tr("dark_mode", "Dark Mode"))
+        if self.system_toggle:
+            self.system_lbl.setText(
+                tr("follow_system_theme", "Match system appearance")
+            )
+        if self.accent_toggle:
+            self.accent_lbl.setText(tr("use_system_accent", "Use system accent color"))
         self.lang_lbl.setText(tr("language", "Language"))
         self.load()

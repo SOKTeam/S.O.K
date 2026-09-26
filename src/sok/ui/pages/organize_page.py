@@ -46,6 +46,8 @@ from sok.core.media_manager import get_media_manager
 from sok.config import get_config_manager
 from sok.ui.i18n import tr
 from sok.ui.pages.organize_preview_panel import PreviewPanel
+from sok.ui import message_box
+from sok.ui.platform import request_attention
 from sok.media.video.series import Series
 
 FileOperations = (
@@ -178,7 +180,7 @@ class OrganizePage(QScrollArea):
         right = QVBoxLayout(right_widget)
         right.setSpacing(8)
 
-        self._preview_title_label = make_section_label("preview", "PREVIEW")
+        self._preview_title_label = make_section_label("preview", "Preview")
         right.addWidget(self._preview_title_label)
 
         self._preview_panel = PreviewPanel()
@@ -240,7 +242,7 @@ class OrganizePage(QScrollArea):
 
         if not self._files:
             self._set_empty_preview(tr("select_folder", "Select a folder"))
-            self._preview_title_label.setText(tr("preview", "PREVIEW"))
+            self._preview_title_label.setText(tr("preview", "Preview"))
         else:
             self._on_source([f.parent for f in self._files])
 
@@ -250,6 +252,10 @@ class OrganizePage(QScrollArea):
         Clears the current search query and media selection.
         """
         self._search_panel.reset()
+
+    def focus_search(self) -> None:
+        """Focus the media search field (Find shortcut)."""
+        self._search_panel.focus_search()
 
     def stop_workers(self):
         """Stop all running background workers.
@@ -478,7 +484,7 @@ class OrganizePage(QScrollArea):
             return
         dest = self._options_panel.get_destination_path()
         if not dest or not Path(dest).exists():
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("warning", "Warning"),
                 tr("select_dest_warning", "Please select a destination folder."),
@@ -487,7 +493,7 @@ class OrganizePage(QScrollArea):
 
         series_id = selected_media.get("id")
         if not series_id:
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("error", "Error"),
                 tr("series_id_not_found", "Series ID not found."),
@@ -521,7 +527,7 @@ class OrganizePage(QScrollArea):
             self._options_panel.set_create_folders_text(
                 tr("create_series_folders", "Create series folders")
             )
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("warning", "Warning"),
                 tr("no_seasons_found", "No seasons found for '{title}'.").format(
@@ -571,7 +577,7 @@ class OrganizePage(QScrollArea):
             self._options_panel.set_create_folders_text(
                 tr("create_series_folders", "Create series folders")
             )
-            QMessageBox.critical(
+            message_box.critical(
                 self,
                 tr("error", "Error"),
                 tr("creation_error", "Error during creation: {e}").format(e=e),
@@ -595,19 +601,28 @@ class OrganizePage(QScrollArea):
         title = selected_media.get("name", "Unknown") if selected_media else "Unknown"
         num_created = report.get("created", 0)
         errors = report.get("errors", [])
+        dest = self._destination_folder()
+        request_attention(self)
 
         if errors:
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("finished_with_errors", "Finished with errors"),
                 f"Structure created for '{title}':\n{num_created} folder(s) created\n{len(errors)} error(s)",
+                reveal=dest,
             )
         else:
-            QMessageBox.information(
+            message_box.information(
                 self,
                 tr("success", "Success"),
                 f"Structure created for '{title}':\n{num_created} folder(s) created",
+                reveal=dest,
             )
+
+    def _destination_folder(self) -> Path | None:
+        """Return the selected destination folder, if it exists."""
+        dest = self._options_panel.get_destination_path()
+        return Path(dest) if dest and Path(dest).is_dir() else None
 
     def _on_folders_error(self, error: str):
         """Handle folder creation error.
@@ -618,11 +633,12 @@ class OrganizePage(QScrollArea):
             error: Error message string describing the failure.
         """
         self._set_progress(False)
+        request_attention(self)
         self._options_panel.set_create_folders_enabled(True)
         self._options_panel.set_create_folders_text(
             tr("create_series_folders", "Create series folders")
         )
-        QMessageBox.critical(
+        message_box.critical(
             self,
             tr("error", "Error"),
             tr("creation_error", "Error during creation:\n{error}").format(error=error),
@@ -640,7 +656,7 @@ class OrganizePage(QScrollArea):
         self._options_panel.set_create_folders_text(
             tr("create_series_folders", "Create series folders")
         )
-        QMessageBox.critical(
+        message_box.critical(
             self,
             tr("error", "Error"),
             tr("details_error", "Unable to retrieve details:\n{error}").format(
@@ -663,7 +679,7 @@ class OrganizePage(QScrollArea):
         content_type = self._search_panel.get_content_type()
 
         if self._type == "video" and not selected_media:
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("warning", "Warning"),
                 tr("select_media_warning", "Please select a media."),
@@ -678,6 +694,7 @@ class OrganizePage(QScrollArea):
         msg.setStandardButtons(
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
+        message_box.as_sheet(msg, self)
         if msg.exec() != QMessageBox.StandardButton.Yes:
             return
 
@@ -783,22 +800,26 @@ class OrganizePage(QScrollArea):
         """
         self._set_progress(False)
         self._options_panel.set_action_enabled(True)
+        dest = self._destination_folder()
+        request_attention(self)
 
         if report["errors"]:
-            QMessageBox.warning(
+            message_box.warning(
                 self,
                 tr("finished_with_errors", "Finished with errors"),
                 tr("success_count", "{0}/{1} succeeded.").format(
                     report["success"], report["total"]
                 ),
+                reveal=dest,
             )
         else:
-            QMessageBox.information(
+            message_box.information(
                 self,
                 tr("success", "Success"),
                 tr("files_organized", "✓ {0} file(s) organized!").format(
                     report["success"]
                 ),
+                reveal=dest,
             )
 
         self._files = []
@@ -814,7 +835,8 @@ class OrganizePage(QScrollArea):
             error: Error message string describing the failure.
         """
         self._set_progress(False)
+        request_attention(self)
         self._options_panel.set_action_enabled(True)
-        QMessageBox.critical(
+        message_box.critical(
             self, tr("error", "Error"), f"{tr('error_prefix', 'Error:')} {error}"
         )

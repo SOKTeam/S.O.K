@@ -37,8 +37,17 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QIcon
 
-from sok.ui.theme import Theme, ASSETS_DIR
-from sok.ui.components.sidebar import SidebarButton
+from sok.ui.theme import Theme, ASSETS_DIR, palette, tone_stylesheet
+from sok.ui.platform import (
+    IS_MACOS,
+    MACOS_TITLEBAR_HEIGHT,
+    apply_color_scheme,
+    hide_native_title,
+    is_dark_theme,
+    use_native_title_bar,
+)
+from sok.ui.macos_menu import MacMenuBar
+from sok.ui.components.sidebar import SidebarButton, SidebarToggleButton
 from sok.ui.components.window import WindowControlButton
 from sok.ui.controllers.window_chrome import hit_test_resize
 from sok.ui.pages.home_page import HomePage
@@ -72,9 +81,10 @@ class MainWindow(QMainWindow):
 
         self._config = get_config_manager()
         theme_pref = self._config.get("theme", "orange")
+        apply_color_scheme(theme_pref)
 
-        self.dark = theme_pref == "dark"
-        self.c = Theme.DARK if self.dark else Theme.LIGHT
+        self.dark = is_dark_theme(theme_pref)
+        self.c = self._palette(self.dark)
         self._theme_name = theme_pref
 
         self._drag_pos = None
@@ -82,6 +92,10 @@ class MainWindow(QMainWindow):
 
         self._setup_window()
         self._build()
+        self._mac_menu = MacMenuBar(self) if IS_MACOS else None
+        style_hints = QApplication.styleHints()
+        if style_hints:
+            style_hints.colorSchemeChanged.connect(self._on_system_scheme_changed)
         self._style()
         self._setup_services()
 
@@ -94,8 +108,11 @@ class MainWindow(QMainWindow):
         self.resize(950, 680)
         self.setMinimumSize(850, 550)
 
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        if IS_MACOS:
+            use_native_title_bar(self)
+        else:
+            self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         icon = ASSETS_DIR / "logo.ico"
         if icon.exists():
@@ -134,6 +151,26 @@ class MainWindow(QMainWindow):
         right_col = self._build_right_column()
         main_layout.addWidget(right_col, 1)
 
+        self._window_title: QLabel | None = None
+        if IS_MACOS:
+            # Replaces the native title: builds made with the macOS 26 SDK
+            # left-align it, over the sidebar button. Centered on the whole
+            # window, it lets clicks through to drag the window.
+            self._window_title = QLabel(central)
+            self._window_title.setObjectName("WindowTitle")
+            self._window_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self._window_title.setAttribute(
+                Qt.WidgetAttribute.WA_TransparentForMouseEvents
+            )
+            self._window_title.raise_()
+
+            # Stays next to the traffic lights whatever the sidebar width.
+            toggle = SidebarToggleButton(central)
+            toggle.setToolTip(tr("toggle_sidebar", "Show/Hide Sidebar"))
+            toggle.clicked.connect(self._toggle_sidebar)
+            toggle.move(74, (MACOS_TITLEBAR_HEIGHT - toggle.height()) // 2)
+            toggle.raise_()
+
         self._nav[0].setChecked(True)
         self._go(0)
 
@@ -157,12 +194,18 @@ class MainWindow(QMainWindow):
         self._nav = []
 
         sb_layout = QVBoxLayout(sidebar)
-        sb_layout.setContentsMargins(0, 0, 0, 12)
+        # On macOS, leave room for the traffic lights above the menu button.
+        top_margin = MACOS_TITLEBAR_HEIGHT + 8 if IS_MACOS else 0
+        sb_layout.setContentsMargins(0, top_margin, 0, 12)
         sb_layout.setSpacing(0)
 
-        self._menu_btn = SidebarButton("", "menu")
-        self._menu_btn.clicked.connect(self._toggle_sidebar)
-        sb_layout.addWidget(self._menu_btn)
+        # macOS shows a sidebar button next to the traffic lights instead
+        # (see _build).
+        self._menu_btn: SidebarButton | None = None
+        if not IS_MACOS:
+            self._menu_btn = SidebarButton("", "menu")
+            self._menu_btn.clicked.connect(self._toggle_sidebar)
+            sb_layout.addWidget(self._menu_btn)
 
         self.lbl_library = QLabel(tr("library", "Library"))
         self.lbl_library.setObjectName("SidebarSection")
@@ -250,26 +293,33 @@ class MainWindow(QMainWindow):
         """
         header = QFrame()
         header.setObjectName("Header")
-        header.setFixedHeight(42)
+        header.setFixedHeight(self._header_height())
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(24, 0, 0, 0)
         header_layout.setSpacing(0)
 
-        self._logo_label = QLabel()
-        logo_icon = ASSETS_DIR / "logo.ico"
-        if logo_icon.exists():
-            self._logo_label.setPixmap(QIcon(str(logo_icon)).pixmap(28, 28))
-        else:
-            logo_png = ASSETS_DIR / "logo.png"
-            if logo_png.exists():
-                self._logo_label.setPixmap(QIcon(str(logo_png)).pixmap(28, 28))
-        self._logo_label.setFixedSize(36, 42)
-        self._logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header_layout.addWidget(self._logo_label)
+        # macOS windows show no icon in their title bar.
+        if not IS_MACOS:
+            self._logo_label = QLabel()
+            logo_icon = ASSETS_DIR / "logo.ico"
+            if logo_icon.exists():
+                self._logo_label.setPixmap(QIcon(str(logo_icon)).pixmap(28, 28))
+            else:
+                logo_png = ASSETS_DIR / "logo.png"
+                if logo_png.exists():
+                    self._logo_label.setPixmap(QIcon(str(logo_png)).pixmap(28, 28))
+            self._logo_label.setFixedSize(36, 42)
+            self._logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            header_layout.addWidget(self._logo_label)
 
         self._title_label = QLabel(f"S.O.K - {tr('videos', 'Videos')}")
         self._title_label.setObjectName("AppTitle")
         header_layout.addWidget(self._title_label)
+        # macOS shows the title across the whole window (see _build).
+        # Hide only once parented: showing a parentless widget opens it as
+        # a separate top-level window, which flashed at startup on Windows.
+        if IS_MACOS:
+            self._title_label.hide()
 
         self._drag_area = QWidget()
         self._drag_area.setSizePolicy(
@@ -278,20 +328,31 @@ class MainWindow(QMainWindow):
         self._drag_area.setStyleSheet("background: transparent;")
         header_layout.addWidget(self._drag_area)
 
-        min_btn = WindowControlButton("minimize")
-        min_btn.clicked.connect(self.showMinimized)
-        header_layout.addWidget(min_btn)
+        # macOS provides the native traffic lights instead.
+        if not IS_MACOS:
+            min_btn = WindowControlButton("minimize")
+            min_btn.clicked.connect(self.showMinimized)
+            header_layout.addWidget(min_btn)
 
-        self._max_btn = WindowControlButton("square")
-        self._max_btn.clicked.connect(self._toggle_maximize)
-        header_layout.addWidget(self._max_btn)
+            self._max_btn = WindowControlButton("square")
+            self._max_btn.clicked.connect(self._toggle_maximize)
+            header_layout.addWidget(self._max_btn)
 
-        self._close_btn = WindowControlButton("cross", "#FF5555")
-        self._close_btn.top_right_radius = 12
-        self._close_btn.clicked.connect(self.close)
-        header_layout.addWidget(self._close_btn)
+            self._close_btn = WindowControlButton("cross", "#FF5555")
+            self._close_btn.top_right_radius = 12
+            self._close_btn.clicked.connect(self.close)
+            header_layout.addWidget(self._close_btn)
 
         return header
+
+    @staticmethod
+    def _header_height() -> int:
+        """Return the header height.
+
+        On macOS the header is the title bar row, aligned with the
+        traffic lights.
+        """
+        return MACOS_TITLEBAR_HEIGHT if IS_MACOS else 42
 
     def _add_pages(self):
         """Add all application pages to the stack widget.
@@ -322,6 +383,8 @@ class MainWindow(QMainWindow):
         """
         reload_language()
         self.retranslateUi()
+        if self._mac_menu:
+            self._mac_menu.retranslate()
 
         for i in range(self._pages.count()):
             page = self._pages.widget(i)
@@ -344,18 +407,23 @@ class MainWindow(QMainWindow):
         self._update_title_by_index(self._pages.currentIndex())
 
     def changeEvent(self, event):
-        """Re-apply styles when the maximized state flips.
+        """Re-apply styles when the maximized state or the accent changes.
 
         Window radii must be 0 when maximized (so corners fill the screen)
         and 12 when restored. Reads the state from the windowState bitmask
         directly — ``isMaximized()`` can lag the event during animated
-        transitions.
+        transitions. On macOS the accent may follow the system setting.
         """
         from PySide6.QtCore import QEvent
 
         if event.type() == QEvent.Type.WindowStateChange:
             is_max = bool(self.windowState() & Qt.WindowState.WindowMaximized)
             self._style(is_maximized=is_max)
+        elif event.type() == QEvent.Type.ApplicationPaletteChange:
+            c = self._palette(self.dark)
+            if c["accent"] != self.c["accent"]:
+                self.c = c
+                self._style()
         super().changeEvent(event)
 
     def nativeEvent(self, eventType, message):
@@ -433,6 +501,26 @@ class MainWindow(QMainWindow):
             self._anim_geo.finished.connect(on_max_finished)
             self._anim_geo.start()
 
+    def resizeEvent(self, event):
+        """Keep the macOS title across the full window width.
+
+        Args:
+            event: Resize event.
+        """
+        super().resizeEvent(event)
+        title = getattr(self, "_window_title", None)
+        if title:
+            title.setGeometry(0, 0, self.width(), MACOS_TITLEBAR_HEIGHT)
+
+    def showEvent(self, event):
+        """Hide the native macOS title once the window exists.
+
+        Args:
+            event: Show event.
+        """
+        super().showEvent(event)
+        hide_native_title(self)
+
     def mouseDoubleClickEvent(self, event):
         """Handle double-click to toggle maximize.
 
@@ -440,8 +528,15 @@ class MainWindow(QMainWindow):
             event: Mouse event.
         """
         if event.button() == Qt.MouseButton.LeftButton:
-            if event.position().y() < 42:
-                self._toggle_maximize()
+            if event.position().y() < self._header_height():
+                if IS_MACOS:
+                    # Native zoom, like double-clicking a macOS title bar.
+                    if self.isMaximized():
+                        self.showNormal()
+                    else:
+                        self.showMaximized()
+                else:
+                    self._toggle_maximize()
 
     def mousePressEvent(self, event):
         """Handle mouse press for window dragging.
@@ -450,8 +545,13 @@ class MainWindow(QMainWindow):
             event: Mouse event.
         """
         if event.button() == Qt.MouseButton.LeftButton:
-            if event.position().y() < 42:
-                if not self.isMaximized():
+            if event.position().y() < self._header_height():
+                if IS_MACOS:
+                    # Native move: keeps macOS snapping and Spaces behavior.
+                    handle = self.windowHandle()
+                    if handle:
+                        handle.startSystemMove()
+                elif not self.isMaximized():
                     self._drag_pos = event.globalPosition().toPoint()
 
     def mouseMoveEvent(self, event):
@@ -512,6 +612,10 @@ class MainWindow(QMainWindow):
             if hasattr(page, "refresh"):
                 page.refresh()  # type: ignore[union-attr]
 
+    def current_page(self) -> QWidget:
+        """Return the page currently shown."""
+        return self._pages.currentWidget()
+
     def _nav_titles(self):
         """Get translated navigation button titles.
 
@@ -537,6 +641,10 @@ class MainWindow(QMainWindow):
         titles = self._nav_titles()
         if 0 <= idx < len(titles):
             self._title_label.setText(f"S.O.K - {titles[idx]}")
+            if self._window_title:
+                # Also used by the Window menu and Mission Control.
+                self.setWindowTitle(titles[idx])
+                self._window_title.setText(titles[idx])
 
     def _toggle_sidebar(self):
         """Toggle sidebar between expanded and collapsed states.
@@ -570,7 +678,8 @@ class MainWindow(QMainWindow):
 
             for btn in self._nav:
                 btn.set_progress(value)
-            self._menu_btn.set_progress(value)
+            if self._menu_btn:
+                self._menu_btn.set_progress(value)
 
             for effect in self._sidebar_labels:
                 effect.setOpacity(value)
@@ -581,20 +690,165 @@ class MainWindow(QMainWindow):
     def _toggle_theme(self, dark: bool):
         """Switch between light and dark themes.
 
-        Updates theme state, saves preference, and reapplies styles.
+        The preference itself ("dark", "light" or "system") is saved by the
+        appearance settings.
 
         Args:
             dark: True for dark theme, False for light.
         """
         self.dark = dark
-        self._theme_name = "dark" if dark else "orange"
-        self.c = Theme.DARK if dark else Theme.LIGHT
-
-        if hasattr(self, "_config"):
-            self._config.set("theme", self._theme_name)
+        self._theme_name = self._config.get("theme", "orange")
+        self.c = self._palette(dark)
 
         self._style()
         self.update()
+
+    def _palette(self, dark: bool) -> dict[str, str]:
+        """Return the palette for the theme and the accent setting.
+
+        Args:
+            dark: True for the dark theme.
+        """
+        return palette(dark, bool(self._config.get("use_system_accent")))
+
+    def _on_system_scheme_changed(self, _scheme):
+        """Follow the system appearance when the theme is set to "system"."""
+        theme = self._config.get("theme", "orange")
+        if is_dark_theme(theme) != self.dark:
+            self._toggle_theme(is_dark_theme(theme))
+
+    @staticmethod
+    def _scrollbar_rules(c: dict[str, str]) -> str:
+        """Return the stylesheet rules of the custom scroll bars.
+
+        Args:
+            c: Current color palette.
+        """
+        return f"""
+            /* ScrollBar */
+            QScrollBar:vertical {{
+                background: transparent;
+                width: 14px;
+                margin: 0;
+            }}
+
+            QScrollBar::handle:vertical {{
+                background: {c.get("tertiary", "rgba(255,255,255,0.3)")};
+                border-radius: 4px;
+                min-height: 40px;
+                margin: 2px 3px; /* Handle width = 14 - 6 = 8px. Radius 4px makes it fully round */
+            }}
+
+            QScrollBar::handle:vertical:hover {{
+                background: {c.get("secondary", "rgba(255,255,255,0.5)")};
+            }}
+
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0;
+                background: none;
+            }}
+
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                background: none;
+            }}
+        """
+
+    @staticmethod
+    def _mac_rules(c: dict[str, str]) -> str:
+        """Return the macOS stylesheet rules.
+
+        They come last, so they override the shared rules. On Windows the
+        widgets they style keep their own fixed stylesheets.
+
+        Args:
+            c: Current color palette.
+        """
+        return f"""
+            /* Window title, drawn like the native one */
+            #WindowTitle {{
+                font-size: 13px;
+                font-weight: 600;
+                color: {c["text"]};
+            }}
+
+            /* Finder sidebar headings: gray, not capitalized */
+            #SidebarSection {{
+                color: {c["secondary"]};
+                padding: 18px 20px 6px 20px;
+                text-transform: none;
+                letter-spacing: 0;
+            }}
+
+            /* Section headings in sentence case, like System Settings */
+            #SectionLabel, #CategoryLabel {{
+                text-transform: none;
+                letter-spacing: 0;
+            }}
+
+            #SectionLabel {{
+                font-size: 13px;
+                color: {c["text"]};
+            }}
+
+            #ActionBtn, #DestructiveBtn {{
+                border-radius: 6px;
+                padding: 0 12px;
+            }}
+
+            #SearchBar, #SettingsInput, #SettingsFormatInput, QComboBox {{
+                border-radius: 6px;
+            }}
+
+            #MatchCombo {{
+                background: {c["input_bg"]};
+                border: 1px solid {c["separator"]};
+                border-radius: 6px;
+                padding: 2px 8px;
+                color: {c["text"]};
+            }}
+
+            #MatchCombo QAbstractItemView {{
+                background: {c["dropdown_bg"]};
+                border: 1px solid {c["separator"]};
+                border-radius: 6px;
+                padding: 4px;
+                color: {c["text"]};
+                selection-background-color: {c["accent"]};
+                selection-color: {c["accent_text"]};
+            }}
+
+            #MatchCombo QAbstractItemView::item {{
+                min-height: 24px;
+                padding-left: 8px;
+                color: {c["text"]};
+            }}
+
+            #DashedButton {{
+                background: transparent;
+                color: {c["secondary"]};
+                border: 1px dashed {c["tertiary"]};
+                border-radius: 6px;
+            }}
+
+            #DashedButton:hover {{
+                color: {c["text"]};
+                border-color: {c["secondary"]};
+                background: {c["hover"]};
+            }}
+
+            #RemoveFileBtn {{
+                background: {c["hover"]};
+                border-radius: 10px;
+                color: {c["text"]};
+                font-weight: bold;
+                padding-bottom: 2px;
+            }}
+
+            #RemoveFileBtn:hover {{
+                background: {c["red"]};
+                color: white;
+            }}
+        """
 
     def _style(self, is_maximized: bool | None = None):
         """Apply current theme stylesheet to the window.
@@ -610,10 +864,15 @@ class MainWindow(QMainWindow):
         font = Theme.FONT
         if is_maximized is None:
             is_maximized = self.isMaximized()
-        outer_radius = 0 if is_maximized else 12
+        # The native macOS window draws its own rounded corners.
+        outer_radius = 0 if is_maximized or IS_MACOS else 12
         if hasattr(self, "_close_btn"):
             self._close_btn.top_right_radius = outer_radius
             self._close_btn.update()
+        tone_rules = tone_stylesheet(c)
+        mac_rules = self._mac_rules(c) if IS_MACOS else ""
+        # macOS keeps its native overlay scroll bars, shown while scrolling.
+        scrollbar_rules = "" if IS_MACOS else self._scrollbar_rules(c)
 
         self.setStyleSheet(
             f"""
@@ -628,7 +887,7 @@ class MainWindow(QMainWindow):
 
             /* Sidebar */
             #Sidebar {{
-                background: {c["card"]};
+                background: {c.get("sidebar", c["card"])};
                 border-right: 1px solid {c["separator"]};
                 border-top-left-radius: {outer_radius}px;
                 border-bottom-left-radius: {outer_radius}px;
@@ -831,32 +1090,11 @@ class MainWindow(QMainWindow):
                 margin-bottom: -1px;
             }}
 
-            /* ScrollBar */
-            QScrollBar:vertical {{
-                background: transparent;
-                width: 14px;
-                margin: 0;
-            }}
+            {scrollbar_rules}
 
-            QScrollBar::handle:vertical {{
-                background: {c.get("tertiary", "rgba(255,255,255,0.3)")};
-                border-radius: 4px;
-                min-height: 40px;
-                margin: 2px 3px; /* Handle width = 14 - 6 = 8px. Radius 4px makes it fully round */
-            }}
+            {tone_rules}
 
-            QScrollBar::handle:vertical:hover {{
-                background: {c.get("secondary", "rgba(255,255,255,0.5)")};
-            }}
-
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
-                height: 0;
-                background: none;
-            }}
-
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
-                background: none;
-            }}
+            {mac_rules}
         """
         )
 
