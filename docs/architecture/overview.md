@@ -1,161 +1,127 @@
-# Architecture Overview
+---
+title: Architecture overview
+description:
+  The layers of S.O.K and the path of a search, from the interface to an online
+  database and back.
+---
 
-S.O.K follows a clean, modular architecture with clear separation of concerns.
+S.O.K is one Python package, `sok`, split into layers. Each layer only calls the
+layers below it.
 
-## High-Level Architecture
-
-```mermaid
-graph TB
-    UI[UI Layer<br/>PySide6] --> Core[Core Layer<br/>Media Manager]
-    Core --> APIs[API Layer<br/>External Services]
-    Core --> Media[Media Layer<br/>Data Models]
-    Core --> FileOps[File Operations<br/>File System]
-    Core --> Config[Configuration<br/>Settings & Sessions]
-
-    APIs --> TMDB[TMDB]
-    APIs --> TVDB[TVDB]
-    APIs --> Spotify[Spotify]
-    APIs --> IGDB[IGDB]
-    APIs --> Other[...]
+```text
+ui               PySide6 interface: window, pages, components, workers
+ │
+core             media manager, interfaces, adapters, exceptions, updater
+ │
+ ├── apis             one class per online database
+ ├── media            data models (movie, episode, album, book, game…)
+ ├── file_operations  scanning, renaming and moving files
+ └── config           settings, API keys and sessions, service registry
 ```
 
-## Layer Responsibilities
+## Layers
 
-### UI Layer (`sok.ui`)
+### Interface (`sok.ui`)
 
-The user interface layer built with PySide6:
+Built in code with PySide6; no Qt Designer file is loaded at run time.
 
-- **Main Window**: Application shell and navigation
-- **Pages**: Different views (library, search, settings)
-- **Components**: Reusable UI components
-- **Workers**: Background tasks using Qt threads
+- `main_window.py`: the window, the sidebar and the page stack. On Windows and
+  Linux the window is frameless with its own title bar; on macOS it keeps the
+  native title bar.
+- `pages/`: home, organize (TV shows, music, books, games), movies and settings.
+- `components/`: reusable widgets (search results, preview, settings sections…).
+- `controllers/`: logic shared by the pages (source scanning, preview, window
+  chrome, `WorkerRunner`).
+- `workers/`: background tasks (search, details, organize, folder scan).
+- `theme.py`, `platform.py`, `i18n.py`: colors and fonts, per-system behavior,
+  translations.
 
-### Core Layer (`sok.core`)
+### Core (`sok.core`)
 
-The business logic layer:
+- `media_manager.py`: `UniversalMediaManager`, the single entry point to the
+  online databases. It creates the APIs that have a key, keeps the one selected
+  for each media type and normalizes their responses.
+- `interfaces.py`: `MediaAPI`, the contract every API implements, and the
+  `MediaType` and `ContentType` enums.
+- `adapters/media_adapters/`: one adapter per kind of content (movie, TV, music,
+  book, game) that turns a service response into the fields the app uses.
+- `exceptions.py`: the exception hierarchy (see below).
+- `updater.py`: checks GitHub releases and installs updates.
+- `desktop_entry.py`: adds S.O.K to the Linux applications menu.
 
-- **Media Manager**: Orchestrates all media operations
-- **Interfaces**: Abstract base classes defining contracts
-- **Exceptions**: Custom exception hierarchy
-- **Utils**: Shared utility functions
+### APIs (`sok.apis`)
 
-### API Layer (`sok.apis`)
+One class per service, all derived from `BaseAPI` (`base_api.py`), which holds
+the HTTP session and the error handling:
 
-External service integrations:
+| Folder    | Services                              |
+| --------- | ------------------------------------- |
+| `video/`  | TMDB, TVDB, OMDb (`imdb_api.py`)      |
+| `music/`  | Last.fm, Spotify, Deezer, MusicBrainz |
+| `books/`  | Google Books, Open Library            |
+| `games/`  | IGDB, RAWG                            |
+| `images/` | Fanart.tv                             |
 
-- **Base API**: Common HTTP client functionality
-- **Video APIs**: TMDB, TVDB, IMDB
-- **Music APIs**: Spotify, Last.fm, Deezer, MusicBrainz
-- **Book APIs**: Google Books, OpenLibrary
-- **Game APIs**: IGDB, RAWG
+### Media, file operations and configuration
 
-### Media Layer (`sok.media`)
+- `sok.media`: data classes for each kind of item (`Movie`, `Episode`, `Album`,
+  `Track`, `Book`, `Game`…), all derived from `BaseMedia`.
+- `sok.file_operations`: reads names (season and episode numbers, years), builds
+  the new names from the user's formats and moves the files. One module per
+  media type, with shared mixins.
+- `sok.config`: `config_manager.py` (settings and folders), `session_manager.py`
+  (keys and tokens), `api_registry.py` (the list of services, their media type
+  and how they authenticate).
 
-Data models representing media items:
+## The path of a search
 
-- **Base Media**: Common media attributes
-- **Specialized Media**: Video, Music, Book, Game classes
+1. The user types in a search field. The page starts a `SearchWorker` with a
+   `WorkerRunner`, which moves it to a `QThread`.
+2. The worker creates its own asyncio event loop and calls
+   `get_media_manager().search(query, content_type)`.
+3. The manager sends the query to the API selected for that media type.
+4. The API calls the service with `aiohttp` and returns its response.
+5. The manager passes it through the adapter of the content type.
+6. The worker emits a Qt signal; the page shows the results in the GUI thread.
 
-### File Operations (`sok.file_operations`)
+Each worker has its own event loop, so an API opens a new HTTP session when the
+loop changes (`BaseAPI._ensure_session()`): a session can only be used on the
+loop that created it.
 
-File system interactions:
+:::caution
+Widgets and `QPixmap` must only be created in the GUI thread. Workers
+send plain data (dictionaries, bytes) through signals.
+:::
 
-- **Base Operations**: Common file operations
-- **Specialized Operations**: Media-specific file handling
+## Choosing the API
 
-### Configuration (`sok.config`)
+`UniversalMediaManager` reads `api_registry.py` at startup. For each media type
+it creates every service that has its key, then selects the one in the
+`preferred_api_<type>` setting, or the first one available.
+`set_current_api_for_media_type()` changes it while the app runs.
 
-Settings and session management:
+## Exceptions
 
-- **Config Manager**: Application settings
-- **Session Manager**: API keys and OAuth tokens
-- **API Registry**: Service discovery and configuration
+All exceptions derive from `SOKBaseError` (`sok.core.exceptions`):
 
-## Design Patterns
-
-### Singleton Pattern
-
-The `UniversalMediaManager` uses a singleton pattern:
-
-```python
-from sok.core.media_manager import get_media_manager
-
-# Always returns the same instance
-manager = get_media_manager()
+```text
+SOKBaseError
+├── APIError
+│   ├── APIAuthenticationError
+│   ├── APIConnectionError
+│   ├── APINotFoundError
+│   ├── APIRateLimitError
+│   ├── APIResponseError
+│   └── APITimeoutError
+├── ConfigurationError
+│   └── MissingConfigurationError
+├── FileOperationError
+│   ├── FileNotFoundError
+│   └── FilePermissionError
+└── MediaError
+    ├── MediaNotFoundError
+    └── UnsupportedMediaTypeError
 ```
 
-### Abstract Factory Pattern
-
-Media items are created through factory methods:
-
-```python
-# APIs return standardized data structures
-results = await api.search("query", content_type)
-```
-
-### Strategy Pattern
-
-Different APIs can be swapped for the same media type:
-
-```python
-# Configure which API to use for video
-manager.set_api(MediaType.VIDEO, "tmdb")
-```
-
-### Adapter Pattern
-
-API responses are normalized through adapters:
-
-```python
-from sok.core.adapters.media_adapters import adapt_search_results
-
-normalized = adapt_search_results(raw_response, api_name)
-```
-
-## Async Architecture
-
-S.O.K uses `asyncio` and `aiohttp` for efficient API communication:
-
-```python
-async def search_multiple_apis():
-    # Concurrent API calls
-    results = await asyncio.gather(
-        api1.search(query),
-        api2.search(query),
-        api3.search(query)
-    )
-    return results
-```
-
-## Error Handling
-
-Custom exception hierarchy in `sok.core.exceptions`:
-
-```
-APIError
-├── APINotFoundError
-├── APIConnectionError
-├── APITimeoutError
-└── APIResponseError
-
-MediaError
-├── UnsupportedMediaTypeError
-└── InvalidMediaError
-```
-
-## Configuration Flow
-
-```mermaid
-sequenceDiagram
-    participant App as Application
-    participant CM as ConfigManager
-    participant SM as SessionManager
-    participant API as API
-
-    App->>CM: Load config
-    CM-->>App: Settings
-    App->>SM: Get API key
-    SM-->>App: API Key
-    App->>API: Initialize with key
-    API-->>App: Ready
-```
+`sok.core.exceptions.FileNotFoundError` is not the built-in one: import it
+explicitly.

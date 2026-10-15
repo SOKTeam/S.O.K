@@ -1,0 +1,43 @@
+title: S.O.K
+description: Developer documentation for S.O.K (Storage Organisation Kit), the desktop app that organizes movies, TV shows, music, books and games.
+logo: docs/assets/logo.svg
+accent: "#FB6048"
+# Colors of the S.O.K app (src/sok/ui/theme.py): the macOS light theme and the
+# dark theme.
+theme:
+  light:
+    background: "#FFFFFF"
+    surface: "#F5F5F7"
+    text: "#1D1D1F"
+    mutedText: "#6E6E73"
+    border: "#E3E3E8"
+  dark:
+    background: "#121212"
+    surface: "#1E1E1E"
+    text: "#F5F5F7"
+    mutedText: "#B3B3B3"
+    border: "#333333"
+site: https://sokteam.github.io
+social:
+  github: https://github.com/SOKTeam/S.O.K
+editLink: https://github.com/SOKTeam/S.O.K/edit/develop/
+sidebar:
+  - { slug: index, label: Overview }
+  - label: Getting started
+    items:
+      - getting-started/setup
+      - getting-started/first-steps
+  - label: Architecture
+    items:
+      - architecture/overview
+      - architecture/structure
+  - label: Guides
+    items:
+      - guides/adding-an-api
+      - guides/translations
+      - guides/building
+      - guides/documentation
+  - contributing
+api:
+  python: api.json
+  exclude: [sok.ui]

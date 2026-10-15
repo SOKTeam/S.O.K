@@ -62,17 +62,20 @@ never edit these versions by hand.
 
 ### `build_docs.py`
 
-Manages documentation generation and preview (MkDocs).
+Builds the developer documentation with Kiln (in Docker): the guides in
+`docs/` and the API reference, which Kiln renders from `api.json`, a
+description of the package written by griffe.
 
 ```bash
-python scripts/build_docs.py [build|serve|clean]
+uv run --extra docs python scripts/build_docs.py [build|serve|api|clean]
 ```
 
 **Options:**
 
-- `build`: Generates the static site in `site/`.
-- `serve`: Launches a local server at `http://127.0.0.1:8000`.
-- `clean`: Removes previously generated files.
+- `build`: Writes `api.json`, then the static site in `site/`.
+- `serve`: Writes `api.json`, then previews the site at `http://localhost:4321`.
+- `api`: Only writes `api.json`.
+- `clean`: Removes `site/` and `api.json`.
 
 ---
 

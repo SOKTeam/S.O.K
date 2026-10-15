@@ -21,8 +21,9 @@ wheels/
 # OS-specific files
 .DS_Store
 
-# MkDocs build directory
+# Documentation build output (Kiln) and package description for the API reference (griffe)
 /site
+/api.json
 
 # Cache files
 .*_cache/
