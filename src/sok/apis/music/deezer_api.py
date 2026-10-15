@@ -82,12 +82,9 @@ class DeezerApi(BaseAPI):
         Raises:
             APIError: If the request fails or returns an error.
         """
-        if not self.session:
-            self.session = aiohttp.ClientSession()
+        session = await self._ensure_session()
 
         url = f"{self.BASE_URL}/{endpoint}"
-        session = self.session
-        assert session is not None
 
         try:
             async with session.get(url, params=params) as response:

@@ -81,6 +81,28 @@ class BaseAPI(MediaAPI):
         except RuntimeError:
             return False
 
+    async def _ensure_session(self) -> aiohttp.ClientSession:
+        """Return a session bound to the running event loop.
+
+        Each worker runs its own event loop and closes it when done, so a
+        session kept from an earlier search would fail with "Event loop is
+        closed". A new one is opened whenever the loop changed.
+
+        Returns:
+            The aiohttp session for the current event loop.
+        """
+        session = self._session
+        if session is None or not self._is_session_valid():
+            if session and not session.closed:
+                try:
+                    await session.close()
+                except Exception:
+                    pass
+            session = aiohttp.ClientSession()
+            self._session = session
+            self._session_loop = asyncio.get_running_loop()
+        return session
+
     async def __aenter__(self) -> "BaseAPI":
         """Enter async context manager.
 
@@ -127,22 +149,12 @@ class BaseAPI(MediaAPI):
         Returns:
             Parsed JSON response as dictionary.
         """
-        if not self._is_session_valid():
-            if self._session and not self._session.closed:
-                try:
-                    await self._session.close()
-                except Exception:
-                    pass
-            self._session = aiohttp.ClientSession()
-            self._session_loop = asyncio.get_running_loop()
+        session = await self._ensure_session()
 
         if params is None:
             params = {}
 
         url = f"{self.base_url}{endpoint}"
-
-        session = self._session
-        assert session is not None
 
         if method.upper() == "POST":
             async with session.post(
