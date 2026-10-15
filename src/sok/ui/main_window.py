@@ -37,7 +37,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QIcon
 
-from sok.ui.theme import Theme, ASSETS_DIR, palette, tone_stylesheet
+from sok.ui.theme import Theme, APP_ICON, ASSETS_DIR, palette, tone_stylesheet
 from sok.ui.platform import (
     IS_LINUX,
     IS_MACOS,
@@ -115,9 +115,8 @@ class MainWindow(QMainWindow):
             self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
             self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
-        icon = ASSETS_DIR / "logo.ico"
-        if icon.exists():
-            self.setWindowIcon(QIcon(str(icon)))
+        if APP_ICON.exists():
+            self.setWindowIcon(QIcon(str(APP_ICON)))
 
     def _setup_services(self):
         """Initialize optional services.

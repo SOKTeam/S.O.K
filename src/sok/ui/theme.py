@@ -12,18 +12,37 @@
 Design Tokens and Theme Utilities for S.O.K
 """
 
+import logging
 import sys
 import os
-from PySide6.QtGui import QColor, QPainter, QPixmap
+from PySide6.QtGui import QColor, QFontDatabase, QPainter, QPixmap
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
 from PySide6.QtSvg import QSvgRenderer
 import re
 
 from sok.config.config_manager import resources_dir
-from sok.ui.platform import IS_MACOS, system_accent_color
+from sok.ui.platform import IS_LINUX, IS_MACOS, system_accent_color
+
+logger = logging.getLogger(__name__)
 
 ASSETS_DIR = resources_dir() / "assets"
+FONTS_DIR = resources_dir() / "fonts"
+
+# Window icon: the rounded orange square on Linux, where the black cube
+# disappears on dark panels.
+APP_ICON = ASSETS_DIR / ("logo_linux.png" if IS_LINUX else "logo.ico")
+
+
+def load_bundled_fonts() -> None:
+    """Register the bundled Inter font, the Linux UI font (see Theme.FONT).
+
+    Few distributions install Inter; shipping it gives the same rendering on
+    all of them. Needs a QGuiApplication.
+    """
+    for path in sorted(FONTS_DIR.glob("*.ttf")):
+        if QFontDatabase.addApplicationFont(str(path)) < 0:
+            logger.warning("Could not load font %s", path.name)
 
 
 class Theme:
@@ -33,7 +52,8 @@ class Theme:
     font selection.
 
     Attributes:
-        FONT: System font name (macOS system font, Segoe UI, or Inter).
+        FONT: UI font name (macOS system font, Segoe UI, or the bundled
+            Inter on Linux).
         ORANGE: Orange theme color dictionary.
         MAC_LIGHT: macOS light theme: white and gray, orange accents.
         LIGHT: Light theme of the current platform.

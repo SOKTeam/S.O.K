@@ -9,7 +9,8 @@
 #
 # ===----------------------------------------------------------------------=== #
 """
-Generate the macOS app icon (logo.icns) and the disk image background.
+Generate the macOS app icon (logo.icns), the disk image background and
+the Linux app icon (logo_linux.png, the same rounded square).
 
 The S.O.K cube is drawn as vectors, so every size stays sharp. The icon
 follows the macOS grid: a rounded-square body of 824 px in a 1024 px
@@ -233,7 +234,7 @@ def make_dmg_background(output: Path) -> None:
 
 
 def main() -> None:
-    """Generate logo.icns and the disk image background."""
+    """Generate logo.icns, the disk image background and logo_linux.png."""
     if sys.platform != "darwin" or not shutil.which("iconutil"):
         sys.exit("This script needs macOS (iconutil, tiffutil).")
     app = QGuiApplication(sys.argv)  # noqa: F841 - needed for fonts
@@ -241,7 +242,9 @@ def main() -> None:
     make_icns(ASSETS_DIR / "logo.icns")
     render_icon(1024).save(str(MACOS_DIR / "icon_1024.png"))
     make_dmg_background(MACOS_DIR / "dmg_background.tiff")
-    print(f"Wrote {ASSETS_DIR / 'logo.icns'} and {MACOS_DIR}")
+    # Window icon on X11 and AppImage icon (freedesktop: 512 px max).
+    render_icon(512).save(str(ASSETS_DIR / "logo_linux.png"))
+    print(f"Wrote {ASSETS_DIR / 'logo.icns'}, logo_linux.png and {MACOS_DIR}")
 
 
 if __name__ == "__main__":
