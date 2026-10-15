@@ -25,6 +25,7 @@ from sok.ui.main_window import MainWindow
 from sok.__version__ import __version__
 from sok.core.security import check_security
 from sok.config.config_manager import xdg_dir
+from sok.core.desktop_entry import install_desktop_entry
 from sok.ui.theme import APP_ICON, load_bundled_fonts
 
 # Add src to path if running from source to find sok package
@@ -93,6 +94,7 @@ def main():
         # Wayland matches the window to its .desktop file (dock icon, name)
         # by this id: packaging/linux/com.sokteam.sok.desktop.
         app.setDesktopFileName("com.sokteam.sok")
+        install_desktop_entry()
         load_bundled_fonts()
         icon_path = APP_ICON
     else:
