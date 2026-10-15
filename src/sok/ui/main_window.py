@@ -35,7 +35,7 @@ from PySide6.QtCore import (
     QPropertyAnimation,
     QEasingCurve,
 )
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QPalette
 
 from sok.ui.theme import Theme, APP_ICON, ASSETS_DIR, palette, tone_stylesheet
 from sok.ui.platform import (
@@ -48,6 +48,7 @@ from sok.ui.platform import (
     use_native_title_bar,
 )
 from sok.ui.macos_menu import MacMenuBar
+from sok.ui.components.base import parse_color
 from sok.ui.components.sidebar import SidebarButton, SidebarToggleButton
 from sok.ui.components.window import WindowControlButton
 from sok.ui.controllers.window_chrome import ResizeGrips, hit_test_resize
@@ -741,6 +742,41 @@ class MainWindow(QMainWindow):
             self._toggle_theme(is_dark_theme(theme))
 
     @staticmethod
+    def _theme_palette(c: dict[str, str]) -> QPalette:
+        """Return an application palette built from the theme colors (Linux).
+
+        Text without a color in the stylesheets uses the palette, which
+        otherwise follows the desktop theme: a light GNOME made it black on
+        the dark theme. Dialogs outside the main window use it too.
+
+        Args:
+            c: Current color palette.
+        """
+        role = QPalette.ColorRole
+        colors = {
+            role.Window: c["bg"],
+            role.WindowText: c["text"],
+            role.Base: c["dropdown_bg"],
+            role.AlternateBase: c["card"],
+            role.Text: c["text"],
+            role.PlaceholderText: c["secondary"],
+            role.Button: c["dropdown_bg"],
+            role.ButtonText: c["text"],
+            role.Highlight: c["accent"],
+            role.HighlightedText: c["accent_text"],
+            role.ToolTipBase: c["dropdown_bg"],
+            role.ToolTipText: c["text"],
+        }
+        pal = QPalette()
+        for color_role, color in colors.items():
+            pal.setColor(color_role, parse_color(color))
+        for color_role in (role.WindowText, role.Text, role.ButtonText):
+            pal.setColor(
+                QPalette.ColorGroup.Disabled, color_role, parse_color(c["tertiary"])
+            )
+        return pal
+
+    @staticmethod
     def _scrollbar_rules(c: dict[str, str]) -> str:
         """Return the stylesheet rules of the custom scroll bars.
 
@@ -896,6 +932,8 @@ class MainWindow(QMainWindow):
         mac_rules = self._mac_rules(c) if IS_MACOS else ""
         # macOS keeps its native overlay scroll bars, shown while scrolling.
         scrollbar_rules = "" if IS_MACOS else self._scrollbar_rules(c)
+        if IS_LINUX:
+            QApplication.setPalette(self._theme_palette(c))
 
         self.setStyleSheet(
             f"""
