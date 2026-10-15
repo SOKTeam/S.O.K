@@ -36,8 +36,8 @@ logger = logging.getLogger(__name__)
 IS_COMPILED = "__compiled__" in globals()
 
 
-def xdg_dir(variable: str, fallback: str) -> Path:
-    """Return the S.O.K folder inside an XDG base directory (Linux).
+def xdg_base(variable: str, fallback: str) -> Path:
+    """Return an XDG base directory (Linux).
 
     Args:
         variable: XDG variable, e.g. "XDG_DATA_HOME".
@@ -46,8 +46,17 @@ def xdg_dir(variable: str, fallback: str) -> Path:
             XDG Base Directory specification requires.
     """
     value = os.environ.get(variable, "")
-    base = Path(value) if os.path.isabs(value) else Path.home() / fallback
-    return base / "S.O.K"
+    return Path(value) if os.path.isabs(value) else Path.home() / fallback
+
+
+def xdg_dir(variable: str, fallback: str) -> Path:
+    """Return the S.O.K folder inside an XDG base directory (Linux).
+
+    Args:
+        variable: XDG variable, e.g. "XDG_DATA_HOME".
+        fallback: Default relative to the home folder, e.g. ".local/share".
+    """
+    return xdg_base(variable, fallback) / "S.O.K"
 
 
 def get_base_path() -> Path:
