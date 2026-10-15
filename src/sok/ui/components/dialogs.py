@@ -161,8 +161,10 @@ class SearchResultCard(QFrame):
             p.drawRoundedRect(x, py, self._pw, self._ph, 4, 4)
             x += self._pw + 10
 
-        title = self._data.get("title") or self._data.get(
-            "name", tr("unknown", "Inconnu")
+        title = (
+            self._data.get("title")
+            or self._data.get("name")
+            or tr("unknown", "Unknown")
         )
         p.setPen(parse_color(c["text"]))
         p.setFont(QFont(Theme.FONT, 13, QFont.Weight.Bold))
@@ -172,17 +174,17 @@ class SearchResultCard(QFrame):
 
         info_parts = []
         if self._type == "tv":
-            fa = self._data.get("first_air_date", "")[:4]
+            fa = (self._data.get("first_air_date") or "")[:4]
             if fa:
                 info_parts.append(fa)
             info_parts.append(tr("tv_series", "TV Series"))
         elif self._type == "movie":
-            rd = self._data.get("release_date", "")[:4]
+            rd = (self._data.get("release_date") or "")[:4]
             if rd:
                 info_parts.append(rd)
             info_parts.append(tr("movie", "Movie"))
         elif self._type == "album":
-            rd = self._data.get("release_date", "")[:4]
+            rd = (self._data.get("release_date") or "")[:4]
             if rd:
                 info_parts.append(rd)
             info_parts.append(tr("album", "Album"))

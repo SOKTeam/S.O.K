@@ -12,7 +12,7 @@ import pytest
 from unittest.mock import patch
 
 # Import the widget to test
-from sok.ui.components.search import SelectedMediaWidget
+from sok.ui.components.search import SearchResultRow, SelectedMediaWidget
 from sok.ui.controllers.worker_runner import WorkerRunner
 
 
@@ -81,3 +81,24 @@ class TestSearchWidgets:
         assert widget._data is not None
         assert widget._data["name"] == "Test Show"
         assert widget._type == "tv"
+
+
+# APIs return null for unknown fields: Deezer albums without a release date.
+NULL_FIELDS = {"title": None, "name": None, "release_date": None}
+
+
+@pytest.mark.parametrize("content_type", ["album", "movie", "tv", "artist"])
+def test_selected_media_paints_with_null_fields(qtbot, content_type):
+    widget = SelectedMediaWidget()
+    qtbot.addWidget(widget)
+    widget.set_media({**NULL_FIELDS, "first_air_date": None}, content_type)
+
+    widget.paintEvent(None)
+
+
+@pytest.mark.parametrize("content_type", ["album", "movie", "tv"])
+def test_search_result_row_paints_with_null_fields(qtbot, content_type):
+    row = SearchResultRow({**NULL_FIELDS, "first_air_date": None}, content_type)
+    qtbot.addWidget(row)
+
+    row.paintEvent(None)
