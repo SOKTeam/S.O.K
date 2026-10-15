@@ -1,151 +1,75 @@
-# Project Structure
+---
+title: Project structure
+description: What each folder of the repository contains.
+---
 
-This document describes the complete project structure of S.O.K.
-
-## Directory Layout
-
-```
+```text
 S.O.K/
-├── src/                    # Source code
-│   └── sok/               # Main package
-├── tests/                  # Test suites
-├── docs/                   # Documentation
-├── scripts/                # Build and utility scripts
-├── data/                   # Application data
-├── tools/                  # Development tools
-└── build/                  # Build outputs
+├── src/sok/          the application package
+├── tests/            pytest suites
+├── docs/             this documentation (Kiln), configured by docs.yml
+├── scripts/          build, version and documentation scripts
+├── tools/            development checks
+├── packaging/        installer files for each system
+├── .github/          CI, release and Linux build workflows
+├── pyproject.toml    metadata, dependencies and tool settings
+└── uv.lock           exact dependency versions
 ```
 
-## Source Code (`src/sok/`)
+## `src/sok/`
 
-### Core Module (`core/`)
+| Path               | Contents                                                                                                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `main.py`          | Entry point (`uv run sok`): logging, `QApplication`, main window                                                                         |
+| `__version__.py`   | Version, kept in sync with `pyproject.toml`                                                                                              |
+| `core/`            | Media manager, interfaces, adapters, exceptions, constants, updater, Linux desktop entry                                                 |
+| `apis/`            | One module per online database, by media type (`video/`, `music/`, `books/`, `games/`, `images/`)                                        |
+| `media/`           | Data classes: `Movie`, `Series`, `Episode`, `Album`, `Track`, `Artist`, `Playlist`, `Book`, `Ebook`, `Audiobook`, `Comic`, `Game`, `DLC` |
+| `file_operations/` | Name parsing, renaming and moving, by media type, with shared mixins                                                                     |
+| `config/`          | Settings and folders, keys and sessions, service registry, OAuth providers                                                               |
+| `ui/`              | The PySide6 interface (see [Architecture](/architecture/overview/#interface-sokui))                                                      |
+| `resources/`       | Icons and logos (`assets/`), Inter font for Linux (`fonts/`), translations (`i18n/`)                                                     |
 
-| File | Description |
-| ------ | ------------- |
-| `__init__.py` | Module exports |
-| `interfaces.py` | Abstract interfaces (`MediaAPI`, `MediaItem`) |
-| `media_manager.py` | `UniversalMediaManager` singleton |
-| `exceptions.py` | Custom exception classes |
-| `constants.py` | Service names and constants |
-| `utils.py` | Utility functions |
-| `security.py` | Credential encryption |
-| `updater.py` | Application update logic |
-| `adapters/` | Response adapters |
+`ui/designer/` holds old Qt Designer mockups. They are not used by the app.
 
-### APIs Module (`apis/`)
+## `tests/`
 
-| Directory | Description |
-| ----------- | ------------- |
-| `base_api.py` | `BaseAPI` class with HTTP client |
-| `video/` | TMDB, TVDB, IMDB integrations |
-| `music/` | Spotify, Last.fm, Deezer, MusicBrainz |
-| `books/` | Google Books, OpenLibrary |
-| `games/` | IGDB, RAWG |
-| `images/` | Fanart.tv |
+| Folder                       | Contents                                                         |
+| ---------------------------- | ---------------------------------------------------------------- |
+| `unit/`                      | Functions and classes in isolation                               |
+| `integration/`               | Several modules together                                         |
+| `functional/`, `acceptance/` | Complete scenarios: renaming, organizing videos, music and books |
+| `ui/`                        | Widgets and pages, with pytest-qt                                |
+| `mock/`                      | Tests against recorded API responses                             |
+| `performance/`               | Timing of file operations                                        |
 
-### Media Module (`media/`)
+## `scripts/` and `tools/`
 
-| Directory | Description |
-| ----------- | ------------- |
-| `base_media.py` | `BaseMediaItem` class |
-| `video/` | Movie, TVSeries, Episode classes |
-| `music/` | Album, Track, Artist classes |
-| `books/` | Book, Ebook, Audiobook classes |
-| `games/` | Game, DLC classes |
+| File                           | Purpose                                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `scripts/build_sok.py`         | Compiles the app with Nuitka (see [Building the app](/guides/building/))                         |
+| `scripts/bump_version.py`      | Writes the version everywhere; `--check` fails if a file is out of sync                          |
+| `scripts/build_docs.py`        | Builds or previews this documentation (see [Writing this documentation](/guides/documentation/)) |
+| `scripts/make_macos_assets.py` | Draws the macOS icon and disk image background                                                   |
+| `scripts/check.py`             | Runs ruff, mypy, ty and pytest in a row                                                          |
+| `tools/verify_i18n.py`         | Compares the `tr()` keys of the code with the translation files                                  |
 
-### File Operations (`file_operations/`)
+## `packaging/`
 
-| File | Description |
-| ------ | ------------- |
-| `base_operations.py` | Common file operations |
-| `video_operations.py` | Video file handling |
-| `music_operations.py` | Audio file handling |
-| `book_operations.py` | Book/PDF handling |
-| `game_operations.py` | Game file handling |
-| `mixins/` | Shared operation mixins |
+| File                            | Purpose                                      |
+| ------------------------------- | -------------------------------------------- |
+| `windows/installation.iss`      | Inno Setup script of the Windows installer   |
+| `macos/dmg_settings.py`         | Layout of the disk image window (dmgbuild)   |
+| `macos/dmg_background.tiff`     | Disk image background, standard and Retina   |
+| `macos/icon_1024.png`           | 1024 px app icon                             |
+| `linux/build_appimage.sh`       | Builds an AppImage in an AlmaLinux container |
+| `linux/com.sokteam.sok.desktop` | Desktop entry of the AppImage                |
 
-### Configuration (`config/`)
+## Workflows
 
-| File | Description |
-| ------ | ------------- |
-| `config_manager.py` | Application settings |
-| `session_manager.py` | API keys, OAuth tokens |
-| `api_registry.py` | Service registration |
-| `oauth_providers.py` | OAuth configuration |
-
-### UI Module (`ui/`)
-
-| Directory | Description |
-| ----------- | ------------- |
-| `main_window.py` | Main application window |
-| `theme.py` | Theme and styling |
-| `i18n.py` | Internationalization |
-| `pages/` | Main view pages |
-| `components/` | Reusable UI components |
-| `dialogs/` | Dialog windows |
-| `controllers/` | View controllers |
-| `workers/` | Background workers |
-| `factories/` | Widget factories |
-| `designer/` | Qt Designer .ui files |
-| `generated/` | Generated UI code |
-
-## Tests (`tests/`)
-
-```
-tests/
-├── unit/           # Unit tests
-├── integration/    # Integration tests
-├── functional/     # Functional tests
-├── acceptance/     # Acceptance tests
-├── performance/    # Performance tests
-├── ui/             # UI tests
-└── mock/           # Mock data and utilities
-```
-
-## Scripts (`scripts/`)
-
-| Script | Purpose |
-| -------- | --------- |
-| `build_sok.py` | Build executable with Nuitka |
-| `build_ui.py` | Compile Qt Designer files |
-| `build_docs.py` | Build documentation |
-| `bump_version.py` | Sync the version in every file |
-| `make_macos_assets.py` | Draw the macOS app icon and disk image background |
-
-## Packaging (`packaging/`)
-
-Platform installer files, used by `scripts/build_sok.py` or the installer
-tools.
-
-| File | Purpose |
-| ------ | --------- |
-| `windows/installation.iss` | Inno Setup installer script |
-| `macos/dmg_settings.py` | Disk image window layout (dmgbuild) |
-| `macos/dmg_background.tiff` | Disk image background (standard and Retina) |
-| `macos/icon_1024.png` | 1024 px app icon, for the website |
-
-## Configuration Files
-
-| File | Purpose |
-| ------ | --------- |
-| `pyproject.toml` | Project metadata and dependencies |
-| `mkdocs.yml` | Documentation configuration |
-| `data/config.json` | Default application settings |
-
-## Entry Points
-
-### Application Entry
-
-```python
-# sok.main:main
-def main():
-    """Application entry point"""
-    ...
-```
-
-### Package Entry
-
-```python
-# sok/__init__.py
-from .__version__ import __version__
-```
+| File                       | When it runs                                                                                                        |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `ci.yml`                   | Pushes and pull requests to `develop` and `main`: lint, format, translations, type checks, tests on Linux and macOS |
+| `conventional-commits.yml` | Pull requests: checks the commit messages                                                                           |
+| `release.yml`              | Pushes to `main`: semantic-release creates the version and the GitHub release                                       |
+| `build-linux.yml`          | After a release, and on pull requests that change the packaging: builds the AppImages                               |

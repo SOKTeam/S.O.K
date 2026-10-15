@@ -32,9 +32,7 @@ build = [
     "dmgbuild>=1.6",
 ]
 docs = [
-    "mkdocs>=1.6.1",
-    "mkdocs-material>=9.7.0",
-    "mkdocstrings-python>=1.19.0",
+    "griffe>=1.14,<2",
 ]
 dev = [
     "python-dotenv>=1.2.1",
