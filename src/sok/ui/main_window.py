@@ -39,6 +39,7 @@ from PySide6.QtGui import QIcon
 
 from sok.ui.theme import Theme, ASSETS_DIR, palette, tone_stylesheet
 from sok.ui.platform import (
+    IS_LINUX,
     IS_MACOS,
     MACOS_TITLEBAR_HEIGHT,
     apply_color_scheme,
@@ -49,7 +50,7 @@ from sok.ui.platform import (
 from sok.ui.macos_menu import MacMenuBar
 from sok.ui.components.sidebar import SidebarButton, SidebarToggleButton
 from sok.ui.components.window import WindowControlButton
-from sok.ui.controllers.window_chrome import hit_test_resize
+from sok.ui.controllers.window_chrome import ResizeGrips, hit_test_resize
 from sok.ui.pages.home_page import HomePage
 from sok.ui.pages.organize_page import OrganizePage
 from sok.ui.pages.movies_page import MoviesPage
@@ -179,6 +180,8 @@ class MainWindow(QMainWindow):
         self._resize_margin = 5
         self._resize_dir = None
         self._drag_pos = None
+        # Linux has no native hit test for frameless windows (see nativeEvent).
+        self._resize_grips = ResizeGrips(self) if IS_LINUX else None
 
     def _build_sidebar(self) -> QWidget:
         """Build the navigation sidebar.
@@ -419,6 +422,14 @@ class MainWindow(QMainWindow):
         if event.type() == QEvent.Type.WindowStateChange:
             is_max = bool(self.windowState() & Qt.WindowState.WindowMaximized)
             self._style(is_maximized=is_max)
+            grips = getattr(self, "_resize_grips", None)
+            if grips:
+                # Linux: the window manager can also maximize the window
+                # (drag to the top, Super+Up), not only the button.
+                full = self.windowState() & Qt.WindowState.WindowFullScreen
+                grips.set_visible(not (is_max or full))
+                self._max_btn._icon_name = "restore" if is_max else "square"
+                self._max_btn.update()
         elif event.type() == QEvent.Type.ApplicationPaletteChange:
             c = self._palette(self.dark)
             if c["accent"] != self.c["accent"]:
@@ -455,8 +466,16 @@ class MainWindow(QMainWindow):
     def _toggle_maximize(self):
         """Toggle between maximized and normal window states.
 
-        Animates the transition smoothly.
+        Animates the transition smoothly. On Linux the window manager does
+        it: Wayland does not let an app place its own window.
         """
+        if IS_LINUX:
+            if self.isMaximized():
+                self.showNormal()
+            else:
+                self.showMaximized()
+            return
+
         screen = self.screen().availableGeometry()
         start_rect = self.geometry()
 
@@ -502,12 +521,16 @@ class MainWindow(QMainWindow):
             self._anim_geo.start()
 
     def resizeEvent(self, event):
-        """Keep the macOS title across the full window width.
+        """Keep the macOS title across the full window width and the Linux
+        resize grips along the edges.
 
         Args:
             event: Resize event.
         """
         super().resizeEvent(event)
+        grips = getattr(self, "_resize_grips", None)
+        if grips:
+            grips.update_geometry(self.width(), self.height())
         title = getattr(self, "_window_title", None)
         if title:
             title.setGeometry(0, 0, self.width(), MACOS_TITLEBAR_HEIGHT)
@@ -546,8 +569,9 @@ class MainWindow(QMainWindow):
         """
         if event.button() == Qt.MouseButton.LeftButton:
             if event.position().y() < self._header_height():
-                if IS_MACOS:
-                    # Native move: keeps macOS snapping and Spaces behavior.
+                if IS_MACOS or IS_LINUX:
+                    # Native move: keeps the system snapping (macOS Spaces,
+                    # GNOME/KDE tiling); Wayland forbids moving it ourselves.
                     handle = self.windowHandle()
                     if handle:
                         handle.startSystemMove()
