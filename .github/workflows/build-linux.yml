@@ -1,11 +1,19 @@
 name: Build Linux AppImage
 
 on:
-  # Run by hand from the Actions tab, on any branch or tag.
+  # Run by hand from the Actions tab (or gh workflow run), on any branch or tag.
   workflow_dispatch:
-  # Build the AppImage of each published release.
-  release:
-    types: [published]
+  # Called by release.yml once semantic-release has published a version: a
+  # release created with GITHUB_TOKEN triggers no "release" event.
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag to build and attach the AppImages to.
+        type: string
+        required: true
+    secrets:
+      SOK_ENV:
+        required: true
   # Check that packaging changes still build (without the API keys).
   pull_request:
     branches: [develop, main]
@@ -38,6 +46,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Write the API keys
         if: github.event_name != 'pull_request'
@@ -64,3 +74,23 @@ jobs:
           name: SOK-Linux-AppImage-${{ matrix.arch }}
           path: dist/*.AppImage
           if-no-files-found: error
+
+  attach:
+    name: Attach to the release
+    needs: appimage
+    if: inputs.tag != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download the AppImages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: SOK-Linux-AppImage-*
+          merge-multiple: true
+
+      - name: Attach them to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ inputs.tag }}" ./*.AppImage --clobber --repo "${{ github.repository }}"
