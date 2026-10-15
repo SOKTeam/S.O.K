@@ -20,7 +20,6 @@ from sok.ui.components.inputs import ModernComboBox, SearchBar, FileItemRow, Dro
 from sok.ui.components.layouts import FlowLayout
 from sok.ui.components.preview import FileRow
 from sok.ui.components.search import (
-    ImageLoaderWorker,
     SearchResultRow,
     SelectedMediaWidget,
 )
@@ -40,7 +39,6 @@ __all__ = [
     "DropZone",
     "FlowLayout",
     "FileRow",
-    "ImageLoaderWorker",
     "SearchResultRow",
     "SelectedMediaWidget",
     "SidebarButton",

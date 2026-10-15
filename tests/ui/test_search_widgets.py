@@ -8,28 +8,37 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
+import threading
+import time
+
 import pytest
-from unittest.mock import patch
+import shiboken6
+
+from PySide6.QtCore import QBuffer, QByteArray, QIODevice
+from PySide6.QtGui import QColor, QPixmap
+from PySide6.QtWidgets import QWidget
 
 # Import the widget to test
-from sok.ui.components.search import SearchResultRow, SelectedMediaWidget
-from sok.ui.controllers.worker_runner import WorkerRunner
+from sok.ui.components import search
+from sok.ui.components.search import SearchResultRow, SelectedMediaWidget, load_poster
+
+
+def _png_bytes() -> bytes:
+    """Return a small valid PNG image."""
+    pm = QPixmap(4, 4)
+    pm.fill(QColor("orange"))
+    data = QByteArray()
+    buf = QBuffer(data)
+    buf.open(QIODevice.OpenModeFlag.WriteOnly)
+    pm.save(buf, "PNG")
+    return bytes(data.data())
 
 
 @pytest.fixture(autouse=True)
-def no_threads(monkeypatch):
-    """Avoid spinning real QThreads in tests to prevent teardown warnings."""
-
-    def _run_stub(self, worker, on_finished, on_error, on_progress=None):
-        try:
-            if on_finished:
-                on_finished(None)
-        finally:
-            self._thread = None
-            self._current_worker = None
-        return worker
-
-    monkeypatch.setattr(WorkerRunner, "run", _run_stub)
+def no_network(monkeypatch):
+    """Serve posters from memory instead of downloading them."""
+    png = _png_bytes()  # Built here: QPixmap must stay in the GUI thread.
+    monkeypatch.setattr(search, "_download", lambda url: png)
 
 
 class TestSearchWidgets:
@@ -42,8 +51,7 @@ class TestSearchWidgets:
         assert widget._type is None
         assert widget._empty is True
 
-    @patch("urllib.request.urlopen")  # Mock network call for poster
-    def test_selected_media_widget_set_media(self, mock_urlopen, qtbot):
+    def test_selected_media_widget_set_media(self, qtbot):
         """Test setting media data updates the widget state."""
         widget = SelectedMediaWidget()
 
@@ -54,13 +62,6 @@ class TestSearchWidgets:
             "poster_path": "/path.jpg",
         }
 
-        # Setup mock for image download
-        # We simulate a small valid image response (not strictly necessary if we mock _load_poster,
-        # but mocking urlopen is closer to integration)
-        # However, to be safe and avoid QPixmap errors with garbage data,
-        # let's just mock _load_poster directly if possible, OR just check the data state.
-
-        # Let's verify data state logic first.
         widget.set_media(movie_data, "movie")
 
         assert widget._data == movie_data
@@ -102,3 +103,68 @@ def test_search_result_row_paints_with_null_fields(qtbot, content_type):
     qtbot.addWidget(row)
 
     row.paintEvent(None)
+
+
+class TestLoadPoster:
+    def test_delivers_scaled_pixmap(self, qtbot):
+        """The poster reaches its widget in the GUI thread, scaled."""
+        widget = QWidget()
+        received = []
+        load_poster("https://example.com/a.png", 10, 10, widget, received.append)
+        qtbot.waitUntil(lambda: bool(received), timeout=2000)
+        assert received[0].width() == 10
+
+    def test_deleted_widget_is_skipped(self, qtbot, monkeypatch):
+        """A widget deleted before its poster arrives is never called back."""
+        png = _png_bytes()
+
+        def slow(url):
+            time.sleep(0.1)
+            return png
+
+        monkeypatch.setattr(search, "_download", slow)
+        widget = QWidget()
+        received = []
+        load_poster("https://example.com/a.png", 10, 10, widget, received.append)
+        shiboken6.delete(widget)
+        qtbot.wait(300)
+        assert received == []
+
+    def test_deliver_checks_the_widget_still_exists(self, qapp):
+        """Delivery to a deleted widget is dropped instead of crashing."""
+        widget = QWidget()
+        shiboken6.delete(widget)
+        received = []
+        search._deliver(widget, received.append, _png_bytes(), (10, 10))
+        assert received == []
+
+    def test_stale_poster_is_ignored(self, qtbot):
+        """A poster of the previous media does not replace the current one."""
+        widget = SelectedMediaWidget()
+        widget.set_media({"title": "New"}, "movie")
+        widget._poster_url = "https://image.tmdb.org/t/p/w92/new.jpg"
+        stale = QPixmap(2, 2)
+        widget._on_poster_loaded(stale, "https://image.tmdb.org/t/p/w92/old.jpg")
+        assert widget._poster is None
+
+    def test_slow_download_is_delivered_in_gui_thread(self, qtbot, monkeypatch):
+        """QPixmap is only ever built in the GUI thread."""
+
+        png = _png_bytes()
+
+        def slow(url):
+            time.sleep(0.1)
+            return png
+
+        monkeypatch.setattr(search, "_download", slow)
+        widget = QWidget()
+        threads = []
+        load_poster(
+            "https://example.com/a.png",
+            10,
+            10,
+            widget,
+            lambda pm: threads.append(threading.current_thread()),
+        )
+        qtbot.waitUntil(lambda: bool(threads), timeout=2000)
+        assert threads == [threading.main_thread()]

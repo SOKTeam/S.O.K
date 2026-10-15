@@ -13,70 +13,118 @@ Search related widgets
 """
 
 from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import Qt, Signal, QObject, QRect
+from PySide6.QtCore import Qt, Signal, Slot, QObject, QRect
 from PySide6.QtGui import QPainter, QFont, QPixmap, QPainterPath
 
 from sok.ui.theme import Theme
 from sok.ui.components.base import parse_color
 from sok.ui.i18n import tr
-from sok.ui.controllers.worker_runner import WorkerRunner
-import urllib.request
+import logging
 import urllib.error
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+
+import shiboken6
+
+logger = logging.getLogger(__name__)
 
 
-class ImageLoaderWorker(QObject):
-    """Worker for asynchronous image loading.
+class _PosterDelivery(QObject):
+    """Hands downloaded poster bytes back to the GUI thread.
 
-    Loads images from URLs in a separate thread.
-
-    Signals:
-        finished: Emitted with loaded pixmap on success.
-        error: Emitted with error message on failure.
+    It lives in the GUI thread, so ready, emitted from a pool thread,
+    is queued to _on_ready there.
     """
 
-    finished = Signal(QPixmap)
-    error = Signal(str)
+    ready = Signal(object, object, bytes)
 
-    def __init__(self, url, width, height):
-        """Initialize the image loader worker.
+    def __init__(self):
+        """Initialize the delivery object and connect its own slot."""
+        super().__init__()
+        self.ready.connect(self._on_ready)
+
+    @Slot(object, object, bytes)
+    def _on_ready(self, job, on_loaded, data: bytes):
+        """Forward a finished download to its widget.
 
         Args:
-            url: URL of the image to load.
-            width: Target width for scaling.
-            height: Target height for scaling.
+            job: (receiver widget, (width, height)).
+            on_loaded: Callback taking the scaled pixmap.
+            data: Downloaded image bytes.
         """
-        super().__init__()
-        self.url = url
-        self.width = width
-        self.height = height
-        self._running = True
+        _deliver(job[0], on_loaded, data, job[1])
 
-    def stop(self):
-        """Stop the worker."""
-        self._running = False
 
-    def run(self):
-        """Execute the image loading."""
+_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="poster")
+_delivery: _PosterDelivery | None = None
 
-        try:
-            if not self._running:
-                return
-            with urllib.request.urlopen(self.url, timeout=5) as response:
-                if not self._running:
-                    return
-                data = response.read()
-                pm = QPixmap()
-                pm.loadFromData(data)
-                if not pm.isNull() and self._running:
-                    scaled = pm.scaled(
-                        self.width,
-                        self.height,
-                        Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                        Qt.TransformationMode.SmoothTransformation,
-                    )
-                    self.finished.emit(scaled)
-        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
-            self.error.emit(str(e))
+
+def _download(url: str) -> bytes:
+    """Download an image, or return empty bytes on failure.
+
+    Args:
+        url: Image URL.
+    """
+    try:
+        with urllib.request.urlopen(url, timeout=5) as response:
+            return response.read()
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+        logger.debug("Poster download failed for %s: %s", url, exc)
+        return b""
+
+
+def _deliver(receiver: QWidget, on_loaded, data: bytes, size: tuple[int, int]):
+    """Build the pixmap in the GUI thread and pass it to its widget.
+
+    Args:
+        receiver: Widget that asked for the image.
+        on_loaded: Callback taking the scaled pixmap.
+        data: Downloaded image bytes.
+        size: Target (width, height).
+    """
+    # The row may have been deleted by a newer search meanwhile.
+    if not data or not shiboken6.isValid(receiver):
+        return
+    pm = QPixmap()
+    pm.loadFromData(data)
+    if pm.isNull():
+        return
+    on_loaded(
+        pm.scaled(
+            *size,
+            Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+    )
+
+
+def load_poster(url: str, width: int, height: int, receiver: QWidget, on_loaded):
+    """Download a poster in the background and hand it to a widget.
+
+    The download runs in a shared thread pool, never in a QThread owned by
+    the widget: deleting a widget whose QThread still runs aborts the app.
+    QPixmap is only created in the GUI thread.
+
+    Args:
+        url: Image URL.
+        width: Target width.
+        height: Target height.
+        receiver: Widget showing the image; nothing happens once it is deleted.
+        on_loaded: Callback taking the scaled pixmap.
+    """
+    global _delivery
+    if _delivery is None:
+        _delivery = _PosterDelivery()
+
+    future = _pool.submit(_download, url)
+    receiver.destroyed.connect(lambda *_: future.cancel())
+    delivery = _delivery
+
+    def _done(f):
+        if not f.cancelled():
+            delivery.ready.emit((receiver, (width, height)), on_loaded, f.result())
+
+    future.add_done_callback(_done)
 
 
 class SearchResultRow(QWidget):
@@ -103,7 +151,6 @@ class SearchResultRow(QWidget):
         self._type = content_type
         self._hover = False
         self._poster = None
-        self._runner = WorkerRunner(self)
         self._is_music = self._type in ("album", "artist")
         self._pw = 40 if self._is_music else 30
         self._ph = 40 if self._is_music else 45
@@ -118,16 +165,7 @@ class SearchResultRow(QWidget):
                 if poster_path.startswith("http")
                 else f"https://image.tmdb.org/t/p/w92{poster_path}"
             )
-            self._start_image_loading(url)
-
-    def _start_image_loading(self, url: str):
-        """Start asynchronous image loading.
-
-        Args:
-            url: Image URL to load.
-        """
-        worker = ImageLoaderWorker(url, self._pw, self._ph)
-        self._runner.run(worker, self._on_poster_loaded, lambda _err: None)
+            load_poster(url, self._pw, self._ph, self, self._on_poster_loaded)
 
     def _on_poster_loaded(self, pixmap):
         """Handle loaded poster image.
@@ -137,15 +175,6 @@ class SearchResultRow(QWidget):
         """
         self._poster = pixmap
         self.update()
-
-    def closeEvent(self, event):
-        """Handle widget close.
-
-        Args:
-            event: Close event.
-        """
-        self._runner.stop()
-        super().closeEvent(event)
 
     def enterEvent(self, e):
         """Handle mouse enter.
@@ -253,7 +282,7 @@ class SelectedMediaWidget(QWidget):
         self._type: str | None = None
         self._poster = None
         self._empty = True
-        self._runner = WorkerRunner(self)
+        self._poster_url: str | None = None
         self.setFixedHeight(60)
 
     def retranslateUi(self):
@@ -278,6 +307,7 @@ class SelectedMediaWidget(QWidget):
         )
         self._is_music = self._type in ("album", "artist")
         self._pw, self._ph = (42, 42) if self._is_music else (35, 52)
+        self._poster_url = None
         poster_path = data.get("poster_path")
         if poster_path:
             url = (
@@ -285,40 +315,33 @@ class SelectedMediaWidget(QWidget):
                 if poster_path.startswith("http")
                 else f"https://image.tmdb.org/t/p/w92{poster_path}"
             )
-            self._start_image_loading(url)
+            self._poster_url = url
+            load_poster(
+                url,
+                self._pw,
+                self._ph,
+                self,
+                lambda pixmap, u=url: self._on_poster_loaded(pixmap, u),
+            )
         self.update()
 
     def clear(self):
         """Clear the selected media."""
         self._data, self._type, self._poster, self._empty = None, None, None, True
+        self._poster_url = None
         self.update()
 
-    def _start_image_loading(self, url: str):
-        """Start asynchronous image loading.
-
-        Args:
-            url: Image URL to load.
-        """
-        worker = ImageLoaderWorker(url, self._pw, self._ph)
-        self._runner.run(worker, self._on_poster_loaded, lambda _err: None)
-
-    def _on_poster_loaded(self, pixmap):
+    def _on_poster_loaded(self, pixmap, url: str):
         """Handle loaded poster image.
 
         Args:
             pixmap: Loaded image pixmap.
+            url: URL it was loaded from; ignored if another media is shown now.
         """
+        if url != self._poster_url:
+            return
         self._poster = pixmap
         self.update()
-
-    def closeEvent(self, event):
-        """Handle widget close.
-
-        Args:
-            event: Close event.
-        """
-        self._runner.stop()
-        super().closeEvent(event)
 
     def paintEvent(self, e):
         """Paint the selected media widget.
