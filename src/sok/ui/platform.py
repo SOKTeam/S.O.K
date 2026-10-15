@@ -24,6 +24,7 @@ from PySide6.QtGui import QGuiApplication, QPalette
 from PySide6.QtWidgets import QApplication, QWidget
 
 IS_MACOS = sys.platform == "darwin"
+IS_LINUX = sys.platform.startswith("linux")
 
 # Height of the macOS title bar the content is drawn under.
 MACOS_TITLEBAR_HEIGHT = 28
