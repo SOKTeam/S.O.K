@@ -34,6 +34,7 @@
         "file-ops",
         "deps",
         "macos",
+        "linux",
         "windows",
         "i18n",
         "movies",
