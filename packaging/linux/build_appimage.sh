@@ -55,12 +55,15 @@ uv sync --frozen --extra build
 
 echo ">>> Installing appimagetool ${APPIMAGETOOL_VERSION}..."
 arch="$(uname -m)"
-tool=/opt/appimagetool
+tool=/opt/appimagetool.AppImage
 curl -LsSf -o "$tool" \
     "https://github.com/AppImage/appimagetool/releases/download/${APPIMAGETOOL_VERSION}/appimagetool-${arch}.AppImage"
 chmod +x "$tool"
-# Containers have no FUSE: run appimagetool from its extracted files.
-export APPIMAGE_EXTRACT_AND_RUN=1
-export APPIMAGETOOL="$tool"
+# Containers have no FUSE, so unpack appimagetool instead of mounting it.
+# Clear the AppImage magic bytes first (ELF padding, offset 8): emulated
+# runs (Docker on Apple Silicon) refuse to execute the file with them.
+printf '\0\0\0' | dd of="$tool" bs=1 seek=8 conv=notrunc status=none
+(cd /opt && "$tool" --appimage-extract >/dev/null && mv squashfs-root appimagetool)
+export APPIMAGETOOL=/opt/appimagetool/AppRun
 
 uv run --frozen --no-sync python scripts/build_sok.py "$@"

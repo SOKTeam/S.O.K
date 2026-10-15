@@ -240,6 +240,46 @@ def make_appdir(dist_dir: Path) -> Path:
     return appdir
 
 
+# Libraries the Qt X11 plugin needs that distributions often leave out
+# (libxcb-cursor above all). They are small and ABI-stable, so the AppImage
+# ships them. The core X11, Wayland, OpenGL and font libraries must come
+# from the system, which matches its drivers (AppImage exclude list).
+# libxkbcommon-x11 must stay out too: it has to match the system
+# libxkbcommon exactly, and an older copy crashes Qt on Fedora 42.
+LINUX_BUNDLED_LIBS = (
+    "libxcb-cursor.so.0",
+    "libxcb-icccm.so.4",
+    "libxcb-image.so.0",
+    "libxcb-keysyms.so.1",
+    "libxcb-render-util.so.0",
+    "libxcb-util.so.1",
+)
+
+
+def bundle_system_libs(program: Path) -> None:
+    """Copy LINUX_BUNDLED_LIBS from the build system next to the program.
+
+    The Qt libraries look for their dependencies in their own folder
+    ($ORIGIN) first.
+
+    Args:
+        program: Folder of the Nuitka build inside the AppDir.
+    """
+    cache = subprocess.run(
+        ["ldconfig", "-p"], capture_output=True, text=True, check=True
+    ).stdout
+    found = {}
+    for line in cache.splitlines():
+        if "(libc6)" in line:
+            continue  # 32-bit library, e.g. "(libc6,x86-64)" is 64-bit
+        name, _, path = line.strip().partition(" => ")
+        found.setdefault(name.split(" ", 1)[0], path)
+    for lib in LINUX_BUNDLED_LIBS:
+        if lib not in found:
+            sys.exit(f"!!! {lib} not found: install it on the build system.")
+        shutil.copy(found[lib], program / lib)
+
+
 def make_appimage(appdir: Path, version: str) -> Path:
     """Package the AppDir into a single-file AppImage.
 
@@ -376,7 +416,9 @@ def build(allow_missing_keys: bool = False):
         make_dmg(app, version)
 
     if os_name == "linux":
-        make_appimage(make_appdir(dist_dir), version)
+        appdir = make_appdir(dist_dir)
+        bundle_system_libs(appdir / "usr" / "lib" / "sok")
+        make_appimage(appdir, version)
 
     print(f"\n>>> [3/3] SUCCESS: Build completed in {dist_dir}")
 
