@@ -104,15 +104,17 @@ class DetailsWorker(BaseWorker):
             raise
 
         if self._fetch_episodes and self._type_str == "tv":
-            details["episodes"] = await self._fetch_all_episodes(details)
+            details["episodes"] = await self._fetch_all_episodes(details, api_lang)
 
         return details
 
-    async def _fetch_all_episodes(self, details: dict) -> dict:
+    async def _fetch_all_episodes(self, details: dict, language: str) -> dict:
         """Fetch episode information for all seasons.
 
         Args:
             details: Series details containing season count.
+            language: TMDB language code of the settings language, e.g. "en-EN",
+                so episode titles match the language of the app.
 
         Returns:
             Dict mapping episode codes (S01E01) to titles.
@@ -130,7 +132,7 @@ class DetailsWorker(BaseWorker):
         for season_num in range(1, num_seasons + 1):
             try:
                 season_episodes = await api.get_tv_episodes(
-                    self._media_id, season_num, "fr-FR"
+                    self._media_id, season_num, language
                 )  # type: ignore[attr-defined]
                 for ep in season_episodes:
                     s_str = str(ep.get("season_number", season_num)).zfill(2)
