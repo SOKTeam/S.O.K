@@ -39,6 +39,9 @@ def no_network(monkeypatch):
     """Serve posters from memory instead of downloading them."""
     png = _png_bytes()  # Built here: QPixmap must stay in the GUI thread.
     monkeypatch.setattr(search, "_download", lambda url: png)
+    search._cache.clear()
+    search._pending.clear()
+    search._waiters.clear()
 
 
 class TestSearchWidgets:
@@ -168,3 +171,42 @@ class TestLoadPoster:
         )
         qtbot.waitUntil(lambda: bool(threads), timeout=2000)
         assert threads == [threading.main_thread()]
+
+    def test_each_url_is_downloaded_once(self, qtbot, monkeypatch):
+        """The selected media reuses the image its result row downloaded."""
+        png = _png_bytes()
+        calls = []
+
+        def slow(url):
+            calls.append(url)
+            time.sleep(0.1)
+            return png
+
+        monkeypatch.setattr(search, "_download", slow)
+        row, selected = QWidget(), QWidget()
+        received = []
+        load_poster("https://example.com/a.png", 10, 10, row, received.append)
+        load_poster("https://example.com/a.png", 20, 20, selected, received.append)
+        qtbot.waitUntil(lambda: len(received) == 2, timeout=2000)
+
+        later = []
+        load_poster("https://example.com/a.png", 30, 30, QWidget(), later.append)
+        assert calls == ["https://example.com/a.png"]
+        assert [pm.width() for pm in received + later] == [10, 20, 30]
+
+    def test_download_continues_for_remaining_widget(self, qtbot, monkeypatch):
+        """Deleting the row does not cancel the image the selection waits for."""
+        png = _png_bytes()
+
+        def slow(url):
+            time.sleep(0.1)
+            return png
+
+        monkeypatch.setattr(search, "_download", slow)
+        row, selected = QWidget(), QWidget()
+        received = []
+        load_poster("https://example.com/a.png", 10, 10, row, lambda pm: None)
+        load_poster("https://example.com/a.png", 20, 20, selected, received.append)
+        shiboken6.delete(row)
+        qtbot.waitUntil(lambda: bool(received), timeout=2000)
+        assert received[0].width() == 20
