@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from build_sok import (  # noqa: E402
     declared_constants,
     inject_env_vars,
+    make_appdir,
     require_env_file,
 )
 
@@ -70,3 +71,22 @@ class TestInjectEnvVars:
         constants = namespace["Constants"]
         assert constants.get("API_KEY_TMDB_V4") == "tmdb-key"
         assert not hasattr(constants, "GITHUB_TOKEN")
+
+
+class TestMakeAppdir:
+    def test_lays_out_the_appimage_tree(self, tmp_path):
+        program = tmp_path / "main.dist"
+        program.mkdir()
+        (program / "SOK").write_text("binary", encoding="utf-8")
+
+        appdir = make_appdir(tmp_path)
+
+        assert (appdir / "AppRun").read_text(encoding="utf-8") == "binary"
+        assert (appdir / "com.sokteam.sok.desktop").is_file()
+        assert (appdir / "com.sokteam.sok.png").is_file()
+        assert (appdir / ".DirIcon").resolve() == (appdir / "com.sokteam.sok.png")
+        share = appdir / "usr" / "share"
+        assert (share / "applications" / "com.sokteam.sok.desktop").is_file()
+        icon = share / "icons" / "hicolor" / "512x512" / "apps" / "com.sokteam.sok.png"
+        assert icon.is_file()
+        assert not program.exists()

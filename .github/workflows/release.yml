@@ -30,6 +30,9 @@ jobs:
     needs: wait-for-ci
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'skip ci')"
+    outputs:
+      # Set by the successCmd of .releaserc.json when a version is published.
+      version: ${{ steps.release.outputs.version }}
 
     steps:
       - name: Checkout
@@ -53,6 +56,19 @@ jobs:
             @semantic-release/github
 
       - name: Release
+        id: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+
+  linux:
+    name: Linux AppImages
+    needs: release
+    if: needs.release.outputs.version != ''
+    permissions:
+      contents: write
+    uses: ./.github/workflows/build-linux.yml
+    with:
+      tag: v${{ needs.release.outputs.version }}
+    secrets:
+      SOK_ENV: ${{ secrets.SOK_ENV }}
