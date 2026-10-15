@@ -959,6 +959,10 @@ class MainWindow(QMainWindow):
                 font-size: 13px;
             }}
 
+            #PageSubtitle {{
+                color: {c["secondary"]};
+            }}
+
             /* Common Widgets Stylesheet overrides for Card/Input */
 
             #Card {{
