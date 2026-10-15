@@ -412,9 +412,9 @@ class HomePage(QScrollArea):
         )
 
         self.lbl_welcome_subtitle = QLabel()
-        self.lbl_welcome_subtitle.setStyleSheet(
-            "font-size: 14px; opacity: 0.8; color: #8A8A8E;"
-        )
+        # Colored by the window stylesheet, so it follows the theme.
+        self.lbl_welcome_subtitle.setObjectName("PageSubtitle")
+        self.lbl_welcome_subtitle.setStyleSheet("font-size: 14px;")
         self.lbl_welcome_subtitle.setWordWrap(True)
 
         text_layout.addWidget(self.lbl_welcome_title)
