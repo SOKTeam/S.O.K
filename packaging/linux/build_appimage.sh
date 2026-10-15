@@ -10,16 +10,23 @@
 #
 # ===----------------------------------------------------------------------=== #
 #
-# Build the Linux AppImage inside an AlmaLinux 9 container.
+# Build the Linux AppImage of this machine's architecture inside an
+# AlmaLinux container.
 #
-# AlmaLinux 9 has glibc 2.34, the oldest PySide6 6.10 supports: the AppImage
-# then runs on every distribution at least as recent (RHEL 9 and its
-# rebuilds, Ubuntu 22.04, Debian 12, Fedora 35, openSUSE Tumbleweed, Arch...).
+# A binary runs on the glibc it was built with or newer, so each
+# architecture is built on the oldest glibc its PySide6 wheels support:
+#
+#   x86_64   AlmaLinux 9    glibc 2.34   RHEL 9, Ubuntu 22.04, Debian 12,
+#                                        Fedora 35 and newer
+#   aarch64  AlmaLinux 10   glibc 2.39   RHEL 10, Ubuntu 24.04, Debian 13,
+#                                        Fedora 40 and newer
 #
 # Used by .github/workflows/build-linux.yml. Locally, from the repository root:
 #
 #   docker run --rm --platform linux/amd64 -v "$PWD":/src -w /src \
 #       almalinux:9 bash packaging/linux/build_appimage.sh
+#   docker run --rm --platform linux/arm64 -v "$PWD":/src -w /src \
+#       almalinux:10 bash packaging/linux/build_appimage.sh
 #
 # Extra arguments go to scripts/build_sok.py (e.g. --allow-missing-keys).
 
