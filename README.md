@@ -35,6 +35,40 @@ preview of every new name before anything moves.
 
 ---
 
+## 📸 Screenshots
+
+<!-- markdownlint-disable MD013 -->
+<table>
+  <tr>
+    <th width="50%">macOS</th>
+    <th width="50%">Windows &amp; Linux</th>
+  </tr>
+  <tr>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/home-mac-dark.png"><img src="docs/assets/screenshots/home-mac-light.png" alt="Home page on macOS"></picture></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/home-linux-dark.png"><img src="docs/assets/screenshots/home-linux-light.png" alt="Home page on Windows and Linux"></picture></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><sub>Home page</sub></td>
+  </tr>
+  <tr>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/tv-shows-mac-dark.png"><img src="docs/assets/screenshots/tv-shows-mac-light.png" alt="TV shows: the preview of the new names on macOS"></picture></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/tv-shows-linux-dark.png"><img src="docs/assets/screenshots/tv-shows-linux-light.png" alt="TV shows: the preview of the new names on Windows and Linux"></picture></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><sub>TV shows: the preview of the new names</sub></td>
+  </tr>
+  <tr>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/movies-mac-dark.png"><img src="docs/assets/screenshots/movies-mac-light.png" alt="Movies: one match per file on macOS"></picture></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/movies-linux-dark.png"><img src="docs/assets/screenshots/movies-linux-light.png" alt="Movies: one match per file on Windows and Linux"></picture></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><sub>Movies: one match per file</sub></td>
+  </tr>
+</table>
+<!-- markdownlint-enable MD013 -->
+
+---
+
 ## ✨ Features
 
 ### 🎬 TV Shows
