@@ -77,11 +77,7 @@ class TVDBApi(BaseAPI):
 
         auth_data = {"apikey": self.api_key}
 
-        if not self.session:
-            self.session = aiohttp.ClientSession()
-
-        session = self.session
-        assert session is not None
+        session = await self._ensure_session()
 
         async with session.post(
             f"{self.base_url}login",
