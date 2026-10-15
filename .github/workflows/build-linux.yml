@@ -1,0 +1,55 @@
+name: Build Linux AppImage
+
+on:
+  # Run by hand from the Actions tab, on any branch or tag.
+  workflow_dispatch:
+  # Build the AppImage of each published release.
+  release:
+    types: [published]
+  # Check that packaging changes still build (without the API keys).
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - scripts/build_sok.py
+      - packaging/linux/**
+      - .github/workflows/build-linux.yml
+
+permissions:
+  contents: read
+
+jobs:
+  appimage:
+    name: AppImage (x86_64)
+    runs-on: ubuntu-latest
+    # glibc 2.34, the oldest PySide6 supports (see build_appimage.sh).
+    container: almalinux:9
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Write the API keys
+        if: github.event_name != 'pull_request'
+        env:
+          SOK_ENV: ${{ secrets.SOK_ENV }}
+        run: |
+          if [ -z "$SOK_ENV" ]; then
+            echo "::error::Add the .env contents as the SOK_ENV repository secret."
+            exit 1
+          fi
+          printf '%s\n' "$SOK_ENV" > .env
+
+      - name: Build
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            bash packaging/linux/build_appimage.sh --allow-missing-keys
+          else
+            bash packaging/linux/build_appimage.sh
+          fi
+
+      - name: Upload the AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOK-Linux-AppImage
+          path: dist/*.AppImage
+          if-no-files-found: error

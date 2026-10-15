@@ -202,6 +202,70 @@ def make_dmg(app: Path, version: str) -> Path:
     return dmg
 
 
+LINUX_APP_ID = MACOS_BUNDLE_ID
+
+
+def make_appdir(dist_dir: Path) -> Path:
+    """Lay the Nuitka build out as an AppDir, the AppImage source tree.
+
+    The program goes to usr/lib/sok, launched by the AppRun link; the
+    desktop entry and icon sit at the root (required by appimagetool) and
+    in usr/share, where AppImage integration tools look for them.
+
+    Args:
+        dist_dir: Nuitka output folder containing main.dist.
+
+    Returns:
+        Path to S.O.K.AppDir.
+    """
+    root = Path(__file__).resolve().parent.parent
+    desktop = root / "packaging" / "linux" / f"{LINUX_APP_ID}.desktop"
+    icon = root / "src" / "sok" / "resources" / "assets" / "logo_linux.png"
+
+    appdir = dist_dir / "S.O.K.AppDir"
+    program = appdir / "usr" / "lib" / "sok"
+    program.parent.mkdir(parents=True)
+    (dist_dir / "main.dist").rename(program)
+
+    applications = appdir / "usr" / "share" / "applications"
+    icons = appdir / "usr" / "share" / "icons" / "hicolor" / "512x512" / "apps"
+    for folder in (applications, icons):
+        folder.mkdir(parents=True)
+    shutil.copy(desktop, applications)
+    shutil.copy(desktop, appdir)
+    shutil.copy(icon, icons / f"{LINUX_APP_ID}.png")
+    shutil.copy(icon, appdir / f"{LINUX_APP_ID}.png")
+    (appdir / ".DirIcon").symlink_to(f"{LINUX_APP_ID}.png")
+    (appdir / "AppRun").symlink_to("usr/lib/sok/SOK")
+    return appdir
+
+
+def make_appimage(appdir: Path, version: str) -> Path:
+    """Package the AppDir into a single-file AppImage.
+
+    appimagetool embeds the static AppImage runtime, which runs without
+    libfuse2 (missing from recent distributions). Set APPIMAGETOOL to its
+    path if it is not on PATH.
+
+    Args:
+        appdir: AppDir made by make_appdir().
+        version: Application version, used in the file name.
+
+    Returns:
+        Path to the created .AppImage file.
+    """
+    tool = os.environ.get("APPIMAGETOOL") or shutil.which("appimagetool")
+    if not tool:
+        sys.exit("!!! appimagetool not found: install it or set APPIMAGETOOL.")
+    arch = platform.machine()
+    appimage = appdir.parent / f"SOK_Linux_v{version}_{arch}.AppImage"
+    print(f">>> Creating {appimage.name}...")
+    env = os.environ.copy()
+    env["ARCH"] = arch
+    subprocess.run([tool, str(appdir), str(appimage)], check=True, env=env)
+    return appimage
+
+
 def build(allow_missing_keys: bool = False):
     """Build S.O.K executable using Nuitka.
 
@@ -287,6 +351,14 @@ def build(allow_missing_keys: bool = False):
             f"--macos-app-icon={ROOT_DIR}/src/sok/resources/assets/logo.icns",
         ]
 
+    if os_name == "linux":
+        nuitka_cmd = [
+            arg
+            for arg in nuitka_cmd
+            if not arg.startswith(("--output-filename=", "--windows-icon-from-ico="))
+        ]
+        nuitka_cmd.insert(-1, "--output-filename=SOK")
+
     current_env = os.environ.copy()
     current_env["PYTHONPATH"] = (
         str(temp_src) + os.pathsep + current_env.get("PYTHONPATH", "")
@@ -302,6 +374,9 @@ def build(allow_missing_keys: bool = False):
     if os_name == "darwin":
         app = finalize_app_bundle(dist_dir)
         make_dmg(app, version)
+
+    if os_name == "linux":
+        make_appimage(make_appdir(dist_dir), version)
 
     print(f"\n>>> [3/3] SUCCESS: Build completed in {dist_dir}")
 
