@@ -91,15 +91,17 @@ class BaseAPI(MediaAPI):
         Returns:
             The aiohttp session for the current event loop.
         """
-        if not self._is_session_valid():
-            if self._session and not self._session.closed:
+        session = self._session
+        if session is None or not self._is_session_valid():
+            if session and not session.closed:
                 try:
-                    await self._session.close()
+                    await session.close()
                 except Exception:
                     pass
-            self._session = aiohttp.ClientSession()
+            session = aiohttp.ClientSession()
+            self._session = session
             self._session_loop = asyncio.get_running_loop()
-        return self._session
+        return session
 
     async def __aenter__(self) -> "BaseAPI":
         """Enter async context manager.
