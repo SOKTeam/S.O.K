@@ -205,8 +205,10 @@ class SearchResultRow(QWidget):
             p.drawRoundedRect(x, py, self._pw, self._ph, 3, 3)
 
         x += self._pw + 8
-        title = self._data.get("title") or self._data.get(
-            "name", tr("unknown", "Inconnu")
+        title = (
+            self._data.get("title")
+            or self._data.get("name")
+            or tr("unknown", "Unknown")
         )
         p.setPen(parse_color(c["text"]))
         p.setFont(QFont(Theme.FONT, 12))
@@ -218,11 +220,11 @@ class SearchResultRow(QWidget):
 
         year = ""
         if self._type == "tv":
-            year = self._data.get("first_air_date", "")[:4]
+            year = (self._data.get("first_air_date") or "")[:4]
         elif self._type == "movie":
-            year = self._data.get("release_date", "")[:4]
+            year = (self._data.get("release_date") or "")[:4]
         elif self._type == "album":
-            year = self._data.get("release_date", "")[:4]
+            year = (self._data.get("release_date") or "")[:4]
 
         if year:
             p.setPen(parse_color(c["secondary"]))
@@ -359,26 +361,27 @@ class SelectedMediaWidget(QWidget):
             return
         if self._type == "tv":
             title, year, type_str = (
-                self._data.get("name", tr("unknown", "Unknown")),
-                self._data.get("first_air_date", "")[:4],
+                self._data.get("name") or tr("unknown", "Unknown"),
+                (self._data.get("first_air_date") or "")[:4],
                 tr("tv_series", "TV Series"),
             )
         elif self._type == "movie":
             title, year, type_str = (
-                self._data.get("title", tr("unknown", "Unknown")),
-                self._data.get("release_date", "")[:4],
+                self._data.get("title") or tr("unknown", "Unknown"),
+                (self._data.get("release_date") or "")[:4],
                 tr("movie", "Movie"),
             )
         elif self._type == "album":
             title, year, type_str = (
-                self._data.get("title", tr("unknown", "Unknown")),
-                self._data.get("release_date", "")[:4],
+                self._data.get("title") or tr("unknown", "Unknown"),
+                (self._data.get("release_date") or "")[:4],
                 tr("album", "Album"),
             )
         else:
             title, year, type_str = (
                 self._data.get("title")
-                or self._data.get("name", tr("unknown", "Unknown")),
+                or self._data.get("name")
+                or tr("unknown", "Unknown"),
                 "",
                 tr("artist", "Artist"),
             )
