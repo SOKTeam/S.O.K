@@ -354,6 +354,8 @@ def build(allow_missing_keys: bool = False):
         "--no-pyi-file",
         "--remove-output",
         "--python-flag=-O",
+        # Nuitka may need to fetch a helper tool; CI runs cannot answer.
+        "--assume-yes-for-downloads",
         str(temp_src / "sok" / "main.py"),
     ]
 
