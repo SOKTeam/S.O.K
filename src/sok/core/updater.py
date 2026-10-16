@@ -15,9 +15,11 @@ download new versions, and manage the update installation process.
 """
 
 import os
+import platform
 import sys
 import aiohttp
 import logging
+from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 from packaging import version
 from sok import __version__ as current_version
@@ -26,6 +28,17 @@ import tempfile
 import subprocess
 
 logger = logging.getLogger(__name__)
+
+
+def running_appimage() -> Optional[Path]:
+    """Return the AppImage file the app runs from (Linux), else None.
+
+    The AppImage runtime sets APPIMAGE to the path of the file.
+    """
+    if not sys.platform.startswith("linux"):
+        return None
+    path = os.environ.get("APPIMAGE")
+    return Path(path) if path else None
 
 
 class UpdateManager:
@@ -82,12 +95,21 @@ class UpdateManager:
         """
         Get the download URL of the installer for this platform.
         Windows: the setup .exe first, then any .exe. macOS: the .dmg.
-        Falls back to the release page.
+        Linux: the AppImage of this architecture, when running from an
+        AppImage (it replaces itself). Falls back to the release page.
         """
         if not self.latest_release:
             return None
 
         assets = self.latest_release.get("assets", [])
+        if sys.platform.startswith("linux"):
+            suffix = f"_{platform.machine()}.appimage"
+            if running_appimage():
+                for asset in assets:
+                    if asset.get("name", "").lower().endswith(suffix):
+                        return asset.get("browser_download_url")
+            return self.latest_release.get("html_url")
+
         if sys.platform == "darwin":
             for asset in assets:
                 if asset.get("name", "").lower().endswith(".dmg"):
@@ -105,10 +127,61 @@ class UpdateManager:
 
         return self.latest_release.get("html_url")
 
+    @staticmethod
+    def _download(url: str, target_path, progress_callback=None):
+        """Download url to target_path, reporting the percentage done."""
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            total_length = int(r.headers.get("content-length", 0))
+            dl = 0
+
+            with open(target_path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:
+                        dl += len(chunk)
+                        f.write(chunk)
+                        if progress_callback and total_length > 0:
+                            percent = int((dl / total_length) * 100)
+                            progress_callback(percent)
+
+    def replace_appimage(self, url: str, progress_callback=None) -> None:
+        """Download the new AppImage over the one the app runs from.
+
+        The file keeps its path, so launchers and shortcuts still work. It
+        is downloaded next to it, then renamed: the swap is atomic, and the
+        running app keeps the old file open until it quits.
+
+        Raises:
+            OSError: The folder is not writable or the download failed.
+        """
+        current = running_appimage()
+        if current is None:
+            raise OSError("S.O.K is not running from an AppImage")
+        partial = current.with_name(current.name + ".part")
+        try:
+            self._download(url, partial, progress_callback)
+            partial.chmod(0o755)
+            os.replace(partial, current)
+        except (requests.RequestException, OSError) as exc:
+            partial.unlink(missing_ok=True)
+            logger.error("Error replacing the AppImage", exc_info=exc)
+            raise OSError(str(exc)) from exc
+
+    @staticmethod
+    def restart_appimage() -> None:
+        """Start the updated AppImage; the caller then quits the app."""
+        current = running_appimage()
+        if current is not None:
+            subprocess.Popen([str(current)], start_new_session=True)
+
     def download_and_install(self, url: str, progress_callback=None):
         """
-        Download the installer and launch it (on macOS, open the disk image).
+        Download the installer and launch it (on macOS, open the disk image;
+        on Linux, replace the AppImage).
         """
+        if running_appimage():
+            self.replace_appimage(url, progress_callback)
+            return
 
         try:
             temp_dir = tempfile.gettempdir()
@@ -117,19 +190,7 @@ class UpdateManager:
             )
             target_path = os.path.join(temp_dir, installer)
 
-            with requests.get(url, stream=True) as r:
-                r.raise_for_status()
-                total_length = int(r.headers.get("content-length", 0))
-                dl = 0
-
-                with open(target_path, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        if chunk:
-                            dl += len(chunk)
-                            f.write(chunk)
-                            if progress_callback and total_length > 0:
-                                percent = int((dl / total_length) * 100)
-                                progress_callback(percent)
+            self._download(url, target_path, progress_callback)
 
             if sys.platform == "darwin":
                 # Mounts the disk image in the Finder, where the user drags

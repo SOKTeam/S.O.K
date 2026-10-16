@@ -1,67 +1,37 @@
-# S.O.K Developer Documentation
+---
+title: S.O.K developer documentation
+description:
+  How S.O.K is built, how to run it from source and how to contribute.
+---
 
-Welcome to the **S.O.K (Storage Organisation Kit)** developer documentation.
-This documentation is auto-generated from Python docstrings and provides
-comprehensive API reference for developers working with the S.O.K codebase.
+S.O.K (Storage Organisation Kit) is a desktop app that identifies media files
+with online databases, then renames and moves them into a library that works
+with Plex, Jellyfin and Kodi. It handles movies, TV shows, music, books and
+games, on Windows, macOS and Linux.
 
-## What is S.O.K?
+This documentation is for people who work on the code. To use the app, see the
+[user guide](https://sokfromsokteam.vercel.app/guide).
 
-S.O.K is a universal media manager designed to organize, rename, and tag your
-media collections including:
+## Where to start
 
-- **Movies & TV Series** - Integration with TMDB, TVDB, IMDB
-- **Music** - Integration with Last.fm, Spotify, Deezer, MusicBrainz
-- **Books** - Integration with Google Books, OpenLibrary
-- **Games** - Integration with IGDB, RAWG
+- **[Set up a development environment](/getting-started/setup/)**: clone the
+  repository, install the dependencies and run the app from source.
+- **[First steps with the code](/getting-started/first-steps/)**: search a
+  database from Python, the way the app does.
+- **[Architecture](/architecture/overview/)**: the layers of the app and how a
+  search reaches an online database.
+- **[Contributing](/contributing/)**: branches, commit messages, checks and pull
+  requests.
+- **API reference** (at the bottom of the sidebar): every module, class and
+  function, generated from the docstrings.
 
-## Quick Links
+## At a glance
 
-<div class="grid cards" markdown>
-
-- :material-rocket-launch: **[Getting Started](getting-started/installation.md)**
-
-    Install S.O.K and get up and running quickly
-
-- :material-sitemap: **[Architecture](architecture/overview.md)**
-
-    Understand the project architecture and design patterns
-
-- :material-api: **[API Reference](api/index.md)**
-
-    Complete API documentation auto-generated from source
-
-- :material-handshake: **[Contributing](contributing.md)**
-
-    Learn how to contribute to the project
-
-</div>
-
-## Project Overview
-
-```
-sok/
-├── core/           # Core interfaces, managers, and utilities
-├── apis/           # External API integrations (TMDB, Spotify, etc.)
-├── media/          # Media item representations
-├── file_operations/ # File system operations
-├── config/         # Configuration management
-└── ui/             # User interface (PySide6)
-```
-
-## Key Features
-
-- **Modular Architecture**: Clean separation between APIs, media types, and operations
-- **Async Support**: Built on `aiohttp` for efficient API calls
-- **Extensible**: Easy to add new media types and API integrations
-- **Type-Safe**: Full type annotations with Python 3.13+
-
-## Requirements
-
-- Python 3.13+
-- PySide6 for the GUI
-- aiohttp for async HTTP requests
-
-## License
-
-S.O.K is licensed under the MIT License. See the
-[LICENSE](https://github.com/SOKTeam/S.O.K/blob/main/LICENSE) file for details.
+|              |                                                             |
+| ------------ | ----------------------------------------------------------- |
+| Language     | Python 3.13                                                 |
+| Interface    | PySide6 (Qt 6), built in code, no `.ui` files at run time   |
+| Network      | `aiohttp`, one event loop per background worker             |
+| Packaging    | Nuitka: Windows installer, macOS disk image, Linux AppImage |
+| Dependencies | `uv` and `pyproject.toml`                                   |
+| License      | [MIT](https://github.com/SOKTeam/S.O.K/blob/main/LICENSE)   |

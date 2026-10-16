@@ -24,6 +24,9 @@ from PySide6.QtGui import QIcon
 from sok.ui.main_window import MainWindow
 from sok.__version__ import __version__
 from sok.core.security import check_security
+from sok.config.config_manager import xdg_dir
+from sok.core.desktop_entry import install_desktop_entry
+from sok.ui.theme import APP_ICON, load_bundled_fonts
 
 # Add src to path if running from source to find sok package
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -52,6 +55,9 @@ def configure_logging():
     if IS_COMPILED and sys.platform == "darwin":
         # The .app bundle is read-only; macOS apps log to ~/Library/Logs.
         log_dir = Path.home() / "Library" / "Logs" / "S.O.K"
+    elif IS_COMPILED and sys.platform.startswith("linux"):
+        # The AppImage is read-only; logs are XDG state data.
+        log_dir = xdg_dir("XDG_STATE_HOME", ".local/state") / "logs"
     else:
         log_dir = get_app_data_dir() / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -84,8 +90,16 @@ def main():
     app.setApplicationVersion(__version__)
     app.setOrganizationName("S.O.K")
 
-    icon_name = "logo.icns" if sys.platform == "darwin" else "logo.ico"
-    icon_path = Path(__file__).parent / "resources" / "assets" / icon_name
+    if sys.platform.startswith("linux"):
+        # Wayland matches the window to its .desktop file (dock icon, name)
+        # by this id: packaging/linux/com.sokteam.sok.desktop.
+        app.setDesktopFileName("com.sokteam.sok")
+        install_desktop_entry()
+        load_bundled_fonts()
+        icon_path = APP_ICON
+    else:
+        icon_name = "logo.icns" if sys.platform == "darwin" else "logo.ico"
+        icon_path = Path(__file__).parent / "resources" / "assets" / icon_name
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
 

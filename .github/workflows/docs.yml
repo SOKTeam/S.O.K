@@ -1,0 +1,24 @@
+name: Developer docs
+
+on:
+  # main only moves at a release: the published docs match the released app.
+  push:
+    branches: [main]
+  # Run by hand from the Actions tab (or gh workflow run). By default the
+  # github-pages environment only accepts deployments from main.
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  docs:
+    # Builds docs.yml + docs/ and the API reference of src/sok with Kiln, then
+    # deploys to GitHub Pages (Settings → Pages → Source = GitHub Actions).
+    uses: Laidwin/kiln/.github/workflows/pages.yml@v1
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    with:
+      python-package: sok
+      python-path: src

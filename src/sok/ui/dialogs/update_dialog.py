@@ -15,6 +15,7 @@ installation process when a new version is available.
 """
 
 from PySide6.QtWidgets import (
+    QApplication,
     QDialog,
     QVBoxLayout,
     QLabel,
@@ -24,7 +25,7 @@ from PySide6.QtWidgets import (
     QProgressBar,
 )
 from PySide6.QtCore import Qt, Signal, QObject
-from sok.core.updater import UpdateManager
+from sok.core.updater import UpdateManager, running_appimage
 from sok.ui.theme import Theme
 from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.i18n import tr
@@ -215,7 +216,7 @@ class UpdateDialog(QDialog):
             )
             return
 
-        if not url.endswith(".exe"):
+        if not url.lower().endswith((".exe", ".appimage")):
             webbrowser.open(url)
             self.accept()
             return
@@ -234,9 +235,15 @@ class UpdateDialog(QDialog):
         )
 
     def _on_download_finished(self):
-        """Handle successful download completion."""
+        """Handle successful download completion.
+
+        On Linux the AppImage was replaced: start the new one and quit.
+        """
         self.progress_bar.setValue(100)
         self.accept()
+        if running_appimage():
+            UpdateManager.restart_appimage()
+            QApplication.quit()
 
     def on_error(self, msg):
         """Handle download error.

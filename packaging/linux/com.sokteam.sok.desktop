@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=S.O.K
+GenericName=Media Organizer
+GenericName[fr]=Organiseur de médias
+Comment=Storage Organisation Kit - organize movies, series, music, books and games
+Comment[fr]=Storage Organisation Kit - organise films, séries, musique, livres et jeux
+Exec=SOK
+Icon=com.sokteam.sok
+Terminal=false
+Categories=Utility;FileTools;
+Keywords=media;organize;movies;series;music;books;games;rename;

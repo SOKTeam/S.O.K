@@ -92,8 +92,7 @@ class LastFMApi(BaseAPI):
         Raises:
             APIError: If the request fails.
         """
-        if not self.session:
-            self.session = aiohttp.ClientSession()
+        session = await self._ensure_session()
 
         if params is None:
             params = {}
@@ -103,9 +102,6 @@ class LastFMApi(BaseAPI):
 
         if endpoint:
             params["method"] = endpoint
-
-        session = self.session
-        assert session is not None
 
         try:
             async with session.get(self.BASE_URL, params=params) as response:

@@ -59,6 +59,33 @@ def mac_volumes() -> dict[str, str]:
     return volumes
 
 
+# Where Linux mounts other disks: udisks (removable and internal drives
+# opened from the file manager) and manual mounts.
+LINUX_MOUNT_DIRS = ("/media/", "/run/media/", "/mnt/")
+
+
+def linux_volumes() -> dict[str, str]:
+    """Return the Linux system disk, a separate /home and mounted disks.
+
+    Pseudo file systems (/proc, /run, snaps, the AppImage mount...) live
+    outside these folders, so they are left out.
+
+    Returns:
+        Volume names (the file system label, else the folder name) by root
+        path.
+    """
+    volumes = {}
+    for volume in QStorageInfo.mountedVolumes():
+        root = volume.rootPath()
+        if not (volume.isValid() and volume.isReady()):
+            continue
+        if root == "/":
+            volumes[root] = volume.name() or tr("system_drive", "System")
+        elif root == "/home" or root.startswith(LINUX_MOUNT_DIRS):
+            volumes[root] = volume.name() or Path(root).name
+    return volumes
+
+
 class StatsWorker(QObject):
     """Background worker for drive statistics collection.
 
@@ -97,11 +124,14 @@ class StatsWorker(QObject):
             drives = []
 
             available_drives = []
-            # Volume names shown on macOS, by root path.
+            # Volume names shown on macOS and Linux, by root path.
             volume_names: dict[str, str] = {}
             try:
                 if sys.platform == "darwin":
                     volume_names = mac_volumes()
+                    available_drives.extend(volume_names)
+                elif sys.platform.startswith("linux"):
+                    volume_names = linux_volumes()
                     available_drives.extend(volume_names)
                 elif sys.platform == "win32":
                     bitmask = ctypes.windll.kernel32.GetLogicalDrives()
@@ -412,9 +442,9 @@ class HomePage(QScrollArea):
         )
 
         self.lbl_welcome_subtitle = QLabel()
-        self.lbl_welcome_subtitle.setStyleSheet(
-            "font-size: 14px; opacity: 0.8; color: #8A8A8E;"
-        )
+        # Colored by the window stylesheet, so it follows the theme.
+        self.lbl_welcome_subtitle.setObjectName("PageSubtitle")
+        self.lbl_welcome_subtitle.setStyleSheet("font-size: 14px;")
         self.lbl_welcome_subtitle.setWordWrap(True)
 
         text_layout.addWidget(self.lbl_welcome_title)

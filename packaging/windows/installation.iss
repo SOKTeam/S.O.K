@@ -7,8 +7,10 @@
 ; Chemin vers le dossier généré par Nuitka (main.dist)
 #define MyNuitkaBuildPath "..\..\dist\main.dist"
 
-; Version lue dans l'exe (générée par build_sok.py depuis pyproject.toml)
-#define MyAppVersion GetStringFileInfo(AddBackslash(SourcePath) + MyNuitkaBuildPath + "\" + MyAppExeName, "ProductVersion")
+; Version lue dans l'exe (générée par build_sok.py depuis pyproject.toml).
+; Nuitka l'écrit sur 4 nombres (1.2.0.0) : on retire le dernier (1.2.0).
+#define MyExeVersion GetStringFileInfo(AddBackslash(SourcePath) + MyNuitkaBuildPath + "\" + MyAppExeName, "ProductVersion")
+#define MyAppVersion Copy(MyExeVersion, 1, RPos(".", MyExeVersion) - 1)
 
 [Setup]
 AppId={{0AE69055-4736-406C-93BB-0086D3F0E38A}

@@ -2,19 +2,20 @@
 
 # S.O.K - Storage Organisation Kit
 
-![S.O.K Logo](src/sok/resources/assets/logo.png)
+<img src="src/sok/resources/assets/logo.png" alt="S.O.K logo" width="120">
 
 **The ultimate assistant to tame your media library.**
 
-![CI](https://img.shields.io/github/actions/workflow/status/SOKTeam/S.O.K/ci.yml?branch=main&label=CI&logo=github)
-![Release](https://img.shields.io/github/actions/workflow/status/SOKTeam/S.O.K/release.yml?branch=main&label=Release&logo=github)
-![Version](https://img.shields.io/github/v/release/SOKTeam/S.O.K)
+[![CI](https://img.shields.io/github/actions/workflow/status/SOKTeam/S.O.K/ci.yml?branch=main&label=CI&logo=github)](https://github.com/SOKTeam/S.O.K/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/SOKTeam/S.O.K)](https://github.com/SOKTeam/S.O.K/releases/latest)
 ![Python](https://img.shields.io/badge/python-3.13+-blue?logo=python)
-![Code Coverage](https://img.shields.io/codecov/c/github/SOKTeam/S.O.K?logo=codecov)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)
 
-[Features](#-features) • [Installation](#-quick-installation) • [Contribute](#-contribution)
+[Features](#-features) • [Download](#-download) •
+[User guide](https://sokfromsokteam.vercel.app/guide) •
+[Contribute](#-contribution)
+
 </div>
 
 ---
@@ -22,145 +23,197 @@
 ## 👋 Why S.O.K?
 
 Are you tired of folders named `New_Folder(2)`, files like
-`DSC_0012.mp4`, or music albums without cover art?
+`breaking.bad.s01e01.720p.mkv`, or albums scattered across a dozen folders?
 
 **S.O.K** (Storage Organisation Kit) was born from a simple need: to end
-digital chaos. It's a powerful universal manager designed to identify,
-rename, and automatically organize your collections, whether they are movies,
-TV series, music, books, or video games.
-It doesn't just move files; it understands what they are thanks to
-a multitude of specialized APIs.
+digital chaos. It identifies your movies, TV shows, music, books and video
+games with specialized online databases, then renames and moves them into a
+clean library that Plex, Jellyfin and Kodi understand.
+
+It doesn't just move files: it understands what they are, and shows you a
+preview of every new name before anything moves.
+
+---
+
+## 📸 Screenshots
+
+<!-- markdownlint-disable MD013 -->
+<table>
+  <tr>
+    <th width="50%">macOS</th>
+    <th width="50%">Windows &amp; Linux</th>
+  </tr>
+  <tr>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/home-mac-dark.png"><img src="docs/assets/screenshots/home-mac-light.png" alt="Home page on macOS"></picture></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/home-linux-dark.png"><img src="docs/assets/screenshots/home-linux-light.png" alt="Home page on Windows and Linux"></picture></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><sub>Home page</sub></td>
+  </tr>
+  <tr>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/tv-shows-mac-dark.png"><img src="docs/assets/screenshots/tv-shows-mac-light.png" alt="TV shows: the preview of the new names on macOS"></picture></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/tv-shows-linux-dark.png"><img src="docs/assets/screenshots/tv-shows-linux-light.png" alt="TV shows: the preview of the new names on Windows and Linux"></picture></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><sub>TV shows: the preview of the new names</sub></td>
+  </tr>
+  <tr>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/movies-mac-dark.png"><img src="docs/assets/screenshots/movies-mac-light.png" alt="Movies: one match per file on macOS"></picture></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/movies-linux-dark.png"><img src="docs/assets/screenshots/movies-linux-light.png" alt="Movies: one match per file on Windows and Linux"></picture></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><sub>Movies: one match per file</sub></td>
+  </tr>
+</table>
+<!-- markdownlint-enable MD013 -->
 
 ---
 
 ## ✨ Features
 
-### 🎬 Videos (Movies & TV Shows)
+### 🎬 TV Shows
 
-Transform a messy folder into a Kodi/Plex/Jellyfin-compatible library.
+Transform a messy folder of episodes into a media-server-ready series.
 
-- **Precise identification** via TMDB, TVDB, and IMDb.
-- **Smart renaming**: `breaking.bad.s01e01.720p.mkv` ➔
-`Breaking Bad/Season 01/Breaking Bad - S01E01 - Pilot.mkv`.
-- **Technical details**: Automatic detection of quality (4K, 1080p) and
-codecs (x265, HEVC).
+- **Smart detection**: guesses the series from the file names and reads the
+  season and episode numbers (`S01E02`, `1x02`).
+- **Clean structure**: `breaking.bad.s01e01.720p.mkv` ➔
+  `Breaking Bad/Season 1/Breaking Bad S01E01 Pilot.mkv`.
+- **Sources**: TMDB and TVDB.
+
+### 🍿 Movies
+
+Rename a whole folder of movies in one go.
+
+- **One movie per file**: each file gets its own match, and you can correct any
+  of them before renaming.
+- **Your format**: `Dune (2021).mkv` by default, or add the quality with
+  `{quality}` to get `Inception (2010) [1080p].mkv`.
+- **Source**: TMDB.
 
 ### 🎵 Music
 
 Rediscover your audio library.
 
-- **Complete tagging**: Automatic addition of ID3 metadata (Artist, Album, Year).
-- **Multiple sources**: Spotify, Last.fm, Deezer, MusicBrainz.
-- **Organization**: Structure by `Artist/Album/Track - Title`.
+- **Album by album**: tracks are renamed `01 - Title.mp3` and sorted into
+  `Artist/Artist - Album (Year)/`.
+- **All the usual formats**: MP3, FLAC, M4A, OGG, Opus, WAV, AIFF, DSD…
+- **Sources**: Deezer, MusicBrainz, Spotify and Last.fm.
 
 ### 📚 Books & Comics
 
 Your digital library, finally sorted.
 
-- **E-book support**: Management of EPUB and PDF files.
-- **Metadata**: Retrieval of info via Google Books, OpenLibrary, and Goodreads.
-- **Classification**: Sort by Author or by Series.
+- **E-books and comics**: EPUB, MOBI, AZW3, PDF, FB2, CBZ, CBR and more.
+- **Classification**: `Author/Author - Title (Year)/`, with series numbers kept
+  (`Author - [Series 01] - Title`).
+- **Sources**: Google Books and Open Library.
 
 ### 🎮 Video Games
 
 For ROM and ISO collectors.
 
-- **Retrogaming**: Organization by console and platform.
-- **Info**: Data from IGDB, RAWG, and Steam.
+- **Retrogaming ready**: disc images and cartridge ROMs, from NES to PS3.
+- **Details kept**: one folder per game, `Title (Year) [Platform]`, with the
+  region and game code of each file.
+- **Sources**: RAWG and IGDB.
+
+### 🎨 And everywhere
+
+- **Your naming rules**: every format can be changed in the settings.
+- **8 languages**: English, French, German, Spanish, Italian, Portuguese,
+  Russian and Polish, down to the folder names (`Season`, `Saison`,
+  `Staffel`…).
+- **Feels at home**: native window on macOS, its own title bar on Windows and
+  Linux, light and dark themes.
+
+> [!IMPORTANT]
+> S.O.K **moves** your files: they leave the source folder. Check the preview
+> before you confirm, and try it first on a copy of a few files.
 
 ---
 
-## 🚀 Quick Installation
+## 📥 Download
 
-We recommend using [uv](https://github.com/astral-sh/uv) for
-an ultra-fast experience, but `pip` works just as well.
+| System | Package | Requirements |
+| --- | --- | --- |
+| 🪟 Windows | Installer (`.exe`) | Windows 10 or 11, 64-bit |
+| 🍎 macOS | Disk image (`.dmg`) | Apple Silicon (M1 or later) |
+| 🐧 Linux | AppImage (Intel/AMD, ARM) | Ubuntu 22.04, Debian 12, Fedora 35+ |
 
-### Option A: The modern way (recommended)
+Grab the latest version from the
+[download page](https://sokfromsokteam.vercel.app/download) or the
+[GitHub releases](https://github.com/SOKTeam/S.O.K/releases/latest). The ARM
+AppImage needs Ubuntu 24.04, Debian 13, Fedora 40 or newer.
+
+No account or API key is needed for TV shows and movies: S.O.K works out of
+the box, and tells you when a new version is available. New to it? The
+[user guide](https://sokfromsokteam.vercel.app/guide) walks you through your
+first organization.
+
+---
+
+## 🚀 Run from source
+
+We use [uv](https://docs.astral.sh/uv/) for an ultra-fast setup. You need
+Python 3.13.
 
 ```bash
 # 1. Clone the project
-git clone https://github.com/SOKTeam/S.O.K
+git clone https://github.com/SOKTeam/S.O.K.git
 cd S.O.K
 
-# 2. Install and sync (creates venv automatically)
-uv sync
+# 2. Install the dependencies (creates the virtual environment)
+uv sync --extra dev
 
-# 3. Launch the application
+# 3. Add your API keys (Deezer, MusicBrainz and Open Library need none)
+cp .env.example .env
+
+# 4. Launch the application
 uv run sok
 ```
-
-### Option B: The classic way (pip)
-
-```bash
-# 1. Create the virtual environment
-python3.13 -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-
-# 2. Install dependencies
-pip install -e .
-
-# 3. Launch
-python src/sok/main.py
-```
-
-### 🔑 API Configuration
-
-For the magic to happen, S.O.K needs access keys. Create a `.env` file
-at the root:
-
-```bash
-cp .env.example .env
-```
-
-Fill it with your keys (TMDB, Spotify, etc.). *Don't panic, the software
-works in limited mode without all keys.*
 
 ---
 
 ## 💻 For Developers
 
-S.O.K is designed to be modular. You can use its building blocks in your
-own scripts.
+S.O.K is built in layers you can reuse in your own scripts:
 
-**Code architecture:**
-
-- `src/sok/core`: The core reactor (interfaces, security).
-- `src/sok/apis`: Connectors to the outside world (TMDB, Spotify...).
-- `src/sok/file_operations`: Renaming and moving logic.
-
-**Library usage example:**
+- `src/sok/apis`: one connector per database (TMDB, Deezer, IGDB…).
+- `src/sok/core`: the media manager that picks the right API for each search.
+- `src/sok/file_operations`: name parsing, renaming and moving.
+- `src/sok/ui`: the PySide6 interface.
 
 ```python
 import asyncio
-from sok.media.video import Series
+
+from sok.apis.music.deezer_api import DeezerApi
+from sok.core.interfaces import ContentType
+
 
 async def main():
-    # Instantiate a series
-    show = Series("Arcane")
+    async with DeezerApi() as api:
+        response = await api.search("Discovery", ContentType.ALBUM)
+        for album in response["results"][:3]:
+            print(album["title"], "-", album["artist"])
 
-    # Fetch info
-    print("Searching for episodes...")
-    episodes = await show.get_episodes()
 
-    # Start organization
-    await show.rename_files("./downloads/arcane_s2")
-
-if __name__ == "__main__":
-    asyncio.run(main())
+asyncio.run(main())
 ```
+
+The [developer documentation](docs/index.md) covers the architecture, adding a
+database, translations and building the Windows, macOS and Linux packages.
 
 ---
 
 ## 🛠️ Roadmap
 
-We are actively working on version 2.x. Here's what's coming:
-
-- [x] Architecture overhaul (Modular & Async)
-- [x] Full Video support (TMDB/TVDB)
+- [x] Movies, TV shows, music, books and games
 - [x] Modern graphical interface (PySide6)
-- [ ] **Coming soon**: Full Comics support (ComicVine)
-- [ ] **Coming soon**: "Service" mode (Background scanning)
-- [ ] **Idea**: Plugin for automatic subtitle download
+- [x] Windows, macOS and Linux apps
+- [ ] **In progress**: richer book metadata, game library integration
+- [ ] **Idea**: plugin system
+- [ ] **Idea**: web interface
 
 ---
 
@@ -168,12 +221,13 @@ We are actively working on version 2.x. Here's what's coming:
 
 Open Source is at the heart of this project. Have an idea? Found a bug?
 
-1. Take a look at the [Issues](https://github.com/S-O-K-Team/sok/issues).
+1. Take a look at the [Issues](https://github.com/SOKTeam/S.O.K/issues).
 2. Fork the project.
-3. Create your branch (`git checkout -b feature/SuperFeature`).
+3. Create your branch from `develop` (`git checkout -b feat/super-feature`).
 4. Submit your Pull Request!
 
-Check out our [Contribution Guide](CONTRIBUTING.md) for technical details.
+Check out our [Contribution Guide](CONTRIBUTING.md) for the commit
+conventions and the checks to run.
 
 ---
 

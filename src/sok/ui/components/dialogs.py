@@ -31,7 +31,7 @@ from sok.ui.components.inputs import SearchBar
 from sok.ui.workers import SearchWorker
 from sok.ui.i18n import tr
 from sok.ui.controllers.worker_runner import WorkerRunner
-from sok.ui.components.search import ImageLoaderWorker
+from sok.ui.components.search import load_poster
 
 
 class SearchResultCard(QFrame):
@@ -61,7 +61,6 @@ class SearchResultCard(QFrame):
         self._type = content_type
         self._hover = False
         self._poster = None
-        self._runner = WorkerRunner(self)
 
         self._is_music = self._type in ("album", "artist")
         self._pw, self._ph = (64, 64) if self._is_music else (50, 75)
@@ -77,8 +76,7 @@ class SearchResultCard(QFrame):
                 if poster_path.startswith("http")
                 else f"https://image.tmdb.org/t/p/w92{poster_path}"
             )
-            worker = ImageLoaderWorker(url, self._pw, self._ph)
-            self._runner.run(worker, self._on_poster_loaded, lambda _err: None)
+            load_poster(url, self._pw, self._ph, self, self._on_poster_loaded)
 
     def _on_poster_loaded(self, pm):
         """Handle poster image loaded.
@@ -88,15 +86,6 @@ class SearchResultCard(QFrame):
         """
         self._poster = pm
         self.update()
-
-    def closeEvent(self, event):
-        """Handle widget close.
-
-        Args:
-            event: Close event.
-        """
-        self._runner.stop()
-        super().closeEvent(event)
 
     def enterEvent(self, e):
         """Handle mouse enter.
@@ -161,8 +150,10 @@ class SearchResultCard(QFrame):
             p.drawRoundedRect(x, py, self._pw, self._ph, 4, 4)
             x += self._pw + 10
 
-        title = self._data.get("title") or self._data.get(
-            "name", tr("unknown", "Inconnu")
+        title = (
+            self._data.get("title")
+            or self._data.get("name")
+            or tr("unknown", "Unknown")
         )
         p.setPen(parse_color(c["text"]))
         p.setFont(QFont(Theme.FONT, 13, QFont.Weight.Bold))
@@ -172,17 +163,17 @@ class SearchResultCard(QFrame):
 
         info_parts = []
         if self._type == "tv":
-            fa = self._data.get("first_air_date", "")[:4]
+            fa = (self._data.get("first_air_date") or "")[:4]
             if fa:
                 info_parts.append(fa)
             info_parts.append(tr("tv_series", "TV Series"))
         elif self._type == "movie":
-            rd = self._data.get("release_date", "")[:4]
+            rd = (self._data.get("release_date") or "")[:4]
             if rd:
                 info_parts.append(rd)
             info_parts.append(tr("movie", "Movie"))
         elif self._type == "album":
-            rd = self._data.get("release_date", "")[:4]
+            rd = (self._data.get("release_date") or "")[:4]
             if rd:
                 info_parts.append(rd)
             info_parts.append(tr("album", "Album"))

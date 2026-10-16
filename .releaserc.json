@@ -12,7 +12,8 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "python scripts/bump_version.py ${nextRelease.version}"
+        "prepareCmd": "python scripts/bump_version.py ${nextRelease.version}",
+        "successCmd": "echo \"version=${nextRelease.version}\" >> \"$GITHUB_OUTPUT\""
       }
     ],
     [

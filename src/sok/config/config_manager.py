@@ -36,17 +36,43 @@ logger = logging.getLogger(__name__)
 IS_COMPILED = "__compiled__" in globals()
 
 
+def xdg_base(variable: str, fallback: str) -> Path:
+    """Return an XDG base directory (Linux).
+
+    Args:
+        variable: XDG variable, e.g. "XDG_DATA_HOME".
+        fallback: Default relative to the home folder, e.g. ".local/share".
+            Used when the variable is unset or not an absolute path, as the
+            XDG Base Directory specification requires.
+    """
+    value = os.environ.get(variable, "")
+    return Path(value) if os.path.isabs(value) else Path.home() / fallback
+
+
+def xdg_dir(variable: str, fallback: str) -> Path:
+    """Return the S.O.K folder inside an XDG base directory (Linux).
+
+    Args:
+        variable: XDG variable, e.g. "XDG_DATA_HOME".
+        fallback: Default relative to the home folder, e.g. ".local/share".
+    """
+    return xdg_base(variable, fallback) / "S.O.K"
+
+
 def get_base_path() -> Path:
     """Get the base path for the application.
 
     Returns:
         Path to executable directory if compiled (the user Application
-        Support folder on macOS), or project root directory if running
-        from source.
+        Support folder on macOS, the XDG data folder on Linux), or project
+        root directory if running from source.
     """
     if IS_COMPILED and sys.platform == "darwin":
         # The .app bundle is read-only and replaced by updates.
         return Path.home() / "Library" / "Application Support" / "S.O.K"
+    if IS_COMPILED and sys.platform.startswith("linux"):
+        # The AppImage is mounted read-only and replaced by updates.
+        return xdg_dir("XDG_DATA_HOME", ".local/share")
     if IS_COMPILED:
         return Path(sys.executable).parent
     return Path(__file__).resolve().parents[3]

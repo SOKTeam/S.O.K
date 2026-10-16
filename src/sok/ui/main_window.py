@@ -35,10 +35,11 @@ from PySide6.QtCore import (
     QPropertyAnimation,
     QEasingCurve,
 )
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QPalette
 
-from sok.ui.theme import Theme, ASSETS_DIR, palette, tone_stylesheet
+from sok.ui.theme import Theme, APP_ICON, ASSETS_DIR, palette, tone_stylesheet
 from sok.ui.platform import (
+    IS_LINUX,
     IS_MACOS,
     MACOS_TITLEBAR_HEIGHT,
     apply_color_scheme,
@@ -47,9 +48,10 @@ from sok.ui.platform import (
     use_native_title_bar,
 )
 from sok.ui.macos_menu import MacMenuBar
+from sok.ui.components.base import parse_color
 from sok.ui.components.sidebar import SidebarButton, SidebarToggleButton
 from sok.ui.components.window import WindowControlButton
-from sok.ui.controllers.window_chrome import hit_test_resize
+from sok.ui.controllers.window_chrome import ResizeGrips, hit_test_resize
 from sok.ui.pages.home_page import HomePage
 from sok.ui.pages.organize_page import OrganizePage
 from sok.ui.pages.movies_page import MoviesPage
@@ -114,9 +116,8 @@ class MainWindow(QMainWindow):
             self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
             self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
-        icon = ASSETS_DIR / "logo.ico"
-        if icon.exists():
-            self.setWindowIcon(QIcon(str(icon)))
+        if APP_ICON.exists():
+            self.setWindowIcon(QIcon(str(APP_ICON)))
 
     def _setup_services(self):
         """Initialize optional services.
@@ -179,6 +180,8 @@ class MainWindow(QMainWindow):
         self._resize_margin = 5
         self._resize_dir = None
         self._drag_pos = None
+        # Linux has no native hit test for frameless windows (see nativeEvent).
+        self._resize_grips = ResizeGrips(self) if IS_LINUX else None
 
     def _build_sidebar(self) -> QWidget:
         """Build the navigation sidebar.
@@ -419,6 +422,14 @@ class MainWindow(QMainWindow):
         if event.type() == QEvent.Type.WindowStateChange:
             is_max = bool(self.windowState() & Qt.WindowState.WindowMaximized)
             self._style(is_maximized=is_max)
+            grips = getattr(self, "_resize_grips", None)
+            if grips:
+                # Linux: the window manager can also maximize the window
+                # (drag to the top, Super+Up), not only the button.
+                full = self.windowState() & Qt.WindowState.WindowFullScreen
+                grips.set_visible(not (is_max or full))
+                self._max_btn._icon_name = "restore" if is_max else "square"
+                self._max_btn.update()
         elif event.type() == QEvent.Type.ApplicationPaletteChange:
             c = self._palette(self.dark)
             if c["accent"] != self.c["accent"]:
@@ -455,8 +466,16 @@ class MainWindow(QMainWindow):
     def _toggle_maximize(self):
         """Toggle between maximized and normal window states.
 
-        Animates the transition smoothly.
+        Animates the transition smoothly. On Linux the window manager does
+        it: Wayland does not let an app place its own window.
         """
+        if IS_LINUX:
+            if self.isMaximized():
+                self.showNormal()
+            else:
+                self.showMaximized()
+            return
+
         screen = self.screen().availableGeometry()
         start_rect = self.geometry()
 
@@ -502,12 +521,16 @@ class MainWindow(QMainWindow):
             self._anim_geo.start()
 
     def resizeEvent(self, event):
-        """Keep the macOS title across the full window width.
+        """Keep the macOS title across the full window width and the Linux
+        resize grips along the edges.
 
         Args:
             event: Resize event.
         """
         super().resizeEvent(event)
+        grips = getattr(self, "_resize_grips", None)
+        if grips:
+            grips.update_geometry(self.width(), self.height())
         title = getattr(self, "_window_title", None)
         if title:
             title.setGeometry(0, 0, self.width(), MACOS_TITLEBAR_HEIGHT)
@@ -546,8 +569,9 @@ class MainWindow(QMainWindow):
         """
         if event.button() == Qt.MouseButton.LeftButton:
             if event.position().y() < self._header_height():
-                if IS_MACOS:
-                    # Native move: keeps macOS snapping and Spaces behavior.
+                if IS_MACOS or IS_LINUX:
+                    # Native move: keeps the system snapping (macOS Spaces,
+                    # GNOME/KDE tiling); Wayland forbids moving it ourselves.
                     handle = self.windowHandle()
                     if handle:
                         handle.startSystemMove()
@@ -718,6 +742,41 @@ class MainWindow(QMainWindow):
             self._toggle_theme(is_dark_theme(theme))
 
     @staticmethod
+    def _theme_palette(c: dict[str, str]) -> QPalette:
+        """Return an application palette built from the theme colors (Linux).
+
+        Text without a color in the stylesheets uses the palette, which
+        otherwise follows the desktop theme: a light GNOME made it black on
+        the dark theme. Dialogs outside the main window use it too.
+
+        Args:
+            c: Current color palette.
+        """
+        role = QPalette.ColorRole
+        colors = {
+            role.Window: c["bg"],
+            role.WindowText: c["text"],
+            role.Base: c["dropdown_bg"],
+            role.AlternateBase: c["card"],
+            role.Text: c["text"],
+            role.PlaceholderText: c["secondary"],
+            role.Button: c["dropdown_bg"],
+            role.ButtonText: c["text"],
+            role.Highlight: c["accent"],
+            role.HighlightedText: c["accent_text"],
+            role.ToolTipBase: c["dropdown_bg"],
+            role.ToolTipText: c["text"],
+        }
+        pal = QPalette()
+        for color_role, color in colors.items():
+            pal.setColor(color_role, parse_color(color))
+        for color_role in (role.WindowText, role.Text, role.ButtonText):
+            pal.setColor(
+                QPalette.ColorGroup.Disabled, color_role, parse_color(c["tertiary"])
+            )
+        return pal
+
+    @staticmethod
     def _scrollbar_rules(c: dict[str, str]) -> str:
         """Return the stylesheet rules of the custom scroll bars.
 
@@ -873,6 +932,8 @@ class MainWindow(QMainWindow):
         mac_rules = self._mac_rules(c) if IS_MACOS else ""
         # macOS keeps its native overlay scroll bars, shown while scrolling.
         scrollbar_rules = "" if IS_MACOS else self._scrollbar_rules(c)
+        if IS_LINUX:
+            QApplication.setPalette(self._theme_palette(c))
 
         self.setStyleSheet(
             f"""
@@ -957,6 +1018,10 @@ class MainWindow(QMainWindow):
             #EmptyState {{
                 color: {c["secondary"]};
                 font-size: 13px;
+            }}
+
+            #PageSubtitle {{
+                color: {c["secondary"]};
             }}
 
             /* Common Widgets Stylesheet overrides for Card/Input */
