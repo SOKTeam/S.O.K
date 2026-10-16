@@ -72,3 +72,27 @@ jobs:
       tag: v${{ needs.release.outputs.version }}
     secrets:
       SOK_ENV: ${{ secrets.SOK_ENV }}
+
+  windows:
+    name: Windows installer
+    needs: release
+    if: needs.release.outputs.version != ''
+    permissions:
+      contents: write
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      tag: v${{ needs.release.outputs.version }}
+    secrets:
+      SOK_ENV: ${{ secrets.SOK_ENV }}
+
+  macos:
+    name: macOS disk image
+    needs: release
+    if: needs.release.outputs.version != ''
+    permissions:
+      contents: write
+    uses: ./.github/workflows/build-macos.yml
+    with:
+      tag: v${{ needs.release.outputs.version }}
+    secrets:
+      SOK_ENV: ${{ secrets.SOK_ENV }}
