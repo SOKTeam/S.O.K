@@ -177,7 +177,8 @@ class UpdateManager:
     def download_and_install(self, url: str, progress_callback=None):
         """
         Download the installer and launch it (on macOS, open the disk image;
-        on Linux, replace the AppImage).
+        on Linux, replace the AppImage). The caller then quits the app: this
+        runs in a worker thread, where sys.exit() would only end the thread.
         """
         if running_appimage():
             self.replace_appimage(url, progress_callback)
@@ -198,7 +199,6 @@ class UpdateManager:
                 subprocess.Popen(["open", target_path])
             else:
                 subprocess.Popen([target_path])
-            sys.exit(0)
 
         except (requests.RequestException, OSError, ValueError) as exc:
             logger.error("Error downloading update", exc_info=exc)

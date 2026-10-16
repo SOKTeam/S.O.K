@@ -237,13 +237,14 @@ class UpdateDialog(QDialog):
     def _on_download_finished(self):
         """Handle successful download completion.
 
-        On Linux the AppImage was replaced: start the new one and quit.
+        The installer is running (on Linux the AppImage was replaced: start
+        the new one), so quit to let it replace the app.
         """
         self.progress_bar.setValue(100)
         self.accept()
         if running_appimage():
             UpdateManager.restart_appimage()
-            QApplication.quit()
+        QApplication.quit()
 
     def on_error(self, msg):
         """Handle download error.
