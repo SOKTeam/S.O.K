@@ -1,3 +1,48 @@
+## [1.3.1](https://github.com/SOKTeam/S.O.K/compare/v1.3.0...v1.3.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* **core:** quit the app once the update installer is launched ([49e62d3](https://github.com/SOKTeam/S.O.K/commit/49e62d360e259945a58d59b3690f93c6850f5af8))
+* **ui:** cancel the previous search instead of waiting for it ([6e90cdf](https://github.com/SOKTeam/S.O.K/commit/6e90cdf5b607091dacebe64f8ee58e81025159c5))
+* **ui:** show the update dialog with the theme colors ([c551bf0](https://github.com/SOKTeam/S.O.K/commit/c551bf08ae1203390b2145a9d878157ce2dba43b))
+
+# [1.3.0](https://github.com/SOKTeam/S.O.K/compare/v1.2.0...v1.3.0) (2026-10-16)
+
+
+### Bug Fixes
+
+* **apis:** give the type checker a non-optional session ([031323c](https://github.com/SOKTeam/S.O.K/commit/031323c0ded735ceb39f401a1a9300ef47822db4))
+* **apis:** open a new HTTP session for each search worker ([c8aef12](https://github.com/SOKTeam/S.O.K/commit/c8aef12e479899f45273afb5e070a5ef5086c849))
+* **deps:** declare python-dotenv as a runtime dependency ([7afcd92](https://github.com/SOKTeam/S.O.K/commit/7afcd92379a3dc09ed4170dad971b1d3260cbd3d))
+* **linux:** give unstyled text the theme colors ([2d1bc59](https://github.com/SOKTeam/S.O.K/commit/2d1bc5943c5c56728d398c28b12620a0acbcec38))
+* **linux:** ship the X11 helper libraries and unpack appimagetool ([c68e83e](https://github.com/SOKTeam/S.O.K/commit/c68e83e103489b8530c64d6d08cf35dfa37a77c9))
+* **organize:** list the files of a source folder in order ([64d4382](https://github.com/SOKTeam/S.O.K/commit/64d438227a80a40aadd4018f5f907d4092924d94))
+* **ui:** color the home subtitle with the theme ([7ecbc4b](https://github.com/SOKTeam/S.O.K/commit/7ecbc4b857d1862cfe3524149340f6be0c3490fc)), closes [#8A8A8E](https://github.com/SOKTeam/S.O.K/issues/8A8A8E)
+* **ui:** draw search results whose date or title is null ([9b68a7a](https://github.com/SOKTeam/S.O.K/commit/9b68a7a100b9f37df3be55221f8ae0ed08392935))
+* **ui:** run worker callbacks in the GUI thread ([a9a438e](https://github.com/SOKTeam/S.O.K/commit/a9a438e8d7b66d2e8af64ab1087fa40111a2ad2b))
+* **ui:** stop the app from aborting while search results reload ([f564870](https://github.com/SOKTeam/S.O.K/commit/f5648708766371513962bb76593aa978f8932f91))
+* **video:** name episodes in the language chosen in settings ([aa08275](https://github.com/SOKTeam/S.O.K/commit/aa08275a61d0a514fc4207f2ceb521857887cfab))
+* **windows:** name the installer with a three-part version ([31a874d](https://github.com/SOKTeam/S.O.K/commit/31a874dd77758679e604d86cbc021f02c77ff683))
+
+
+### Features
+
+* **linux:** add S.O.K to the applications menu ([902dccd](https://github.com/SOKTeam/S.O.K/commit/902dccdba786a0acc91a9b895aa1d2bb6cef4648))
+* **linux:** attach the AppImages to each release ([3034799](https://github.com/SOKTeam/S.O.K/commit/3034799ec01e2fe93e1ea0169f4d8fc7c0641920))
+* **linux:** build an AppImage on GitHub Actions ([5a3b67d](https://github.com/SOKTeam/S.O.K/commit/5a3b67dc5a1ab1c405e3334d0237719259d18710))
+* **linux:** build an arm64 AppImage too ([e404251](https://github.com/SOKTeam/S.O.K/commit/e404251e28c290692300c55da1ba18dac59fa55a))
+* **linux:** bundle Inter, add the app icon and desktop entry ([ecb70d0](https://github.com/SOKTeam/S.O.K/commit/ecb70d078f07f3e96fdb1823112a8477ecd64e07))
+* **linux:** list the mounted disks on the home page ([5b04f42](https://github.com/SOKTeam/S.O.K/commit/5b04f4273a4613956e9617498d1a1f61ad68dc35))
+* **linux:** move and resize the frameless window through the system ([6496d5c](https://github.com/SOKTeam/S.O.K/commit/6496d5cbd906ae28dbafb3e48d728347377f10ea))
+* **linux:** store user data and logs in XDG folders ([cff5c25](https://github.com/SOKTeam/S.O.K/commit/cff5c256cbc8c8c2d4ebf83d26b26e27206cb230))
+* **linux:** update the AppImage in place ([7e87296](https://github.com/SOKTeam/S.O.K/commit/7e87296a93969f1353a128a934bb97821e9a4927))
+
+
+### Performance Improvements
+
+* **ui:** download each search poster only once ([10431eb](https://github.com/SOKTeam/S.O.K/commit/10431ebd6d80c8912d3ea0d7dfd6a729f8d82532))
+
 # [1.2.0](https://github.com/SOKTeam/S.O.K/compare/v1.1.0...v1.2.0) (2026-09-26)
 
 
