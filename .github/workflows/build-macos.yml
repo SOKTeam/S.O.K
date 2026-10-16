@@ -1,0 +1,89 @@
+name: Build macOS disk image
+
+on:
+  # Run by hand from the Actions tab (or gh workflow run), on any branch or tag.
+  workflow_dispatch:
+  # Called by release.yml once semantic-release has published a version: a
+  # release created with GITHUB_TOKEN triggers no "release" event.
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag to build and attach the disk image to.
+        type: string
+        required: true
+    secrets:
+      SOK_ENV:
+        required: true
+  # Check that packaging changes still build (without the API keys).
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - scripts/build_sok.py
+      - packaging/macos/**
+      - .github/workflows/build-macos.yml
+
+permissions:
+  contents: read
+
+jobs:
+  dmg:
+    name: Disk image (Apple Silicon)
+    # build_sok.py builds an arm64 app bundle, ad-hoc signed.
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install the build dependencies
+        run: uv sync --frozen --extra build
+
+      - name: Write the API keys
+        if: github.event_name != 'pull_request'
+        env:
+          SOK_ENV: ${{ secrets.SOK_ENV }}
+        run: |
+          if [ -z "$SOK_ENV" ]; then
+            echo "::error::Add the .env contents as the SOK_ENV repository secret."
+            exit 1
+          fi
+          printf '%s\n' "$SOK_ENV" > .env
+
+      - name: Build
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            uv run --frozen --no-sync python scripts/build_sok.py --allow-missing-keys
+          else
+            uv run --frozen --no-sync python scripts/build_sok.py
+          fi
+
+      - name: Upload the disk image
+        uses: actions/upload-artifact@v4
+        with:
+          name: SOK-macOS-DMG
+          path: dist/SOK_macOS_v*.dmg
+          if-no-files-found: error
+
+  attach:
+    name: Attach to the release
+    needs: dmg
+    if: inputs.tag != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download the disk image
+        uses: actions/download-artifact@v4
+        with:
+          name: SOK-macOS-DMG
+
+      - name: Attach it to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ inputs.tag }}" ./SOK_macOS_v*.dmg --clobber --repo "${{ github.repository }}"
