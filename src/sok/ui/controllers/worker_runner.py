@@ -11,12 +11,35 @@
 """Utility to run PySide6 workers in a QThread safely."""
 
 import logging
-from PySide6.QtCore import QThread
+from PySide6.QtCore import QObject, QThread
 from PySide6.QtWidgets import QWidget
 from sok.ui.i18n import tr
 from sok.ui import message_box
 
 logger = logging.getLogger(__name__)
+
+
+class _GuiCallback(QObject):
+    """Run a callback in the thread that created it (the GUI thread).
+
+    A signal connected to a plain function or lambda calls it in the
+    thread that emits, i.e. the worker thread, where widgets must not be
+    touched. Connected to this object's method instead, the call is queued
+    to the GUI thread.
+    """
+
+    def __init__(self, callback):
+        """Wrap a callback.
+
+        Args:
+            callback: Function to call with the signal arguments.
+        """
+        super().__init__()
+        self._callback = callback
+
+    def call(self, *args):
+        """Call the wrapped callback with the signal arguments."""
+        self._callback(*args)
 
 
 class WorkerRunner:
@@ -35,6 +58,8 @@ class WorkerRunner:
         self._thread: QThread | None = None
         self._current_worker = None
         self._parent = parent
+        # Keeps the GUI-thread callbacks of each running thread alive.
+        self._callbacks: dict[QThread, list[_GuiCallback]] = {}
 
     def stop(self):
         """Stop the current worker and thread."""
@@ -71,10 +96,18 @@ class WorkerRunner:
         self._thread = QThread(self._parent)
         worker.moveToThread(self._thread)
 
+        callbacks = self._callbacks.setdefault(self._thread, [])
+
+        def in_gui(callback):
+            """Return a slot that runs callback in the GUI thread."""
+            relay = _GuiCallback(callback)
+            callbacks.append(relay)
+            return relay.call
+
         if hasattr(self._thread, "started") and hasattr(worker, "run"):
             self._thread.started.connect(worker.run)
         if hasattr(worker, "finished"):
-            worker.finished.connect(on_finished)
+            worker.finished.connect(in_gui(on_finished))
             worker.finished.connect(self._thread.quit)
         if hasattr(worker, "error"):
 
@@ -92,10 +125,10 @@ class WorkerRunner:
                 else:
                     self._show_error(err)
 
-            worker.error.connect(_handle_error)
+            worker.error.connect(in_gui(_handle_error))
             worker.error.connect(self._thread.quit)
         if on_progress and hasattr(worker, "progress"):
-            worker.progress.connect(on_progress)
+            worker.progress.connect(in_gui(on_progress))
 
         thread_ref = self._thread
         worker_ref = worker
@@ -106,6 +139,7 @@ class WorkerRunner:
                 self._thread = None
             if self._current_worker is worker_ref:
                 self._current_worker = None
+            self._callbacks.pop(thread_ref, None)
 
         self._thread.finished.connect(worker.deleteLater)
         self._thread.finished.connect(self._thread.deleteLater)
