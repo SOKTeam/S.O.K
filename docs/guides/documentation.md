@@ -65,6 +65,17 @@ closed by `:::`. Kiln's own documentation lists the other components.
 Write for someone who knows Python but not S.O.K. Check every command and code
 example against the code before publishing it.
 
+## Publishing
+
+`.github/workflows/docs.yml` publishes the site to GitHub Pages each time `main`
+moves, that is at each release: the online documentation always matches the
+released app. It calls Kiln's reusable workflow, which writes `api.json` with
+griffe, builds the site and deploys it. It can also be run by hand from the
+Actions tab.
+
+The workflow builds what git tracks, so a file left untracked in `docs/` never
+reaches the published site.
+
 ## Docstrings
 
 The API reference reads Google-style docstrings:
