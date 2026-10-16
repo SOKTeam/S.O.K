@@ -1,3 +1,12 @@
+## [1.3.1](https://github.com/SOKTeam/S.O.K/compare/v1.3.0...v1.3.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* **core:** quit the app once the update installer is launched ([49e62d3](https://github.com/SOKTeam/S.O.K/commit/49e62d360e259945a58d59b3690f93c6850f5af8))
+* **ui:** cancel the previous search instead of waiting for it ([6e90cdf](https://github.com/SOKTeam/S.O.K/commit/6e90cdf5b607091dacebe64f8ee58e81025159c5))
+* **ui:** show the update dialog with the theme colors ([c551bf0](https://github.com/SOKTeam/S.O.K/commit/c551bf08ae1203390b2145a9d878157ce2dba43b))
+
 # [1.3.0](https://github.com/SOKTeam/S.O.K/compare/v1.2.0...v1.3.0) (2026-10-16)
 
 
