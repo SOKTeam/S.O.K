@@ -324,7 +324,7 @@ class SearchResultsDialog(QDialog):
         self._clear_results()
 
         worker = SearchWorker(query, self._type)
-        self._runner.run(worker, self._on_results, self._on_error)
+        self._runner.run(worker, self._on_results, self._on_error, cancel_previous=True)
 
     def _clear_results(self):
         """Clear all result cards from the layout."""

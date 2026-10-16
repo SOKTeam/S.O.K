@@ -12,6 +12,7 @@
 Search Worker for multi-API media lookup.
 """
 
+import asyncio
 from typing import List, Any
 import logging
 from PySide6.QtCore import Signal
@@ -69,16 +70,42 @@ class SearchWorker(BaseWorker):
         self._query = query
         self._type_str = content_type
         self._manager = get_media_manager()
+        self._cancelled = False
+
+    def cancel(self):
+        """Abort the search: it ends at once and emits nothing.
+
+        Called from the GUI thread when a newer search replaces this one, so
+        the UI does not wait for a request whose results are not wanted.
+        """
+        self._cancelled = True
+        loop = self._loop
+        try:
+            if loop and not loop.is_closed():
+                loop.call_soon_threadsafe(self._cancel_tasks)
+        except RuntimeError:
+            pass  # The loop closed meanwhile: the search is over.
+
+    def _cancel_tasks(self):
+        """Cancel the running search (runs in the worker loop)."""
+        for task in asyncio.all_tasks(self._loop):
+            task.cancel()
 
     def execute(self):
         """Execute the search operation.
 
         Runs async search and emits results via finished signal.
         """
-        if not self._loop:
+        if not self._loop or self._cancelled:
             return
-        results = self._loop.run_until_complete(self._search())
-        self.finished.emit(results)
+        try:
+            results = self._loop.run_until_complete(self._search())
+        except asyncio.CancelledError:
+            if self._cancelled:
+                return
+            raise
+        if not self._cancelled:
+            self.finished.emit(results)
 
     async def _search(self) -> List[Any]:
         """Perform async media search.

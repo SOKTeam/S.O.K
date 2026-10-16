@@ -61,10 +61,17 @@ class WorkerRunner:
         # Keeps the GUI-thread callbacks of each running thread alive.
         self._callbacks: dict[QThread, list[_GuiCallback]] = {}
 
-    def stop(self):
-        """Stop the current worker and thread."""
+    def stop(self, cancel=False):
+        """Stop the current worker and thread.
+
+        Args:
+            cancel: Also abort the worker if it supports it (cancel()), so
+                the wait is short; it then emits nothing.
+        """
         try:
             if self._thread and self._thread.isRunning():
+                if cancel and hasattr(self._current_worker, "cancel"):
+                    self._current_worker.cancel()
                 if self._current_worker and hasattr(self._current_worker, "stop"):
                     try:
                         self._current_worker.stop()
@@ -77,7 +84,9 @@ class WorkerRunner:
         self._thread = None
         self._current_worker = None
 
-    def run(self, worker, on_finished, on_error, on_progress=None):
+    def run(
+        self, worker, on_finished, on_error, on_progress=None, cancel_previous=False
+    ):
         """Run a worker in a background thread.
 
         Args:
@@ -86,11 +95,13 @@ class WorkerRunner:
             on_error: Callback for error signal. If None, a generic error
                 dialog is shown instead.
             on_progress: Optional callback for progress signal.
+            cancel_previous: Abort the previous task instead of waiting for
+                it to end (a search replaced by a newer one).
 
         Returns:
             The worker object.
         """
-        self.stop()
+        self.stop(cancel=cancel_previous)
 
         self._current_worker = worker
         self._thread = QThread(self._parent)
