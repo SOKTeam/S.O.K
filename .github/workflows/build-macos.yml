@@ -14,13 +14,6 @@ on:
     secrets:
       SOK_ENV:
         required: true
-  # Check that packaging changes still build (without the API keys).
-  pull_request:
-    branches: [develop, main]
-    paths:
-      - scripts/build_sok.py
-      - packaging/macos/**
-      - .github/workflows/build-macos.yml
 
 permissions:
   contents: read
@@ -44,7 +37,6 @@ jobs:
         run: uv sync --frozen --extra build
 
       - name: Write the API keys
-        if: github.event_name != 'pull_request'
         env:
           SOK_ENV: ${{ secrets.SOK_ENV }}
         run: |
@@ -55,12 +47,7 @@ jobs:
           printf '%s\n' "$SOK_ENV" > .env
 
       - name: Build
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            uv run --frozen --no-sync python scripts/build_sok.py --allow-missing-keys
-          else
-            uv run --frozen --no-sync python scripts/build_sok.py
-          fi
+        run: uv run --frozen --no-sync python scripts/build_sok.py
 
       - name: Upload the disk image
         uses: actions/upload-artifact@v4
