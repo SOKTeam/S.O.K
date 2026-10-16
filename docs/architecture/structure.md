@@ -72,4 +72,7 @@ S.O.K/
 | `ci.yml`                   | Pushes and pull requests to `develop` and `main`: lint, format, translations, type checks, tests on Linux and macOS |
 | `conventional-commits.yml` | Pull requests: checks the commit messages                                                                           |
 | `release.yml`              | Pushes to `main`: semantic-release creates the version and the GitHub release                                       |
-| `build-linux.yml`          | After a release, and on pull requests that change the packaging: builds the AppImages                               |
+| `build-linux.yml`          | After a release, or by hand from the Actions tab: builds the AppImages and attaches them to the release             |
+| `build-windows.yml`        | After a release, or by hand: builds the Windows installer and attaches it to the release                            |
+| `build-macos.yml`          | After a release, or by hand: builds the macOS disk image and attaches it to the release                             |
+| `docs.yml`                 | Pushes to `main`, or by hand: publishes this documentation to GitHub Pages                                          |
