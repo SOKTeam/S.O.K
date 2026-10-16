@@ -26,11 +26,16 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, Signal, QObject
 from sok.core.updater import UpdateManager, running_appimage
+from sok.ui.components.base import ActionButton
+from sok.ui.platform import IS_MACOS
 from sok.ui.theme import Theme
 from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.i18n import tr
 from sok.ui import message_box
 import webbrowser
+
+# Same height as ActionButton.
+BUTTON_HEIGHT = 28 if IS_MACOS else 32
 
 
 class DownloadWorker(QObject):
@@ -127,77 +132,118 @@ class UpdateDialog(QDialog):
         self.setWindowFlags(
             self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint
         )
+        # The colors of the main window theme (light, dark or orange).
+        window = parent.window() if parent else None
+        c = getattr(window, "c", None) or Theme.DARK
 
-        # Layout principal
         layout = QVBoxLayout(self)
         layout.setSpacing(15)
         layout.setContentsMargins(20, 20, 20, 20)
 
-        # Header
         header = QLabel(
             tr(
                 "update_available_header", "A new version (v{version}) is available!"
             ).format(version=new_version)
         )
-        header.setStyleSheet(
-            f"font-size: 16px; font-weight: bold; color: {Theme.LIGHT['accent']};"
-        )
+        header.setObjectName("UpdateHeader")
         layout.addWidget(header)
 
         self.changelog = QTextBrowser()
+        self.changelog.setOpenExternalLinks(True)
         release_notes = (
             self.update_manager.get_release_notes() if self.update_manager else ""
         )
-        self.changelog.setHtml(release_notes.replace("\n", "<br>"))
-        self.changelog.setStyleSheet(
-            """
-            QTextBrowser {
-                background-color: #2b2b2b;
-                color: #ffffff;
-                border: 1px solid #3d3d3d;
-                border-radius: 5px;
-                padding: 10px;
-            }
-        """
-        )
+        # GitHub release notes are Markdown.
+        self.changelog.setMarkdown(release_notes)
         layout.addWidget(self.changelog)
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
-        self.progress_bar.setStyleSheet(
-            f"""
-            QProgressBar {{
-                border: 1px solid #3d3d3d;
-                border-radius: 5px;
-                text-align: center;
-                background-color: #1e1e1e;
-                color: white;
-            }}
-            QProgressBar::chunk {{
-                background-color: {Theme.LIGHT["accent"]};
-                border-radius: 4px;
-            }}
-        """,
-        )
         layout.addWidget(self.progress_bar)
 
         btn_layout = QHBoxLayout()
 
         self.btn_cancel = QPushButton(tr("ignore", "Ignore"))
+        self.btn_cancel.setObjectName("UpdateIgnoreBtn")
+        self.btn_cancel.setFixedHeight(BUTTON_HEIGHT)
+        self.btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_cancel.clicked.connect(self.reject)
-        self.btn_cancel.setStyleSheet(Theme.LIGHT["button_secondary"])
 
-        self.btn_update = QPushButton(
+        self.btn_update = ActionButton(
             tr("download_and_install", "Download and Install")
         )
         self.btn_update.clicked.connect(self.start_update)
-        self.btn_update.setStyleSheet(Theme.LIGHT["button_primary"])
+        self.btn_update.setDefault(True)
 
         btn_layout.addStretch()
         btn_layout.addWidget(self.btn_cancel)
         btn_layout.addWidget(self.btn_update)
 
         layout.addLayout(btn_layout)
+
+        self.setStyleSheet(self._stylesheet(c))
+
+    @staticmethod
+    def _stylesheet(c: dict[str, str]) -> str:
+        """Return the dialog stylesheet for a color palette.
+
+        The dialog may open before the main window styles it (or outside
+        it), so it sets its own colors, the primary button included.
+
+        Args:
+            c: Color palette of the current theme.
+        """
+        return f"""
+            UpdateDialog {{
+                background: {c["bg"]};
+            }}
+            QLabel {{
+                color: {c["text"]};
+            }}
+            #UpdateHeader {{
+                font-size: 16px;
+                font-weight: bold;
+            }}
+            QTextBrowser {{
+                background: {c.get("card_bg", c["card"])};
+                color: {c["text"]};
+                border: 1px solid {c["separator"]};
+                border-radius: {Theme.R}px;
+                padding: 10px;
+            }}
+            QProgressBar {{
+                background: {c.get("input_bg", c["card"])};
+                border: none;
+                border-radius: 4px;
+                color: {c["text"]};
+                text-align: center;
+            }}
+            QProgressBar::chunk {{
+                background: {c["accent"]};
+                border-radius: 4px;
+            }}
+            #ActionBtn {{
+                background: {c["accent"]};
+                color: {c["accent_text"]};
+                border: none;
+                border-radius: {BUTTON_HEIGHT // 2}px;
+                font-weight: 600;
+            }}
+            #ActionBtn:disabled, #UpdateIgnoreBtn:disabled {{
+                background: {c["separator"]};
+                color: {c["secondary"]};
+            }}
+            #UpdateIgnoreBtn {{
+                background: transparent;
+                color: {c["text"]};
+                border: 1px solid {c["separator"]};
+                border-radius: {BUTTON_HEIGHT // 2}px;
+                padding: 0 15px;
+            }}
+            #UpdateIgnoreBtn:hover {{
+                background: {c["hover"]};
+            }}
+        """
 
     def start_update(self):
         """Start the update download and installation process.
@@ -237,13 +283,14 @@ class UpdateDialog(QDialog):
     def _on_download_finished(self):
         """Handle successful download completion.
 
-        On Linux the AppImage was replaced: start the new one and quit.
+        The installer is running (on Linux the AppImage was replaced: start
+        the new one), so quit to let it replace the app.
         """
         self.progress_bar.setValue(100)
         self.accept()
         if running_appimage():
             UpdateManager.restart_appimage()
-            QApplication.quit()
+        QApplication.quit()
 
     def on_error(self, msg):
         """Handle download error.

@@ -75,14 +75,6 @@ jobs:
         run: uv run pytest tests/ -v
         continue-on-error: false
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-sok
-          fail_ci_if_error: false
-
       - name: Quality checks passed
         run: echo "All quality checks passed!"
 

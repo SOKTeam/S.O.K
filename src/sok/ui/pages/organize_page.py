@@ -264,7 +264,9 @@ class OrganizePage(QScrollArea):
         """
         self._worker_runner.stop()
 
-    def _run_worker(self, worker, on_finished, on_error, on_progress=None):
+    def _run_worker(
+        self, worker, on_finished, on_error, on_progress=None, cancel_previous=False
+    ):
         """Run a worker in a dedicated thread.
 
         Args:
@@ -272,11 +274,14 @@ class OrganizePage(QScrollArea):
             on_finished: Callback for completion.
             on_error: Callback for errors.
             on_progress: Optional progress callback.
+            cancel_previous: Abort the previous task if it supports it.
 
         Returns:
             Worker runner result.
         """
-        return self._worker_runner.run(worker, on_finished, on_error, on_progress)
+        return self._worker_runner.run(
+            worker, on_finished, on_error, on_progress, cancel_previous
+        )
 
     def _on_type_changed(self, content_type: str):
         """Handle content type change in SearchPanel.
@@ -297,7 +302,12 @@ class OrganizePage(QScrollArea):
 
         content_type = self._search_panel.get_content_type()
         worker = SearchWorker(query, content_type)
-        self._run_worker(worker, self._on_search_results, self._on_search_error)
+        self._run_worker(
+            worker,
+            self._on_search_results,
+            self._on_search_error,
+            cancel_previous=True,
+        )
 
     def _on_search_results(self, results: list):
         """Handle search completion.

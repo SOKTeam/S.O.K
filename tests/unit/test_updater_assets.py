@@ -110,3 +110,20 @@ def test_not_an_appimage_on_other_platforms(monkeypatch):
     monkeypatch.setenv("APPIMAGE", "/tmp/SOK.AppImage")
 
     assert updater.running_appimage() is None
+
+
+def test_windows_install_launches_the_setup_without_exiting(
+    manager, monkeypatch, tmp_path
+):
+    """sys.exit() in the download thread only ended that thread: the app
+    stayed open next to its installer. Quitting is up to the dialog."""
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.delenv("APPIMAGE", raising=False)
+    monkeypatch.setattr(updater.tempfile, "gettempdir", lambda: str(tmp_path))
+    monkeypatch.setattr(UpdateManager, "_download", staticmethod(lambda *a: None))
+    launched = []
+    monkeypatch.setattr(updater.subprocess, "Popen", launched.append)
+
+    manager.download_and_install("exe-url")
+
+    assert launched == [[str(tmp_path / "SOK_Setup_Update.exe")]]
