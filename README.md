@@ -208,12 +208,32 @@ database, translations and building the Windows, macOS and Linux packages.
 
 ## 🛠️ Roadmap
 
-- [x] Movies, TV shows, music, books and games
-- [x] Modern graphical interface (PySide6)
-- [x] Windows, macOS and Linux apps
-- [ ] **In progress**: richer book metadata, game library integration
-- [ ] **Idea**: plugin system
-- [ ] **Idea**: web interface
+**✅ Available**
+
+- Movies, TV shows, music, books and games
+- Windows, macOS (Apple Silicon) and Linux (AppImage) apps
+- Built-in updates
+
+**🔨 Now**
+
+- Automatic detection of the media type
+- A more reliable "Ready" status: the title and year must match
+- History of renamed files, with undo
+
+**➡️ Next: S.O.K Server**
+
+A Docker image with a web interface, for a NAS or a home server:
+
+- Point it at one or more download folders
+- Review the proposed names in a table, like the Movies tab of the app
+- Several destination folders per media type, picked file by file
+- Rename everything at once, or approve file by file
+- Hard links, so torrents keep seeding
+
+**💡 Later**
+
+- Sort new files automatically as soon as they arrive
+- Run a webhook or a script after sorting (Jellyfin, Plex, Discord…)
 
 ---
 
