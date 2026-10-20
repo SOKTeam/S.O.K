@@ -220,3 +220,15 @@ def test_groups_follow_the_page_order(tmp_path):
         ContentType.BOOK,
         ContentType.GAME,
     ]
+
+
+def test_a_group_title_does_not_depend_on_the_file_system_order(tmp_path, monkeypatch):
+    from sok.file_operations import detection
+
+    files = [tmp_path / "severance.s02e01.mkv", tmp_path / "Severance.S01E02.mkv"]
+    make(tmp_path, *(f.name for f in files))
+    monkeypatch.setattr(detection, "_walk", lambda paths: iter(files))
+
+    report = detect_sources([tmp_path])
+
+    assert report.groups[0].title == "Severance"
