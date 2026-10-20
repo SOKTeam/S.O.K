@@ -357,6 +357,9 @@ class UniversalMediaManager:
             raise APIResponseError(
                 f"Invalid response from API '{api_name}': {exc}", api_name
             ) from exc
+        except APIError:
+            # Already says what failed (quota, key…): keep its type.
+            raise
         except Exception as exc:  # noqa: BLE001 - last resort to avoid app crash
             logger.exception(
                 "Unexpected error during search via API '%s': %s", api_name, exc
