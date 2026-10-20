@@ -181,6 +181,9 @@ class SpotifyApi(BaseAPI):
         }
 
         spotify_type = type_mapping.get(content_type, "album")
+        if spotify_type == "track" and kwargs.get("title") and kwargs.get("artist"):
+            # Spotify's field filters.
+            query = f'track:"{kwargs["title"]}" artist:"{kwargs["artist"]}"'
 
         params = {"q": query, "type": spotify_type, "limit": kwargs.get("limit", 20)}
 
@@ -198,6 +201,23 @@ class SpotifyApi(BaseAPI):
                         "poster_path": self._extract_image(item.get("images", [])),
                         "release_date": item.get("release_date", ""),
                         "total_tracks": item.get("total_tracks"),
+                    }
+                )
+
+        elif spotify_type == "track":
+            items = data.get("tracks", {}).get("items", [])
+            for item in items:
+                album = item.get("album", {})
+                results.append(
+                    {
+                        "id": item.get("id"),
+                        "title": item.get("name"),
+                        "artist": item.get("artists", [{}])[0].get("name", ""),
+                        "album": album.get("name", ""),
+                        "album_type": album.get("album_type", ""),
+                        "track_number": item.get("track_number"),
+                        "poster_path": self._extract_image(album.get("images", [])),
+                        "release_date": album.get("release_date", ""),
                     }
                 )
 
