@@ -182,8 +182,8 @@ class SearchPanel(QWidget):
         if self._media_type == "video":
             self._type_combo.addItem(tr("tv_series", "TV Series"), "tv")
         elif self._media_type == "music":
+            # Tracks of several artists or albums go to the Tracks tab.
             self._type_combo.addItem(tr("album", "Album"), "album")
-            self._type_combo.addItem(tr("artist", "Artist"), "artist")
 
         self._type_combo.blockSignals(False)
 

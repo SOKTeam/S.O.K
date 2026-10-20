@@ -23,6 +23,7 @@ import re
 from typing import Dict, Any, List, Optional, Tuple
 import logging
 from pathlib import Path
+from types import SimpleNamespace
 from sok.config.config_manager import get_config_manager
 from sok.core.interfaces import ContentType, FileOperations, MediaItem
 from sok.core.utils import format_name
@@ -305,6 +306,8 @@ class MusicFileOperations(
         When the service gives no track number, the number of the file tags
         is used if the file is on the same album.
         """
+        if _is_album(media_item):
+            return self._album_target(media_item, file_path)
         if not _is_track(media_item):
             return super().batch_target(media_item, file_path, alone)
         tags = self.read_metadata(str(file_path))
@@ -316,6 +319,24 @@ class MusicFileOperations(
             file_path.suffix.lower(),
             tags.get("track_number") if same_album else None,
         )
+        return parts[:-1], parts[-1]
+
+    def _album_target(self, album: MediaItem, file_path: Path) -> Tuple[List[str], str]:
+        """Folders and name of a track of an album, from the music format.
+
+        Artist, album and year come from the album found online; the title
+        and the number of the track from its tags, or else its file name.
+        """
+        tags = self.read_metadata(str(file_path))
+        info = self.extract_info_from_filename(file_path.name)
+        track = SimpleNamespace(
+            artist=getattr(album, "artist", "") or tags.get("artist") or "",
+            album=getattr(album, "title", "") or "",
+            title=tags.get("title") or info.get("title") or file_path.stem,
+            track_number=tags.get("track_number") or info.get("track_number") or 0,
+            year=getattr(album, "year", None),
+        )
+        parts = self.format_track(track, file_path.suffix.lower())
         return parts[:-1], parts[-1]
 
     def organize_by_artist_album(
@@ -428,6 +449,11 @@ class MusicFileOperations(
     def find_files(self, directory: str, recursive: bool = True) -> List[str]:
         """Unified alias for find_audio_files."""
         return self.find_audio_files(directory, recursive)
+
+
+def _is_album(media_item: Any) -> bool:
+    """True for an Album, whose tracks are named from the music format."""
+    return getattr(media_item, "content_type", None) == ContentType.ALBUM
 
 
 def _is_track(media_item: Any) -> bool:

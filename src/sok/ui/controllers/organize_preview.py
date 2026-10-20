@@ -64,12 +64,12 @@ class OrganizePreviewController:
             album = info.get("album", "")
             if artist and album:
                 detected_query = f"{artist} {album}"
-                detected_type = "album"
             elif artist:
+                # The albums of the artist: the user picks the right one.
                 detected_query = artist
-                detected_type = "artist"
             else:
                 detected_query = info.get("title", "")
+            detected_type = "album"
         return detected_query, detected_type
 
     def build_preview(

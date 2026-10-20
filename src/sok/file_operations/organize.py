@@ -176,6 +176,16 @@ class FileListOrganizerMixin:
         Returns:
             Organization report.
         """
+        if media_item is not None:
+            # Each file of the item may go to its own folder and name (see
+            # batch_target): the tracks of an album named from their tags.
+            return self.organize_items_batch(
+                [(Path(f), media_item) for f in files],
+                dest_path,
+                dry_run=dry_run,
+                progress_callback=progress_callback,
+            )
+
         config = get_config_manager()
         create_folders = config.get("create_folders", True)
         skip_duplicates = config.get("skip_duplicates", False)

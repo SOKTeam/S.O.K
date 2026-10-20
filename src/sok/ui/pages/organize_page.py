@@ -360,7 +360,7 @@ class OrganizePage(QScrollArea):
             paths: Files or folders, shown in the source zone.
             query: Search text to use instead of the one read from the first
                 file name.
-            content_type: Search type ("series", "movie", "album", "artist")
+            content_type: Search type ("series", "movie", "album")
                 to use instead of the detected one.
         """
         self._source_hint = (query, content_type)
@@ -420,8 +420,6 @@ class OrganizePage(QScrollArea):
                 self._search_panel.set_type_by_data("movie")
             elif detected_type == "album":
                 self._search_panel.set_type_by_data("album")
-            elif detected_type == "artist":
-                self._search_panel.set_type_by_data("artist")
 
             if detected_query:
                 self._search_panel.set_search_text(detected_query, auto_select=True)
@@ -467,6 +465,10 @@ class OrganizePage(QScrollArea):
         media_item = create_media_item(
             media_info, content_type, self._manager, language=lang
         )
+        if media_item and isinstance(self._ops, MusicFileOperations):
+            # Tracks follow the music format: show their folders too.
+            folders, name = self._ops.batch_target(media_item, file, False)
+            return "/".join([*folders, name])
         if media_item and hasattr(self._ops, "generate_new_filename"):
             return self._ops.generate_new_filename(media_item, file.name)
         return ""
