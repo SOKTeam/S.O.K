@@ -227,5 +227,10 @@
     "book_title_author": "Titel (Autor optional)",
     "games_drop_hint": "Spieldateien oder Ordner ablegen oder klicken, um zu durchsuchen",
     "add_more_games": "+ Weitere Spiele hinzufügen",
-    "game_title": "Spieltitel"
+    "game_title": "Spieltitel",
+    "albums": "Alben",
+    "tracks": "Titel",
+    "tracks_drop_hint": "Audiodateien oder Ordner ablegen oder klicken, um zu durchsuchen",
+    "add_more_tracks": "+ Weitere Titel hinzufügen",
+    "track_title_artist": "Titel (Interpret optional)"
 }

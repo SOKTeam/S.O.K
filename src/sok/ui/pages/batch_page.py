@@ -143,6 +143,10 @@ class BatchPage(QScrollArea):
         """Hint shown in an empty query field."""
         return ""
 
+    def preview_name(self, item: Any, file: Path) -> str:
+        """New name shown in a row for its first file."""
+        return self._ops.generate_new_filename(item, file.name)
+
     def rename_confirm_text(self, count: int) -> str:
         """Question asked before renaming count files."""
         return tr("rename_confirm_files", "Rename {0} file(s)?").format(count)
@@ -356,7 +360,7 @@ class BatchPage(QScrollArea):
         )
         if item is None:
             return ""
-        return self._ops.generate_new_filename(item, file.name)
+        return self.preview_name(item, file)
 
     def _refresh_previews_and_action(self) -> None:
         self._table.update_new_names(self._compute_new_name)

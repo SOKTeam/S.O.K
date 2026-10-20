@@ -227,5 +227,10 @@
     "book_title_author": "Titre (auteur facultatif)",
     "games_drop_hint": "Glissez des jeux ou des dossiers, ou cliquez pour parcourir",
     "add_more_games": "+ Ajouter d'autres jeux",
-    "game_title": "Titre du jeu"
+    "game_title": "Titre du jeu",
+    "albums": "Albums",
+    "tracks": "Titres",
+    "tracks_drop_hint": "Glissez des fichiers audio ou des dossiers, ou cliquez pour parcourir",
+    "add_more_tracks": "+ Ajouter d'autres titres",
+    "track_title_artist": "Titre (artiste facultatif)"
 }

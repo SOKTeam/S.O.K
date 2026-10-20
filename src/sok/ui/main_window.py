@@ -57,6 +57,7 @@ from sok.ui.pages.organize_page import OrganizePage
 from sok.ui.pages.movies_page import MoviesPage
 from sok.ui.pages.books_page import BooksPage
 from sok.ui.pages.games_page import GamesPage
+from sok.ui.pages.music_page import MusicPage
 from sok.ui.pages.settings_page import SettingsPage
 from sok.ui.components.integrations.discord import setup_discord_rpc
 from sok.ui.components.integrations.updates import check_and_show_updates
@@ -370,7 +371,7 @@ class MainWindow(QMainWindow):
 
         self._pages.addWidget(OrganizePage("video"))
         self._pages.addWidget(MoviesPage())
-        self._pages.addWidget(OrganizePage("music"))
+        self._pages.addWidget(MusicPage())
         self._pages.addWidget(BooksPage())
         self._pages.addWidget(GamesPage())
 
