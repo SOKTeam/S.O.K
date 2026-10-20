@@ -97,6 +97,8 @@ class OrganizePage(QScrollArea):
         self._manager = get_media_manager()
         self._translations = get_config_manager().load_language()
         self._files: list[Path] = []
+        # Query and content type given by load_sources() for the next scan.
+        self._source_hint: tuple[str | None, str | None] = (None, None)
         self._preview_controller = OrganizePreviewController(
             self._ops, tr, MAX_PREVIEW_FILES
         )
@@ -359,6 +361,24 @@ class OrganizePage(QScrollArea):
             self._search_panel.update_selected_media(details)
             self._update_preview_and_actions()
 
+    def load_sources(
+        self,
+        paths: list[Path],
+        query: str | None = None,
+        content_type: str | None = None,
+    ) -> None:
+        """Load files or folders found elsewhere, such as on the home page.
+
+        Args:
+            paths: Files or folders, shown in the source zone.
+            query: Search text to use instead of the one read from the first
+                file name.
+            content_type: Search type ("series", "movie", "album", "artist")
+                to use instead of the detected one.
+        """
+        self._source_hint = (query, content_type)
+        self._options_panel.set_sources(paths)
+
     def _on_source(self, paths):
         """Handle source folder selection.
 
@@ -367,6 +387,9 @@ class OrganizePage(QScrollArea):
         Args:
             paths: List of source folder paths.
         """
+        hint_query, hint_type = self._source_hint
+        self._source_hint = (None, None)
+
         if not paths:
             self._files = []
             self._preview_title_label.setText(tr("preview_title", "Preview"))
@@ -380,10 +403,12 @@ class OrganizePage(QScrollArea):
         self._preview_panel.clear()
         self._files = scan_sources(self._ops, paths)
 
+        # Files loaded from the home page are counted by their folder.
+        folders = list(dict.fromkeys(p if p.is_dir() else p.parent for p in paths))
         sources_text = (
-            f"{len(paths)} {tr('folders_count', 'folder(s)')}"
-            if len(paths) > 1
-            else paths[0].name
+            f"{len(folders)} {tr('folders_count', 'folder(s)')}"
+            if len(folders) > 1
+            else folders[0].name
         )
         self._preview_title_label.setText(
             f"{tr('preview_title', 'Preview')} ({len(self._files)} {tr('files_from', 'files from')} {sources_text})"
@@ -399,6 +424,8 @@ class OrganizePage(QScrollArea):
             ) = self._preview_controller.detect_query_and_type(
                 first_file_name, self._type
             )
+            detected_query = hint_query or detected_query
+            detected_type = hint_type or detected_type
 
             if detected_type == "series":
                 self._search_panel.set_type_by_data("tv")

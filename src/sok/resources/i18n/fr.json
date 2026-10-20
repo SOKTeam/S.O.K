@@ -232,5 +232,21 @@
     "tracks": "Titres",
     "tracks_drop_hint": "Glissez des fichiers audio ou des dossiers, ou cliquez pour parcourir",
     "add_more_tracks": "+ Ajouter d'autres titres",
-    "track_title_artist": "Titre (artiste facultatif)"
+    "track_title_artist": "Titre (artiste facultatif)",
+    "drop_anything_hint": "Dépose des fichiers ou des dossiers ici, ou clique pour choisir un dossier",
+    "drop_reason_weak_episode": "Numéro d'épisode sans saison",
+    "drop_reason_season_folder": "Dans un dossier de saison, sans numéro d'épisode",
+    "drop_reason_among_episodes": "Vidéo au milieu d'épisodes : un bonus ?",
+    "drop_reason_disc_image": "Image disque : un jeu ou un disque vidéo ?",
+    "drop_untitled": "Sans titre",
+    "drop_files_count": "{count} fichier(s)",
+    "drop_done": "✓ Organisé",
+    "drop_remaining": "{count} sur {total} restant(s)",
+    "drop_open": "Ouvrir",
+    "drop_add": "Ajouter",
+    "drop_last_count": "Dernier dépôt : {count} fichier(s)",
+    "drop_clear": "Effacer",
+    "drop_nothing_found": "Aucun fichier multimédia reconnu. Fichiers acceptés : {extensions}. Les archives, les programmes et les documents texte ne sont acceptés que dans la page de leur type.",
+    "drop_to_check": "À vérifier",
+    "drop_error": "Impossible d'analyser les fichiers : {error}"
 }

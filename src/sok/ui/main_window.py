@@ -15,6 +15,7 @@ Orange / Frameless / Modern Style
 
 import sys
 from ctypes.wintypes import MSG
+from pathlib import Path
 
 from PySide6.QtWidgets import (
     QMainWindow,
@@ -54,6 +55,7 @@ from sok.ui.components.window import WindowControlButton
 from sok.ui.controllers.window_chrome import ResizeGrips, hit_test_resize
 from sok.ui.pages.home_page import HomePage
 from sok.ui.pages.organize_page import OrganizePage
+from sok.ui.pages.batch_page import BatchPage
 from sok.ui.pages.movies_page import MoviesPage
 from sok.ui.pages.books_page import BooksPage
 from sok.ui.pages.games_page import GamesPage
@@ -62,7 +64,18 @@ from sok.ui.pages.settings_page import SettingsPage
 from sok.ui.components.integrations.discord import setup_discord_rpc
 from sok.ui.components.integrations.updates import check_and_show_updates
 from sok.config import get_config_manager
+from sok.core.interfaces import ContentType
+from sok.file_operations.detection import MediaGroup
 from sok.ui.i18n import tr, reload_language
+
+# Page of the stack that organizes each kind of detected file.
+PAGE_BY_KIND = {
+    ContentType.EPISODE: 1,
+    ContentType.MOVIE: 2,
+    ContentType.ALBUM: 3,
+    ContentType.BOOK: 4,
+    ContentType.GAME: 5,
+}
 
 
 class MainWindow(QMainWindow):
@@ -367,6 +380,7 @@ class MainWindow(QMainWindow):
         """
         home_page = HomePage()
         home_page.navigate.connect(self._go)
+        home_page.open_group.connect(self._open_group)
         self._pages.addWidget(home_page)
 
         self._pages.addWidget(OrganizePage("video"))
@@ -638,6 +652,24 @@ class MainWindow(QMainWindow):
             page = self._pages.widget(0)
             if hasattr(page, "refresh"):
                 page.refresh()  # type: ignore[union-attr]
+
+    def _open_group(self, group: MediaGroup, files: list[Path]):
+        """Open files sorted on the home page in the page of their type.
+
+        Args:
+            group: The group of the detection report.
+            files: Its files that are still in place.
+        """
+        idx = PAGE_BY_KIND[group.kind]
+        self._go(idx)
+        page = self._pages.widget(idx)
+        if isinstance(page, BatchPage):
+            page.load_files(files)
+        elif isinstance(page, OrganizePage):
+            hint_type = {ContentType.EPISODE: "series", ContentType.ALBUM: "album"}
+            # The book and game pages read a better query from the file name.
+            query = group.title if group.kind in hint_type else None
+            page.load_sources(files, query, hint_type.get(group.kind))
 
     def current_page(self) -> QWidget:
         """Return the page currently shown."""

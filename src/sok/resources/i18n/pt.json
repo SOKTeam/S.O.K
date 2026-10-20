@@ -232,5 +232,21 @@
     "tracks": "Faixas",
     "tracks_drop_hint": "Larga ficheiros de áudio ou pastas, ou clica para procurar",
     "add_more_tracks": "+ Adicionar mais faixas",
-    "track_title_artist": "Título (artista opcional)"
+    "track_title_artist": "Título (artista opcional)",
+    "drop_anything_hint": "Larga ficheiros ou pastas aqui, ou clica para escolher uma pasta",
+    "drop_reason_weak_episode": "Número de episódio sem temporada",
+    "drop_reason_season_folder": "Numa pasta de temporada, sem número de episódio",
+    "drop_reason_among_episodes": "Vídeo entre episódios: um extra?",
+    "drop_reason_disc_image": "Imagem de disco: um jogo ou um disco de vídeo?",
+    "drop_untitled": "Sem título",
+    "drop_files_count": "{count} ficheiro(s)",
+    "drop_done": "✓ Organizado",
+    "drop_remaining": "Faltam {count} de {total}",
+    "drop_open": "Abrir",
+    "drop_add": "Adicionar",
+    "drop_last_count": "Último depósito: {count} ficheiro(s)",
+    "drop_clear": "Limpar",
+    "drop_nothing_found": "Nenhum ficheiro multimédia reconhecido. Ficheiros aceites: {extensions}. Arquivos comprimidos, programas e documentos de texto só são aceites na página do seu tipo.",
+    "drop_to_check": "Por verificar",
+    "drop_error": "Não foi possível analisar os ficheiros: {error}"
 }
