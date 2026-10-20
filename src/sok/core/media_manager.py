@@ -169,7 +169,11 @@ class UniversalMediaManager:
 
                     try:
                         if service.group == APIGroup.FREE:
-                            api_instance = api_class()
+                            # Free services work without a key, but those that
+                            # take one (Google Books, RAWG) get a quota of
+                            # their own with it.
+                            key = get_api_key(config, service.id)
+                            api_instance = api_class(key) if key else api_class()
                         else:
                             if service.id == SERVICE_TMDB:
                                 key = get_api_key(config, SERVICE_TMDB)
