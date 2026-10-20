@@ -218,5 +218,6 @@
     "follow_system_theme": "Zgodnie z wyglądem systemu",
     "use_system_accent": "Użyj koloru akcentu systemu",
     "show_in_finder": "Pokaż w Finderze",
-    "rename_skips_to_pick": "Pliki wciąż do wybrania ({0}) pozostaną bez zmian."
+    "rename_skips_to_pick": "Pliki wciąż do wybrania ({0}) pozostaną bez zmian.",
+    "batch_drop_hint": "Upuść pliki lub foldery albo kliknij, aby przeglądać"
 }

@@ -8,15 +8,15 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-"""Workers for batch movie search and organization."""
+"""Workers for batch search and organization."""
 
 import logging
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Sequence, Tuple
 
 from PySide6.QtCore import Signal
 
-from sok.core.batch import BatchMatcher, parse_movie
+from sok.core.batch import BatchMatcher, QueryParser
 from sok.core.interfaces import ContentType, MediaType
 from sok.core.media_manager import get_media_manager
 from sok.core.exceptions import APINotFoundError, UnsupportedMediaTypeError
@@ -26,27 +26,41 @@ from sok.ui.workers.base import BaseWorker
 logger = logging.getLogger(__name__)
 
 
-class MovieBatchSearchWorker(BaseWorker):
-    """Worker that searches the video database once per file.
+class BatchSearchWorker(BaseWorker):
+    """Worker that searches the online database once per item of a batch.
 
     Signals:
         progress (int, str): Percent complete and current filename.
-        finished (list): One sok.core.batch.BatchMatch per file, in order.
+        finished (list): One sok.core.batch.BatchMatch per item, in order.
     """
 
     progress = Signal(int, str)
     finished = Signal(list)
 
-    def __init__(self, files: List[Path], query: Optional[str] = None, config=None):
+    def __init__(
+        self,
+        items: Sequence[Sequence[Path]],
+        media_type: MediaType,
+        content_type: ContentType,
+        parse: QueryParser,
+        query: Optional[str] = None,
+        config=None,
+    ):
         """Initialize the worker.
 
         Args:
-            files: Video files to look up.
-            query: Search text typed by the user, for a single file.
+            items: The files of each item to look up.
+            media_type: Media type whose selected API is used.
+            content_type: What to search, such as ContentType.MOVIE.
+            parse: Reads the query and the year from the files of an item.
+            query: Search text typed by the user, for a single item.
             config: Optional ConfigManager.
         """
         super().__init__(config)
-        self._files = files
+        self._items = [list(item) for item in items]
+        self._media_type = media_type
+        self._content_type = content_type
+        self._parse = parse
         self._query = query
         self._manager = get_media_manager()
 
@@ -58,24 +72,26 @@ class MovieBatchSearchWorker(BaseWorker):
         self.finished.emit(results)
 
     async def _search_all(self) -> list:
-        """Search every file with the batch matcher."""
+        """Search every item with the batch matcher."""
         try:
-            self._manager.get_current_api(MediaType.VIDEO)
+            self._manager.get_current_api(self._media_type)
         except (UnsupportedMediaTypeError, APINotFoundError) as exc:
-            logger.error("No video API configured", exc_info=exc)
-            raise RuntimeError("No API configured for video.") from exc
+            logger.error("No %s API configured", self._media_type.value, exc_info=exc)
+            raise RuntimeError(
+                f"No API configured for {self._media_type.value}."
+            ) from exc
 
         lang = self._config.get("language", "en")
         api_lang = f"{lang}-{lang.upper()}" if len(lang) == 2 else lang
-        matcher = BatchMatcher(self._manager, ContentType.MOVIE, parse_movie, api_lang)
+        matcher = BatchMatcher(self._manager, self._content_type, self._parse, api_lang)
 
         if self._query is not None:
-            return [await matcher.match(self._files, self._query)]
+            return [await matcher.match(self._items[0], self._query)]
 
         def on_progress(done: int, total: int, file: Path) -> None:
             self.progress.emit(int((done / total) * 100) if total else 100, file.name)
 
-        return await matcher.match_all([[f] for f in self._files], on_progress)
+        return await matcher.match_all(self._items, on_progress)
 
 
 class MovieBatchOrganizeWorker(BaseWorker):

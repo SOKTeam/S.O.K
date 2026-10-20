@@ -218,5 +218,6 @@
     "follow_system_theme": "Usar a aparência do sistema",
     "use_system_accent": "Usar a cor de destaque do sistema",
     "show_in_finder": "Mostrar no Finder",
-    "rename_skips_to_pick": "{0} ficheiro(s) ainda por escolher ficarão como estão."
+    "rename_skips_to_pick": "{0} ficheiro(s) ainda por escolher ficarão como estão.",
+    "batch_drop_hint": "Larga ficheiros ou pastas, ou clica para procurar"
 }

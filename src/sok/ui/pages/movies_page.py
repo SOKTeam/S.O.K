@@ -34,13 +34,14 @@ from PySide6.QtWidgets import (
 )
 
 from sok.config import get_config_manager
-from sok.core.batch import STATUS_AMBIGUOUS, STATUS_MISSING, BatchMatch
+from sok.core.batch import STATUS_AMBIGUOUS, STATUS_MISSING, BatchMatch, parse_movie
+from sok.core.interfaces import ContentType, MediaType
 from sok.core.media_manager import get_media_manager
 from sok.file_operations import VideoFileOperations
 from sok.ui.components.base import ActionButton
 from sok.ui.components.inputs import DropZone
-from sok.ui.components.organize.movie_batch_table import (
-    MovieBatchTable,
+from sok.ui.components.organize.media_batch_table import (
+    MediaBatchTable,
     STATUS_OK,
 )
 from sok.ui.controllers.default_paths import apply_default_destination
@@ -51,8 +52,8 @@ from sok.ui.factories.media_factory import create_media_item
 from sok.ui.i18n import tr
 from sok.ui.theme import card_shadow
 from sok.ui.workers import (
+    BatchSearchWorker,
     MovieBatchOrganizeWorker,
-    MovieBatchSearchWorker,
 )
 from sok.ui import message_box
 from sok.ui.platform import request_attention
@@ -101,7 +102,11 @@ class MoviesPage(QScrollArea):
         self._summary_lbl.setVisible(False)
         layout.addWidget(self._summary_lbl)
 
-        self._table = MovieBatchTable(file_extensions=self._ops.supported_extensions)
+        self._table = MediaBatchTable(
+            file_extensions=self._ops.supported_extensions,
+            empty_hint=self._empty_hint(),
+            add_more_text=tr("add_more_movies", "+ Add more movies"),
+        )
         self._table.row_changed.connect(self._refresh_previews_and_action)
         self._table.row_rescan_requested.connect(self._rescan_row)
         self._table.files_added.connect(self._on_files_added)
@@ -165,34 +170,42 @@ class MoviesPage(QScrollArea):
         self._lbl_dest.setText(tr("destination", "Destination"))
         self._rescan_all_btn.setText(tr("rescan_all", "Re-scan all"))
         self._action_btn.setText(tr("rename_all", "Rename all"))
+        self._table.set_texts(
+            self._empty_hint(), tr("add_more_movies", "+ Add more movies")
+        )
         self._update_summary()
+
+    @staticmethod
+    def _empty_hint() -> str:
+        return tr("movies_drop_hint", "Drop video files or folders, or click to browse")
 
     # ------------------------------------------------------------- Sources
 
-    def _on_files_added(self, files: List[Path]) -> None:
-        """Run a batch search on newly added files only."""
-        new_files = [p for p in files if p.is_file()]
-        if not new_files:
+    def _on_files_added(self, items: List[List[Path]]) -> None:
+        """Run a batch search on newly added items only."""
+        if not items:
             return
         self._files = self._table.files()
         self._update_summary()
         self._refresh_action_state()
-        self._start_batch_search(new_files)
+        self._start_batch_search(items)
 
     def _on_dest_changed(self, _paths: List[Path]) -> None:
         self._refresh_action_state()
 
     # ------------------------------------------------------------ Searching
 
-    def _start_batch_search(self, files: Optional[List[Path]] = None) -> None:
-        target = files if files is not None else list(self._files)
+    def _start_batch_search(self, items: Optional[List[List[Path]]] = None) -> None:
+        target = items if items is not None else self._table.items()
         if not target:
             return
-        for f in target:
-            self._table.set_row_loading(f)
+        for item in target:
+            self._table.set_row_loading(item[0])
         self._set_progress(True, tr("searching", "Searching..."), 0)
         self._rescan_all_btn.setEnabled(False)
-        worker = MovieBatchSearchWorker(target)
+        worker = BatchSearchWorker(
+            target, MediaType.VIDEO, ContentType.MOVIE, parse_movie
+        )
         self._search_runner.run(
             worker,
             self._on_batch_search_done,
@@ -220,17 +233,20 @@ class MoviesPage(QScrollArea):
 
     def _rescan_all(self) -> None:
         self._files = self._table.files()
-        self._start_batch_search(self._files)
+        self._start_batch_search()
 
-    def _rescan_row(self, file: Path, query: str) -> None:
-        if not query:
+    def _rescan_row(self, key: Path, query: str) -> None:
+        files = self._table.item_files(key)
+        if not query or not files:
             return
-        self._table.set_row_loading(file)
-        worker = MovieBatchSearchWorker([file], query)
+        self._table.set_row_loading(key)
+        worker = BatchSearchWorker(
+            [files], MediaType.VIDEO, ContentType.MOVIE, parse_movie, query
+        )
         self._rescan_runner.run(
             worker,
             self._on_row_search_done,
-            lambda err, f=file, q=query: self._on_row_search_error(f, q, err),
+            lambda err, f=files, q=query: self._on_row_search_error(f, q, err),
         )
 
     def _on_row_search_done(self, results: List[BatchMatch]) -> None:
@@ -238,16 +254,17 @@ class MoviesPage(QScrollArea):
             self._table.apply_search_result(result)
         self._refresh_previews_and_action()
 
-    def _on_row_search_error(self, file: Path, query: str, error: str) -> None:
-        logger.warning("Row rescan failed for %s: %s", file.name, error)
-        self._table.apply_search_result(BatchMatch([file], query, None))
+    def _on_row_search_error(self, files: List[Path], query: str, error: str) -> None:
+        logger.warning("Row rescan failed for %s: %s", files[0].name, error)
+        self._table.apply_search_result(BatchMatch(files, query, None))
         self._refresh_previews_and_action()
 
     # ------------------------------------------------------------- Preview
 
-    def _compute_new_name(self, file: Path, candidate: Dict[str, Any]) -> str:
+    def _compute_new_name(self, files: List[Path], candidate: Dict[str, Any]) -> str:
         if not candidate:
             return ""
+        file = files[0]
         lang = get_config_manager().get("language", "en")
         movie = create_media_item(candidate, "movie", self._manager, language=lang)
         if movie is None:
@@ -299,11 +316,11 @@ class MoviesPage(QScrollArea):
 
         mappings: List[Tuple[Path, Any]] = []
         lang = get_config_manager().get("language", "en")
-        for file, cand in self._table.get_ready_mappings():
+        for files, cand in self._table.get_ready_mappings():
             movie = create_media_item(cand, "movie", self._manager, language=lang)
             if movie is None:
                 continue
-            mappings.append((file, movie))
+            mappings.extend((file, movie) for file in files)
 
         if not mappings:
             message_box.information(

@@ -218,5 +218,6 @@
     "follow_system_theme": "Match system appearance",
     "use_system_accent": "Use system accent color",
     "show_in_finder": "Show in Finder",
-    "rename_skips_to_pick": "{0} file(s) still to pick will be left as they are."
+    "rename_skips_to_pick": "{0} file(s) still to pick will be left as they are.",
+    "batch_drop_hint": "Drop files or folders, or click to browse"
 }
