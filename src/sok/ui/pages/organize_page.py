@@ -24,12 +24,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
 )
 from PySide6.QtCore import Qt
-from sok.file_operations import (
-    VideoFileOperations,
-    MusicFileOperations,
-    BookFileOperations,
-    GameFileOperations,
-)
+from sok.file_operations import MusicFileOperations, VideoFileOperations
 from sok.ui.components.organize import SearchPanel, OptionsPanel
 from sok.ui.controllers.organize_preview import OrganizePreviewController
 from sok.ui.controllers.source_scanner import scan_sources
@@ -50,9 +45,7 @@ from sok.ui import message_box
 from sok.ui.platform import request_attention
 from sok.media.video.series import Series
 
-FileOperations = (
-    VideoFileOperations | MusicFileOperations | BookFileOperations | GameFileOperations
-)
+FileOperations = VideoFileOperations | MusicFileOperations
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +59,7 @@ class OrganizePage(QScrollArea):
     them with proper naming and folder structure.
 
     Attributes:
-        _type: Media type (video, music, book, game).
+        _type: Media type (video, music).
         _ops: File operations handler for the media type.
         _manager: Universal media manager instance.
         _files: List of files to organize.
@@ -76,7 +69,7 @@ class OrganizePage(QScrollArea):
         """Initialize the organize page.
 
         Args:
-            media_type: Type of media (video, music, book, game).
+            media_type: Type of media (video, music).
             parent: Parent widget.
         """
         super().__init__(parent)
@@ -87,10 +80,6 @@ class OrganizePage(QScrollArea):
             self._ops = VideoFileOperations()
         elif media_type == "music":
             self._ops = MusicFileOperations()
-        elif media_type == "book":
-            self._ops = BookFileOperations()
-        elif media_type == "game":
-            self._ops = GameFileOperations()
         else:
             self._ops = VideoFileOperations()
 
@@ -234,8 +223,6 @@ class OrganizePage(QScrollArea):
         titles = {
             "video": tr("tv_shows", "TV Shows"),
             "music": tr("music", "Music"),
-            "book": tr("books", "Books"),
-            "game": tr("games", "Games"),
         }
         self.lbl_page_title.setText(titles.get(self._type, tr("files", "Files")))
 

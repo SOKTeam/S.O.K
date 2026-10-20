@@ -45,7 +45,7 @@ class OrganizePreviewController:
 
         Args:
             file_name: Name of the file to analyze.
-            media_type: Type of media ('video', 'music', 'book', 'game').
+            media_type: Type of media ('video', 'music').
 
         Returns:
             Tuple of (detected query, detected content type).
@@ -70,12 +70,6 @@ class OrganizePreviewController:
                 detected_type = "artist"
             else:
                 detected_query = info.get("title", "")
-        elif media_type == "book":
-            detected_query = info.get("title", "")
-            if info.get("author"):
-                detected_query = f"{info['title']} {info['author']}"
-        elif media_type == "game":
-            detected_query = info.get("title", "")
         return detected_query, detected_type
 
     def build_preview(

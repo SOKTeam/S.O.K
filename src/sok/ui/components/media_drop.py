@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
 
 from sok.core.interfaces import ContentType
 from sok.file_operations.detection import (
+    BATCH_KINDS,
     DetectedFile,
     DetectionReport,
     MediaGroup,
@@ -47,6 +48,7 @@ KINDS = [
     ContentType.MOVIE,
     ContentType.EPISODE,
     ContentType.ALBUM,
+    ContentType.TRACK,
     ContentType.BOOK,
     ContentType.GAME,
 ]
@@ -57,7 +59,8 @@ def kind_label(kind: ContentType) -> str:
     return {
         ContentType.MOVIE: tr("movies", "Movies"),
         ContentType.EPISODE: tr("tv_shows", "TV Shows"),
-        ContentType.ALBUM: tr("music", "Music"),
+        ContentType.ALBUM: tr("albums", "Albums"),
+        ContentType.TRACK: tr("tracks", "Tracks"),
         ContentType.BOOK: tr("books", "Books"),
         ContentType.GAME: tr("games", "Games"),
     }[kind]
@@ -146,7 +149,9 @@ class _GroupRow(QWidget):
 
         texts = QVBoxLayout()
         texts.setSpacing(2)
-        if group.kind == ContentType.MOVIE:
+        # A batch group (movies, tracks, books, games) has no title.
+        batch = group.kind in BATCH_KINDS
+        if batch:
             title = kind_label(group.kind)
         else:
             title = group.title or tr("drop_untitled", "Untitled")
@@ -159,7 +164,7 @@ class _GroupRow(QWidget):
 
         total = len(group.files)
         detail = tr("drop_files_count", "{count} file(s)").format(count=total)
-        if group.kind != ContentType.MOVIE:
+        if not batch:
             detail = f"{kind_label(group.kind)} · {detail}"
         detail_lbl = QLabel(detail)
         detail_lbl.setObjectName("EmptyState")

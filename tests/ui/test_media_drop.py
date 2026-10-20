@@ -84,7 +84,7 @@ def test_a_file_to_check_is_added_with_the_chosen_type(qtbot, tmp_path):
     buttons(summary, ADD)[0].click()
 
     assert TO_CHECK not in texts(summary)
-    assert "Halo" in texts(summary)
+    assert tr("games", "Games") in texts(summary)
     assert len(buttons(summary, OPEN)) == 1
 
 

@@ -73,6 +73,7 @@ PAGE_BY_KIND = {
     ContentType.EPISODE: 1,
     ContentType.MOVIE: 2,
     ContentType.ALBUM: 3,
+    ContentType.TRACK: 3,
     ContentType.BOOK: 4,
     ContentType.GAME: 5,
 }
@@ -663,13 +664,17 @@ class MainWindow(QMainWindow):
         idx = PAGE_BY_KIND[group.kind]
         self._go(idx)
         page = self._pages.widget(idx)
-        if isinstance(page, BatchPage):
+        if isinstance(page, MusicPage):
+            if group.kind == ContentType.TRACK:
+                page.show_tracks()
+                page.tracks.load_files(files)
+            else:
+                page.show_albums()
+                page.albums.load_sources(files, group.title, "album")
+        elif isinstance(page, BatchPage):
             page.load_files(files)
         elif isinstance(page, OrganizePage):
-            hint_type = {ContentType.EPISODE: "series", ContentType.ALBUM: "album"}
-            # The book and game pages read a better query from the file name.
-            query = group.title if group.kind in hint_type else None
-            page.load_sources(files, query, hint_type.get(group.kind))
+            page.load_sources(files, group.title, "series")
 
     def current_page(self) -> QWidget:
         """Return the page currently shown."""

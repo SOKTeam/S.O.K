@@ -53,7 +53,7 @@ class SearchPanel(QWidget):
     - Selected media widget
 
     Attributes:
-        _media_type (str): Media type ('video', 'music', 'book', 'game')
+        _media_type (str): Media type ('video', 'music')
         _auto_select (bool): If True, automatically selects the first result
         _selected_media (dict | None): Currently selected media data
         _content_type (str): Current content type ('tv', 'movie', 'album', etc.)
@@ -61,7 +61,7 @@ class SearchPanel(QWidget):
     Signals:
         media_selected(dict, str): Emitted when a media is selected.
             - dict: Media data (id, name, year, poster_path, etc.)
-            - str: Content type ('tv', 'movie', 'album', 'artist', 'book', 'game')
+            - str: Content type ('tv', 'movie', 'album', 'artist')
         search_started(str): Emitted when a search is started.
             - str: Search query text
         type_changed(str): Emitted when content type changes.
@@ -82,7 +82,7 @@ class SearchPanel(QWidget):
         """Initialize the search panel.
 
         Args:
-            media_type: Type of media ('video', 'music', 'book', 'game').
+            media_type: Type of media ('video', 'music').
             parent: Parent widget.
         """
         super().__init__(parent)
@@ -100,7 +100,7 @@ class SearchPanel(QWidget):
         Returns:
             Default content type string.
         """
-        defaults = {"video": "tv", "music": "album", "book": "book", "game": "game"}
+        defaults = {"video": "tv", "music": "album"}
         return defaults.get(self._media_type, "tv")
 
     def _build_ui(self):
@@ -184,10 +184,6 @@ class SearchPanel(QWidget):
         elif self._media_type == "music":
             self._type_combo.addItem(tr("album", "Album"), "album")
             self._type_combo.addItem(tr("artist", "Artist"), "artist")
-        elif self._media_type == "book":
-            self._type_combo.addItem(tr("book", "Book"), "book")
-        elif self._media_type == "game":
-            self._type_combo.addItem(tr("game", "Game"), "game")
 
         self._type_combo.blockSignals(False)
 
