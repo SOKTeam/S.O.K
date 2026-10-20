@@ -217,5 +217,6 @@
     "documentation": "S.O.K Documentation",
     "follow_system_theme": "Match system appearance",
     "use_system_accent": "Use system accent color",
-    "show_in_finder": "Show in Finder"
+    "show_in_finder": "Show in Finder",
+    "rename_skips_to_pick": "{0} file(s) still to pick will be left as they are."
 }

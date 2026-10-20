@@ -130,7 +130,9 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
 
             info["year"] = self.extract_year(filename)
             if info["year"]:
-                info["title"] = self.clean_title(filename.split(str(info["year"]))[0])
+                # "Heat (1995)" leaves "Heat (" before the year.
+                before_year = filename.split(str(info["year"]))[0]
+                info["title"] = self.clean_title(before_year.rstrip(" ([{-_."))
             else:
                 info["title"] = self.clean_title(os.path.splitext(filename)[0])
 

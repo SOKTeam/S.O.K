@@ -217,5 +217,6 @@
     "documentation": "S.O.K-Dokumentation",
     "follow_system_theme": "Systemdarstellung verwenden",
     "use_system_accent": "Akzentfarbe des Systems verwenden",
-    "show_in_finder": "Im Finder anzeigen"
+    "show_in_finder": "Im Finder anzeigen",
+    "rename_skips_to_pick": "{0} noch auszuwählende Datei(en) bleiben unverändert."
 }

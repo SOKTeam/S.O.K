@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from sok.config import get_config_manager
+from sok.core.batch import STATUS_AMBIGUOUS, STATUS_MISSING, BatchMatch
 from sok.core.media_manager import get_media_manager
 from sok.file_operations import VideoFileOperations
 from sok.ui.components.base import ActionButton
@@ -52,7 +53,6 @@ from sok.ui.theme import card_shadow
 from sok.ui.workers import (
     MovieBatchOrganizeWorker,
     MovieBatchSearchWorker,
-    SearchWorker,
 )
 from sok.ui import message_box
 from sok.ui.platform import request_attention
@@ -203,7 +203,7 @@ class MoviesPage(QScrollArea):
     def _on_search_progress(self, percent: int, filename: str) -> None:
         self._set_progress(True, filename, percent)
 
-    def _on_batch_search_done(self, results: List[Dict[str, Any]]) -> None:
+    def _on_batch_search_done(self, results: List[BatchMatch]) -> None:
         self._set_progress(False)
         self._table.apply_results(results)
         self._rescan_all_btn.setEnabled(True)
@@ -226,31 +226,22 @@ class MoviesPage(QScrollArea):
         if not query:
             return
         self._table.set_row_loading(file)
-        worker = SearchWorker(query, "movie")
+        worker = MovieBatchSearchWorker([file], query)
         self._rescan_runner.run(
             worker,
-            lambda results, f=file, q=query: self._on_row_search_done(f, q, results),
-            lambda err, f=file: self._on_row_search_error(f, err),
+            self._on_row_search_done,
+            lambda err, f=file, q=query: self._on_row_search_error(f, q, err),
         )
 
-    def _on_row_search_done(
-        self, file: Path, query: str, results: List[Dict[str, Any]]
-    ) -> None:
-        self._table.apply_search_result(
-            {
-                "file": file,
-                "query": query,
-                "year": None,
-                "candidates": results[:5],
-            }
-        )
+    def _on_row_search_done(self, results: List[BatchMatch]) -> None:
+        for result in results:
+            self._table.apply_search_result(result)
         self._refresh_previews_and_action()
 
-    def _on_row_search_error(self, file: Path, error: str) -> None:
+    def _on_row_search_error(self, file: Path, query: str, error: str) -> None:
         logger.warning("Row rescan failed for %s: %s", file.name, error)
-        self._table.apply_search_result(
-            {"file": file, "query": "", "year": None, "candidates": []}
-        )
+        self._table.apply_search_result(BatchMatch([file], query, None))
+        self._refresh_previews_and_action()
 
     # ------------------------------------------------------------- Preview
 
@@ -269,7 +260,7 @@ class MoviesPage(QScrollArea):
         self._refresh_action_state()
 
     def _refresh_action_state(self) -> None:
-        has_ready = any(cand is not None for _, cand in self._table.get_mappings())
+        has_ready = bool(self._table.get_ready_mappings())
         has_dest = self._dest_drop.get_path() is not None
         self._action_btn.setEnabled(has_ready and has_dest)
 
@@ -280,8 +271,8 @@ class MoviesPage(QScrollArea):
             return
         counts = self._table.count_by_status()
         ready = counts.get(STATUS_OK, 0)
-        ambiguous = counts.get("ambiguous", 0)
-        missing = counts.get("missing", 0)
+        ambiguous = counts.get(STATUS_AMBIGUOUS, 0)
+        missing = counts.get(STATUS_MISSING, 0)
         pending = counts.get("pending", 0)
         parts = [
             f"{len(self._files)} {tr('files_count', 'file(s)')}",
@@ -308,9 +299,7 @@ class MoviesPage(QScrollArea):
 
         mappings: List[Tuple[Path, Any]] = []
         lang = get_config_manager().get("language", "en")
-        for file, cand in self._table.get_mappings():
-            if not cand:
-                continue
+        for file, cand in self._table.get_ready_mappings():
             movie = create_media_item(cand, "movie", self._manager, language=lang)
             if movie is None:
                 continue
@@ -329,6 +318,14 @@ class MoviesPage(QScrollArea):
         msg.setText(
             tr("rename_confirm", "Rename {0} movie file(s)?").format(len(mappings))
         )
+        to_pick = self._table.count_by_status().get(STATUS_AMBIGUOUS, 0)
+        if to_pick:
+            msg.setInformativeText(
+                tr(
+                    "rename_skips_to_pick",
+                    "{0} file(s) still to pick will be left as they are.",
+                ).format(to_pick)
+            )
         msg.setStandardButtons(
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
@@ -372,8 +369,9 @@ class MoviesPage(QScrollArea):
                 reveal=reveal,
             )
 
-        self._files = []
-        self._table.set_files([])
+        # Rows still to pick stay, so the user can finish them.
+        self._table.remove_files([Path(m["from"]) for m in report.get("moved", [])])
+        self._files = self._table.files()
         self._update_summary()
         self._refresh_action_state()
 

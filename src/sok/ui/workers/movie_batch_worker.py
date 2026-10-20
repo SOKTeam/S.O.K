@@ -10,47 +10,44 @@
 # ===----------------------------------------------------------------------=== #
 """Workers for batch movie search and organization."""
 
-import asyncio
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, List, Optional, Tuple
 
 from PySide6.QtCore import Signal
 
+from sok.core.batch import BatchMatcher, parse_movie
 from sok.core.interfaces import ContentType, MediaType
 from sok.core.media_manager import get_media_manager
-from sok.core.exceptions import APIError, APINotFoundError, UnsupportedMediaTypeError
+from sok.core.exceptions import APINotFoundError, UnsupportedMediaTypeError
 from sok.file_operations.video_operations import VideoFileOperations
 from sok.ui.workers.base import BaseWorker
 
 logger = logging.getLogger(__name__)
 
-MAX_CANDIDATES_PER_FILE = 5
-SEARCH_CONCURRENCY = 4
-
 
 class MovieBatchSearchWorker(BaseWorker):
-    """Worker that queries TMDB once per file to find movie candidates.
+    """Worker that searches the video database once per file.
 
     Signals:
         progress (int, str): Percent complete and current filename.
-        finished (list): List of per-file result dicts with keys:
-            file (Path), query (str), year (int|None), candidates (list[dict]).
+        finished (list): One sok.core.batch.BatchMatch per file, in order.
     """
 
     progress = Signal(int, str)
     finished = Signal(list)
 
-    def __init__(self, files: List[Path], config=None):
+    def __init__(self, files: List[Path], query: Optional[str] = None, config=None):
         """Initialize the worker.
 
         Args:
             files: Video files to look up.
+            query: Search text typed by the user, for a single file.
             config: Optional ConfigManager.
         """
         super().__init__(config)
         self._files = files
-        self._ops = VideoFileOperations()
+        self._query = query
         self._manager = get_media_manager()
 
     def execute(self):
@@ -60,8 +57,8 @@ class MovieBatchSearchWorker(BaseWorker):
         results = self._loop.run_until_complete(self._search_all())
         self.finished.emit(results)
 
-    async def _search_all(self) -> List[Dict[str, Any]]:
-        """Search every file in parallel with a concurrency cap."""
+    async def _search_all(self) -> list:
+        """Search every file with the batch matcher."""
         try:
             self._manager.get_current_api(MediaType.VIDEO)
         except (UnsupportedMediaTypeError, APINotFoundError) as exc:
@@ -70,49 +67,15 @@ class MovieBatchSearchWorker(BaseWorker):
 
         lang = self._config.get("language", "en")
         api_lang = f"{lang}-{lang.upper()}" if len(lang) == 2 else lang
+        matcher = BatchMatcher(self._manager, ContentType.MOVIE, parse_movie, api_lang)
 
-        semaphore = asyncio.Semaphore(SEARCH_CONCURRENCY)
-        total = len(self._files)
-        done = 0
-        lock = asyncio.Lock()
+        if self._query is not None:
+            return [await matcher.match(self._files, self._query)]
 
-        async def run_one(idx: int, file: Path) -> Dict[str, Any]:
-            nonlocal done
-            async with semaphore:
-                result = await self._search_one(file, api_lang)
-            async with lock:
-                done += 1
-                pct = int((done / total) * 100) if total else 100
-                self.progress.emit(pct, file.name)
-            return result
+        def on_progress(done: int, total: int, file: Path) -> None:
+            self.progress.emit(int((done / total) * 100) if total else 100, file.name)
 
-        tasks = [run_one(i, f) for i, f in enumerate(self._files)]
-        return await asyncio.gather(*tasks)
-
-    async def _search_one(self, file: Path, api_lang: str) -> Dict[str, Any]:
-        """Search TMDB for a single file's title guess."""
-        info = self._ops.extract_info_from_filename(file.name)
-        title = info.get("title") or Path(file.stem).name
-        year = info.get("year")
-
-        candidates: List[Dict[str, Any]] = []
-        try:
-            result = await self._manager.search(
-                title, ContentType.MOVIE, language=api_lang
-            )
-            raw = (
-                result.get("results", []) if isinstance(result, dict) else result or []
-            )
-            candidates = list(raw)[:MAX_CANDIDATES_PER_FILE]
-        except APIError as exc:
-            logger.warning("Search failed for %s: %s", file.name, exc)
-
-        return {
-            "file": file,
-            "query": title,
-            "year": year,
-            "candidates": candidates,
-        }
+        return await matcher.match_all([[f] for f in self._files], on_progress)
 
 
 class MovieBatchOrganizeWorker(BaseWorker):
@@ -169,6 +132,7 @@ class MovieBatchOrganizeWorker(BaseWorker):
             {
                 "total": report.get("total_files", 0),
                 "success": report.get("total_moved", 0),
+                "moved": report.get("moved", []),
                 "errors": report.get("errors", []),
                 "skipped": report.get("skipped", []),
             }

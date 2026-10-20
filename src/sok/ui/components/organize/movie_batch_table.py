@@ -34,6 +34,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from sok.core.batch import (
+    STATUS_AMBIGUOUS,
+    STATUS_MISSING,
+    STATUS_READY,
+    BatchMatch,
+)
 from sok.ui.components.base import Card
 from sok.ui.components.window import StopPropagationScrollArea
 from sok.ui.controllers.ui_state import set_empty_state
@@ -44,9 +50,7 @@ from sok.ui.theme import Theme, card_shadow, set_tone
 logger = logging.getLogger(__name__)
 
 
-STATUS_OK = "ok"
-STATUS_AMBIGUOUS = "ambiguous"
-STATUS_MISSING = "missing"
+STATUS_OK = STATUS_READY
 STATUS_PENDING = "pending"
 
 
@@ -159,7 +163,9 @@ class MovieRow(QWidget):
             }}
             """
             )
-        self._match_combo.currentIndexChanged.connect(self._on_match_changed)
+        # activated, not currentIndexChanged: choosing the selected candidate
+        # again confirms it.
+        self._match_combo.activated.connect(self._on_match_changed)
         mid.addWidget(self._match_combo)
         layout.addLayout(mid, 3)
 
@@ -204,11 +210,19 @@ class MovieRow(QWidget):
         """Return the current query text."""
         return self._query_edit.text().strip()
 
-    def set_candidates(self, candidates: List[Dict[str, Any]]) -> None:
+    def set_candidates(
+        self,
+        candidates: List[Dict[str, Any]],
+        selected: Optional[int] = None,
+        status: str = STATUS_AMBIGUOUS,
+    ) -> None:
         """Populate the candidates combobox.
 
         Args:
-            candidates: List of TMDB result dicts.
+            candidates: List of search result dicts.
+            selected: Index of the candidate to select (the first if None).
+            status: Status of the row when there are candidates (see
+                sok.core.batch).
         """
         self._candidates = candidates
         self._match_combo.blockSignals(True)
@@ -226,8 +240,8 @@ class MovieRow(QWidget):
                 year = (cand.get("release_date") or "")[:4]
                 label = f"{title} ({year})" if year else title
                 self._match_combo.addItem(label, cand)
-            self._match_combo.setCurrentIndex(0)
-            self.set_status(STATUS_OK if len(candidates) == 1 else STATUS_AMBIGUOUS)
+            self._match_combo.setCurrentIndex(selected or 0)
+            self.set_status(status)
         self._match_combo.blockSignals(False)
         self.changed.emit()
 
@@ -466,16 +480,15 @@ class MovieBatchTable(QWidget):
         if row:
             row.set_loading()
 
-    def apply_search_result(self, result: Dict[str, Any]) -> None:
+    def apply_search_result(self, result: BatchMatch) -> None:
         """Apply a single batch search result to its row."""
-        file = result.get("file")
-        row = self._rows.get(file) if file else None
+        row = self._rows.get(result.file)
         if not row:
             return
-        row.set_query(result.get("query", ""), result.get("year"))
-        row.set_candidates(result.get("candidates", []))
+        row.set_query(result.query, result.year)
+        row.set_candidates(result.candidates, result.selected, result.status)
 
-    def apply_results(self, results: List[Dict[str, Any]]) -> None:
+    def apply_results(self, results: List[BatchMatch]) -> None:
         """Apply a batch of search results to their rows."""
         for r in results:
             self.apply_search_result(r)
@@ -490,6 +503,40 @@ class MovieBatchTable(QWidget):
     def get_mappings(self) -> List[tuple]:
         """Return [(file, selected_candidate_dict_or_None), ...] for every row."""
         return [(f, r.get_selected_candidate()) for f, r in self._rows.items()]
+
+    def get_ready_mappings(self) -> List[tuple]:
+        """Return [(file, candidate), ...] for the rows that are Ready.
+
+        A row to pick is left out even if a candidate is selected: the user
+        has not confirmed it.
+        """
+        return [
+            (f, r.get_selected_candidate())
+            for f, r in self._rows.items()
+            if r.get_status() == STATUS_OK and r.get_selected_candidate()
+        ]
+
+    def remove_files(self, files: List[Path]) -> None:
+        """Remove the rows of the given files, such as the renamed ones."""
+        layout = self._inner._layout
+        for file in files:
+            row = self._rows.pop(file, None)
+            if row is None:
+                continue
+            idx = layout.indexOf(row)
+            if idx < 0:
+                row.deleteLater()
+                continue
+            # Card.add() puts a separator before every row but the first.
+            sep_idx = idx - 1 if idx > 0 else idx + 1
+            sep = layout.itemAt(sep_idx).widget() if layout.itemAt(sep_idx) else None
+            layout.removeWidget(row)
+            row.deleteLater()
+            if sep is not None and sep.objectName() == "Separator":
+                layout.removeWidget(sep)
+                sep.deleteLater()
+        if not self._rows:
+            self.set_files([])
 
     def count_by_status(self) -> Dict[str, int]:
         """Return a count of rows per status."""
