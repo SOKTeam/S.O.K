@@ -11,7 +11,7 @@
 from pathlib import Path
 
 from sok.core.interfaces import ContentType
-from sok.file_operations.detection import detect_sources
+from sok.file_operations.detection import MediaTypeDetector, detect_sources
 
 
 def make(root: Path, *names: str) -> None:
@@ -220,3 +220,49 @@ def test_groups_follow_the_page_order(tmp_path):
         ContentType.BOOK,
         ContentType.GAME,
     ]
+
+
+def test_a_confirmed_file_joins_the_group_of_its_series(tmp_path):
+    make(
+        tmp_path,
+        "Severance/Season 1/Severance S01E01.mkv",
+        "Severance/Season 1/Severance S01E02.mkv",
+        "Severance/Season 1/Making of.mkv",
+    )
+    detector = MediaTypeDetector()
+    report = detector.detect_sources([tmp_path])
+
+    group = detector.confirm(report, report.to_check[0], ContentType.EPISODE)
+
+    assert report.to_check == []
+    assert group.title == "Severance"
+    assert [f.name for f in group.files] == [
+        "Making of.mkv",
+        "Severance S01E01.mkv",
+        "Severance S01E02.mkv",
+    ]
+    assert len(report.groups) == 1
+
+
+def test_a_confirmed_file_can_change_type(tmp_path):
+    make(tmp_path, "Star Wars Episode 4 (1977).mkv", "Halo (USA).iso")
+    detector = MediaTypeDetector()
+    report = detector.detect_sources([tmp_path])
+    halo, star_wars = report.to_check
+
+    detector.confirm(report, star_wars, ContentType.MOVIE)
+    detector.confirm(report, halo, ContentType.GAME)
+
+    assert [(g.kind, g.title) for g in report.groups] == [
+        (ContentType.MOVIE, None),
+        (ContentType.GAME, "Halo"),
+    ]
+
+
+def test_generic_files_are_ignored(tmp_path):
+    make(tmp_path, "Readme.txt", "Setup.exe", "Movie.part1.rar", "Report.docx")
+
+    report = detect_sources([tmp_path])
+
+    assert report.total_files == 0
+    assert len(report.ignored) == 4

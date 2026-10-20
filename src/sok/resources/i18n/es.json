@@ -217,5 +217,21 @@
     "documentation": "Documentación de S.O.K",
     "follow_system_theme": "Usar la apariencia del sistema",
     "use_system_accent": "Usar el color de acento del sistema",
-    "show_in_finder": "Mostrar en el Finder"
+    "show_in_finder": "Mostrar en el Finder",
+    "drop_anything_hint": "Suelta archivos o carpetas aquí, o haz clic para elegir una carpeta",
+    "drop_reason_weak_episode": "Número de episodio sin temporada",
+    "drop_reason_season_folder": "En una carpeta de temporada, sin número de episodio",
+    "drop_reason_among_episodes": "Vídeo entre episodios: ¿un extra?",
+    "drop_reason_disc_image": "Imagen de disco: ¿un juego o un disco de vídeo?",
+    "drop_untitled": "Sin título",
+    "drop_files_count": "{count} archivo(s)",
+    "drop_done": "✓ Organizado",
+    "drop_remaining": "Quedan {count} de {total}",
+    "drop_open": "Abrir",
+    "drop_add": "Añadir",
+    "drop_last_count": "Último depósito: {count} archivo(s)",
+    "drop_clear": "Borrar",
+    "drop_nothing_found": "No se ha reconocido ningún archivo multimedia. Archivos aceptados: {extensions}. Los archivos comprimidos, los programas y los documentos de texto solo se aceptan en la página de su tipo.",
+    "drop_to_check": "Por revisar",
+    "drop_error": "No se han podido analizar los archivos: {error}"
 }

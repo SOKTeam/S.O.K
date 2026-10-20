@@ -21,7 +21,7 @@ import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional
 
 from sok.core.interfaces import ContentType
 from sok.core.utils import natural_key
@@ -30,6 +30,10 @@ from sok.file_operations.game_operations import GameFileOperations
 from sok.file_operations.music_operations import MusicFileOperations
 from sok.file_operations.video_operations import VideoFileOperations
 
+# Accepted by the book and game pages, but too common elsewhere to mean a
+# book or a game: a readme, an installer, the archive of a movie. Only the
+# page the user picks accepts them.
+GENERIC_EXTENSIONS = {".txt", ".rtf", ".doc", ".docx", ".exe", ".zip", ".rar", ".7z"}
 # Disc images can hold a game as well as a DVD or a Blu-ray.
 AMBIGUOUS_EXTENSIONS = {".iso", ".img"}
 
@@ -96,6 +100,7 @@ class MediaGroup:
     kind: ContentType
     title: Optional[str]
     files: List[Path] = field(default_factory=list)
+    key: str = field(default="", repr=False)
 
 
 @dataclass
@@ -117,6 +122,35 @@ class DetectionReport:
         """Number of media files found, checked or not."""
         return sum(len(g.files) for g in self.groups) + len(self.to_check)
 
+    def add(self, item: DetectedFile) -> MediaGroup:
+        """Put a file in the group of its series, album, book or game.
+
+        The group is created if needed, and the groups stay in page order.
+
+        Args:
+            item: The file, whose type is taken as sure.
+
+        Returns:
+            The group the file went into.
+        """
+        key = _group_key(item)
+        group = next(
+            (g for g in self.groups if g.kind == item.kind and g.key == key), None
+        )
+        if group is None:
+            group = MediaGroup(item.kind, item.title, key=key)
+            self.groups.append(group)
+            self.groups.sort(
+                key=lambda g: (
+                    KIND_ORDER.index(g.kind),
+                    natural_key(Path(g.title or "")),
+                )
+            )
+        if item.path not in group.files:
+            group.files.append(item.path)
+            group.files.sort(key=natural_key)
+        return group
+
 
 class MediaTypeDetector:
     """Find the type of media files from their name, extension and folder."""
@@ -134,13 +168,19 @@ class MediaTypeDetector:
             (self._game, ContentType.GAME),
         ):
             for ext in ops.supported_extensions:
-                self._extensions.setdefault(ext.lower(), kind)
+                if ext.lower() not in GENERIC_EXTENSIONS:
+                    self._extensions.setdefault(ext.lower(), kind)
+
+    @property
+    def supported_extensions(self) -> List[str]:
+        """Extensions of the files the app can organize, sorted."""
+        return sorted(self._extensions)
 
     def is_ignored(self, path: Path) -> bool:
         """Return True for files that are not media or must be skipped.
 
-        Hidden files (including the "._" files macOS writes on other disks)
-        and video samples are skipped.
+        Hidden files (including the "._" files macOS writes on other disks),
+        video samples and generic files (GENERIC_EXTENSIONS) are skipped.
         """
         if path.name.startswith("."):
             return True
@@ -246,24 +286,46 @@ class MediaTypeDetector:
                 d.certain = False
                 d.reason = "video next to episodes"
 
-        groups: Dict[Tuple[ContentType, str], MediaGroup] = {}
         for d in detected:
-            if not d.certain:
+            if d.certain:
+                report.add(d)
+            else:
                 report.to_check.append(d)
-                continue
-            key = (d.kind, _group_key(d))
-            if key not in groups:
-                groups[key] = MediaGroup(d.kind, d.title)
-            groups[key].files.append(d.path)
-
-        for group in groups.values():
-            group.files.sort(key=natural_key)
-        report.groups = sorted(
-            groups.values(),
-            key=lambda g: (KIND_ORDER.index(g.kind), natural_key(Path(g.title or ""))),
-        )
         report.to_check.sort(key=lambda d: natural_key(d.path))
         return report
+
+    def confirm(
+        self, report: DetectionReport, item: DetectedFile, kind: ContentType
+    ) -> MediaGroup:
+        """Move a file to check into a group, with the type the user chose.
+
+        Args:
+            report: The report that holds the file in to_check.
+            item: The file to check.
+            kind: MOVIE, EPISODE, ALBUM, BOOK or GAME.
+
+        Returns:
+            The group the file went into.
+        """
+        if item in report.to_check:
+            report.to_check.remove(item)
+        title = self._title_for(item, kind)
+        return report.add(
+            DetectedFile(item.path, kind, title, True, "chosen by the user")
+        )
+
+    def _title_for(self, item: DetectedFile, kind: ContentType) -> Optional[str]:
+        """Title of a file once its type is known."""
+        if kind == item.kind:
+            return item.title
+        if kind == ContentType.MOVIE:
+            return None
+        if kind == ContentType.EPISODE:
+            return _series_folder_title(item.path)
+        if kind == ContentType.ALBUM:
+            return _album_folder(item.path).name
+        ops = self._book if kind == ContentType.BOOK else self._game
+        return ops.extract_info_from_filename(item.path.name)["title"] or item.path.stem
 
 
 def detect_sources(paths: Iterable[Path]) -> DetectionReport:

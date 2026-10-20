@@ -19,8 +19,9 @@ from sok.core.utils import natural_key
 def scan_sources(ops, paths: Iterable[Path]) -> List[Path]:
     """Return all matching files for provided paths using the ops helpers.
 
-    Uses the unified `find_files` method if available,
-    otherwise falls back to type-specific methods. Files keep the order of
+    A path can be a file, kept if the ops support its extension, or a folder.
+    Folders use the unified `find_files` method if available,
+    otherwise fall back to type-specific methods. Files keep the order of
     the source folders and are sorted naturally within each folder: the
     file system lists them in no particular order.
     """
@@ -30,7 +31,11 @@ def scan_sources(ops, paths: Iterable[Path]) -> List[Path]:
         path_str = str(path)
         found: list = []
 
-        if hasattr(ops, "find_files"):
+        if path.is_file():
+            extensions = getattr(ops, "supported_extensions", None)
+            if extensions is None or path.suffix.lower() in extensions:
+                found = [path_str]
+        elif hasattr(ops, "find_files"):
             found = ops.find_files(path_str)
         elif hasattr(ops, "find_video_files"):
             found = ops.find_video_files(path_str)
