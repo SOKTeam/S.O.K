@@ -217,5 +217,13 @@
     "documentation": "Dokumentacja S.O.K",
     "follow_system_theme": "Zgodnie z wyglądem systemu",
     "use_system_accent": "Użyj koloru akcentu systemu",
-    "show_in_finder": "Pokaż w Finderze"
+    "show_in_finder": "Pokaż w Finderze",
+    "error_online_service": "Usługa online",
+    "error_api_key": "{service}: brak klucza API lub jest on nieprawidłowy. Sprawdź go w {where}.",
+    "error_api_quota_wait": "{service}: zbyt wiele żądań. Spróbuj ponownie za {seconds} s.",
+    "error_api_quota": "{service}: zbyt wiele żądań lub wyczerpano dzienny limit. Spróbuj ponownie później.",
+    "error_api_timeout": "{service} nie odpowiedział na czas. Spróbuj ponownie.",
+    "error_api_connection": "Nie można połączyć się z {service}. Sprawdź połączenie z internetem.",
+    "error_api_not_found": "{service} nie zna tego elementu.",
+    "error_api_response": "{service} zwrócił błąd. Spróbuj ponownie później."
 }

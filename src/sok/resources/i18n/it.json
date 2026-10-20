@@ -217,5 +217,13 @@
     "documentation": "Documentazione di S.O.K",
     "follow_system_theme": "Usa l'aspetto del sistema",
     "use_system_accent": "Usa il colore di evidenziazione del sistema",
-    "show_in_finder": "Mostra nel Finder"
+    "show_in_finder": "Mostra nel Finder",
+    "error_online_service": "Il servizio online",
+    "error_api_key": "{service}: la chiave API manca o non è corretta. Controllala in {where}.",
+    "error_api_quota_wait": "{service}: troppe richieste. Riprova tra {seconds} s.",
+    "error_api_quota": "{service}: troppe richieste, o la quota giornaliera è esaurita. Riprova più tardi.",
+    "error_api_timeout": "{service} non ha risposto in tempo. Riprova.",
+    "error_api_connection": "Impossibile raggiungere {service}. Controlla la connessione a internet.",
+    "error_api_not_found": "{service} non conosce questo elemento.",
+    "error_api_response": "{service} ha restituito un errore. Riprova più tardi."
 }

@@ -217,5 +217,13 @@
     "documentation": "Documentación de S.O.K",
     "follow_system_theme": "Usar la apariencia del sistema",
     "use_system_accent": "Usar el color de acento del sistema",
-    "show_in_finder": "Mostrar en el Finder"
+    "show_in_finder": "Mostrar en el Finder",
+    "error_online_service": "El servicio en línea",
+    "error_api_key": "{service}: la clave API falta o es incorrecta. Revísala en {where}.",
+    "error_api_quota_wait": "{service}: demasiadas solicitudes. Vuelve a intentarlo en {seconds} s.",
+    "error_api_quota": "{service}: demasiadas solicitudes o se ha agotado la cuota del día. Vuelve a intentarlo más tarde.",
+    "error_api_timeout": "{service} no ha respondido a tiempo. Vuelve a intentarlo.",
+    "error_api_connection": "No se puede conectar con {service}. Comprueba tu conexión a internet.",
+    "error_api_not_found": "{service} no conoce este elemento.",
+    "error_api_response": "{service} ha devuelto un error. Vuelve a intentarlo más tarde."
 }
