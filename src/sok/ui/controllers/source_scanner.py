@@ -10,21 +10,10 @@
 # ===----------------------------------------------------------------------=== #
 """Helpers to scan source folders using available file operation methods."""
 
-import re
 from pathlib import Path
 from typing import Iterable, List
 
-
-def natural_key(path: Path) -> list:
-    """Sort key that orders numbers by value: "S01E2" before "S01E10".
-
-    Args:
-        path: File path, compared case-insensitively.
-    """
-    return [
-        int(part) if part.isdigit() else part
-        for part in re.split(r"(\d+)", str(path).casefold())
-    ]
+from sok.core.utils import natural_key
 
 
 def scan_sources(ops, paths: Iterable[Path]) -> List[Path]:
