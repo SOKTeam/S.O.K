@@ -47,6 +47,25 @@ class FileListOrganizerMixin:
             return []
         return media_item.get_folder_structure()
 
+    def batch_target(
+        self, media_item: MediaItem, file_path: Path, alone: bool
+    ) -> Tuple[List[str], str]:
+        """Folders and file name of one file of a batch.
+
+        Args:
+            media_item: The media item of the file.
+            file_path: The file.
+            alone: False when the item has other files in the batch, such
+                as the .bin of a .cue.
+
+        Returns:
+            The folders under the destination, and the new file name.
+        """
+        return (
+            self.get_destination_folders(media_item),
+            self.generate_new_filename(media_item, file_path.name),  # type: ignore[attr-defined]
+        )
+
     def organize_items_batch(
         self,
         mappings: List[Tuple[Path, MediaItem]],
@@ -56,9 +75,10 @@ class FileListOrganizerMixin:
     ) -> Dict[str, Any]:
         """Organize files that each have their own media item.
 
-        Each file goes to the folder structure of its item, under the name
-        generate_new_filename() gives: a batch of books, each with its own
-        book.
+        Each file goes where batch_target() says: by default the folder
+        structure of its item, under the name generate_new_filename() gives.
+        A batch of books, each with its own book, for instance. The files of
+        one item share the same media item object.
 
         Args:
             mappings: (file, media item) pairs.
@@ -83,15 +103,19 @@ class FileListOrganizerMixin:
             "total_moved": 0,
         }
 
+        files_per_item: Dict[int, int] = {}
+        for _, media_item in mappings:
+            files_per_item[id(media_item)] = files_per_item.get(id(media_item), 0) + 1
+
         for idx, (file_path, media_item) in enumerate(mappings):
             source_file = str(file_path)
             if progress_callback:
                 progress_callback(idx + 1, len(mappings), file_path.name)
 
-            dest_folder = os.path.join(
-                dest_path, *self.get_destination_folders(media_item)
+            folders, new_filename = self.batch_target(
+                media_item, file_path, files_per_item[id(media_item)] == 1
             )
-            new_filename = self.generate_new_filename(media_item, file_path.name)  # type: ignore[attr-defined]
+            dest_folder = os.path.join(dest_path, *folders)
             dest_file = os.path.join(dest_folder, new_filename)
 
             if skip_duplicates and os.path.exists(dest_file):

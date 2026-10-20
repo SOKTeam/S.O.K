@@ -562,6 +562,12 @@ class MediaBatchTable(QWidget):
         if row:
             row.set_loading()
 
+    def fail_pending(self) -> None:
+        """Show the rows still searching as Missing, after a failed search."""
+        for row in self._rows.values():
+            if row.get_status() == STATUS_PENDING:
+                row.set_candidates([])
+
     def apply_search_result(self, result: BatchMatch) -> None:
         """Apply a single batch search result to its row."""
         row = self._rows.get(result.file)

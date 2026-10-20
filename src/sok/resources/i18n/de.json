@@ -224,5 +224,8 @@
     "nothing_ready": "Keine Datei ist bereit zum Umbenennen.",
     "books_drop_hint": "Buchdateien oder Ordner ablegen oder klicken, um zu durchsuchen",
     "add_more_books": "+ Weitere Bücher hinzufügen",
-    "book_title_author": "Titel (Autor optional)"
+    "book_title_author": "Titel (Autor optional)",
+    "games_drop_hint": "Spieldateien oder Ordner ablegen oder klicken, um zu durchsuchen",
+    "add_more_games": "+ Weitere Spiele hinzufügen",
+    "game_title": "Spieltitel"
 }
