@@ -74,9 +74,12 @@ def create_media_item(
     elif content_type == "book":
         book = Book(title, language, manager)
         book.id = str(data.get("id"))
-        author = data.get("author", "")
+        # Search results give a list of authors, details a single string.
+        author = data.get("author") or ", ".join(data.get("authors") or [])
         if author:
             book.author = author
+        if data.get("published_date"):
+            book.published_date = str(data["published_date"])
         item = book
     elif content_type == "game":
         game = Game(title, language, manager)

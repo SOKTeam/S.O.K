@@ -295,10 +295,12 @@ class BookFileOperations(
     ) -> str:
         """Generate a new filename for a book.
 
-        Format: 'Author - Title.epub' or 'Author - [Series 01] - Title.epub'
+        With a book found online: 'Author - Title (Year).epub'. Otherwise the
+        file name is tidied: 'Author - Title.epub' or
+        'Author - [Series 01] - Title.epub'.
 
         Args:
-            media_item: The media item (Book).
+            media_item: The media item (Book), or None.
             original_filename: Original filename.
 
         Returns:
@@ -306,6 +308,9 @@ class BookFileOperations(
         """
         info = self.extract_info_from_filename(original_filename)
         extension = info["extension"]
+
+        if media_item is not None and getattr(media_item, "title", None):
+            return f"{media_item.get_formatted_name()}{extension}"
 
         if not info["author"] or not info["title"]:
             return original_filename

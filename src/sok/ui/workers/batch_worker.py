@@ -12,15 +12,14 @@
 
 import logging
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from PySide6.QtCore import Signal
 
-from sok.core.batch import BatchMatcher, QueryParser
+from sok.core.batch import BatchMatcher, QueryParser, SameWork
 from sok.core.interfaces import ContentType, MediaType
 from sok.core.media_manager import get_media_manager
 from sok.core.exceptions import APINotFoundError, UnsupportedMediaTypeError
-from sok.file_operations.video_operations import VideoFileOperations
 from sok.ui.workers.base import BaseWorker
 
 logger = logging.getLogger(__name__)
@@ -44,6 +43,8 @@ class BatchSearchWorker(BaseWorker):
         content_type: ContentType,
         parse: QueryParser,
         query: Optional[str] = None,
+        same_work: Optional[SameWork] = None,
+        localized: bool = True,
         config=None,
     ):
         """Initialize the worker.
@@ -54,6 +55,9 @@ class BatchSearchWorker(BaseWorker):
             content_type: What to search, such as ContentType.MOVIE.
             parse: Reads the query and the year from the files of an item.
             query: Search text typed by the user, for a single item.
+            same_work: Tells when several results are one work.
+            localized: Ask for results in the language of the app. Left out
+                for books, where it would hide books in other languages.
             config: Optional ConfigManager.
         """
         super().__init__(config)
@@ -62,6 +66,8 @@ class BatchSearchWorker(BaseWorker):
         self._content_type = content_type
         self._parse = parse
         self._query = query
+        self._same_work = same_work
+        self._localized = localized
         self._manager = get_media_manager()
 
     def execute(self):
@@ -81,9 +87,13 @@ class BatchSearchWorker(BaseWorker):
                 f"No API configured for {self._media_type.value}."
             ) from exc
 
-        lang = self._config.get("language", "en")
-        api_lang = f"{lang}-{lang.upper()}" if len(lang) == 2 else lang
-        matcher = BatchMatcher(self._manager, self._content_type, self._parse, api_lang)
+        api_lang = None
+        if self._localized:
+            lang = self._config.get("language", "en")
+            api_lang = f"{lang}-{lang.upper()}" if len(lang) == 2 else lang
+        matcher = BatchMatcher(
+            self._manager, self._content_type, self._parse, api_lang, self._same_work
+        )
 
         if self._query is not None:
             return [await matcher.match(self._items[0], self._query)]
@@ -94,8 +104,12 @@ class BatchSearchWorker(BaseWorker):
         return await matcher.match_all(self._items, on_progress)
 
 
-class MovieBatchOrganizeWorker(BaseWorker):
-    """Worker that renames/moves a list of movies, each with its own metadata.
+# Organizes (file, media item) pairs, such as organize_movies_batch().
+OrganizeBatch = Callable[..., Dict[str, Any]]
+
+
+class BatchOrganizeWorker(BaseWorker):
+    """Worker that renames/moves files, each with its own media item.
 
     Signals:
         progress (int, str): Percent complete and current filename.
@@ -109,21 +123,22 @@ class MovieBatchOrganizeWorker(BaseWorker):
         self,
         mappings: List[Tuple[Path, Any]],
         dest_path: str,
-        ops: VideoFileOperations,
+        organize: OrganizeBatch,
         config=None,
     ):
         """Initialize the worker.
 
         Args:
-            mappings: List of (file, Movie) tuples.
+            mappings: List of (file, media item) tuples.
             dest_path: Destination directory.
-            ops: VideoFileOperations instance.
+            organize: Method of the file operations that moves the files,
+                such as VideoFileOperations.organize_movies_batch.
             config: Optional ConfigManager.
         """
         super().__init__(config)
         self._mappings = mappings
         self._dest = dest_path
-        self._ops = ops
+        self._organize = organize
 
     def _on_progress(self, current: int, total: int, filename: str):
         if total > 0:
@@ -137,7 +152,7 @@ class MovieBatchOrganizeWorker(BaseWorker):
             return
 
         self.progress.emit(0, "Preparing...")
-        report = self._ops.organize_movies_batch(
+        report = self._organize(
             mappings=self._mappings,
             dest_path=str(self._dest),
             dry_run=False,

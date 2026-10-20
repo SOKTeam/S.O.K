@@ -16,7 +16,9 @@ search query read from its name, the candidates of the online database and
 a status:
 
 - Ready: one candidate has the title of the file and, when the file name
-  gives a year, that year. It is selected and can be renamed as is.
+  gives them, its year and its author. It is selected and can be renamed
+  as is. Several candidates can count as one when they are the same work,
+  such as the editions of a book.
 - Pick one: candidates were found, but none or several match exactly. The
   most likely one is selected, and the user must confirm it.
 - Missing: the search found nothing.
@@ -35,6 +37,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from sok.core.exceptions import APIError
 from sok.core.interfaces import ContentType
+from sok.file_operations.book_operations import BookFileOperations
 from sok.file_operations.video_operations import VideoFileOperations
 
 logger = logging.getLogger(__name__)
@@ -50,8 +53,28 @@ SEARCH_CONCURRENCY = 4
 TITLE_KEYS = ("title", "name", "original_title", "original_name")
 DATE_KEYS = ("release_date", "first_air_date", "published_date", "year")
 
-# Reads the search query and the year from the files of one item.
-QueryParser = Callable[[Sequence[Path]], Tuple[str, Optional[int]]]
+
+@dataclass
+class ParsedName:
+    """What the file name of an item tells about it.
+
+    Attributes:
+        query: Text to search.
+        year: Year in the name, or None.
+        title: Title to compare with the results; the query if None.
+        author: Author in the name (books), or None.
+    """
+
+    query: str
+    year: Optional[int] = None
+    title: Optional[str] = None
+    author: Optional[str] = None
+
+
+# Reads the file name of an item.
+QueryParser = Callable[[Sequence[Path]], ParsedName]
+# True when two search results are the same work, such as two editions.
+SameWork = Callable[[Dict[str, Any], Dict[str, Any]], bool]
 
 
 @dataclass
@@ -111,15 +134,59 @@ def title_matches(query: str, candidate: Dict[str, Any]) -> bool:
     )
 
 
+def candidate_authors(candidate: Dict[str, Any]) -> List[str]:
+    """Authors of a search result, normalized."""
+    authors = candidate.get("authors") or candidate.get("author") or []
+    if isinstance(authors, str):
+        authors = [authors]
+    return [normalize_title(str(a)) for a in authors if a]
+
+
+def author_matches(author: str, candidate: Dict[str, Any]) -> bool:
+    """True if the author of the file name is an author of the result.
+
+    "Herbert" matches "Frank Herbert": file names often give the last name.
+    """
+    wanted = normalize_title(author)
+    last = normalize_title(author.split()[-1]) if author.split() else ""
+    return bool(wanted) and any(
+        a == wanted or (last and a.endswith(last)) for a in candidate_authors(candidate)
+    )
+
+
+def same_book(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
+    """Two results with the same title and authors are editions of one book."""
+    return normalize_title(str(a.get("title") or "")) == normalize_title(
+        str(b.get("title") or "")
+    ) and set(candidate_authors(a)) == set(candidate_authors(b))
+
+
+def _one_work(indexes: List[int], candidates, same_work: Optional[SameWork]) -> bool:
+    """True if the candidates at these indexes are a single work."""
+    if len(indexes) == 1:
+        return True
+    first = candidates[indexes[0]]
+    return same_work is not None and all(
+        same_work(first, candidates[i]) for i in indexes[1:]
+    )
+
+
 def evaluate(
-    query: str, year: Optional[int], candidates: List[Dict[str, Any]]
+    query: str,
+    year: Optional[int],
+    candidates: List[Dict[str, Any]],
+    author: Optional[str] = None,
+    same_work: Optional[SameWork] = None,
 ) -> Tuple[Optional[int], str]:
     """Choose the candidate to select and the status of an item.
 
     Args:
-        query: Search text.
+        query: Title to compare with the results.
         year: Year read from the file name, or None.
         candidates: Search results.
+        author: Author read from the file name, or None.
+        same_work: Tells when several matching results are one work. By
+            default every result is a different work (movies).
 
     Returns:
         The index of the candidate to select (None without candidates) and
@@ -128,14 +195,18 @@ def evaluate(
     if not candidates:
         return None, STATUS_MISSING
 
-    titled = [i for i, c in enumerate(candidates) if title_matches(query, c)]
+    titled = [
+        i
+        for i, c in enumerate(candidates)
+        if title_matches(query, c) and (not author or author_matches(author, c))
+    ]
     if year is None:
-        if len(titled) == 1:
+        if titled and _one_work(titled, candidates, same_work):
             return titled[0], STATUS_READY
         return (titled[0] if titled else 0), STATUS_AMBIGUOUS
 
     exact = [i for i in titled if candidate_year(candidates[i]) == year]
-    if len(exact) == 1:
+    if exact and _one_work(exact, candidates, same_work):
         return exact[0], STATUS_READY
     if exact:
         return exact[0], STATUS_AMBIGUOUS
@@ -147,10 +218,26 @@ def evaluate(
     return (titled[0] if titled else 0), STATUS_AMBIGUOUS
 
 
-def parse_movie(files: Sequence[Path]) -> Tuple[str, Optional[int]]:
-    """Query and year of a movie file: "Dune.Part.Two.2024.mkv" → Dune Part Two."""
+def parse_movie(files: Sequence[Path]) -> ParsedName:
+    """Read a movie file name: "Dune.Part.Two.2024.mkv" → Dune Part Two, 2024."""
     info = VideoFileOperations().extract_info_from_filename(files[0].name)
-    return info.get("title") or files[0].stem, info.get("year")
+    return ParsedName(info.get("title") or files[0].stem, info.get("year"))
+
+
+def parse_book(files: Sequence[Path]) -> ParsedName:
+    """Read a book file name: "Frank Herbert - Dune.epub" → Dune, by Herbert.
+
+    The author is added to the search, which finds the right book more
+    often, but only the title and the author are compared with the results.
+    The year is left out: it is often the year of the first edition, while
+    the results are later editions.
+    """
+    ops = BookFileOperations()
+    info = ops.extract_info_from_filename(files[0].name)
+    title = ops.clean_title(info.get("title") or files[0].stem)
+    author = info.get("author")
+    query = f"{title} {author}" if author else title
+    return ParsedName(query, None, title, author)
 
 
 class BatchMatcher:
@@ -159,8 +246,9 @@ class BatchMatcher:
     Args:
         manager: The media manager (sok.core.media_manager).
         content_type: What to search, such as ContentType.MOVIE.
-        parse: Reads the query and the year from the files of an item.
+        parse: Reads the file name of an item.
         language: Language of the results, such as "fr-FR", or None.
+        same_work: Tells when several results are one work (see evaluate).
     """
 
     def __init__(
@@ -169,11 +257,13 @@ class BatchMatcher:
         content_type: ContentType,
         parse: QueryParser,
         language: Optional[str] = None,
+        same_work: Optional[SameWork] = None,
     ) -> None:
         self._manager = manager
         self._content_type = content_type
         self._parse = parse
         self._language = language
+        self._same_work = same_work
 
     async def match(
         self, files: Sequence[Path], query: Optional[str] = None
@@ -183,13 +273,16 @@ class BatchMatcher:
         Args:
             files: Files of the item.
             query: Search text typed by the user, instead of the file name.
-                The year of the file name is kept.
+                It is then also the title compared with the results; the
+                year of the file name is kept.
 
         Returns:
             The match. A failed search gives no candidates (Missing).
         """
-        parsed_query, year = self._parse(files)
-        text = (query or parsed_query).strip()
+        parsed = self._parse(files)
+        text = (query or parsed.query).strip()
+        title = text if query else (parsed.title or parsed.query)
+        author = None if query else parsed.author
         candidates: List[Dict[str, Any]] = []
         kwargs = {"language": self._language} if self._language else {}
         try:
@@ -198,8 +291,10 @@ class BatchMatcher:
             candidates = list(raw or [])[:MAX_CANDIDATES]
         except APIError as exc:
             logger.warning("Search failed for %s: %s", files[0].name, exc)
-        selected, status = evaluate(text, year, candidates)
-        return BatchMatch(list(files), text, year, candidates, selected, status)
+        selected, status = evaluate(
+            title, parsed.year, candidates, author, self._same_work
+        )
+        return BatchMatch(list(files), text, parsed.year, candidates, selected, status)
 
     async def match_all(
         self,

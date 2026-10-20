@@ -219,5 +219,10 @@
     "use_system_accent": "Akzentfarbe des Systems verwenden",
     "show_in_finder": "Im Finder anzeigen",
     "rename_skips_to_pick": "{0} noch auszuwählende Datei(en) bleiben unverändert.",
-    "batch_drop_hint": "Dateien oder Ordner ablegen oder klicken, um zu durchsuchen"
+    "batch_drop_hint": "Dateien oder Ordner ablegen oder klicken, um zu durchsuchen",
+    "rename_confirm_files": "{0} Datei(en) umbenennen?",
+    "nothing_ready": "Keine Datei ist bereit zum Umbenennen.",
+    "books_drop_hint": "Buchdateien oder Ordner ablegen oder klicken, um zu durchsuchen",
+    "add_more_books": "+ Weitere Bücher hinzufügen",
+    "book_title_author": "Titel (Autor optional)"
 }

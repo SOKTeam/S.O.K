@@ -16,9 +16,13 @@ from sok.core.batch import (
     STATUS_MISSING,
     STATUS_READY,
     BatchMatcher,
+    ParsedName,
+    author_matches,
     evaluate,
     normalize_title,
+    parse_book,
     parse_movie,
+    same_book,
 )
 from sok.core.exceptions import APIConnectionError
 from sok.core.interfaces import ContentType
@@ -84,9 +88,8 @@ def test_nothing_found_is_missing():
 
 
 def test_movie_query_and_year_come_from_the_file_name():
-    assert parse_movie([Path("Dune.Part.Two.2024.2160p.mkv")]) == (
-        "Dune Part Two",
-        2024,
+    assert parse_movie([Path("Dune.Part.Two.2024.2160p.mkv")]) == ParsedName(
+        "Dune Part Two", 2024
     )
 
 
@@ -143,4 +146,67 @@ def test_failed_search_is_missing():
         [],
         None,
         STATUS_MISSING,
+    )
+
+
+def book(title, authors, date):
+    return {"title": title, "authors": authors, "published_date": date}
+
+
+HERBERT = ["Frank Herbert"]
+
+
+def test_editions_of_one_book_are_ready():
+    results = [book("Dune", HERBERT, "1965"), book("Dune", HERBERT, "2005")]
+    assert evaluate("Dune", None, results, "Frank Herbert", same_book) == (
+        0,
+        STATUS_READY,
+    )
+
+
+def test_books_by_other_authors_are_to_pick():
+    results = [book("Dune", HERBERT, "1965"), book("Dune", ["Someone Else"], "2010")]
+    assert evaluate("Dune", None, results, None, same_book) == (0, STATUS_AMBIGUOUS)
+
+
+def test_the_author_of_the_file_name_picks_the_book():
+    results = [book("Dune", ["Someone Else"], "2010"), book("Dune", HERBERT, "1965")]
+    assert evaluate("Dune", None, results, "Herbert", same_book) == (1, STATUS_READY)
+
+
+def test_movies_with_one_title_and_year_stay_to_pick():
+    # Without same_work, two results are two works, even with one title.
+    results = [movie("Arrival", "2016-11-10"), movie("Arrival", "2016-05-25")]
+    assert evaluate("Arrival", 2016, results) == (0, STATUS_AMBIGUOUS)
+
+
+def test_an_author_matches_by_full_or_last_name():
+    candidate = book("Dune", ["Frank Herbert", "Brian Herbert"], "1965")
+    assert author_matches("Frank Herbert", candidate)
+    assert author_matches("herbert", candidate)
+    assert not author_matches("Asimov", candidate)
+
+
+def test_book_file_name_gives_title_and_author_but_no_year():
+    parsed = parse_book(
+        [Path("Ursula K. Le Guin - The Left Hand of Darkness (1969).epub")]
+    )
+    assert parsed == ParsedName(
+        "The Left Hand of Darkness Ursula K. Le Guin",
+        None,
+        "The Left Hand of Darkness",
+        "Ursula K. Le Guin",
+    )
+
+
+def test_book_matcher_compares_the_title_not_the_whole_query():
+    manager = FakeManager({"Dune Frank Herbert": [book("Dune", HERBERT, "1965")]})
+    matcher = BatchMatcher(manager, ContentType.BOOK, parse_book, None, same_book)
+
+    match = asyncio.run(matcher.match([Path("Frank Herbert - Dune.epub")]))
+
+    assert (match.query, match.status, match.selected) == (
+        "Dune Frank Herbert",
+        STATUS_READY,
+        0,
     )

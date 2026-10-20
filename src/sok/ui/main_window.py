@@ -55,6 +55,7 @@ from sok.ui.controllers.window_chrome import ResizeGrips, hit_test_resize
 from sok.ui.pages.home_page import HomePage
 from sok.ui.pages.organize_page import OrganizePage
 from sok.ui.pages.movies_page import MoviesPage
+from sok.ui.pages.books_page import BooksPage
 from sok.ui.pages.settings_page import SettingsPage
 from sok.ui.components.integrations.discord import setup_discord_rpc
 from sok.ui.components.integrations.updates import check_and_show_updates
@@ -369,7 +370,7 @@ class MainWindow(QMainWindow):
         self._pages.addWidget(OrganizePage("video"))
         self._pages.addWidget(MoviesPage())
         self._pages.addWidget(OrganizePage("music"))
-        self._pages.addWidget(OrganizePage("book"))
+        self._pages.addWidget(BooksPage())
         self._pages.addWidget(OrganizePage("game"))
 
         settings_page = SettingsPage(self._toggle_theme)

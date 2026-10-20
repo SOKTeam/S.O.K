@@ -88,11 +88,12 @@ class GoogleBooksApi(BaseAPI):
         Returns:
             Dictionary with 'results' list of matching books.
         """
-        params = {
-            "q": query,
-            "maxResults": kwargs.get("max_results", 10),
-            "langRestrict": kwargs.get("language", "en"),
-        }
+        params = {"q": query, "maxResults": kwargs.get("max_results", 10)}
+        # Google expects a two-letter code ("fr"), not "fr-FR". Without a
+        # language, books in every language are returned.
+        language = kwargs.get("language")
+        if language:
+            params["langRestrict"] = str(language).split("-")[0]
 
         if self.api_key:
             params["key"] = self.api_key
