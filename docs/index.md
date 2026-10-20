@@ -24,6 +24,8 @@ This documentation is for people who work on the code. To use the app, see the
   requests.
 - **API reference** (at the bottom of the sidebar): every module, class and
   function, generated from the docstrings.
+- **[Changelog](https://github.com/SOKTeam/S.O.K/blob/main/CHANGELOG.md)**: what
+  changed in each version.
 
 ## At a glance
 
