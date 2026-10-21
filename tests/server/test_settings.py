@@ -228,3 +228,39 @@ def test_an_empty_source_is_only_compared_by_drive(tmp_path, folders):
 
     assert check.ok
     assert not check.tested
+
+
+def test_the_key_test_uses_the_saved_key(client, monkeypatch):
+    from sok.server.api import settings as settings_api
+
+    seen = []
+
+    async def fake_check(service, key, secret=""):
+        seen.append((service, key, secret))
+        from sok.apis.key_check import KeyCheck
+
+        return KeyCheck(service, "ok")
+
+    monkeypatch.setattr(settings_api, "check_key", fake_check)
+    patch(client, keys={"api_key_tmdb_v4": "saved-token"})
+
+    answer = client.post("/api/settings/test-key", json={"service": "tmdb"})
+
+    assert answer.json() == {"service": "tmdb", "status": "ok", "detail": ""}
+    assert seen == [("tmdb", "saved-token", "")]
+    assert "saved-token" not in answer.text
+
+    client.post(
+        "/api/settings/test-key",
+        json={"service": "spotify", "key": " typed-id ", "secret": "typed-secret"},
+    )
+    assert seen[-1] == ("spotify", "typed-id", "typed-secret")
+
+
+def test_the_key_test_needs_a_login(client):
+    client.post("/api/logout")
+
+    assert (
+        client.post("/api/settings/test-key", json={"service": "tmdb"}).status_code
+        == 401
+    )

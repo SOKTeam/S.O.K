@@ -8,7 +8,7 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-"""The settings: /api/settings and /api/settings/test-link.
+"""The settings: /api/settings, /api/settings/test-link and test-key.
 
 An error gives {"code", "item"} in "detail": unknown_setting,
 invalid_value, unknown_key, key_locked, unknown_folder_role or
@@ -20,6 +20,8 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 
+from sok.apis.key_check import check_key
+from sok.config.api_registry import get_service
 from sok.core.history import LINK
 from sok.core.media_manager import reset_media_manager
 from sok.server.api.auth import require_login
@@ -37,6 +39,13 @@ class SettingsChange(BaseModel):
 class LinkTest(BaseModel):
     source: str
     destination: str
+
+
+class KeyTest(BaseModel):
+    service: str
+    # The key typed, not saved yet; without it, the saved one.
+    key: Optional[str] = None
+    secret: Optional[str] = None
 
 
 def settings(request: Request) -> Settings:
@@ -86,3 +95,20 @@ def change_settings(change: SettingsChange, request: Request) -> dict:
 def test_link(test: LinkTest) -> dict:
     """Whether a hard link works from a folder to another."""
     return as_dict(check_link(test.source, test.destination))
+
+
+@router.post("/test-key")
+async def test_key(test: KeyTest, request: Request) -> dict:
+    """Whether the key of a service works: ok, wrong_key, missing_key,
+    rate_limited, service_error, unreachable or unsupported. The key is
+    never sent back."""
+    config = request.app.state.config
+    service = get_service(test.service)
+    key, secret = test.key, test.secret
+    if service is not None:
+        if key is None and service.config_key:
+            key = config.get(service.config_key, "")
+        if secret is None and service.secret_config_key:
+            secret = config.get(service.secret_config_key, "")
+    check = await check_key(test.service, (key or "").strip(), (secret or "").strip())
+    return {"service": check.service, "status": check.status, "detail": check.detail}

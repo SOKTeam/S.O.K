@@ -100,8 +100,9 @@ interface are planned.
 
 ### API keys
 
-**In place since v1.5.0** ([Settings](/server/overview/#settings)), except the
-"Test" button and the page of the interface.
+**In place since v1.5.0** ([Settings](/server/overview/#settings),
+[Testing a key](/server/overview/#testing-a-key)), except the page of the
+interface.
 
 - The settings page lists the services like the desktop app, with a "Test"
   button. The keys typed there are encrypted in `/config`.
