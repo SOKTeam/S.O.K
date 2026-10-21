@@ -1,0 +1,72 @@
+name: Build the S.O.K Server image
+
+on:
+  # Run by hand from the Actions tab (or gh workflow run), on any branch: it
+  # builds the image for both architectures without pushing it.
+  workflow_dispatch:
+  # Called by release.yml once semantic-release has published a version: the
+  # image is pushed to GHCR with the tags of that version.
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag (vX.Y.Z) to build and push the image of.
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/sokteam/sok-server
+
+jobs:
+  image:
+    name: Image (amd64, arm64)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      # arm64 is built through QEMU on the amd64 runner.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: inputs.tag != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tags of the image
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          # X.Y.Z, X.Y and latest for a release; a manual run gets the commit.
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.tag }},enable=${{ inputs.tag != '' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag }},enable=${{ inputs.tag != '' }}
+            type=raw,value=latest,enable=${{ inputs.tag != '' }}
+            type=sha,enable=${{ inputs.tag == '' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ inputs.tag != '' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

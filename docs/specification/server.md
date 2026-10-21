@@ -28,7 +28,7 @@ requirement has a status: **planned**, **in place since vX.Y.Z**, or
 
 ## Deployment
 
-**Planned.**
+**In place since v1.5.0** ([Docker image](/server/overview/#docker-image)).
 
 - Image `ghcr.io/sokteam/sok-server`, tags `latest`, `X.Y.Z` and `X.Y`, for
   `linux/amd64` and `linux/arm64`. Same version number as the desktop app.
@@ -250,7 +250,7 @@ Dockerfile                                            Node build of web/, then P
 
 ### Delivery
 
-**Planned.**
+**In place since v1.5.0** for the image; the docs of the user guide are planned.
 
 - `release.yml` builds the image with Docker Buildx (amd64 and arm64) and pushes
   it to GHCR, as a fourth build next to the three desktop packages. `publish`

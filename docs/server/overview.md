@@ -10,8 +10,8 @@ part describes what is built.
 
 :::note
 The server is being built. In place today: the database, the account, the
-login, the health check and the settings. The test of a key, the analysis, the
-renames, the web interface and the Docker image follow.
+login, the health check, the settings and the Docker image. The test of a key,
+the analysis, the renames and the web interface follow.
 :::
 
 ## Running it from source
@@ -36,6 +36,41 @@ SOK_CONFIG_DIR=/tmp/sok-config uv run sok-server
 Only the `server` extra is needed to run it (`uv sync --extra server`): FastAPI,
 uvicorn and argon2-cffi. The desktop build leaves `sok.server` out
 (`--nofollow-import-to=sok.server`).
+
+## Docker image
+
+`ghcr.io/sokteam/sok-server`, built from the `Dockerfile` at the root:
+
+```sh
+docker build -t sok-server .
+docker run -p 8080:8080 -v ./config:/config -v /mnt/storage:/data sok-server
+```
+
+- **Contents.** `python:3.13-slim-trixie`, the dependencies of the `server`
+  extra installed by uv from `uv.lock` (no Qt), and `src/` without `sok/ui/`
+  and `main.py`, run from there (`PYTHONPATH=/app/src`,
+  `python -m sok.server.app`). `.dockerignore` lets in only `pyproject.toml`,
+  `uv.lock`, `README.md`, `src/` and `packaging/docker/`: never `.env`, so the
+  image has no key of the project.
+- **Variables set by the image.** `SOK_CONFIG_DIR=/config`,
+  `SOK_ENV_KEYS_WIN=1` (the keys given to the container win),
+  `SOK_HOST=0.0.0.0`, `SOK_PORT=8080`, `PUID=1000`, `PGID=1000`. `TZ` works
+  (tzdata is installed).
+- **User.** `packaging/docker/entrypoint.sh` starts as root, gives `/config` to
+  `PUID:PGID` and runs the server as that user (`setpriv`), so its files belong
+  to the user of the NAS. The media folders keep their owners. Started with
+  `--user`, the image runs as it is.
+- **Health check.** `HEALTHCHECK` calls `GET /api/health` every 30 seconds.
+- **Building it for a release.** `build-docker.yml`, called by `release.yml`,
+  builds `linux/amd64` and `linux/arm64` (QEMU) with Buildx and pushes the tags
+  `X.Y.Z`, `X.Y` and `latest` with the `GITHUB_TOKEN`. Run by hand, it builds
+  both without pushing.
+
+:::caution
+The first push creates the package `sok-server` on GitHub as **private**. Make
+it public once, in the package settings of the organization, so that users can
+pull it without logging in.
+:::
 
 ## Code
 

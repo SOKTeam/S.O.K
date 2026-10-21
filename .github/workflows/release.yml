@@ -121,12 +121,24 @@ jobs:
     secrets:
       SOK_ENV: ${{ secrets.SOK_ENV }}
 
+  docker:
+    name: S.O.K Server image
+    needs: release
+    if: needs.release.outputs.version != ''
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-docker.yml
+    with:
+      tag: v${{ needs.release.outputs.version }}
+
   publish:
     # The release is created as a draft (.releaserc.json), so the apps and the
     # website never see it without its packages. It is published once the
-    # three builds have attached them; if one fails, it stays a draft.
+    # three builds have attached them and the server image is pushed; if one
+    # fails, it stays a draft.
     name: Publish the release
-    needs: [release, linux, windows, macos]
+    needs: [release, linux, windows, macos, docker]
     runs-on: ubuntu-latest
     permissions:
       contents: write
