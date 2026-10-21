@@ -20,6 +20,7 @@ from sok.core.batch import BatchMatcher, QueryParser, SameWork
 from sok.core.interfaces import ContentType, MediaType
 from sok.core.media_manager import get_media_manager
 from sok.core.exceptions import APINotFoundError, UnsupportedMediaTypeError
+from sok.file_operations.artwork import save_artwork
 from sok.ui.workers.base import BaseWorker
 
 logger = logging.getLogger(__name__)
@@ -158,6 +159,9 @@ class BatchOrganizeWorker(BaseWorker):
             dry_run=False,
             progress_callback=self._on_progress,
         )
+        if self._config.get("download_posters") and report.get("moved"):
+            self.progress.emit(100, "Downloading posters...")
+            save_artwork(self._mappings, report["moved"], str(self._dest))
         self.progress.emit(100, "Done!")
         self.finished.emit(
             {

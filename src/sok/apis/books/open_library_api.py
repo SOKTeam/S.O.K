@@ -75,6 +75,11 @@ class OpenLibraryApi(BaseAPI):
                     "author": ", ".join(doc.get("author_name", [])),
                     "published_date": str(doc.get("first_publish_year")),
                     "isbn": doc.get("isbn", [None])[0] if doc.get("isbn") else None,
+                    "image_url": (
+                        f"https://covers.openlibrary.org/b/id/{doc['cover_i']}-L.jpg"
+                        if doc.get("cover_i")
+                        else None
+                    ),
                 }
             )
 
