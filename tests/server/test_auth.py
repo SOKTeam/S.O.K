@@ -26,12 +26,6 @@ from sok.server.db import MIGRATIONS, Database
 PASSWORD = "correct horse"
 
 
-@pytest.fixture(autouse=True)
-def no_env(monkeypatch):
-    for name in ("SOK_AUTH", "SOK_USERNAME", "SOK_PASSWORD"):
-        monkeypatch.delenv(name, raising=False)
-
-
 def make_client(tmp_path):
     app = create_app(tmp_path)
 

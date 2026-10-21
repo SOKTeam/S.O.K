@@ -36,6 +36,14 @@ MIGRATIONS: List[str] = [
         expires TEXT NOT NULL
     );
     """,
+    """
+    CREATE TABLE folders (
+        role TEXT NOT NULL,
+        position INTEGER NOT NULL,
+        path TEXT NOT NULL,
+        PRIMARY KEY (role, position)
+    );
+    """,
 ]
 
 
@@ -49,6 +57,8 @@ class Database:
         self._connection = sqlite3.connect(self.path, check_same_thread=False)
         self._connection.row_factory = sqlite3.Row
         self._connection.execute("PRAGMA foreign_keys = ON")
+        # True when this opening created the database: a new installation.
+        self.created = self.version == 0
         self._migrate()
 
     def _migrate(self) -> None:

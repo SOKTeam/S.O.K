@@ -461,12 +461,16 @@ class ConfigManager:
 
         return default
 
+    def from_env(self, key: str) -> bool:
+        """Whether an environment variable gives this key (not a build key)."""
+        return key in self._env_values
+
     def env_locked(self, key: str) -> bool:
         """Whether a key comes from the environment and wins over the settings.
 
         The settings of the server show such a key as locked.
         """
-        return env_keys_win() and key in self._env_values
+        return env_keys_win() and self.from_env(key)
 
     def get_user_value(self, key: str, default: Any = None) -> Any:
         """
