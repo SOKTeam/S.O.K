@@ -41,6 +41,9 @@ sidebar:
       - guides/translations
       - guides/building
       - guides/documentation
+  - label: Reference
+    items:
+      - reference/settings
   - contributing
 api:
   python: api.json
