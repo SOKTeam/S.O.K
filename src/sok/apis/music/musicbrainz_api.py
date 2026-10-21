@@ -152,6 +152,7 @@ class MusicBrainzApi(BaseAPI):
                     "country": release.get("country", ""),
                     "status": release.get("status", ""),
                     "barcode": release.get("barcode", ""),
+                    "poster_path": _cover_url(release.get("id")),
                 }
             )
 
@@ -246,6 +247,7 @@ class MusicBrainzApi(BaseAPI):
                     "album_type": _album_type(release.get("release-group", {})),
                     "release_date": release.get("date", ""),
                     "duration": recording.get("length", 0),
+                    "poster_path": _cover_url(release.get("id")),
                 }
             )
 
@@ -381,6 +383,14 @@ class MusicBrainzApi(BaseAPI):
 
 # Releases that are not the own album of a track.
 OTHER_RELEASES = {"compilation", "live", "remix"}
+
+
+def _cover_url(release_id: Optional[str]) -> Optional[str]:
+    """Front cover of a release on the Cover Art Archive, the image service
+    of MusicBrainz. The link answers 404 when the release has none."""
+    if not release_id:
+        return None
+    return f"https://coverartarchive.org/release/{release_id}/front-500"
 
 
 def _lucene(text: str) -> str:

@@ -157,6 +157,8 @@ class MediaItem(ABC):
         content_type: Specific type (MOVIE, ALBUM, etc.).
         id: Unique identifier from the source API.
         metadata: Additional metadata dictionary.
+        poster_url: Poster or cover of the item, as the service gives it
+            (a URL, or a TMDB path), or None.
     """
 
     def __init__(self, title: str, media_type: MediaType, content_type: ContentType):
@@ -172,6 +174,7 @@ class MediaItem(ABC):
         self.content_type = content_type
         self.id: Optional[str] = None
         self.metadata: Dict[str, Any] = {}
+        self.poster_url: Optional[str] = None
 
     @abstractmethod
     def get_formatted_name(self) -> str:

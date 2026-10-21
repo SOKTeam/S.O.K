@@ -20,6 +20,13 @@ from sok.apis.base_api import BaseAPI
 from sok.core.interfaces import MediaType, ContentType
 
 
+def _cover_url(thumbnail: Optional[str]) -> Optional[str]:
+    """Cover of a volume over HTTPS, without the page curl drawn on it."""
+    if not thumbnail:
+        return None
+    return thumbnail.replace("http://", "https://").replace("&edge=curl", "")
+
+
 class GoogleBooksApi(BaseAPI):
     """Google Books API implementation for book search and metadata.
 
@@ -117,6 +124,9 @@ class GoogleBooksApi(BaseAPI):
                     "page_count": volume_info.get("pageCount"),
                     "categories": volume_info.get("categories", []),
                     "language": volume_info.get("language"),
+                    "image_url": _cover_url(
+                        volume_info.get("imageLinks", {}).get("thumbnail")
+                    ),
                 }
             )
 
@@ -152,7 +162,7 @@ class GoogleBooksApi(BaseAPI):
             "page_count": volume_info.get("pageCount"),
             "categories": volume_info.get("categories", []),
             "language": volume_info.get("language"),
-            "image_url": volume_info.get("imageLinks", {}).get("thumbnail"),
+            "image_url": _cover_url(volume_info.get("imageLinks", {}).get("thumbnail")),
         }
 
     def _extract_isbn(self, identifiers: List[Dict]) -> Optional[str]:

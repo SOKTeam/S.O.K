@@ -60,7 +60,7 @@ class BehaviorSection(QWidget):
                 "create_folders",
                 True,
             ),
-            ("download_posters", "Download posters", "download_posters", False),
+            ("download_posters", "Download posters", "download_posters", True),
             (
                 "backup_before_rename",
                 "Backup before renaming",

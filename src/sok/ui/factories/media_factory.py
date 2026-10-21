@@ -106,4 +106,6 @@ def create_media_item(
             game.release_date = str(data["release_date"])
         item = game
 
+    if item is not None:
+        item.poster_url = data.get("poster_path") or data.get("image_url")
     return item
