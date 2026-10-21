@@ -81,10 +81,10 @@ def test_an_analysis_sorts_the_files_into_rows(client, tmp_path, downloads):
     assert summary["scan"]["status"] == "done"
     counts = {media: c["total"] for media, c in summary["counts"].items()}
     assert counts == {"movies": 2, "tv": 1, "music": 0, "books": 1, "games": 1}
-    # Movies and series are searched; the other types wait for their tabs.
+    # Every row is searched.
     assert summary["counts"]["movies"]["ok"] == 2
     assert summary["counts"]["tv"]["ok"] == 1
-    assert summary["counts"]["books"]["pending"] == 1
+    assert summary["counts"]["books"]["ok"] == 1
     series = next(r for r in rows(tmp_path).values() if r["media_type"] == "tv")
     assert series["title"] == "Severance"
     assert [f.rsplit("/", 1)[1] for f in json.loads(series["files"])] == [

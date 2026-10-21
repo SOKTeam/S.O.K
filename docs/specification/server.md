@@ -128,9 +128,8 @@ interface.
 
 ### Analysis
 
-**In place since v1.5.0 for movies and TV shows**
-([Analyses](/server/overview/#analyses), [Search](/server/overview/#search));
-music, books and games are sorted and counted, their search is planned.
+**In place since v1.5.0** ([Analyses](/server/overview/#analyses),
+[Search](/server/overview/#search)).
 
 - The files are sorted by `MediaTypeDetector`
   (`sok/file_operations/detection.py`) and searched by `BatchMatcher`
@@ -154,13 +153,17 @@ music, books and games are sorted and counted, their search is planned.
   picked by hand, one request per season; not for a series still to pick.
 - **A missing key or a used quota stops the analysis**, and the summary says so
   ("TMDB key missing"). The files already sorted stay; the search can be run
-  again once the key is set.
+  again once the key is set. Only the media types of that service stop: a used
+  quota of Google Books does not keep the games from their search.
+- **Albums** are read from the tags of their tracks (the album and artist most
+  tracks give), or else from their folder ("Daft Punk - Discovery (2001)"). An
+  album is Ready when its title and artist match, and its year when the
+  results give one; the versions of one album count as one. Its tracks keep
+  the title and number of their tags (or file names).
 - **Files to check** (a type that is a guess, such as an `.iso`, a movie or a
   game) are listed in the summary with the type suggested. The user confirms or
   changes it, and the file joins the tab of that type; the next analyses
   remember the choice.
-- Until the tabs of music, books and games arrive, their files are counted in
-  the summary.
 
 ### Renaming
 

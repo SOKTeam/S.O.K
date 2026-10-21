@@ -11,8 +11,8 @@ part describes what is built.
 :::note
 The server is being built. In place today: the database, the account, the
 login, the health check, the settings, the test of a key, the Docker image and
-the analyses with the search of movies and TV shows. The search of music, books
-and games, the renames and the web interface follow.
+the analyses with the search of every media type. The renames and the web
+interface follow.
 :::
 
 ## Running it from source
@@ -254,14 +254,19 @@ are deleted. A new row is `pending` until it is searched.
 
 After the sort, the analysis searches the rows not searched yet
 (`Searcher.search_pending`), with the batch engine of the desktop app
-(`BatchMatcher`), in the language of the settings (`fr` → `fr-FR`):
+(`BatchMatcher`), kind by kind as the desktop batch pages do (`SEARCHES` in
+`search.py`):
 
-| Tab      | Searched as             | Read by        |
-| -------- | ----------------------- | -------------- |
-| `movies` | `ContentType.MOVIE`     | `parse_movie`  |
-| `tv`     | `ContentType.TV_SERIES` | `parse_series` |
+| Kind      | Tab      | Searched as             | Read by        | One work when | Language of the settings |
+| --------- | -------- | ----------------------- | -------------- | ------------- | ------------------------ |
+| `movie`   | `movies` | `ContentType.MOVIE`     | `parse_movie`  |               | Yes (`fr` → `fr-FR`)     |
+| `episode` | `tv`     | `ContentType.TV_SERIES` | `parse_series` |               | Yes                      |
+| `album`   | `music`  | `ContentType.ALBUM`     | `parse_album`  | `same_album`  | No                       |
+| `track`   | `music`  | `ContentType.TRACK`     | `parse_track`  | `same_track`  | No                       |
+| `book`    | `books`  | `ContentType.BOOK`      | `parse_book`   | `same_book`   | No                       |
+| `game`    | `games`  | `ContentType.GAME`      | `parse_game`   |               | Yes                      |
 
-Music, books and games stay `pending` for now. Each row gets its search text,
+Each row gets its search text,
 year, candidates (5 at most), the candidate selected and its status: `ok`
 (Ready), `ambiguous` (Pick one) or `missing`. A row is searched once: a new
 analysis only searches the new rows.
@@ -270,11 +275,13 @@ analysis only searches the new rows.
   the titles of its episodes (`sok.core.series.fetch_episode_titles`), kept in
   `rows.details`: they name the episodes. A series still to pick gets none, to
   spare the quota.
-- **When the search stops.** Without a video API (no TMDB key), with a key
-  refused or a quota used, the analysis ends `failed` with
-  `error: {"code", "service"}`: `missing_key`, `key_refused` or
-  `rate_limited`, and the service (`tmdb`). The rows keep what they had; the
-  sorted files stay `pending`.
+- **When the search stops.** Without an API for a media type (no TMDB key for
+  the videos), with a key refused or a quota used, the rows of that media type
+  stop: the other media types, which use other services, are still searched.
+  The analysis then ends `failed` with `error: {"code", "service"}`:
+  `missing_key`, `key_refused` or `rate_limited`, and the service id of the
+  registry (`tmdb`, `google_books`…); `others` lists the services that stopped
+  after it. The rows keep what they had; those not searched stay `pending`.
 - **Progress.** The analysis publishes `progress` events:
   `{"phase": "detect" | "search", "done", "total"}`; the summary gives the same
   in `scan.progress` while it runs.
@@ -283,14 +290,14 @@ analysis only searches the new rows.
 
 `GET /api/rows?type=movies` gives the rows of a tab:
 
-| Field                                 | Contents                                                                                                                                                         |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`, `media_type`, `kind`, `title`   | The row; `title` is the one of a series or an album                                                                                                              |
-| `query`, `year`, `status`, `selected` | The search                                                                                                                                                       |
-| `candidates`                          | `id`, `title`, `original_title`, `year`, `poster`, `overview` (300 characters) of each result                                                                    |
-| `files`                               | `path`, `name` and `new_name` of each file: the name the formats give with the candidate selected (`create_media_item`, then `generate_new_filename`), or `null` |
-| `destination`                         | Index of the destination folder of its type                                                                                                                      |
-| `episodes_found`                      | For a series: how many episode titles were found, or `null`                                                                                                      |
+| Field                                 | Contents                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`, `media_type`, `kind`, `title`   | The row; `title` is the one of a series or an album                                                                                                                                                                                                                                                                                                                                                                                    |
+| `query`, `year`, `status`, `selected` | The search                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `candidates`                          | `id`, `title`, `original_title`, `year`, `poster`, `overview` (300 characters) of each result                                                                                                                                                                                                                                                                                                                                          |
+| `files`                               | `path`, `name` and `new_name` of each file, or `null` before a match: for movies and episodes the file name the formats give (`generate_new_filename`); for the other kinds the path under the destination, as the desktop batches move them (`batch_target`): `Daft Punk - Discovery/01 - One More Time.mp3`, `Frank Herbert/Frank Herbert - Dune (1965)/Frank Herbert - Dune (1965).epub`, `Super Nintendo/Chrono Trigger (USA).smc` |
+| `destination`                         | Index of the destination folder of its type                                                                                                                                                                                                                                                                                                                                                                                            |
+| `episodes_found`                      | For a series: how many episode titles were found, or `null`                                                                                                                                                                                                                                                                                                                                                                            |
 
 `PATCH /api/rows/{id}` with `selected` makes the row Ready, as picking a match
 does in the desktop app; for a series, it reads the episodes of the new choice.

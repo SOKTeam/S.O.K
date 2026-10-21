@@ -10,15 +10,17 @@
 # ===----------------------------------------------------------------------=== #
 """The search of the rows of S.O.K Server, and what the tabs show of them.
 
-The batch engine of the desktop app (BatchMatcher) searches each row: a
-movie by its file name, a series by its title. A series that is Ready, or
-picked by hand, gets its details and the titles of its episodes, which
-name the episodes. A missing key or a used quota stops the search
-(SearchStopped); the rows keep what they had.
+The batch engine of the desktop app (BatchMatcher) searches each row, as
+the batch pages of the desktop app do: a movie, a track, a book or a game
+by its file name, a series by its title, an album by its tags or its
+folder. A series that is Ready, or picked by hand, gets its details and
+the titles of its episodes, which name the episodes. A missing key or a
+used quota stops the search (SearchStopped); the rows keep what they had.
 """
 
 import json
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -27,25 +29,72 @@ from sok.core.batch import (
     STATUS_READY,
     BatchMatch,
     BatchMatcher,
+    QueryParser,
+    SameWork,
     candidate_year,
+    parse_album,
+    parse_book,
+    parse_game,
     parse_movie,
     parse_series,
+    parse_track,
+    same_album,
+    same_book,
+    same_track,
 )
 from sok.core.exceptions import APIAuthenticationError, APIError, APIRateLimitError
 from sok.core.interfaces import ContentType, MediaType
 from sok.core.media_manager import get_media_manager
 from sok.core.series import fetch_episode_titles
+from sok.file_operations.book_operations import BookFileOperations
+from sok.file_operations.game_operations import GameFileOperations
+from sok.file_operations.music_operations import MusicFileOperations
+from sok.file_operations.organize import FileListOrganizerMixin
 from sok.file_operations.video_operations import VideoFileOperations
 from sok.media.factory import create_media_item
 from sok.server.db import Database
 
 logger = logging.getLogger(__name__)
 
-# What each searched media type looks for: content type, name reader, and
-# the type of create_media_item.
-SEARCHED = {
-    "movies": (ContentType.MOVIE, parse_movie, "movie"),
-    "tv": (ContentType.TV_SERIES, parse_series, "tv"),
+
+@dataclass(frozen=True)
+class Search:
+    """How the rows of one kind are searched and named."""
+
+    content_type: ContentType
+    media_type: MediaType
+    parse: QueryParser
+    # The type of create_media_item.
+    factory_type: str
+    same_work: Optional[SameWork] = None
+    # Results in the language of the settings; not for books, where it would
+    # hide books in other languages, nor for music.
+    localized: bool = True
+
+
+# Each kind of row (rows.kind), as the batch pages of the desktop app search it.
+SEARCHES: Dict[str, Search] = {
+    "movie": Search(ContentType.MOVIE, MediaType.VIDEO, parse_movie, "movie"),
+    "episode": Search(ContentType.TV_SERIES, MediaType.VIDEO, parse_series, "tv"),
+    "album": Search(
+        ContentType.ALBUM, MediaType.MUSIC, parse_album, "album", same_album, False
+    ),
+    "track": Search(
+        ContentType.TRACK, MediaType.MUSIC, parse_track, "track", same_track, False
+    ),
+    "book": Search(
+        ContentType.BOOK, MediaType.BOOK, parse_book, "book", same_book, False
+    ),
+    "game": Search(ContentType.GAME, MediaType.GAME, parse_game, "game"),
+}
+
+# The setting of the service searched for each media type, to name the key
+# that is missing.
+PREFERRED_API = {
+    MediaType.VIDEO: ("preferred_api_video", "tmdb"),
+    MediaType.MUSIC: ("preferred_api_music", "deezer"),
+    MediaType.BOOK: ("preferred_api_books", "google_books"),
+    MediaType.GAME: ("preferred_api_games", "igdb"),
 }
 
 # Why a search stopped (SearchStopped.code).
@@ -58,12 +107,29 @@ OVERVIEW_LENGTH = 300
 
 
 class SearchStopped(Exception):
-    """A search that cannot go on: a missing or refused key, a used quota."""
+    """A search that cannot go on: a missing or refused key, a used quota.
+
+    After a search of several kinds, others lists the services that
+    stopped after this one.
+    """
 
     def __init__(self, code: str, service: str) -> None:
         super().__init__(f"{code}: {service}")
         self.code = code
         self.service = service
+        self.others: List["SearchStopped"] = []
+
+
+def service_id(api_name: str) -> str:
+    """The id of a service from the name of its API class: GoogleBooks →
+    google_books."""
+    from sok.config.api_registry import get_all_services
+
+    wanted = api_name.lower().replace("_", "")
+    for service in get_all_services():
+        if service.id.replace("_", "") == wanted:
+            return service.id
+    return api_name.lower()
 
 
 class UnknownRow(LookupError):
@@ -89,17 +155,23 @@ class Searcher:
     def __init__(self, db: Database, config: ConfigManager) -> None:
         self._db = db
         self._config = config
-        self._ops = VideoFileOperations()
+        self._video = VideoFileOperations()
+        self._batch_ops: Dict[str, FileListOrganizerMixin] = {
+            "music": MusicFileOperations(),
+            "books": BookFileOperations(),
+            "games": GameFileOperations(),
+        }
 
     @property
     def _language(self) -> str:
         return api_language(self._config.get("language", "en") or "en")
 
-    def _manager(self, media_type: str) -> Any:
+    def _manager(self, media_type: MediaType) -> Any:
         """The media manager, once sure it has an API for the media type."""
         manager = get_media_manager()
-        if not manager.get_available_apis_for_media_type(MediaType.VIDEO):
-            raise SearchStopped(MISSING_KEY, "tmdb")
+        if not manager.get_available_apis_for_media_type(media_type):
+            setting, default = PREFERRED_API[media_type]
+            raise SearchStopped(MISSING_KEY, self._config.get(setting) or default)
         return manager
 
     # ------------------------------------------------------------ Search
@@ -107,7 +179,7 @@ class Searcher:
     async def search_pending(
         self, progress: Optional[Callable[[int, int], None]] = None
     ) -> int:
-        """Search every row not searched yet, movies then series.
+        """Search every row not searched yet, kind by kind.
 
         Args:
             progress: Called with (done, total) after each row.
@@ -117,19 +189,22 @@ class Searcher:
 
         Raises:
             SearchStopped: A key is missing or refused, or the quota is used.
+                The kinds of the other services are searched first: a used
+                quota of Google Books does not keep the games from their
+                search.
         """
         with self._db.transaction() as conn:
             pending = conn.execute(
-                "SELECT id, media_type, files FROM rows WHERE status = 'pending'"
-                " AND media_type IN ('movies', 'tv') ORDER BY media_type, id"
+                "SELECT id, kind, files FROM rows WHERE status = 'pending' ORDER BY id"
             ).fetchall()
         total = len(pending)
         done = 0
-        for media_type in SEARCHED:
-            rows = [r for r in pending if r["media_type"] == media_type]
-            if not rows:
+        stops: List[SearchStopped] = []
+        stopped: set = set()
+        for kind, search in SEARCHES.items():
+            rows = [r for r in pending if r["kind"] == kind]
+            if not rows or search.media_type in stopped:
                 continue
-            matcher = self._matcher(media_type)
 
             def report(_done: int, _total: int, _file: Path) -> None:
                 nonlocal done
@@ -138,9 +213,18 @@ class Searcher:
                     progress(done, total)
 
             items = [[Path(f) for f in json.loads(r["files"])] for r in rows]
-            matches = await self._run(matcher.match_all(items, report))
+            try:
+                matches = await self._run(self._matcher(kind).match_all(items, report))
+            except SearchStopped as exc:
+                # The other kinds of this media type use the same service.
+                stops.append(exc)
+                stopped.add(search.media_type)
+                continue
             for row, match in zip(rows, matches):
-                await self._save_match(row["id"], media_type, match)
+                await self._save_match(row["id"], kind, match)
+        if stops:
+            stops[0].others = stops[1:]
+            raise stops[0]
         return total
 
     async def search_row(self, row_id: int, query: Optional[str] = None) -> None:
@@ -151,18 +235,20 @@ class Searcher:
             SearchStopped: A key is missing or refused, or the quota is used.
         """
         row = self._row(row_id)
-        media_type = row["media_type"]
-        if media_type not in SEARCHED:
-            raise InvalidChange("not_searched")
+        kind = row["kind"]
         files = [Path(f) for f in json.loads(row["files"])]
         text = (query or "").strip() or None
-        match = await self._run(self._matcher(media_type).match(files, text))
-        await self._save_match(row_id, media_type, match)
+        match = await self._run(self._matcher(kind).match(files, text))
+        await self._save_match(row_id, kind, match)
 
-    def _matcher(self, media_type: str) -> BatchMatcher:
-        content_type, parse, _factory = SEARCHED[media_type]
+    def _matcher(self, kind: str) -> BatchMatcher:
+        search = SEARCHES[kind]
         return BatchMatcher(
-            self._manager(media_type), content_type, parse, self._language
+            self._manager(search.media_type),
+            search.content_type,
+            search.parse,
+            self._language if search.localized else None,
+            search.same_work,
         )
 
     @staticmethod
@@ -171,16 +257,14 @@ class Searcher:
         try:
             return await awaitable
         except APIAuthenticationError as exc:
-            raise SearchStopped(KEY_REFUSED, exc.api_name.lower()) from exc
+            raise SearchStopped(KEY_REFUSED, service_id(exc.api_name)) from exc
         except APIRateLimitError as exc:
-            raise SearchStopped(RATE_LIMITED, exc.api_name.lower()) from exc
+            raise SearchStopped(RATE_LIMITED, service_id(exc.api_name)) from exc
 
-    async def _save_match(
-        self, row_id: int, media_type: str, match: BatchMatch
-    ) -> None:
+    async def _save_match(self, row_id: int, kind: str, match: BatchMatch) -> None:
         details = None
         if (
-            media_type == "tv"
+            kind == "episode"
             and match.status == STATUS_READY
             and match.selected is not None
         ):
@@ -202,7 +286,7 @@ class Searcher:
 
     async def _series_details(self, candidate: Dict[str, Any]) -> Optional[Dict]:
         """The seasons and the episode titles of a series; None if they fail."""
-        manager = self._manager("tv")
+        manager = self._manager(MediaType.VIDEO)
         series_id = str(candidate.get("id"))
         try:
             details = await manager.get_details(
@@ -256,7 +340,7 @@ class Searcher:
             raise InvalidChange("invalid_destination")
 
         details = row["details"]
-        if selected is not None and row["media_type"] == "tv":
+        if selected is not None and row["kind"] == "episode":
             current = json.loads(details) if details else None
             wanted = str(candidates[selected].get("id"))
             if not current or current.get("id") != wanted:
@@ -300,7 +384,7 @@ class Searcher:
         selected = row["selected"]
         details = json.loads(row["details"]) if row["details"] else None
         files = json.loads(row["files"])
-        names = self._new_names(row["media_type"], files, candidates, selected, details)
+        names = self._new_names(row, files, candidates, selected, details)
         return {
             "id": row["id"],
             "media_type": row["media_type"],
@@ -321,27 +405,45 @@ class Searcher:
 
     def _new_names(
         self,
-        media_type: str,
+        row: Any,
         files: List[str],
         candidates: List[Dict[str, Any]],
         selected: Optional[int],
         details: Optional[Dict[str, Any]],
     ) -> List[Optional[str]]:
-        """The new name of each file, or None before a match."""
-        if media_type not in SEARCHED or selected is None or not candidates:
+        """The new path of each file under the destination, or None before a
+        match.
+
+        Movies and episodes get their file name; the other kinds the folders
+        and the name the desktop batches give them (batch_target): the
+        artist and album folder of a track, the author folder of a book, the
+        platform folder of a game.
+        """
+        search = SEARCHES.get(row["kind"])
+        if search is None or selected is None or not candidates:
             return [None] * len(files)
         candidate = dict(candidates[selected])
         if details:
             candidate["episodes"] = details["episodes"]
         item = create_media_item(
             candidate,
-            SEARCHED[media_type][2],
+            search.factory_type,
             get_media_manager(),
             language=self._config.get("language", "en") or "en",
         )
         if item is None:
             return [None] * len(files)
-        return [self._ops.generate_new_filename(item, Path(f).name) for f in files]
+        if row["media_type"] in ("movies", "tv"):
+            return [
+                self._video.generate_new_filename(item, Path(f).name) for f in files
+            ]
+        ops = self._batch_ops[row["media_type"]]
+        alone = len(files) == 1
+        names: List[Optional[str]] = []
+        for file in files:
+            folders, name = ops.batch_target(item, Path(file), alone)
+            names.append("/".join([*folders, name]))
+        return names
 
 
 def _candidate(candidate: Dict[str, Any]) -> Dict[str, Any]:
@@ -358,5 +460,9 @@ def _candidate(candidate: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def search_error(exc: SearchStopped) -> Dict[str, str]:
-    return {"code": exc.code, "service": exc.service}
+def search_error(exc: SearchStopped) -> Dict[str, Any]:
+    """{"code", "service"}, and "others" when other services stopped too."""
+    error: Dict[str, Any] = {"code": exc.code, "service": exc.service}
+    if exc.others:
+        error["others"] = [{"code": o.code, "service": o.service} for o in exc.others]
+    return error
