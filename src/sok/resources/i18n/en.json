@@ -225,5 +225,21 @@
     "error_api_timeout": "{service} did not answer in time. Try again.",
     "error_api_connection": "Cannot reach {service}. Check your internet connection.",
     "error_api_not_found": "{service} does not know this item.",
-    "error_api_response": "{service} returned an error. Try again later."
+    "error_api_response": "{service} returned an error. Try again later.",
+    "drop_anything_hint": "Drop files or folders here, or click to choose a folder",
+    "drop_reason_weak_episode": "Episode number without a season",
+    "drop_reason_season_folder": "In a season folder, without an episode number",
+    "drop_reason_among_episodes": "Video among episodes: a bonus?",
+    "drop_reason_disc_image": "Disc image: a game or a video disc?",
+    "drop_untitled": "Untitled",
+    "drop_files_count": "{count} file(s)",
+    "drop_done": "✓ Organized",
+    "drop_remaining": "{count} of {total} left",
+    "drop_open": "Open",
+    "drop_add": "Add",
+    "drop_last_count": "Last drop: {count} file(s)",
+    "drop_clear": "Clear",
+    "drop_nothing_found": "No media file recognized. Accepted files: {extensions}. Archives, programs and text documents are only accepted in the page of their type.",
+    "drop_to_check": "To check",
+    "drop_error": "The files could not be analyzed: {error}"
 }

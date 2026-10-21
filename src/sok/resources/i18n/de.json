@@ -225,5 +225,21 @@
     "error_api_timeout": "{service} hat nicht rechtzeitig geantwortet. Versuchen Sie es erneut.",
     "error_api_connection": "{service} ist nicht erreichbar. Prüfen Sie Ihre Internetverbindung.",
     "error_api_not_found": "{service} kennt dieses Element nicht.",
-    "error_api_response": "{service} hat einen Fehler zurückgegeben. Versuchen Sie es später erneut."
+    "error_api_response": "{service} hat einen Fehler zurückgegeben. Versuchen Sie es später erneut.",
+    "drop_anything_hint": "Dateien oder Ordner hier ablegen oder klicken, um einen Ordner zu wählen",
+    "drop_reason_weak_episode": "Folgennummer ohne Staffel",
+    "drop_reason_season_folder": "In einem Staffelordner, ohne Folgennummer",
+    "drop_reason_among_episodes": "Video zwischen Folgen: ein Bonus?",
+    "drop_reason_disc_image": "Disc-Image: ein Spiel oder eine Video-Disc?",
+    "drop_untitled": "Ohne Titel",
+    "drop_files_count": "{count} Datei(en)",
+    "drop_done": "✓ Organisiert",
+    "drop_remaining": "{count} von {total} übrig",
+    "drop_open": "Öffnen",
+    "drop_add": "Hinzufügen",
+    "drop_last_count": "Letzte Ablage: {count} Datei(en)",
+    "drop_clear": "Leeren",
+    "drop_nothing_found": "Keine Mediendatei erkannt. Unterstützte Dateien: {extensions}. Archive, Programme und Textdokumente werden nur auf der Seite ihres Typs angenommen.",
+    "drop_to_check": "Zu prüfen",
+    "drop_error": "Die Dateien konnten nicht analysiert werden: {error}"
 }
