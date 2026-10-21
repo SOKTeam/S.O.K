@@ -36,6 +36,7 @@ sidebar:
     items:
       - guides/adding-an-api
       - guides/testing
+      - guides/adding-a-page
       - guides/translations
       - guides/building
       - guides/documentation
