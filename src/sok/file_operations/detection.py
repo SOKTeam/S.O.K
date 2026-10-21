@@ -273,11 +273,10 @@ class MediaTypeDetector:
         """
         report = DetectionReport()
         detected: List[DetectedFile] = []
-        seen = set()
-        for file in _walk(paths):
-            if file in seen:
-                continue
-            seen.add(file)
+        # Sorted, because the file system lists files in an order that
+        # differs between systems, and a group takes the title of its first
+        # file: "Severance" from Severance.S01E02, not "severance".
+        for file in sorted(set(_walk(paths)), key=natural_key):
             item = self.detect_file(file)
             if item is None:
                 report.ignored.append(file)
