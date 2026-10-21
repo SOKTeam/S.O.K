@@ -57,6 +57,12 @@ For each service, `get()` returns the first key it finds:
 3. **The environment**: the variables of `.env` at the repository root, or of
    the shell.
 
+With `SOK_ENV_KEYS_WIN` set to `1`, `true`, `yes` or `on` (the S.O.K Server
+image sets it), a key of the environment comes first: the key given to the
+container is the one used. The user's key stays saved, and the build keys never
+come before it. `env_locked(key)` says whether a key is taken from the
+environment that way, for the settings to show it locked.
+
 The API Keys section only shows the user's keys (`get_user_value()`), never
 those of the build or of `.env`.
 
@@ -82,16 +88,17 @@ Code and PyCharm, are not native debuggers and are not detected.
 
 ## Environment variables
 
-| Variable                                                       | Effect                                                                                            |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `API_KEY_TMDB_V4`, `API_KEY_TVDB`, `API_KEY_OMDB`              | Keys of the video services (TMDB: the v4 read token)                                              |
-| `API_KEY_LASTFM`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | Keys of the music services                                                                        |
-| `GOOGLE_BOOKS_API_KEY`                                         | Key of Google Books                                                                               |
-| `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `API_KEY_RAWG`         | Keys of the game services                                                                         |
-| `API_KEY_FANART`                                               | Key of Fanart.tv                                                                                  |
-| `CLIENT_ID_DISCORD`                                            | Application of the Discord activity                                                               |
-| `SOK_LOG_LEVEL`                                                | Level of the log: `DEBUG`, `INFO` (default), `WARNING`…                                           |
-| `SOK_CONFIG_DIR`                                               | Folder of `config.json`, `.local.key`, `history.json` and `logs/` (`/config` in the Docker image) |
+| Variable                                                       | Effect                                                                                                                        |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `API_KEY_TMDB_V4`, `API_KEY_TVDB`, `API_KEY_OMDB`              | Keys of the video services (TMDB: the v4 read token)                                                                          |
+| `API_KEY_LASTFM`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | Keys of the music services                                                                                                    |
+| `GOOGLE_BOOKS_API_KEY`                                         | Key of Google Books                                                                                                           |
+| `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `API_KEY_RAWG`         | Keys of the game services                                                                                                     |
+| `API_KEY_FANART`                                               | Key of Fanart.tv                                                                                                              |
+| `CLIENT_ID_DISCORD`                                            | Application of the Discord activity                                                                                           |
+| `SOK_LOG_LEVEL`                                                | Level of the log: `DEBUG`, `INFO` (default), `WARNING`…                                                                       |
+| `SOK_ENV_KEYS_WIN`                                             | `1`: the keys of the environment win over those of the settings ([Where an API key comes from](#where-an-api-key-comes-from)) |
+| `SOK_CONFIG_DIR`                                               | Folder of `config.json`, `.local.key`, `history.json` and `logs/` (`/config` in the Docker image)                             |
 
 `.env.example` lists the keys with the page where each one is created. Deezer,
 MusicBrainz and Open Library need none.
