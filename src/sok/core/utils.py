@@ -17,6 +17,7 @@ information extraction, file type detection, and logging setup.
 import re
 import os
 import logging
+from pathlib import Path
 from typing import Optional
 
 
@@ -26,6 +27,18 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
     if not logger.handlers:
         logger.addHandler(logging.NullHandler())
     return logger
+
+
+def natural_key(path: Path) -> list:
+    """Sort key that orders numbers by value: "S01E2" before "S01E10".
+
+    Args:
+        path: File path, compared case-insensitively.
+    """
+    return [
+        int(part) if part.isdigit() else part
+        for part in re.split(r"(\d+)", str(path).casefold())
+    ]
 
 
 def format_name(name: str) -> str:

@@ -39,6 +39,9 @@ from sok.config import get_config_manager
 from sok.ui.i18n import tr
 from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.controllers.ui_helpers import make_section_label
+from sok.ui.components.media_drop import DropSummary, MediaDropZone
+from sok.ui.workers import DetectionWorker
+from sok.file_operations.detection import DetectionReport, MediaTypeDetector
 
 logger = logging.getLogger(__name__)
 
@@ -389,13 +392,17 @@ class QuickActionCard(Card):
 class HomePage(QScrollArea):
     """S.O.K application home page.
 
-    Displays drive statistics and quick access navigation cards.
+    Displays a drop zone that sorts files by media type, drive statistics
+    and quick access navigation cards.
 
     Attributes:
         navigate: Signal emitted with page index for navigation.
+        open_group: Signal emitted with a MediaGroup and its files, to open
+            them in the page of their type.
     """
 
     navigate = Signal(int)
+    open_group = Signal(object, list)
 
     def __init__(self, parent=None):
         """Initialize the home page.
@@ -409,6 +416,9 @@ class HomePage(QScrollArea):
         self.setObjectName("Page")
         self._config = get_config_manager()
         self._worker_runner = WorkerRunner(self)
+        # Separate runner: refresh() restarts the stats, not an analysis.
+        self._detection_runner = WorkerRunner(self)
+        self._detector = MediaTypeDetector()
 
         self._build()
         self.refresh()
@@ -462,6 +472,15 @@ class HomePage(QScrollArea):
         header_layout.addWidget(logo)
 
         layout.addLayout(header_layout)
+
+        self._drop_zone = MediaDropZone()
+        self._drop_zone.paths_dropped.connect(self._analyze)
+        self._drop_zone.setGraphicsEffect(card_shadow())
+        layout.addWidget(self._drop_zone)
+
+        self._summary = DropSummary(self._detector)
+        self._summary.open_requested.connect(self.open_group.emit)
+        layout.addWidget(self._summary)
 
         self.status_label = make_section_label("drive_monitors", "Drive Monitors")
         layout.addWidget(self.status_label)
@@ -521,6 +540,8 @@ class HomePage(QScrollArea):
                 "Storage Organization Kit - Your media library, perfectly organized.",
             )
         )
+        self._drop_zone.retranslate_ui()
+        self._summary.refresh()
         self.status_label.setText(tr("drive_monitors", "Drive Monitors"))
         self.actions_label.setText(tr("quick_access", "Quick Access"))
 
@@ -547,11 +568,12 @@ class HomePage(QScrollArea):
         self.refresh()
 
     def refresh(self):
-        """Refresh drive statistics.
+        """Refresh drive statistics and the state of the last drop.
 
-        Stops existing workers and starts a new stats collection.
+        Stops the stats worker and starts a new stats collection.
         """
-        self.stop_workers()
+        self._worker_runner.stop()
+        self._summary.refresh()
 
         worker = StatsWorker(None, None)
         worker.stats_ready.connect(self._on_stats_ready)
@@ -609,6 +631,43 @@ class HomePage(QScrollArea):
             if widget:
                 widget.deleteLater()
 
+    def _analyze(self, paths: list[Path]):
+        """Sort dropped files and folders by media type in the background.
+
+        Args:
+            paths: Dropped files and folders.
+        """
+        self._summary.show_message(tr("analyzing", "Analyzing..."))
+        worker = DetectionWorker(paths, self._detector)
+        self._detection_runner.run(worker, self._on_analyzed, self._on_analyze_error)
+
+    def _on_analyzed(self, report: DetectionReport):
+        """Open the only group directly, or show the summary of a mixed drop.
+
+        Args:
+            report: Result of the detection.
+        """
+        if len(report.groups) == 1 and not report.to_check:
+            group = report.groups[0]
+            self._summary.set_report(report)
+            self.open_group.emit(group, list(group.files))
+            return
+        self._summary.set_report(report)
+
+    def _on_analyze_error(self, error: str):
+        """Show why the drop could not be analyzed.
+
+        Args:
+            error: Error message from the worker.
+        """
+        logger.error("Media type detection failed: %s", error)
+        self._summary.show_message(
+            tr("drop_error", "The files could not be analyzed: {error}").format(
+                error=error
+            )
+        )
+
     def stop_workers(self):
         """Stop all background workers."""
         self._worker_runner.stop()
+        self._detection_runner.stop()
