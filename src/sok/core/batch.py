@@ -292,6 +292,31 @@ def parse_movie(files: Sequence[Path]) -> ParsedName:
     return ParsedName(info.get("title") or files[0].stem, info.get("year"))
 
 
+def parse_series(files: Sequence[Path]) -> ParsedName:
+    """Read the episodes of a series: "Severance.S01E02.mkv" → Severance.
+
+    The title is the one the type detector gives the series (from the file
+    name, or from the folders above a season folder), so the search and the
+    group of the analysis agree. A year in the name ("Doctor.Who.2005.…") is
+    the year of the first season.
+    """
+    from sok.file_operations.detection import MediaTypeDetector
+
+    first = files[0]
+    detected = MediaTypeDetector().detect_file(first)
+    info = VideoFileOperations().extract_info_from_filename(first.name)
+    title = (detected.title if detected else None) or info.get("title") or first.stem
+    year = info.get("year")
+    # "Doctor Who 2005", "Doctor Who (2005)": the year is not part of the title.
+    match = _SERIES_YEAR.match(title)
+    if match and not year:
+        title, year = match.group(1), int(match.group(2))
+    return ParsedName(title, year)
+
+
+_SERIES_YEAR = re.compile(r"^(.*\S)[\s.]+\(?((?:19[3-9]|20[0-9])\d)\)?$")
+
+
 def parse_book(files: Sequence[Path]) -> ParsedName:
     """Read a book file name: "Frank Herbert - Dune.epub" → Dune, by Herbert.
 

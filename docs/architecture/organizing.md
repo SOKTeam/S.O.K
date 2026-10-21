@@ -42,12 +42,13 @@ are already in the table are skipped.
 The `parse` function of the page reads the files of a row and returns a
 `ParsedName`: the text to search, and what the results are compared with.
 
-| Function      | Reads                                                                    |
-| ------------- | ------------------------------------------------------------------------ |
-| `parse_movie` | Title and year: `Heat (1995).mkv`, `heat.1995.1080p.mkv`                 |
-| `parse_book`  | Title and author; the year is ignored (it is often the edition's)        |
-| `parse_game`  | Title without the dump tags: `[SNES] Chrono Trigger (USA) (Rev 1).smc`   |
-| `parse_track` | The tags of the file first, then `Artist - Title`; the album of its tags |
+| Function       | Reads                                                                                                                                                                                                                               |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `parse_movie`  | Title and year: `Heat (1995).mkv`, `heat.1995.1080p.mkv`                                                                                                                                                                            |
+| `parse_book`   | Title and author; the year is ignored (it is often the edition's)                                                                                                                                                                   |
+| `parse_game`   | Title without the dump tags: `[SNES] Chrono Trigger (USA) (Rev 1).smc`                                                                                                                                                              |
+| `parse_track`  | The tags of the file first, then `Artist - Title`; the album of its tags                                                                                                                                                            |
+| `parse_series` | The series title the type detector gives the episodes (file name, or the folders above a season folder), and a year at its end: `Doctor.Who.2005.S01E01.mkv` → Doctor Who, 2005. Used by S.O.K Server, with `ContentType.TV_SERIES` |
 
 Each of them calls `extract_info_from_filename` of the file operations, which
 tries the **input patterns** of the settings first (`sok.core.name_patterns`),
@@ -117,7 +118,12 @@ operations:
 - **TV shows** (`VideoFileOperations.organize_files_list`): the files go to
   `Series/Season N/`, or to a season folder that already exists in the
   destination. Each name comes from the episode format setting, with the episode
-  title of the series: `{title} S{season}E{episode} {episode_title}`.
+  title of the series: `{title} S{season}E{episode} {episode_title}`. The season
+  folders and the episode titles come from `sok.core.series` (no Qt, shared with
+  S.O.K Server): `season_folders(details, season_word)` names each season
+  ("Season 2", or "Season 2 - The Return" when the season has a name of its
+  own), and `fetch_episode_titles()` reads the episodes of each season
+  (`S01E01` → title); a season that fails is skipped.
 - **Albums**: each track is named from the music format, with the artist, album
   and year of the album found online, and the title and number of its tags (or
   of its file name).
