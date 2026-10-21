@@ -30,6 +30,7 @@ sidebar:
   - label: Architecture
     items:
       - architecture/overview
+      - architecture/organizing
       - architecture/structure
   - label: Guides
     items:
