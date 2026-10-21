@@ -10,8 +10,8 @@ part describes what is built.
 
 :::note
 The server is being built. In place today: the database, the account, the
-login, the health check, the settings and the Docker image. The test of a key,
-the analysis, the renames and the web interface follow.
+login, the health check, the settings, the test of a key and the Docker image.
+The analysis, the renames and the web interface follow.
 :::
 
 ## Running it from source
@@ -95,16 +95,17 @@ the server (the desktop app moves).
 
 JSON under `/api`. FastAPI's own `/docs` page is turned off.
 
-| Route                          | Login | Does                                                                        |
-| ------------------------------ | ----- | --------------------------------------------------------------------------- |
-| `GET /api/health`              | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker         |
-| `GET /api/session`             | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`              |
-| `POST /api/setup`              | No    | Creates the account (`username`, `password`) and logs in; once only (`409`) |
-| `POST /api/login`              | No    | Opens a session (`401` for a wrong login, `429` while waiting)              |
-| `POST /api/logout`             | Yes   | Closes the session                                                          |
-| `GET /api/settings`            | Yes   | The settings, the keys, the folders and the link checks (see below)         |
-| `PATCH /api/settings`          | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`    |
-| `POST /api/settings/test-link` | Yes   | `{source, destination}`: whether a hard link works between them             |
+| Route                          | Login | Does                                                                                  |
+| ------------------------------ | ----- | ------------------------------------------------------------------------------------- |
+| `GET /api/health`              | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker                   |
+| `GET /api/session`             | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`                        |
+| `POST /api/setup`              | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)           |
+| `POST /api/login`              | No    | Opens a session (`401` for a wrong login, `429` while waiting)                        |
+| `POST /api/logout`             | Yes   | Closes the session                                                                    |
+| `GET /api/settings`            | Yes   | The settings, the keys, the folders and the link checks (see below)                   |
+| `PATCH /api/settings`          | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`              |
+| `POST /api/settings/test-link` | Yes   | `{source, destination}`: whether a hard link works between them                       |
+| `POST /api/settings/test-key`  | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key)) |
 
 The interface starts with `GET /api/session`: no account → the setup page; an
 account and no session → the login page; otherwise the app.
@@ -175,6 +176,31 @@ work:
 
 The test link is made with `can_hard_link` and deleted at once. A source with no
 file yet is only compared by device (`"tested": false`).
+
+### Testing a key
+
+`POST /api/settings/test-key` takes a service id and, to test a key before
+saving it, `key` (and `secret` for Spotify and IGDB). Without them it tests the
+saved key. It answers `{"service", "status", "detail"}`, never the key; `detail`
+is the message of the service.
+
+`sok.apis.key_check.check_key()` (no Qt) makes one light request per service,
+which needs the key and nothing else (`PROBES`): TMDB `/authentication`, the
+TVDB login, the Spotify and Twitch (IGDB) token, a small search or lookup for
+the others. The API clients cannot be used for it: some log a wrong key and
+return no result.
+
+| `status`        | Meaning                                                                                       |
+| --------------- | --------------------------------------------------------------------------------------------- |
+| `ok`            | The service accepted the key                                                                  |
+| `wrong_key`     | `401`, `403` (and `400` for Spotify, IGDB, Google Books), or the body says so (OMDb, Last.fm) |
+| `missing_key`   | No key, or no secret for Spotify and IGDB                                                     |
+| `rate_limited`  | `429`, or the quota is used                                                                   |
+| `service_error` | Any other error of the service                                                                |
+| `unreachable`   | No answer within 10 seconds, or no network                                                    |
+| `unsupported`   | A service without a key (Deezer, MusicBrainz, Open Library)                                   |
+
+A new service with a key needs its probe: a test fails while one is missing.
 
 ## Database
 
