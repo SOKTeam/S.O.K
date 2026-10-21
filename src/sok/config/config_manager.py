@@ -354,6 +354,7 @@ class ConfigManager:
             "api_key_tvdb": "API_KEY_TVDB",
             "api_key_lastfm": "API_KEY_LASTFM",
             "api_key_omdb": "API_KEY_OMDB",
+            "api_key_rawg": "API_KEY_RAWG",
             "spotify_client_id": "SPOTIFY_CLIENT_ID",
             "spotify_client_secret": "SPOTIFY_CLIENT_SECRET",
             "google_books_api_key": "GOOGLE_BOOKS_API_KEY",

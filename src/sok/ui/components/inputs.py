@@ -82,7 +82,7 @@ class SearchBar(QLineEdit):
 class FileItemRow(QWidget):
     """Row representing a file in DropZone with remove button.
 
-    Displays a folder icon, file name, and a remove button.
+    Displays a folder or file icon, the name, and a remove button.
 
     Signals:
         removed: Emitted when the remove button is clicked, with the file path.
@@ -99,12 +99,13 @@ class FileItemRow(QWidget):
         """
         super().__init__(parent)
         self._path = path
+        self._icon = "file" if path.is_file() else "folder"
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 2, 8, 2)
         layout.setSpacing(8)
 
         self._icon_lbl = QLabel()
-        self._icon_lbl.setPixmap(svg_icon("folder", "#FFFFFF", 14))
+        self._icon_lbl.setPixmap(svg_icon(self._icon, "#FFFFFF", 14))
         self._icon_lbl.setFixedSize(16, 16)
         layout.addWidget(self._icon_lbl)
 
@@ -155,7 +156,7 @@ class FileItemRow(QWidget):
         self.removed.emit(self._path)
 
     def changeEvent(self, event):
-        """Recolor the folder icon when the theme changes (macOS).
+        """Recolor the icon when the theme changes (macOS).
 
         Args:
             event: Change event.
@@ -163,7 +164,7 @@ class FileItemRow(QWidget):
         super().changeEvent(event)
         if IS_MACOS and event.type() == QEvent.Type.StyleChange:
             c = getattr(self.window(), "c", Theme.DARK)
-            self._icon_lbl.setPixmap(svg_icon("folder", c["icon_secondary"], 14))
+            self._icon_lbl.setPixmap(svg_icon(self._icon, c["icon_secondary"], 14))
 
     def resizeEvent(self, event):
         """Handle widget resize by eliding text.
@@ -250,6 +251,16 @@ class DropZone(QFrame):
             path: Path to select.
         """
         self._files = [path]
+        self._update_ui()
+        self.files_dropped.emit(self._files)
+
+    def set_paths(self, paths: list[Path]):
+        """Replace the selection with several paths.
+
+        Args:
+            paths: Paths to select, files or folders.
+        """
+        self._files = list(paths)
         self._update_ui()
         self.files_dropped.emit(self._files)
 
