@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from sok.file_operations import MusicFileOperations, VideoFileOperations
 from sok.ui.components.organize import SearchPanel, OptionsPanel
+from sok.core.series import season_folders
 from sok.ui.controllers.file_mode import hard_link_blocked
 from sok.ui.controllers.organize_preview import OrganizePreviewController
 from sok.ui.controllers.source_scanner import scan_sources
@@ -569,27 +570,7 @@ class OrganizePage(QScrollArea):
         try:
             self._search_panel.update_selected_media(details)
 
-            season_word = tr("season", "Season")
-            seasons_data = details.get("seasons", [])
-            seasons = {}
-
-            for i in range(1, num_seasons + 1):
-                season_name = None
-                for s in seasons_data:
-                    if s.get("season_number") == i:
-                        season_name = s.get("name", "")
-                        break
-
-                if season_name and season_name.lower() not in [
-                    f"season {i}",
-                    f"saison {i}",
-                    "",
-                ]:
-                    folder_name = f"{season_word} {i} - {season_name}"
-                else:
-                    folder_name = f"{season_word} {i}"
-
-                seasons[folder_name] = i
+            seasons = season_folders(details, tr("season", "Season"))
 
             self._set_progress(True, tr("creating_folders", "Creating folders..."), 0)
 
@@ -774,30 +755,10 @@ class OrganizePage(QScrollArea):
 
         if content_type == "tv" and media_item and selected_media:
             if isinstance(media_item, Series):
-                num_seasons = selected_media.get("number_of_seasons", 0)
-                if num_seasons:
-                    season_word = tr("season", "Season")
-                    seasons_data = selected_media.get("seasons", [])
-                    media_item.seasons = {}
-
-                    for i in range(1, num_seasons + 1):
-                        season_name = None
-                        for s in seasons_data:
-                            if s.get("season_number") == i:
-                                season_name = s.get("name", "")
-                                break
-
-                        i_padded = str(i)
-                        if season_name and season_name.lower() not in [
-                            f"season {i}",
-                            f"saison {i}",
-                            "",
-                        ]:
-                            folder_name = f"{season_word} {i_padded} - {season_name}"
-                        else:
-                            folder_name = f"{season_word} {i_padded}"
-
-                        media_item.seasons[folder_name] = i
+                if selected_media.get("number_of_seasons"):
+                    media_item.seasons = season_folders(
+                        selected_media, tr("season", "Season")
+                    )
 
                 episodes = selected_media.get("episodes", {})
                 if episodes:
