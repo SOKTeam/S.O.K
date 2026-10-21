@@ -86,7 +86,8 @@ disk. The example mounts the common parent folder once.
 
 ### Accounts
 
-**Planned.**
+**In place since v1.5.0** ([Login](/server/overview/#login)); the pages of the
+interface are planned.
 
 - One account. It is created on the first visit, or with `SOK_USERNAME` and
   `SOK_PASSWORD` (taken only when no account exists yet).
@@ -233,6 +234,7 @@ Dockerfile                                            Node build of web/, then P
 | Route                                                         | Does                                                 |
 | ------------------------------------------------------------- | ---------------------------------------------------- |
 | `GET /api/health`                                             | Health check, without login                          |
+| `GET /api/session`                                            | Account, login and `SOK_AUTH` state, without login   |
 | `POST /api/setup`, `POST /api/login`, `POST /api/logout`      | Account and session                                  |
 | `GET /api/settings`, `PATCH /api/settings`                    | Settings (keys only as "set" or "not set")           |
 | `POST /api/settings/test-key`, `POST /api/settings/test-link` | Test a key, test a hard link                         |
