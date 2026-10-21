@@ -60,7 +60,7 @@ from sok.ui.controllers.file_mode import hard_link_blocked
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.controllers.ui_state import set_progress
 from sok.ui.controllers.worker_runner import WorkerRunner
-from sok.ui.factories.media_factory import create_media_item
+from sok.media.factory import create_media_item
 from sok.ui.i18n import tr
 from sok.ui.theme import card_shadow
 from sok.ui.workers import (

@@ -18,7 +18,7 @@ from sok.core.exceptions import APIAuthenticationError, APIRateLimitError
 from sok.core.interfaces import ContentType
 from sok.file_operations import GameFileOperations
 from sok.media.games.game import Game
-from sok.ui.factories.media_factory import create_media_item
+from sok.media.factory import create_media_item
 
 
 def game(title, date="1996-09-09"):
