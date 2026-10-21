@@ -68,6 +68,12 @@ class BehaviorSection(QWidget):
                 True,
             ),
             ("skip_duplicates", "Skip duplicates", "skip_duplicates", True),
+            (
+                "subtitles_follow_video",
+                "Move subtitles with videos",
+                "subtitles_follow_video",
+                True,
+            ),
             ("log_operations", "Log operations", "log_operations", True),
         ]:
             card.add(self._create_toggle_row(tr_key, default, config_key, enabled))

@@ -150,13 +150,14 @@ The formats can be changed in the settings:
 
 The "Behavior" settings apply to every page:
 
-| Setting                | Effect                                                                            |
-| ---------------------- | --------------------------------------------------------------------------------- |
-| `create_folders`       | Creates the missing folders. When off, a file whose folder is missing is an error |
-| `skip_duplicates`      | Leaves a file in place when its new name already exists                           |
-| `backup_before_rename` | Keeps the replaced file as `<name>.backup`                                        |
-| `log_operations`       | Writes each move to the log                                                       |
-| `download_posters`     | Saves the poster or cover of each item next to its files (see below)              |
+| Setting                  | Effect                                                                            |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| `create_folders`         | Creates the missing folders. When off, a file whose folder is missing is an error |
+| `skip_duplicates`        | Leaves a file in place when its new name already exists                           |
+| `backup_before_rename`   | Keeps the replaced file as `<name>.backup`                                        |
+| `log_operations`         | Writes each move to the log                                                       |
+| `download_posters`       | Saves the poster or cover of each item next to its files (see below)              |
+| `subtitles_follow_video` | Moves the subtitles of a video with it (see below)                                |
 
 Files are moved by `move_file` (`sok.file_operations.base_operations`). It
 replaces an existing file of the same name, unless `skip_duplicates` is on. A
@@ -180,6 +181,31 @@ where Plex, Jellyfin and Kodi look for it:
 An image already in place is kept, and a failed download is only logged. Games
 get none: RAWG gives screenshots, not covers. Like the batch engine, the module
 has no Qt dependency.
+
+### Subtitles
+
+With `subtitles_follow_video` on (the default), each video moved by
+`VideoFileOperations` takes its subtitles along
+(`sok.file_operations.subtitles`, no Qt dependency). A subtitle is a `.srt`,
+`.ass`, `.ssa`, `.sub`, `.idx` or `.vtt` file next to the video whose name
+starts with the video's name and a dot. It gets the new name of the video and
+keeps the rest of its own:
+
+| Before             | After                |
+| ------------------ | -------------------- |
+| `dune.2021.mkv`    | `Dune (2021).mkv`    |
+| `dune.2021.srt`    | `Dune (2021).srt`    |
+| `dune.2021.fr.srt` | `Dune (2021).fr.srt` |
+| `dune.2021.nfo`    | Left where it is     |
+
+When two videos of a folder can claim a subtitle (`Movie.mkv` and
+`Movie.Part2.mkv` for `Movie.Part2.srt`), the longest name wins.
+`skip_duplicates` and `backup_before_rename` apply to subtitles as to videos.
+The report lists them in `"subtitles"`, apart from `"moved"`, so the counts
+and the posters stay those of the videos; a skipped or failed subtitle joins
+`"skipped"` or `"errors"`. The rename workers pass their number on as
+`"subtitles"`: the end message adds "With 3 subtitle(s).", and the History page
+counts them apart and shows each one under its video.
 
 :::tip
 A rename can be undone: see [Rename history](#rename-history) below.
@@ -205,8 +231,9 @@ saved in `history.json` next to `config.json`. The last 100 operations are
 kept. The worker's report gives its id in `"operation"`.
 
 **Undoing.** `HistoryStore.undo(operation_id, index=None)` puts back every file
-of the operation, or the one at `index`, last moved first. It never replaces a
-file: a file no longer at its new place (`MISSING`) or whose old place is taken
+of the operation, or the one at `index` with the files that follow it (its
+subtitles, moved with `move_file(..., follows=video)` and saved as
+`Move.follows`), last moved first. It never replaces a file: a file no longer at its new place (`MISSING`) or whose old place is taken
 (`OCCUPIED`) is skipped and listed in the `UndoReport`. The `.backup` of a
 replaced file is put back. A poster is deleted once all its files are back. The
 folders the rename created are removed when they are empty (or hold only

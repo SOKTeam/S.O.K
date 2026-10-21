@@ -846,6 +846,10 @@ class OrganizePage(QScrollArea):
             text = tr("files_organized", "✓ {0} file(s) organized!").format(
                 report["success"]
             )
+        if report.get("subtitles"):
+            text += "\n" + tr("with_subtitles", "With {0} subtitle(s).").format(
+                report["subtitles"]
+            )
         operation = report.get("operation")
         undo = message_box.rename_done(
             self, title, text, bool(report["errors"]), dest, undo=bool(operation)

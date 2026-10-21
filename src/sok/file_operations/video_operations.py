@@ -28,6 +28,7 @@ from sok.file_operations.base_operations import (
     make_folders,
     move_file,
 )
+from sok.file_operations.subtitles import move_subtitles
 
 import os
 import re
@@ -341,6 +342,33 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
 
         return original_filename
 
+    def _move_subtitles(
+        self,
+        source_file: str,
+        dest_file: str,
+        report: Dict[str, Any],
+        dry_run: bool = False,
+    ) -> None:
+        """Move the subtitles of a moved video, if the setting is on.
+
+        They are listed in report["subtitles"]; those skipped or failed join
+        report["skipped"] and report["errors"].
+        """
+        config = get_config_manager()
+        if not config.get("subtitles_follow_video", True):
+            return
+        result = move_subtitles(
+            Path(source_file),
+            dest_file,
+            self.supported_extensions,
+            skip_duplicates=config.get("skip_duplicates", False),
+            backup=config.get("backup_before_rename", False),
+            dry_run=dry_run,
+        )
+        report.setdefault("subtitles", []).extend(result["moved"])
+        report.setdefault("skipped", []).extend(result["skipped"])
+        report["errors"].extend(result["errors"])
+
     def organize_files(
         self,
         source_path: str,
@@ -435,9 +463,11 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                         "Video organize move failed for %s", source_file, exc_info=e
                     )
                     report["errors"].append({"file": source_file, "error": str(e)})
+                    continue
             else:
                 report["moved"].append({"from": source_file, "to": dest_file})
                 report["total_moved"] += 1
+            self._move_subtitles(source_file, dest_file, report, dry_run)
 
         return report
 
@@ -576,9 +606,11 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                         exc_info=e,
                     )
                     report["errors"].append({"file": source_file, "error": str(e)})
+                    continue
             else:
                 report["moved"].append({"from": source_file, "to": dest_file})
                 report["total_moved"] += 1
+            self._move_subtitles(source_file, dest_file, report, dry_run)
 
         return report
 
@@ -650,6 +682,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             if dry_run:
                 report["moved"].append({"from": source_file, "to": dest_file})
                 report["total_moved"] += 1
+                self._move_subtitles(source_file, dest_file, report, dry_run)
                 continue
 
             try:
@@ -668,6 +701,8 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                     "Movie batch move failed for %s", source_file, exc_info=e
                 )
                 report["errors"].append({"file": source_file, "error": str(e)})
+                continue
+            self._move_subtitles(source_file, dest_file, report)
 
         return report
 

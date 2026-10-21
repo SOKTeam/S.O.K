@@ -55,6 +55,8 @@ class Move:
     # The file it replaced, kept as "<target>.backup".
     backup: Optional[str] = None
     undone: bool = False
+    # New path of the file it goes with (the video of a subtitle).
+    follows: Optional[str] = None
 
 
 @dataclass
@@ -118,8 +120,16 @@ class Journal:
         # Id of the Operation saved at the end of record(), if any.
         self.operation_id: Optional[str] = None
 
-    def moved(self, source: str, target: str, backup: Optional[str]) -> None:
-        self.moves.append(Move(str(source), str(target), backup))
+    def moved(
+        self,
+        source: str,
+        target: str,
+        backup: Optional[str],
+        follows: Optional[str] = None,
+    ) -> None:
+        self.moves.append(
+            Move(str(source), str(target), backup, follows=follows and str(follows))
+        )
 
     def created_folders(self, folders: List[str]) -> None:
         self.folders.extend(str(folder) for folder in folders)
@@ -229,6 +239,7 @@ class HistoryStore:
         Args:
             operation_id: The operation.
             index: One file of it (its position in moves), or None for all.
+                The files that follow it, such as its subtitles, go back too.
 
         Returns:
             The files put back and the ones left in place, with why.
@@ -238,7 +249,15 @@ class HistoryStore:
             operation = self.get(operation_id)
             if operation is None:
                 return report
-            moves = operation.moves if index is None else [operation.moves[index]]
+            if index is None:
+                moves = operation.moves
+            else:
+                target = operation.moves[index].target
+                moves = [
+                    move
+                    for i, move in enumerate(operation.moves)
+                    if i == index or move.follows == target
+                ]
             # Last moved, first put back: a later file may have taken the
             # place of an earlier one.
             for move in reversed(moves):
