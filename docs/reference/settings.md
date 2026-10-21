@@ -64,7 +64,10 @@ come before it. `env_locked(key)` says whether a key is taken from the
 environment that way, for the settings to show it locked.
 
 The API Keys section only shows the user's keys (`get_user_value()`), never
-those of the build or of `.env`.
+those of the build or of `.env`. A key typed in its field is saved on Enter or
+when the field loses the focus (`ApiSection._save_key`), without the spaces
+around it; an emptied field removes the key. The media manager is then built
+again, so the next search uses the new key.
 
 ### Protection
 
