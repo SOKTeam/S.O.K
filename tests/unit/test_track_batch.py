@@ -10,6 +10,8 @@
 # ===----------------------------------------------------------------------=== #
 from pathlib import Path
 
+import pytest
+
 
 from sok.core.batch import (
     STATUS_AMBIGUOUS,
@@ -33,6 +35,18 @@ def track(title, album, album_type="album", date="2017-06-23", number=None):
         "release_date": date,
         "track_number": number,
     }
+
+
+@pytest.fixture(autouse=True)
+def default_music_format(monkeypatch):
+    """Name tracks with the default format, whatever the local settings say."""
+    from sok.file_operations import music_operations
+
+    class Config:
+        def get(self, key, default=None):
+            return default
+
+    monkeypatch.setattr(music_operations, "get_config_manager", lambda: Config())
 
 
 LOCKET = [

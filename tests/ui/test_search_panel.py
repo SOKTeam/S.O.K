@@ -53,19 +53,13 @@ class TestSearchPanelPublicAPI:
 
         assert panel.get_selected_media() is None
 
-    def test_set_type_by_data_changes_content_type(self, qtbot):
-        """Test setting content type by data value.
-
-        Uses the music panel because it is the only one with multiple
-        content types (album/artist) since movies were moved to their
-        own dedicated page.
-        """
+    def test_music_panel_only_searches_albums(self, qtbot):
+        """Tracks of several artists or albums have their own tab: the music
+        panel has no type to choose, so its type list is hidden."""
         panel = SearchPanel("music")
 
-        panel.set_type_by_data("artist")
-        assert panel._content_type == "artist"
-
-        panel.set_type_by_data("album")
+        assert panel._type_combo.count() == 1
+        assert panel._type_combo.isHidden()
         assert panel._content_type == "album"
 
     def test_set_type_by_data_ignores_invalid_value(self, qtbot):
@@ -206,24 +200,6 @@ class TestSearchPanelResults:
 
 class TestSearchPanelSignals:
     """SearchPanel signals tests."""
-
-    def test_type_changed_signal_emitted(self, qtbot):
-        """Test that type_changed signal is emitted when type changes.
-
-        Uses the music panel because the video panel now only exposes
-        the TV Series option (movies have their own dedicated page).
-        """
-        panel = SearchPanel("music")
-        signal_received = []
-
-        panel.type_changed.connect(lambda t: signal_received.append(t))
-
-        # Change type from album (default) to artist
-        idx = panel._type_combo.findData("artist")
-        if idx >= 0:
-            panel._type_combo.setCurrentIndex(idx)
-
-        assert "artist" in signal_received
 
     def test_search_started_signal_emitted(self, qtbot):
         """Test that search_started signal is emitted."""
