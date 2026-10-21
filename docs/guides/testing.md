@@ -32,8 +32,11 @@ on Linux and macOS for each pull request to `develop` or `main`.
 | `performance/`               | Timing of file operations                                                 |
 
 Name the file `test_<what>.py` and write tests as sentences:
-`test_a_wrong_key_is_an_authentication_error`. There is no shared `conftest.py`:
-each file builds what it needs, so a test reads on its own.
+`test_a_wrong_key_is_an_authentication_error`. Each file builds what it needs,
+so a test reads on its own. The only shared fixture is in `tests/conftest.py`:
+`rename_history` gives every test a rename history of its own in `tmp_path`, so
+no test ever writes to yours. Take it as an argument to read what a rename
+recorded.
 
 ## Never call a real service
 
@@ -94,6 +97,10 @@ def test_tracks_follow_the_music_format(monkeypatch):
 
 Patch the name where it is used (`music_operations.get_config_manager`), not
 where it is defined: each module imported it under its own name.
+
+The language of the interface also comes from your settings: a test that
+compares a text built with `tr()` passes in English and fails in French.
+Compare file names, numbers or the result of the same `tr()` call instead.
 
 ## Files
 

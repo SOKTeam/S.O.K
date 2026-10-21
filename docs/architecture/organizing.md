@@ -181,9 +181,8 @@ An image already in place is kept, and a failed download is only logged. Games
 get none: RAWG gives screenshots, not covers. Like the batch engine, the module
 has no Qt dependency.
 
-:::caution
-There is no undo yet: once moved, a file stays where it is. Test with copies of
-your files.
+:::tip
+A rename can be undone: see [Rename history](#rename-history) below.
 :::
 
 ## Rename history
