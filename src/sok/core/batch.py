@@ -142,8 +142,8 @@ def title_matches(query: str, candidate: Dict[str, Any]) -> bool:
     )
 
 
-def candidate_authors(candidate: Dict[str, Any]) -> List[str]:
-    """Authors (books) or artist (music) of a search result, normalized."""
+def _raw_authors(candidate: Dict[str, Any]) -> List[str]:
+    """Authors (books) or artist (music) of a search result, as written."""
     authors = (
         candidate.get("authors")
         or candidate.get("author")
@@ -152,18 +152,33 @@ def candidate_authors(candidate: Dict[str, Any]) -> List[str]:
     )
     if isinstance(authors, str):
         authors = [authors]
-    return [normalize_title(str(a)) for a in authors if a]
+    return [str(a) for a in authors if a]
+
+
+def candidate_authors(candidate: Dict[str, Any]) -> List[str]:
+    """Authors (books) or artist (music) of a search result, normalized."""
+    return [normalize_title(a) for a in _raw_authors(candidate)]
+
+
+def _last_word(name: str) -> str:
+    words = re.findall(r"[^\W_]+", name)
+    return normalize_title(words[-1]) if words else ""
 
 
 def author_matches(author: str, candidate: Dict[str, Any]) -> bool:
     """True if the author of the file name is an author of the result.
 
-    "Herbert" matches "Frank Herbert": file names often give the last name.
+    "Herbert" and "F. Herbert" match "Frank Herbert": file names often give
+    the last name. A full name must be the same: "Daft Punk" is not
+    "Data Punk".
     """
     wanted = normalize_title(author)
-    last = normalize_title(author.split()[-1]) if author.split() else ""
+    words = re.findall(r"[^\W_]+", author)
+    # Only a last name, maybe after initials.
+    last = _last_word(author) if all(len(w) == 1 for w in words[:-1]) else ""
     return bool(wanted) and any(
-        a == wanted or (last and a.endswith(last)) for a in candidate_authors(candidate)
+        normalize_title(a) == wanted or (last and _last_word(a) == last)
+        for a in _raw_authors(candidate)
     )
 
 
@@ -185,6 +200,12 @@ def on_other_release(candidate: Dict[str, Any]) -> bool:
     result is never Ready on its own.
     """
     return candidate.get("album_type") in OTHER_RELEASES
+
+
+def same_album(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
+    """Two results with the same title and artist are one album, such as
+    its explicit and clean versions."""
+    return same_book(a, b)
 
 
 def same_track(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
@@ -268,6 +289,10 @@ def evaluate(
         if on_album:
             return on_album[0], STATUS_READY
 
+    # A year the results do not give (Deezer has none for albums) cannot
+    # tell them apart: it is left out.
+    if year is not None and not any(candidate_year(candidates[i]) for i in titled):
+        year = None
     if year is None:
         if _is_ready(titled, candidates, same_work):
             return titled[0], STATUS_READY
@@ -315,6 +340,53 @@ def parse_series(files: Sequence[Path]) -> ParsedName:
 
 
 _SERIES_YEAR = re.compile(r"^(.*\S)[\s.]+\(?((?:19[3-9]|20[0-9])\d)\)?$")
+
+
+# "Daft Punk - Discovery (2001)", "Daft Punk - 2001 - Discovery".
+_ALBUM_FOLDER = re.compile(
+    r"^(?P<artist>.+?)\s+-\s+(?:(?P<year1>\d{4})\s+-\s+)?(?P<album>.+?)"
+    r"(?:\s*[(\[](?P<year2>\d{4})[)\]])?$"
+)
+
+
+def _most_common(values: List[Any]) -> Any:
+    """The value most files give, or None."""
+    counts: Dict[Any, int] = {}
+    for value in values:
+        if value:
+            counts[value] = counts.get(value, 0) + 1
+    return max(counts, key=lambda v: counts[v]) if counts else None
+
+
+def parse_album(files: Sequence[Path]) -> ParsedName:
+    """Read the tracks of an album: its title, artist and year.
+
+    The album and the artist most tracks give in their tags (the album
+    artist first), then the name of the folder: "Daft Punk - Discovery
+    (2001)". A year the results do not give is not compared (see
+    evaluate).
+    """
+    ops = MusicFileOperations()
+    tags = [ops.read_metadata(str(file)) for file in files]
+    album = _most_common([t.get("album") for t in tags])
+    artist = _most_common([t.get("album_artist") or t.get("artist") for t in tags])
+    year = _most_common([t.get("year") for t in tags])
+    if not album:
+        from sok.file_operations.detection import DISC_FOLDER_PATTERN
+
+        folder = files[0].parent
+        if DISC_FOLDER_PATTERN.match(folder.name):
+            folder = folder.parent
+        match = _ALBUM_FOLDER.match(folder.name)
+        if match:
+            album = match.group("album").strip()
+            artist = artist or match.group("artist").strip()
+            found = match.group("year1") or match.group("year2")
+            year = year or (int(found) if found else None)
+        else:
+            album = folder.name
+    query = f"{album} {artist}" if artist else album
+    return ParsedName(query, year, album, artist)
 
 
 def parse_book(files: Sequence[Path]) -> ParsedName:

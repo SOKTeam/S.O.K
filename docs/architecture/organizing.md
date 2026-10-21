@@ -42,13 +42,14 @@ are already in the table are skipped.
 The `parse` function of the page reads the files of a row and returns a
 `ParsedName`: the text to search, and what the results are compared with.
 
-| Function       | Reads                                                                                                                                                                                                                               |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `parse_movie`  | Title and year: `Heat (1995).mkv`, `heat.1995.1080p.mkv`                                                                                                                                                                            |
-| `parse_book`   | Title and author; the year is ignored (it is often the edition's)                                                                                                                                                                   |
-| `parse_game`   | Title without the dump tags: `[SNES] Chrono Trigger (USA) (Rev 1).smc`                                                                                                                                                              |
-| `parse_track`  | The tags of the file first, then `Artist - Title`; the album of its tags                                                                                                                                                            |
-| `parse_series` | The series title the type detector gives the episodes (file name, or the folders above a season folder), and a year at its end: `Doctor.Who.2005.S01E01.mkv` → Doctor Who, 2005. Used by S.O.K Server, with `ContentType.TV_SERIES` |
+| Function       | Reads                                                                                                                                                                                                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `parse_movie`  | Title and year: `Heat (1995).mkv`, `heat.1995.1080p.mkv`                                                                                                                                                                                                                        |
+| `parse_book`   | Title and author; the year is ignored (it is often the edition's)                                                                                                                                                                                                               |
+| `parse_game`   | Title without the dump tags: `[SNES] Chrono Trigger (USA) (Rev 1).smc`                                                                                                                                                                                                          |
+| `parse_track`  | The tags of the file first, then `Artist - Title`; the album of its tags                                                                                                                                                                                                        |
+| `parse_series` | The series title the type detector gives the episodes (file name, or the folders above a season folder), and a year at its end: `Doctor.Who.2005.S01E01.mkv` → Doctor Who, 2005. Used by S.O.K Server, with `ContentType.TV_SERIES`                                             |
+| `parse_album`  | The album and artist most tracks give in their tags (the album artist first), and their year; without tags, the folder: `Daft Punk - Discovery (2001)`, `Radiohead - 1997 - OK Computer`, above a `CD1` folder. Used by S.O.K Server, with `ContentType.ALBUM` and `same_album` |
 
 Each of them calls `extract_info_from_filename` of the file operations, which
 tries the **input patterns** of the settings first (`sok.core.name_patterns`),
@@ -82,9 +83,13 @@ by `sok.ui.errors.error_message`.
 
 Titles are compared after `normalize_title`: accents, case, punctuation and
 spaces are ignored, and "&" counts as "and". Without a year in the file name,
-the title must be unique among the results. Two results can count as one work:
-the editions of a book (`same_book`), or a track on an album and on a
-compilation or a live album (`same_track`). A track found only on compilations,
+the title must be unique among the results; a year that none of the results
+with that title gives (Deezer gives none for albums) is left out. An author or
+artist must be the same, except a last name alone ("Herbert", "F. Herbert"),
+which matches "Frank Herbert": "Daft Punk" is not "Data Punk". Two results can
+count as one work: the editions of a book (`same_book`), the versions of an
+album with the same title and artist (`same_album`), or a track on an album and
+on a compilation or a live album (`same_track`). A track found only on compilations,
 live or remix releases is never Ready (`on_other_release`): the album it came
 out on is still unknown.
 
