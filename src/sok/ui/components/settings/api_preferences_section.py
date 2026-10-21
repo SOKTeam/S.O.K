@@ -20,7 +20,6 @@ from sok.ui.components.inputs import ModernComboBox
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.i18n import tr
 from sok.ui.theme import card_shadow, set_tone
-from sok.core.constants import SERVICE_LASTFM
 from sok.config.api_registry import get_services_by_media_type
 from sok.config.api_registry import get_service
 
@@ -138,7 +137,7 @@ class ApiPreferencesSection(QWidget):
                 ):
                     is_valid = False
                     missing_reason = tr("api_key_needed", "API key required")
-                if service_config.requires_secret and service_id != SERVICE_LASTFM:
+                if service_config.requires_secret:
                     secret = self._config.get(service_config.secret_config_key, "")
                     if not secret:
                         is_valid = False

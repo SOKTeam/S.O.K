@@ -147,21 +147,6 @@ def get_tvdb_token(config: ConfigManager) -> Optional[str]:
     return None
 
 
-def get_lastfm_session_key(config: ConfigManager) -> Optional[str]:
-    """Extract the Last.fm session key from the config.
-
-    Args:
-        config: ConfigManager instance.
-
-    Returns:
-        Last.fm session key string or None if not found.
-    """
-    session_data = get_session_data(config, SERVICE_LASTFM)
-    if session_data:
-        return session_data.get("session_key") or session_data.get("key")
-    return None
-
-
 def get_spotify_token(config: ConfigManager) -> Optional[str]:
     """Extract the Spotify token from the config.
 
