@@ -47,3 +47,41 @@ def test_release_notes_are_rendered_as_markdown(qtbot, manager):
     text = dialog.changelog.toPlainText()
     assert "Bug Fixes" in text
     assert "##" not in text and "**" not in text
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://github.com/x/SOK_Setup_v1.4.0.exe",
+        "https://github.com/x/SOK_macOS_v1.4.0.dmg",
+        "https://github.com/x/SOK_Linux_v1.4.0_x86_64.AppImage",
+    ],
+)
+def test_installers_are_downloaded_by_the_dialog(qtbot, manager, monkeypatch, url):
+    """The .dmg used to open in the browser, which left the download to the
+    user while the app kept running."""
+    manager.get_download_url.return_value = url
+    dialog = UpdateDialog(None, manager, "1.4.0")
+    qtbot.addWidget(dialog)
+    opened, started = [], []
+    monkeypatch.setattr("webbrowser.open", opened.append)
+    monkeypatch.setattr(
+        dialog._runner, "run", lambda worker, *a: started.append(worker)
+    )
+
+    dialog.start_update()
+
+    assert opened == []
+    assert started[0].url == url
+
+
+def test_the_release_page_opens_in_the_browser(qtbot, manager, monkeypatch):
+    manager.get_download_url.return_value = "https://github.com/x/releases/tag/v1.4.0"
+    dialog = UpdateDialog(None, manager, "1.4.0")
+    qtbot.addWidget(dialog)
+    opened = []
+    monkeypatch.setattr("webbrowser.open", opened.append)
+
+    dialog.start_update()
+
+    assert opened == ["https://github.com/x/releases/tag/v1.4.0"]

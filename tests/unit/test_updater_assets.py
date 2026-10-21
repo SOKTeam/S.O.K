@@ -127,3 +127,16 @@ def test_windows_install_launches_the_setup_without_exiting(
     manager.download_and_install("exe-url")
 
     assert launched == [[str(tmp_path / "SOK_Setup_Update.exe")]]
+
+
+def test_macos_install_opens_the_disk_image(manager, monkeypatch, tmp_path):
+    monkeypatch.setattr(sys, "platform", "darwin")
+    monkeypatch.delenv("APPIMAGE", raising=False)
+    monkeypatch.setattr(updater.tempfile, "gettempdir", lambda: str(tmp_path))
+    monkeypatch.setattr(UpdateManager, "_download", staticmethod(lambda *a: None))
+    launched = []
+    monkeypatch.setattr(updater.subprocess, "Popen", launched.append)
+
+    manager.download_and_install("dmg-url")
+
+    assert launched == [["open", str(tmp_path / "SOK_Update.dmg")]]
