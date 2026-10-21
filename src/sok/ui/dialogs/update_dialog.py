@@ -38,6 +38,11 @@ import webbrowser
 BUTTON_HEIGHT = 28 if IS_MACOS else 32
 
 
+# Files the dialog downloads and starts itself (see
+# UpdateManager.download_and_install).
+INSTALLER_EXTENSIONS = (".exe", ".dmg", ".appimage")
+
+
 class DownloadWorker(QObject):
     """Worker for downloading updates in a background thread.
 
@@ -248,8 +253,9 @@ class UpdateDialog(QDialog):
     def start_update(self):
         """Start the update download and installation process.
 
-        Downloads the update if URL is an exe, otherwise opens
-        the download page in a browser.
+        Downloads the installer of this system (setup .exe, .dmg or
+        AppImage) and starts it; for anything else, such as the release
+        page, opens the link in the browser.
         """
         if not self.update_manager:
             return
@@ -262,7 +268,7 @@ class UpdateDialog(QDialog):
             )
             return
 
-        if not url.lower().endswith((".exe", ".appimage")):
+        if not url.lower().endswith(INSTALLER_EXTENSIONS):
             webbrowser.open(url)
             self.accept()
             return
