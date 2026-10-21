@@ -186,6 +186,35 @@ There is no undo yet: once moved, a file stays where it is. Test with copies of
 your files.
 :::
 
+## Rename history
+
+Each rename can be undone, from the message shown at its end ("Undo rename") or
+from the History page. `sok/core/history.py` keeps the history, without Qt.
+
+**Recording.** `BatchOrganizeWorker` and `OrganizeWorker` run the rename and the
+poster downloads inside `history.record(kind)`. While it runs, three functions
+report what they do to the active journal (`current_journal()`):
+
+| Function                           | Reports                                                 |
+| ---------------------------------- | ------------------------------------------------------- |
+| `move_file` (`base_operations`)    | Each file moved, and the `.backup` of a replaced file   |
+| `make_folders` (`base_operations`) | Each folder created (use it instead of `os.makedirs`)   |
+| `save_artwork` (`artwork`)         | Each poster or cover saved, and the files it belongs to |
+
+At the end, a journal with moves becomes an `Operation` of `get_history()`,
+saved in `history.json` next to `config.json`. The last 100 operations are
+kept. The worker's report gives its id in `"operation"`.
+
+**Undoing.** `HistoryStore.undo(operation_id, index=None)` puts back every file
+of the operation, or the one at `index`, last moved first. It never replaces a
+file: a file no longer at its new place (`MISSING`) or whose old place is taken
+(`OCCUPIED`) is skipped and listed in the `UndoReport`. The `.backup` of a
+replaced file is put back. A poster is deleted once all its files are back. The
+folders the rename created are removed when they are empty (or hold only
+`.DS_Store`, `Thumbs.db` or `desktop.ini`). The UI runs it in `UndoWorker`.
+
+Tests get a history of their own (`tests/conftest.py`), never the user's one.
+
 ## Adding a batch page
 
 1. Write a `parse_*` function in `sok.core.batch` that returns a `ParsedName`,

@@ -40,6 +40,7 @@ PAGE_ACTIONS = [
     ("games", "Games"),
 ]
 SETTINGS_PAGE = 6
+HISTORY_PAGE = 7
 
 # Qt ships no translation for these codes under the same name.
 QT_TRANSLATION_NAMES = {"pt": "pt_BR"}
@@ -115,6 +116,13 @@ class MacMenuBar:
                 lambda _=False, i=index: window._go(i),
                 QKeySequence(f"Ctrl+{index + 1}"),
             )
+        self._action(
+            view_menu,
+            "history",
+            "History",
+            lambda: window._go(HISTORY_PAGE),
+            QKeySequence("Ctrl+Y"),
+        )
         view_menu.addSeparator()
         self._action(
             view_menu,

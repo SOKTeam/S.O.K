@@ -271,5 +271,22 @@
     "input_test_placeholder": "Incolla un nome di file",
     "input_test_pattern": "Letto con il tuo modello {pattern}",
     "input_test_builtin": "Letto con le regole predefinite",
-    "input_test_no_type": "Aggiungi l'estensione del file (.mkv, .mp3, .epub…)"
+    "input_test_no_type": "Aggiungi l'estensione del file (.mkv, .mp3, .epub…)",
+    "history": "Cronologia",
+    "history_files": "{0} file",
+    "history_undone": "Annullato",
+    "history_partly_undone": "Annullato in parte",
+    "undo": "Annulla",
+    "history_undo_file": "Rimetti questo file",
+    "history_confirm_undo": "Rimettere {0} file al loro posto d'origine?",
+    "history_clear": "Svuota la cronologia",
+    "history_confirm_clear": "Svuotare la cronologia? Le rinominazioni non potranno più essere annullate. I file restano dove sono.",
+    "history_empty": "Nessuna rinominazione per ora.",
+    "undo_rename": "Annulla la rinominazione",
+    "undo_done": "Rinominazione annullata",
+    "undo_restored": "✓ {0} file rimessi a posto.",
+    "undo_skipped": "{0} file lasciati al loro posto:",
+    "undo_missing": "spostato o eliminato dopo la rinominazione",
+    "undo_occupied": "un altro file ha il suo vecchio nome",
+    "undo_failed": "non è stato possibile spostarlo"
 }

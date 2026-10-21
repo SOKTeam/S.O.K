@@ -42,6 +42,7 @@ from sok.config import get_config_manager
 from sok.ui.i18n import tr
 from sok.ui.pages.organize_preview_panel import PreviewPanel
 from sok.ui import message_box
+from sok.ui.controllers.undo import undo_operation
 from sok.ui.platform import request_attention
 from sok.media.video.series import Series
 
@@ -92,6 +93,7 @@ class OrganizePage(QScrollArea):
             self._ops, tr, MAX_PREVIEW_FILES
         )
         self._worker_runner = WorkerRunner(self)
+        self._undo_runner = WorkerRunner(self)
 
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -252,6 +254,7 @@ class OrganizePage(QScrollArea):
         Ensures proper cleanup of worker threads.
         """
         self._worker_runner.stop()
+        self._undo_runner.stop()
 
     def _run_worker(
         self, worker, on_finished, on_error, on_progress=None, cancel_previous=False
@@ -829,28 +832,26 @@ class OrganizePage(QScrollArea):
         dest = self._destination_folder()
         request_attention(self)
 
-        if report["errors"]:
-            message_box.warning(
-                self,
-                tr("finished_with_errors", "Finished with errors"),
-                tr("success_count", "{0}/{1} succeeded.").format(
-                    report["success"], report["total"]
-                ),
-                reveal=dest,
-            )
-        else:
-            message_box.information(
-                self,
-                tr("success", "Success"),
-                tr("files_organized", "✓ {0} file(s) organized!").format(
-                    report["success"]
-                ),
-                reveal=dest,
-            )
-
         self._files = []
         self._preview_title_label.setText(tr("preview_title", "Preview"))
         self._set_empty_preview(tr("select_folder", "Select a folder"), height=60)
+
+        if report["errors"]:
+            title = tr("finished_with_errors", "Finished with errors")
+            text = tr("success_count", "{0}/{1} succeeded.").format(
+                report["success"], report["total"]
+            )
+        else:
+            title = tr("success", "Success")
+            text = tr("files_organized", "✓ {0} file(s) organized!").format(
+                report["success"]
+            )
+        operation = report.get("operation")
+        undo = message_box.rename_done(
+            self, title, text, bool(report["errors"]), dest, undo=bool(operation)
+        )
+        if undo and operation:
+            undo_operation(self, self._undo_runner, operation)
 
     def _on_organize_error(self, error: str):
         """Handle organization error.

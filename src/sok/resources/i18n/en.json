@@ -271,5 +271,22 @@
     "input_test_placeholder": "Paste a file name",
     "input_test_pattern": "Read with your pattern {pattern}",
     "input_test_builtin": "Read by the default rules",
-    "input_test_no_type": "Add the extension of the file (.mkv, .mp3, .epub…)"
+    "input_test_no_type": "Add the extension of the file (.mkv, .mp3, .epub…)",
+    "history": "History",
+    "history_files": "{0} file(s)",
+    "history_undone": "Undone",
+    "history_partly_undone": "Partly undone",
+    "undo": "Undo",
+    "history_undo_file": "Put this file back",
+    "history_confirm_undo": "Put {0} file(s) back where they were?",
+    "history_clear": "Clear history",
+    "history_confirm_clear": "Clear the history? The renames can no longer be undone. The files stay where they are.",
+    "history_empty": "No renames yet.",
+    "undo_rename": "Undo rename",
+    "undo_done": "Rename undone",
+    "undo_restored": "✓ {0} file(s) put back.",
+    "undo_skipped": "{0} file(s) left in place:",
+    "undo_missing": "moved or deleted since the rename",
+    "undo_occupied": "another file has its old name",
+    "undo_failed": "could not be moved"
 }

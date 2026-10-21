@@ -271,5 +271,22 @@
     "input_test_placeholder": "Pegue un nombre de archivo",
     "input_test_pattern": "Leído con su patrón {pattern}",
     "input_test_builtin": "Leído con las reglas por defecto",
-    "input_test_no_type": "Añada la extensión del archivo (.mkv, .mp3, .epub…)"
+    "input_test_no_type": "Añada la extensión del archivo (.mkv, .mp3, .epub…)",
+    "history": "Historial",
+    "history_files": "{0} archivo(s)",
+    "history_undone": "Deshecho",
+    "history_partly_undone": "Deshecho en parte",
+    "undo": "Deshacer",
+    "history_undo_file": "Devolver este archivo",
+    "history_confirm_undo": "¿Devolver {0} archivo(s) a su lugar de origen?",
+    "history_clear": "Vaciar el historial",
+    "history_confirm_clear": "¿Vaciar el historial? Los renombrados ya no se podrán deshacer. Los archivos se quedan donde están.",
+    "history_empty": "Todavía no hay renombrados.",
+    "undo_rename": "Deshacer el renombrado",
+    "undo_done": "Renombrado deshecho",
+    "undo_restored": "✓ {0} archivo(s) devuelto(s).",
+    "undo_skipped": "{0} archivo(s) dejado(s) en su sitio:",
+    "undo_missing": "movido o eliminado desde el renombrado",
+    "undo_occupied": "otro archivo tiene su nombre anterior",
+    "undo_failed": "no se pudo mover"
 }
