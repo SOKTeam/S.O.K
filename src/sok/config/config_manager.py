@@ -312,6 +312,8 @@ class ConfigManager:
         "spotify_client_secret",
         "igdb_client_id",
         "igdb_client_secret",
+        "google_books_api_key",
+        "api_key_fanart",
     ]
 
     def __init__(self, config_path: Optional[Path] = None):
