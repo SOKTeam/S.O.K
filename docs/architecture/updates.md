@@ -33,11 +33,11 @@ nothing.
 "Download and Install" asks `get_download_url()` for the file of this system,
 found by the name of the release assets:
 
-| System  | Asset                                                                                | What happens                                                                                       |
-| ------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| Windows | The `.exe` whose name contains `setup` (`SOK_Setup_v<version>.exe`), else any `.exe` | Downloaded into the temporary folder and started. S.O.K quits so that the installer can replace it |
-| macOS   | The `.dmg` (`SOK_macOS_v<version>.dmg`)                                              | Opened in the browser, which downloads it. The user opens it and drags the app over the old one    |
-| Linux   | The AppImage of this machine (`SOK_Linux_v<version>_<arch>.AppImage`)                | Downloaded next to the running AppImage, then put in its place. S.O.K restarts on the new file     |
+| System  | Asset                                                                                | What happens                                                                                                                |
+| ------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| Windows | The `.exe` whose name contains `setup` (`SOK_Setup_v<version>.exe`), else any `.exe` | Downloaded into the temporary folder and started. S.O.K quits so that the installer can replace it                          |
+| macOS   | The `.dmg` (`SOK_macOS_v<version>.dmg`)                                              | Downloaded into the temporary folder and opened in the Finder. S.O.K quits, and the user drags the new app over the old one |
+| Linux   | The AppImage of this machine (`SOK_Linux_v<version>_<arch>.AppImage`)                | Downloaded next to the running AppImage, then put in its place. S.O.K restarts on the new file                              |
 
 The download runs in a `DownloadWorker`, with a progress bar in the dialog.
 Without a matching asset, the dialog opens the release page in the browser.
