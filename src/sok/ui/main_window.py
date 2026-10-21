@@ -1100,6 +1100,20 @@ class MainWindow(QMainWindow):
                 font-size: 13px;
             }}
 
+            #PatternRemoveBtn {{
+                background: {c["hover"]};
+                border: none;
+                border-radius: 10px;
+                color: {c["text"]};
+                font-weight: bold;
+                padding-bottom: 2px;
+            }}
+
+            #PatternRemoveBtn:hover {{
+                background: {c["red"]};
+                color: white;
+            }}
+
             #SearchBar:focus, #SettingsInput:focus {{
                 border-color: {c["accent"]};
             }}

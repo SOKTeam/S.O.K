@@ -49,6 +49,15 @@ The `parse` function of the page reads the files of a row and returns a
 | `parse_game`  | Title without the dump tags: `[SNES] Chrono Trigger (USA) (Rev 1).smc`   |
 | `parse_track` | The tags of the file first, then `Artist - Title`; the album of its tags |
 
+Each of them calls `extract_info_from_filename` of the file operations, which
+tries the **input patterns** of the settings first (`sok.core.name_patterns`),
+then its own rules (`_parse_filename`). A pattern uses the variables of the
+name formats: `{artist} - {year} - {album} - {track} - {title}`. In a pattern,
+spaces, dots and underscores are the same separator, the spaces around a dash
+are optional, `{year}` takes four digits, the numbers take digits, and
+`{ignore}` skips any part of the name. The info of a name read by a pattern has
+a `pattern` key. The tags of a track still come before its name.
+
 ### 3. Searching
 
 `BatchSearchWorker` runs `BatchMatcher.match_all` in a background thread. The
@@ -119,7 +128,8 @@ Files dropped on the home page are sorted by `MediaTypeDetector`
 (`sok/file_operations/detection.py`), run by `DetectionWorker`. It gives one
 group per batch page (movies, tracks, books, games) and one group per series and
 per album. Files whose type is a guess (an `.iso` can be a movie or a game) are
-listed for the user to confirm. Opening a group calls `MainWindow._open_group`,
+listed for the user to confirm. A video read by an episode pattern of the
+settings is an episode, one read by a movie pattern is a movie. Opening a group calls `MainWindow._open_group`,
 which shows the page of its type and gives it the files (`load_files` on a batch
 page).
 

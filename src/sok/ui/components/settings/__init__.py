@@ -11,13 +11,14 @@
 """Settings page section components.
 
 Contains modular sections for the settings page: API, paths,
-formats, appearance, behavior, and about sections.
+output and input formats, appearance, behavior, and about sections.
 """
 
 from sok.ui.components.settings.api_section import ApiSection
 from sok.ui.components.settings.api_preferences_section import ApiPreferencesSection
 from sok.ui.components.settings.paths_section import PathsSection
 from sok.ui.components.settings.formats_section import FormatsSection
+from sok.ui.components.settings.input_formats_section import InputFormatsSection
 from sok.ui.components.settings.appearance_section import AppearanceSection
 from sok.ui.components.settings.behavior_section import BehaviorSection
 from sok.ui.components.settings.about_section import AboutSection
@@ -27,6 +28,7 @@ __all__ = [
     "ApiPreferencesSection",
     "PathsSection",
     "FormatsSection",
+    "InputFormatsSection",
     "AppearanceSection",
     "BehaviorSection",
     "AboutSection",

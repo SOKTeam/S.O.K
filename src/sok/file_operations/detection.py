@@ -215,7 +215,8 @@ class MediaTypeDetector:
             info = self._video.extract_info_from_filename(path.name)
             if info["type"] == "series":
                 title = info["title"] or _series_folder_title(path)
-                if EPISODE_PATTERN.search(path.stem):
+                # A pattern of the settings is as sure as an episode number.
+                if info.get("pattern") or EPISODE_PATTERN.search(path.stem):
                     return DetectedFile(
                         path, ContentType.EPISODE, title, True, "episode number"
                     )
@@ -225,6 +226,10 @@ class MediaTypeDetector:
                     title,
                     False,
                     "episode number without season",
+                )
+            if info.get("pattern"):
+                return DetectedFile(
+                    path, ContentType.MOVIE, None, True, "movie pattern"
                 )
             if EPISODE_PATTERN.search(path.stem):
                 return DetectedFile(
