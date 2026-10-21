@@ -28,6 +28,7 @@ from sok.file_operations.base_operations import (
     make_folders,
     move_file,
 )
+from sok.core.history import MOVE
 from sok.file_operations.subtitles import move_subtitles
 
 import os
@@ -363,6 +364,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             self.supported_extensions,
             skip_duplicates=config.get("skip_duplicates", False),
             backup=config.get("backup_before_rename", False),
+            mode=config.get("file_mode", MOVE),
             dry_run=dry_run,
         )
         report.setdefault("subtitles", []).extend(result["moved"])
@@ -499,6 +501,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         create_folders = config.get("create_folders", True)
         skip_duplicates = config.get("skip_duplicates", False)
         backup_before_rename = config.get("backup_before_rename", False)
+        file_mode = config.get("file_mode", MOVE)
         log_operations = config.get("log_operations", True)
 
         report: Dict[str, Any] = {
@@ -591,7 +594,10 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                             continue
 
                     backup_path = move_file(
-                        source_file, dest_file, backup=backup_before_rename
+                        source_file,
+                        dest_file,
+                        backup=backup_before_rename,
+                        mode=file_mode,
                     )
                     if backup_path and log_operations:
                         logger.info("Backup created: %s", backup_path)
@@ -639,6 +645,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         config = get_config_manager()
         skip_duplicates = config.get("skip_duplicates", False)
         backup_before_rename = config.get("backup_before_rename", False)
+        file_mode = config.get("file_mode", MOVE)
         log_operations = config.get("log_operations", True)
 
         report: Dict[str, Any] = {
@@ -687,7 +694,10 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
 
             try:
                 backup_path = move_file(
-                    source_file, dest_file, backup=backup_before_rename
+                    source_file,
+                    dest_file,
+                    backup=backup_before_rename,
+                    mode=file_mode,
                 )
                 if backup_path and log_operations:
                     logger.info("Backup created: %s", backup_path)

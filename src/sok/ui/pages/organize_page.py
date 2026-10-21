@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from sok.file_operations import MusicFileOperations, VideoFileOperations
 from sok.ui.components.organize import SearchPanel, OptionsPanel
+from sok.ui.controllers.file_mode import hard_link_blocked
 from sok.ui.controllers.organize_preview import OrganizePreviewController
 from sok.ui.controllers.source_scanner import scan_sources
 from sok.ui.controllers.ui_helpers import make_section_label
@@ -713,6 +714,8 @@ class OrganizePage(QScrollArea):
                 tr("warning", "Warning"),
                 tr("select_media_warning", "Please select a media."),
             )
+            return
+        if hard_link_blocked(self, self._files, str(dest_path)):
             return
 
         msg = QMessageBox()

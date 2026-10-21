@@ -25,9 +25,10 @@ import os
 import hashlib
 import shutil
 import logging
+import uuid
 from typing import List, Dict, Any, Optional, Callable
 
-from sok.core.history import current_journal
+from sok.core.history import COPY, LINK, MOVE, current_journal
 
 from .mixins import (
     FileParsingMixin,
@@ -46,6 +47,8 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "BaseFileOperations",
     "move_file",
+    "can_hard_link",
+    "HardLinkError",
     "make_folders",
     "FileParsingMixin",
     "FileValidationMixin",
@@ -58,13 +61,18 @@ __all__ = [
 ]
 
 
+class HardLinkError(OSError):
+    """A hard link could not be made, such as between two drives."""
+
+
 def move_file(
     source: str,
     destination: str,
     backup: bool = False,
     follows: Optional[str] = None,
+    mode: str = MOVE,
 ) -> Optional[str]:
-    """Move a file, replacing the destination if it already exists.
+    """Move, hard link or copy a file, replacing the destination if it exists.
 
     Args:
         source: Source file path.
@@ -72,34 +80,86 @@ def move_file(
         backup: Whether to keep the replaced file as '<destination>.backup'.
         follows: New path of the file this one goes with, such as the
             video of a subtitle; undoing that file puts this one back too.
+        mode: MOVE, LINK (the source stays, for torrents that keep seeding)
+            or COPY. A link that fails is an error, never a copy.
 
     Returns:
         Path of the created backup, or None if no backup was made.
 
     Raises:
+        HardLinkError: If the link cannot be made.
         OSError: If the move fails. A backup made for this move is restored.
     """
+    if (
+        mode != MOVE
+        and os.path.exists(destination)
+        and os.path.samefile(source, destination)
+    ):
+        # Already there: linking or copying a file onto itself would lose it.
+        return None
+
     backup_path = None
     if backup and os.path.exists(destination):
         backup_path = f"{destination}.backup"
         os.replace(destination, backup_path)
 
+    # A link or a copy is made next to the destination, then put in place.
+    partial = f"{destination}.sok-{uuid.uuid4().hex[:8]}"
     try:
-        try:
-            os.replace(source, destination)
-        except OSError as exc:
-            if exc.errno != errno.EXDEV:
-                raise
-            shutil.move(source, destination)
+        if mode == LINK:
+            try:
+                os.link(source, partial)
+            except OSError as exc:
+                raise HardLinkError(
+                    exc.errno,
+                    "Hard link impossible: the source and the destination must "
+                    "be on the same drive, on a disk that supports hard links",
+                    source,
+                ) from exc
+            os.replace(partial, destination)
+        elif mode == COPY:
+            shutil.copy2(source, partial)
+            os.replace(partial, destination)
+        else:
+            try:
+                os.replace(source, destination)
+            except OSError as exc:
+                if exc.errno != errno.EXDEV:
+                    raise
+                shutil.move(source, destination)
     except OSError:
+        if os.path.exists(partial):
+            os.remove(partial)
         if backup_path:
             os.replace(backup_path, destination)
         raise
 
     journal = current_journal()
     if journal:
-        journal.moved(source, destination, backup_path, follows)
+        journal.moved(source, destination, backup_path, follows, mode)
     return backup_path
+
+
+def can_hard_link(source: str, folder: str) -> bool:
+    """Whether a hard link of a file can be made in a folder.
+
+    Makes a test link and deletes it: two drives, two Docker mounts, or a
+    disk without hard links (FAT, exFAT, most network shares) say no.
+
+    Args:
+        source: An existing file.
+        folder: An existing folder.
+    """
+    test = os.path.join(folder, f".sok-link-test-{uuid.uuid4().hex[:8]}")
+    try:
+        os.link(source, test)
+    except OSError:
+        return False
+    try:
+        os.remove(test)
+    except OSError:
+        pass
+    return True
 
 
 def make_folders(path: str) -> None:

@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Tuple
 
+from sok.core.history import MOVE
 from sok.file_operations.base_operations import move_file
 
 logger = logging.getLogger(__name__)
@@ -78,6 +79,7 @@ def move_subtitles(
     video_extensions: Iterable[str],
     skip_duplicates: bool = False,
     backup: bool = False,
+    mode: str = MOVE,
     dry_run: bool = False,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """Move the subtitles of a video next to its new place, under its new name.
@@ -91,6 +93,7 @@ def move_subtitles(
         video_extensions: Extensions of the videos.
         skip_duplicates: Leave a subtitle in place when its new name exists.
         backup: Keep a replaced subtitle as '<name>.backup'.
+        mode: MOVE, LINK or COPY, like the video.
         dry_run: Only say where they would go.
 
     Returns:
@@ -112,7 +115,7 @@ def move_subtitles(
             continue
         if not dry_run:
             try:
-                move_file(source, target, backup=backup, follows=new_video)
+                move_file(source, target, backup=backup, follows=new_video, mode=mode)
             except OSError as exc:
                 logger.warning("Subtitle move failed for %s: %s", source, exc)
                 report["errors"].append({"file": source, "error": str(exc)})

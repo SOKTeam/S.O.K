@@ -152,6 +152,7 @@ The "Behavior" settings apply to every page:
 
 | Setting                  | Effect                                                                            |
 | ------------------------ | --------------------------------------------------------------------------------- |
+| `file_mode`              | `move`, `link` (hard link) or `copy`: how the files reach their new place         |
 | `create_folders`         | Creates the missing folders. When off, a file whose folder is missing is an error |
 | `skip_duplicates`        | Leaves a file in place when its new name already exists                           |
 | `backup_before_rename`   | Keeps the replaced file as `<name>.backup`                                        |
@@ -163,6 +164,29 @@ Files are moved by `move_file` (`sok.file_operations.base_operations`). It
 replaces an existing file of the same name, unless `skip_duplicates` is on. A
 move to another drive is a copy followed by a deletion. If the move fails, the
 backup it made is put back.
+
+### File modes
+
+`move_file(..., mode=...)` takes the `file_mode` of the settings (`MOVE`,
+`LINK` or `COPY`, from `sok.core.history`):
+
+| Mode   | The source         | The new file                                            |
+| ------ | ------------------ | ------------------------------------------------------- |
+| `move` | Leaves its place   | Is the file itself                                      |
+| `link` | Stays, for seeding | A hard link: the same data under a second name, no copy |
+| `copy` | Stays              | A copy                                                  |
+
+A link or a copy is made under a temporary name next to the destination, then
+put in place, so a failure leaves no half file. A hard link only works on one
+drive (and one Docker mount), on a disk that supports it (not FAT, exFAT or most
+network shares). When it fails, `move_file` raises `HardLinkError`: the file is
+an error of the report, never copied instead. A file already at its destination
+(the same file) is left as it is.
+
+Before a rename in `link` mode, the pages call `hard_link_blocked`
+(`sok/ui/controllers/file_mode.py`): `can_hard_link` makes one test link per
+drive of the files, and a failure stops the rename with a message that says how
+to fix it.
 
 ### Posters and covers
 
@@ -233,8 +257,12 @@ kept. The worker's report gives its id in `"operation"`.
 **Undoing.** `HistoryStore.undo(operation_id, index=None)` puts back every file
 of the operation, or the one at `index` with the files that follow it (its
 subtitles, moved with `move_file(..., follows=video)` and saved as
-`Move.follows`), last moved first. It never replaces a file: a file no longer at its new place (`MISSING`) or whose old place is taken
-(`OCCUPIED`) is skipped and listed in the `UndoReport`. The `.backup` of a
+`Move.follows`), last moved first. It never replaces a file: a file no longer
+at its new place (`MISSING`) or whose old place is taken (`OCCUPIED`) is skipped
+and listed in the `UndoReport`. A file renamed in `link` or `copy` mode
+(`Move.mode`) is deleted when its source is still the original (the same file
+for a link, the same size for a copy); with the source gone, it goes back in its
+place, and with another file there, it stays (`OCCUPIED`). The `.backup` of a
 replaced file is put back. A poster is deleted once all its files are back. The
 folders the rename created are removed when they are empty (or hold only
 `.DS_Store`, `Thumbs.db` or `desktop.ini`). The UI runs it in `UndoWorker`.

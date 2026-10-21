@@ -56,6 +56,7 @@ from sok.ui.components.organize.media_batch_table import (
     one_item_per_file,
 )
 from sok.ui.controllers.default_paths import apply_default_destination
+from sok.ui.controllers.file_mode import hard_link_blocked
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.controllers.ui_state import set_progress
 from sok.ui.controllers.worker_runner import WorkerRunner
@@ -431,6 +432,8 @@ class BatchPage(QScrollArea):
                 tr("info", "Info"),
                 self.nothing_ready_text(),
             )
+            return
+        if hard_link_blocked(self, [file for file, _ in mappings], str(dest)):
             return
 
         msg = QMessageBox(self)
