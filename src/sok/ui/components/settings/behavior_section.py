@@ -54,14 +54,13 @@ class BehaviorSection(QWidget):
 
         card = Card()
         for tr_key, default, config_key, enabled in [
-            ("auto_organize", "Automatic organization", "auto_organize", False),
             (
                 "create_missing_folders",
                 "Create missing folders",
                 "create_folders",
                 True,
             ),
-            ("download_posters", "Download posters", "download_posters", False),
+            ("download_posters", "Download posters", "download_posters", True),
             (
                 "backup_before_rename",
                 "Backup before renaming",

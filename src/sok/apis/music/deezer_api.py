@@ -120,6 +120,10 @@ class DeezerApi(BaseAPI):
             results = await self.search_album(query, limit)
         elif content_type == ContentType.ARTIST:
             results = await self.search_artist(query, limit)
+        elif content_type == ContentType.TRACK:
+            results = await self.search_track(
+                query, limit, kwargs.get("title"), kwargs.get("artist")
+            )
         else:
             results = await self.search_album(query, limit)
 
@@ -150,6 +154,46 @@ class DeezerApi(BaseAPI):
                 }
             )
         return albums
+
+    async def search_track(
+        self,
+        query: str,
+        limit: int = 20,
+        title: Optional[str] = None,
+        artist: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Search for tracks on Deezer.
+
+        Args:
+            query: Free search text, used without title and artist.
+            limit: Maximum number of results.
+            title: Track title, for a precise search.
+            artist: Artist name, for a precise search.
+
+        Returns:
+            List of track dictionaries, with their album.
+        """
+        if title and artist:
+            # Deezer's advanced syntax (artist:"…" track:"…") misses most
+            # tracks; plain words find them, and the caller checks the
+            # title and the artist of the results.
+            query = f"{artist} {title}"
+        data = await self._make_request("search/track", {"q": query, "limit": limit})
+
+        tracks = []
+        for result in data.get("data", []):
+            album = result.get("album", {})
+            tracks.append(
+                {
+                    "id": str(result.get("id")),
+                    "title": result.get("title", ""),
+                    "artist": result.get("artist", {}).get("name", ""),
+                    "album": album.get("title", ""),
+                    "poster_path": album.get("cover_xl"),
+                    "release_date": "",
+                }
+            )
+        return tracks
 
     async def search_artist(self, query: str, limit: int = 20) -> List[Dict[str, Any]]:
         """Search for artists on Deezer.

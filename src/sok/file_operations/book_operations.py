@@ -23,10 +23,13 @@ import re
 import logging
 from typing import Dict, Any, List, Optional
 from sok.core.interfaces import FileOperations, MediaItem
-from sok.core.utils import format_name
+from sok.core.name_patterns import BOOK, match_user_pattern
+from sok.config.config_manager import get_config_manager
+from sok.core.utils import fill_format, format_name
 from sok.file_operations.base_operations import (
     FileParsingMixin,
     FileValidationMixin,
+    make_folders,
     move_file,
 )
 from sok.file_operations.organize import FileListOrganizerMixin
@@ -73,6 +76,33 @@ class BookFileOperations(
         ]
 
     def extract_info_from_filename(self, filename: str) -> Dict[str, Any]:
+        """Extract information from a ebook filename.
+
+        The input patterns of the settings are tried first
+        (sok.core.name_patterns); the name is otherwise read by the rules of
+        _parse_filename. "pattern" is the pattern that matched, if any.
+
+        Args:
+            filename: File name to parse.
+
+        Returns:
+            Dictionary with extracted information.
+        """
+        info = self._parse_filename(filename)
+        found = match_user_pattern(BOOK, filename)
+        if found:
+            values = found.values
+            info.update(
+                author=values.get("author"),
+                title=values["title"],
+                series=values.get("series"),
+                series_number=values.get("series_number"),
+                year=values.get("year"),
+                pattern=found.pattern,
+            )
+        return info
+
+    def _parse_filename(self, filename: str) -> Dict[str, Any]:
         """Extract information from an ebook filename.
 
         Supports formats:
@@ -295,10 +325,12 @@ class BookFileOperations(
     ) -> str:
         """Generate a new filename for a book.
 
-        Format: 'Author - Title.epub' or 'Author - [Series 01] - Title.epub'
+        With a book found online, the book format of the settings:
+        'Author - Title (Year).epub' by default. Otherwise the file name is
+        tidied: 'Author - Title.epub' or 'Author - [Series 01] - Title.epub'.
 
         Args:
-            media_item: The media item (Book).
+            media_item: The media item (Book), or None.
             original_filename: Original filename.
 
         Returns:
@@ -306,6 +338,23 @@ class BookFileOperations(
         """
         info = self.extract_info_from_filename(original_filename)
         extension = info["extension"]
+
+        if media_item is not None and getattr(media_item, "title", None):
+            published = getattr(media_item, "published_date", None) or ""
+            number = info["series_number"]
+            values = {
+                "author": getattr(media_item, "author", None) or "",
+                "title": media_item.title,
+                "year": published.split("-")[0],
+                # The services give no series: they come from the file name.
+                "series": info["series"] or "",
+                "series_number": str(number).zfill(2) if number else "",
+            }
+            fmt = get_config_manager().get("book_format", "") or (
+                "{author} - {title} ({year})"
+            )
+            name = fill_format(fmt, values) or media_item.get_formatted_name()
+            return f"{format_name(name)}{extension}"
 
         if not info["author"] or not info["title"]:
             return original_filename
@@ -400,7 +449,7 @@ class BookFileOperations(
                 # Move the file
                 if not dry_run:
                     try:
-                        os.makedirs(dest_folder, exist_ok=True)
+                        make_folders(dest_folder)
                         move_file(source_file, dest_file)
                         report["moved"].append({"from": source_file, "to": dest_file})
                         report["total_moved"] += 1

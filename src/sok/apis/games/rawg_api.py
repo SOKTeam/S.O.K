@@ -15,9 +15,49 @@ API Documentation: https://rawg.io/apidocs
 Note: Free API with rate limits (requires API key for higher limits).
 """
 
-from typing import Dict, List, Any
+import re
+from typing import Dict, Iterable, List, Any, Optional
 from sok.apis.base_api import BaseAPI
 from sok.core.interfaces import MediaType, ContentType
+
+# Short console names RAWG sometimes appends to a title, as in
+# "Pokemon: Emerald Version (GBA)".
+PLATFORM_TAGS = set(
+    "3ds dc ds gb gba gbc gc gcn genesis gg md n64 nds nes ngc pc ps ps1 ps2 "
+    "ps3 ps4 ps5 psp psv psx saturn sms snes switch vita wii wiiu x360 xb1 "
+    "xbox".split()
+) | {"wii u", "xbox 360", "xbox one"}
+
+
+def clean_title(
+    name: Optional[str],
+    platforms: Iterable[Optional[str]] = (),
+    released: Optional[str] = None,
+) -> Optional[str]:
+    """Remove a console name or the release year at the end of a RAWG title.
+
+    Only a short console name, one of the game's own platforms or its
+    release year is removed, so a real subtitle in parentheses is kept.
+
+    Args:
+        name: The title as RAWG gives it.
+        platforms: Platform names of the game.
+        released: Release date of the game, as "YYYY-MM-DD".
+
+    Returns:
+        The title without them: "Pokemon: Emerald Version (GBA)" gives
+        "Pokemon: Emerald Version", and "DOOM (2016)" released in 2016
+        gives "DOOM".
+    """
+    tags = PLATFORM_TAGS | {p.casefold() for p in platforms if p}
+    if released and re.match(r"\d{4}", released):
+        tags.add(released[:4])
+    while name:
+        match = re.match(r"(.+?)\s*\(([^()]+)\)\s*$", name)
+        if not match or match.group(2).strip().casefold() not in tags:
+            break
+        name = match.group(1)
+    return name
 
 
 class RAWGApi(BaseAPI):
@@ -88,16 +128,18 @@ class RAWGApi(BaseAPI):
 
         results = []
         for game in response.get("results", []):
+            platforms = [
+                p.get("platform", {}).get("name") for p in game.get("platforms") or []
+            ]
             results.append(
                 {
                     "id": game.get("id"),
-                    "title": game.get("name"),
+                    "title": clean_title(
+                        game.get("name"), platforms, game.get("released")
+                    ),
                     "release_date": game.get("released"),
                     "rating": game.get("rating"),
-                    "platforms": [
-                        p.get("platform", {}).get("name")
-                        for p in game.get("platforms", [])
-                    ],
+                    "platforms": platforms,
                     "genres": [g.get("name") for g in game.get("genres", [])],
                 }
             )
@@ -120,17 +162,20 @@ class RAWGApi(BaseAPI):
         params = {"key": self.api_key} if self.api_key else {}
 
         response = await self._make_request(f"games/{item_id}", params)
+        platforms = [
+            p.get("platform", {}).get("name") for p in response.get("platforms") or []
+        ]
 
         return {
             "id": response.get("id"),
-            "name": response.get("name"),
+            "name": clean_title(
+                response.get("name"), platforms, response.get("released")
+            ),
             "description": response.get("description_raw"),
             "release_date": response.get("released"),
             "rating": response.get("rating"),
             "metacritic_score": response.get("metacritic"),
-            "platforms": [
-                p.get("platform", {}).get("name") for p in response.get("platforms", [])
-            ],
+            "platforms": platforms,
             "genres": [g.get("name") for g in response.get("genres", [])],
             "developers": [d.get("name") for d in response.get("developers", [])],
             "publishers": [p.get("name") for p in response.get("publishers", [])],

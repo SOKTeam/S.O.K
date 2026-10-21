@@ -44,7 +44,7 @@ class OptionsPanel(QWidget):
     - Folder creation button (TV series only)
 
     Attributes:
-        _media_type (str): Media type ('video', 'music', 'book', 'game')
+        _media_type (str): Media type ('video', 'music')
         _source_drop (DropZone): Source drop zone
         _dest_drop (DropZone): Destination drop zone
         _action_btn (ActionButton): Main action button
@@ -75,7 +75,7 @@ class OptionsPanel(QWidget):
         """Initialize the options panel.
 
         Args:
-            media_type: Type of media ('video', 'music', 'book', 'game').
+            media_type: Type of media ('video', 'music').
             parent: Parent widget.
         """
         super().__init__(parent)
@@ -136,6 +136,14 @@ class OptionsPanel(QWidget):
         self._action_btn.setEnabled(False)
         self._action_btn.clicked.connect(self.organize_clicked.emit)
         layout.addWidget(self._action_btn)
+
+    def set_sources(self, paths: List[Path]):
+        """Replace the sources, as if the user had dropped them.
+
+        Args:
+            paths: Files or folders.
+        """
+        self._source_drop.set_paths(paths)
 
     def _on_source_dropped(self, paths: List[Path]):
         """Handle files dropped in the source zone.

@@ -20,18 +20,22 @@ This module handles:
 
 import os
 import re
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 import logging
 from pathlib import Path
-from sok.core.interfaces import FileOperations, MediaItem
-from sok.core.utils import format_name
+from types import SimpleNamespace
+from sok.config.config_manager import get_config_manager
+from sok.core.interfaces import ContentType, FileOperations, MediaItem
+from sok.core.name_patterns import MUSIC, match_user_pattern
+from sok.core.utils import fill_format, format_name
 from sok.file_operations.base_operations import (
     FileParsingMixin,
     FileValidationMixin,
+    make_folders,
     move_file,
 )
 from sok.file_operations.organize import FileListOrganizerMixin
-from mutagen import File
+from mutagen import File, MutagenError
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +74,34 @@ class MusicFileOperations(
         ]
 
     def extract_info_from_filename(self, filename: str) -> Dict[str, Any]:
+        """Extract information from a audio filename.
+
+        The input patterns of the settings are tried first
+        (sok.core.name_patterns); the name is otherwise read by the rules of
+        _parse_filename. "pattern" is the pattern that matched, if any.
+
+        Args:
+            filename: File name to parse.
+
+        Returns:
+            Dictionary with extracted information.
+        """
+        info = self._parse_filename(filename)
+        found = match_user_pattern(MUSIC, filename)
+        if found:
+            values = found.values
+            info.update(
+                artist=values.get("artist"),
+                album=values.get("album"),
+                disc_number=values.get("disc"),
+                track_number=values.get("track"),
+                title=values["title"],
+                year=values.get("year"),
+                pattern=found.pattern,
+            )
+        return info
+
+    def _parse_filename(self, filename: str) -> Dict[str, Any]:
         """Extract information from an audio filename.
 
         Supports formats:
@@ -222,8 +254,10 @@ class MusicFileOperations(
 
         except ImportError:
             pass
-        except (OSError, ValueError) as e:
-            logger.exception("Metadata reading error %s", file_path, exc_info=e)
+        except (OSError, ValueError, MutagenError) as e:
+            # A damaged or empty audio file has no readable tags: keep the
+            # empty metadata rather than stopping a whole batch.
+            logger.warning("Metadata reading error %s: %s", file_path, e)
 
         return metadata
 
@@ -232,10 +266,12 @@ class MusicFileOperations(
     ) -> str:
         """Generate a new filename for an audio track.
 
-        Format: '01 - Track Title.mp3'
+        For a track found online, the file part of the music format of the
+        settings (see format_track). Otherwise, from the original name:
+        '01 - Track Title.mp3'.
 
         Args:
-            media_item: The media item (Album).
+            media_item: The media item (Album or Track).
             original_filename: Original filename.
 
         Returns:
@@ -244,6 +280,9 @@ class MusicFileOperations(
         info = self.extract_info_from_filename(original_filename)
         extension = info["extension"]
 
+        if _is_track(media_item):
+            return self.format_track(media_item, extension)[-1]
+
         if info["track_number"] and info["title"]:
             track_num = str(info["track_number"]).zfill(2)
             return format_name(f"{track_num} - {info['title']}{extension}")
@@ -251,6 +290,84 @@ class MusicFileOperations(
             return format_name(f"{info['title']}{extension}")
 
         return original_filename
+
+    def format_track(
+        self, track: Any, extension: str, track_number: Optional[int] = None
+    ) -> List[str]:
+        """Folders and file name of a track, from the music format setting.
+
+        The format, "{artist} - {album}/{track} - {title}" by default, has
+        one part per folder and the file name last. A value the track does
+        not have is left out with its separator: without a track number,
+        "{track} - {title}" gives "Title".
+
+        Args:
+            track: The Track found online.
+            extension: Extension of the file, with its dot.
+            track_number: Number to use when the track has none.
+
+        Returns:
+            The folder names, then the file name.
+        """
+        fmt = get_config_manager().get("music_format", "") or (
+            "{artist} - {album}/{track} - {title}"
+        )
+        number = getattr(track, "track_number", 0) or track_number or 0
+        year = getattr(track, "year", None)
+        values = {
+            "artist": track.artist or "",
+            "album": track.album or "",
+            "title": track.title or "",
+            "track": f"{number:02d}" if number else "",
+            "year": str(year) if year else "",
+        }
+        parts = [fill_format(part, values) for part in fmt.split("/")]
+        parts = [format_name(p) for p in parts if p]
+        if not parts:
+            parts = [format_name(track.title or "Untitled")]
+        parts[-1] += extension
+        return parts
+
+    def batch_target(
+        self, media_item: MediaItem, file_path: Path, alone: bool
+    ) -> Tuple[List[str], str]:
+        """Folders and file name of a track of a batch.
+
+        When the service gives no track number, the number of the file tags
+        is used if the file is on the same album.
+        """
+        if _is_album(media_item):
+            return self._album_target(media_item, file_path)
+        if not _is_track(media_item):
+            return super().batch_target(media_item, file_path, alone)
+        tags = self.read_metadata(str(file_path))
+        same_album = (tags.get("album") or "").casefold() == (
+            getattr(media_item, "album", "") or ""
+        ).casefold()
+        parts = self.format_track(
+            media_item,
+            file_path.suffix.lower(),
+            tags.get("track_number") if same_album else None,
+        )
+        return parts[:-1], parts[-1]
+
+    def _album_target(self, album: MediaItem, file_path: Path) -> Tuple[List[str], str]:
+        """Folders and name of a track of an album, from the music format.
+
+        Artist, album and year come from the album found online; the title
+        and the number of the track from its tags, or else its file name.
+        """
+        tags = self.read_metadata(str(file_path))
+        info = self.extract_info_from_filename(file_path.name)
+        track = SimpleNamespace(
+            artist=getattr(album, "artist", "") or tags.get("artist") or "",
+            album=getattr(album, "title", "") or "",
+            title=tags.get("title") or info.get("title") or file_path.stem,
+            track_number=tags.get("track_number") or info.get("track_number") or 0,
+            year=getattr(album, "year", None),
+        )
+        parts = self.format_track(track, file_path.suffix.lower())
+        return parts[:-1], parts[-1]
 
     def organize_by_artist_album(
         self,
@@ -323,7 +440,7 @@ class MusicFileOperations(
                 # Move the file
                 if not dry_run:
                     try:
-                        os.makedirs(dest_folder, exist_ok=True)
+                        make_folders(dest_folder)
                         move_file(source_file, dest_file)
                         report["moved"].append({"from": source_file, "to": dest_file})
                         report["total_moved"] += 1
@@ -362,3 +479,13 @@ class MusicFileOperations(
     def find_files(self, directory: str, recursive: bool = True) -> List[str]:
         """Unified alias for find_audio_files."""
         return self.find_audio_files(directory, recursive)
+
+
+def _is_album(media_item: Any) -> bool:
+    """True for an Album, whose tracks are named from the music format."""
+    return getattr(media_item, "content_type", None) == ContentType.ALBUM
+
+
+def _is_track(media_item: Any) -> bool:
+    """True for a Track, which is named from the music format."""
+    return getattr(media_item, "content_type", None) == ContentType.TRACK

@@ -30,13 +30,20 @@ sidebar:
   - label: Architecture
     items:
       - architecture/overview
+      - architecture/organizing
+      - architecture/updates
       - architecture/structure
   - label: Guides
     items:
       - guides/adding-an-api
+      - guides/testing
+      - guides/adding-a-page
       - guides/translations
       - guides/building
       - guides/documentation
+  - label: Reference
+    items:
+      - reference/settings
   - contributing
 api:
   python: api.json

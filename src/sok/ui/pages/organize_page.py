@@ -24,12 +24,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
 )
 from PySide6.QtCore import Qt
-from sok.file_operations import (
-    VideoFileOperations,
-    MusicFileOperations,
-    BookFileOperations,
-    GameFileOperations,
-)
+from sok.file_operations import MusicFileOperations, VideoFileOperations
 from sok.ui.components.organize import SearchPanel, OptionsPanel
 from sok.ui.controllers.organize_preview import OrganizePreviewController
 from sok.ui.controllers.source_scanner import scan_sources
@@ -47,12 +42,11 @@ from sok.config import get_config_manager
 from sok.ui.i18n import tr
 from sok.ui.pages.organize_preview_panel import PreviewPanel
 from sok.ui import message_box
+from sok.ui.controllers.undo import undo_operation
 from sok.ui.platform import request_attention
 from sok.media.video.series import Series
 
-FileOperations = (
-    VideoFileOperations | MusicFileOperations | BookFileOperations | GameFileOperations
-)
+FileOperations = VideoFileOperations | MusicFileOperations
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +60,7 @@ class OrganizePage(QScrollArea):
     them with proper naming and folder structure.
 
     Attributes:
-        _type: Media type (video, music, book, game).
+        _type: Media type (video, music).
         _ops: File operations handler for the media type.
         _manager: Universal media manager instance.
         _files: List of files to organize.
@@ -76,7 +70,7 @@ class OrganizePage(QScrollArea):
         """Initialize the organize page.
 
         Args:
-            media_type: Type of media (video, music, book, game).
+            media_type: Type of media (video, music).
             parent: Parent widget.
         """
         super().__init__(parent)
@@ -87,20 +81,19 @@ class OrganizePage(QScrollArea):
             self._ops = VideoFileOperations()
         elif media_type == "music":
             self._ops = MusicFileOperations()
-        elif media_type == "book":
-            self._ops = BookFileOperations()
-        elif media_type == "game":
-            self._ops = GameFileOperations()
         else:
             self._ops = VideoFileOperations()
 
         self._manager = get_media_manager()
         self._translations = get_config_manager().load_language()
         self._files: list[Path] = []
+        # Query and content type given by load_sources() for the next scan.
+        self._source_hint: tuple[str | None, str | None] = (None, None)
         self._preview_controller = OrganizePreviewController(
             self._ops, tr, MAX_PREVIEW_FILES
         )
         self._worker_runner = WorkerRunner(self)
+        self._undo_runner = WorkerRunner(self)
 
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -232,8 +225,6 @@ class OrganizePage(QScrollArea):
         titles = {
             "video": tr("tv_shows", "TV Shows"),
             "music": tr("music", "Music"),
-            "book": tr("books", "Books"),
-            "game": tr("games", "Games"),
         }
         self.lbl_page_title.setText(titles.get(self._type, tr("files", "Files")))
 
@@ -263,6 +254,7 @@ class OrganizePage(QScrollArea):
         Ensures proper cleanup of worker threads.
         """
         self._worker_runner.stop()
+        self._undo_runner.stop()
 
     def _run_worker(
         self, worker, on_finished, on_error, on_progress=None, cancel_previous=False
@@ -359,6 +351,24 @@ class OrganizePage(QScrollArea):
             self._search_panel.update_selected_media(details)
             self._update_preview_and_actions()
 
+    def load_sources(
+        self,
+        paths: list[Path],
+        query: str | None = None,
+        content_type: str | None = None,
+    ) -> None:
+        """Load files or folders found elsewhere, such as on the home page.
+
+        Args:
+            paths: Files or folders, shown in the source zone.
+            query: Search text to use instead of the one read from the first
+                file name.
+            content_type: Search type ("series", "movie", "album")
+                to use instead of the detected one.
+        """
+        self._source_hint = (query, content_type)
+        self._options_panel.set_sources(paths)
+
     def _on_source(self, paths):
         """Handle source folder selection.
 
@@ -367,6 +377,9 @@ class OrganizePage(QScrollArea):
         Args:
             paths: List of source folder paths.
         """
+        hint_query, hint_type = self._source_hint
+        self._source_hint = (None, None)
+
         if not paths:
             self._files = []
             self._preview_title_label.setText(tr("preview_title", "Preview"))
@@ -380,10 +393,12 @@ class OrganizePage(QScrollArea):
         self._preview_panel.clear()
         self._files = scan_sources(self._ops, paths)
 
+        # Files loaded from the home page are counted by their folder.
+        folders = list(dict.fromkeys(p if p.is_dir() else p.parent for p in paths))
         sources_text = (
-            f"{len(paths)} {tr('folders_count', 'folder(s)')}"
-            if len(paths) > 1
-            else paths[0].name
+            f"{len(folders)} {tr('folders_count', 'folder(s)')}"
+            if len(folders) > 1
+            else folders[0].name
         )
         self._preview_title_label.setText(
             f"{tr('preview_title', 'Preview')} ({len(self._files)} {tr('files_from', 'files from')} {sources_text})"
@@ -399,6 +414,8 @@ class OrganizePage(QScrollArea):
             ) = self._preview_controller.detect_query_and_type(
                 first_file_name, self._type
             )
+            detected_query = hint_query or detected_query
+            detected_type = hint_type or detected_type
 
             if detected_type == "series":
                 self._search_panel.set_type_by_data("tv")
@@ -406,8 +423,6 @@ class OrganizePage(QScrollArea):
                 self._search_panel.set_type_by_data("movie")
             elif detected_type == "album":
                 self._search_panel.set_type_by_data("album")
-            elif detected_type == "artist":
-                self._search_panel.set_type_by_data("artist")
 
             if detected_query:
                 self._search_panel.set_search_text(detected_query, auto_select=True)
@@ -453,6 +468,10 @@ class OrganizePage(QScrollArea):
         media_item = create_media_item(
             media_info, content_type, self._manager, language=lang
         )
+        if media_item and isinstance(self._ops, MusicFileOperations):
+            # Tracks follow the music format: show their folders too.
+            folders, name = self._ops.batch_target(media_item, file, False)
+            return "/".join([*folders, name])
         if media_item and hasattr(self._ops, "generate_new_filename"):
             return self._ops.generate_new_filename(media_item, file.name)
         return ""
@@ -813,28 +832,26 @@ class OrganizePage(QScrollArea):
         dest = self._destination_folder()
         request_attention(self)
 
-        if report["errors"]:
-            message_box.warning(
-                self,
-                tr("finished_with_errors", "Finished with errors"),
-                tr("success_count", "{0}/{1} succeeded.").format(
-                    report["success"], report["total"]
-                ),
-                reveal=dest,
-            )
-        else:
-            message_box.information(
-                self,
-                tr("success", "Success"),
-                tr("files_organized", "✓ {0} file(s) organized!").format(
-                    report["success"]
-                ),
-                reveal=dest,
-            )
-
         self._files = []
         self._preview_title_label.setText(tr("preview_title", "Preview"))
         self._set_empty_preview(tr("select_folder", "Select a folder"), height=60)
+
+        if report["errors"]:
+            title = tr("finished_with_errors", "Finished with errors")
+            text = tr("success_count", "{0}/{1} succeeded.").format(
+                report["success"], report["total"]
+            )
+        else:
+            title = tr("success", "Success")
+            text = tr("files_organized", "✓ {0} file(s) organized!").format(
+                report["success"]
+            )
+        operation = report.get("operation")
+        undo = message_box.rename_done(
+            self, title, text, bool(report["errors"]), dest, undo=bool(operation)
+        )
+        if undo and operation:
+            undo_operation(self, self._undo_runner, operation)
 
     def _on_organize_error(self, error: str):
         """Handle organization error.

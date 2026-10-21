@@ -11,7 +11,7 @@
 import pytest
 
 from sok.core.media_manager import UniversalMediaManager
-from sok.file_operations import organize
+from sok.file_operations import music_operations, organize
 from sok.file_operations.book_operations import BookFileOperations
 from sok.file_operations.game_operations import GameFileOperations
 from sok.file_operations.music_operations import MusicFileOperations
@@ -32,6 +32,8 @@ class FakeConfig:
 def config(monkeypatch):
     cfg = FakeConfig(skip_duplicates=False, backup_before_rename=False)
     monkeypatch.setattr(organize, "get_config_manager", lambda: cfg)
+    # The default music format, whatever the local settings say.
+    monkeypatch.setattr(music_operations, "get_config_manager", lambda: cfg)
     return cfg
 
 
@@ -45,7 +47,7 @@ def make_file(tmp_path, name):
 
 
 class TestOrganizeFilesList:
-    def test_music_goes_to_artist_album_folder(self, tmp_path):
+    def test_music_follows_the_music_format(self, tmp_path):
         source, dest = make_file(tmp_path, "01 - Paranoid Android.mp3")
         album = Album("OK Computer", "Radiohead", 1997)
 
@@ -53,7 +55,7 @@ class TestOrganizeFilesList:
 
         assert report["errors"] == []
         assert report["total_moved"] == 1
-        album_folder = dest.joinpath(*album.get_folder_structure())
+        album_folder = dest / "Radiohead - OK Computer"
         assert [p.name for p in album_folder.iterdir()] == ["01 - Paranoid Android.mp3"]
         assert not source.exists()
 
@@ -68,14 +70,14 @@ class TestOrganizeFilesList:
         assert dest.joinpath(*book.get_folder_structure()).is_dir()
         assert not source.exists()
 
-    def test_game_goes_to_game_folder(self, tmp_path):
-        source, dest = make_file(tmp_path, "Super Mario World (USA).sfc")
-        game = Game("Super Mario World", "en", UniversalMediaManager())
+    def test_game_goes_to_its_platform_folder(self, tmp_path):
+        source, dest = make_file(tmp_path, "super mario world (USA).sfc")
+        game = Game("Super Mario World", "en", UniversalMediaManager(), platform="")
 
         report = GameFileOperations().organize_files_list([source], str(dest), game)
 
         assert report["errors"] == []
-        assert dest.joinpath(*game.get_folder_structure()).is_dir()
+        assert (dest / "Super Nintendo" / "Super Mario World (USA).sfc").exists()
         assert not source.exists()
 
     def test_without_media_item_files_go_to_destination(self, tmp_path):

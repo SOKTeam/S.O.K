@@ -19,8 +19,8 @@ import threading
 import logging
 from cryptography.fernet import Fernet, InvalidToken
 from pathlib import Path
-from typing import Dict, Any, Optional
-from dataclasses import dataclass, asdict
+from typing import Dict, Any, List, Optional
+from dataclasses import dataclass, asdict, field as dataclass_field
 from sok.core.constants import (
     Constants,
     SERVICE_TMDB,
@@ -203,7 +203,6 @@ class AppConfig:
     default_books_path: str = ""
     default_games_path: str = ""
 
-    auto_organize: bool = False
     create_folders: bool = True
     download_posters: bool = False
     use_discord_rpc: bool = False
@@ -212,6 +211,10 @@ class AppConfig:
     video_format: str = "{title} S{season}E{episode} {episode_title}"
     movie_format: str = "{title} ({year})"
     music_format: str = "{artist} - {album}/{track} - {title}"
+    book_format: str = "{author} - {title} ({year})"
+    game_format: str = "{title} {tags}"
+    # Input patterns per kind of name (see sok.core.name_patterns).
+    input_patterns: Dict[str, List[str]] = dataclass_field(default_factory=dict)
 
     backup_before_rename: bool = True
     skip_duplicates: bool = True
@@ -317,43 +320,12 @@ class ConfigManager:
 
         self.config.is_prod = HAS_SECURE_CONSTANTS
 
-        def get_val(key):
-            """Get configuration value from constants or environment.
-
-            Args:
-                key: Configuration key name.
-
-            Returns:
-                Value from constants if available, otherwise from environment.
-            """
-            if HAS_SECURE_CONSTANTS and hasattr(Constants, key):
-                return Constants.get(key)
-            return os.getenv(key)
-
-        def get_bool(key):
-            """Get boolean configuration value from constants or environment.
-
-            Args:
-                key: Configuration key name.
-
-            Returns:
-                Boolean value, or None if not found.
-            """
-            if HAS_SECURE_CONSTANTS and hasattr(Constants, key):
-                val = Constants.get(key)
-                if isinstance(val, bool):
-                    return val
-                return str(val).lower() in ("true", "1", "yes", "on")
-            env_val = os.getenv(key)
-            if env_val is not None:
-                return env_val.lower() in ("true", "1", "yes", "on")
-            return None
-
         env_mapping = {
             "api_key_tmdb_v4": "API_KEY_TMDB_V4",
             "api_key_tvdb": "API_KEY_TVDB",
             "api_key_lastfm": "API_KEY_LASTFM",
             "api_key_omdb": "API_KEY_OMDB",
+            "api_key_rawg": "API_KEY_RAWG",
             "spotify_client_id": "SPOTIFY_CLIENT_ID",
             "spotify_client_secret": "SPOTIFY_CLIENT_SECRET",
             "google_books_api_key": "GOOGLE_BOOKS_API_KEY",
@@ -383,26 +355,6 @@ class ConfigManager:
                 val = os.getenv(env_key)
                 if val:
                     self._runtime_values[config_key] = val
-
-        bool_env_mapping = {
-            "use_discord_rpc": "ENABLE_DISCORD_RPC",
-            "check_updates": "CHECK_UPDATES",
-            "auto_organize": "AUTO_ORGANIZE",
-            "create_folders": "CREATE_FOLDERS",
-            "download_posters": "DOWNLOAD_POSTERS",
-            "backup_before_rename": "BACKUP_BEFORE_RENAME",
-            "skip_duplicates": "SKIP_DUPLICATES",
-            "log_operations": "LOG_OPERATIONS",
-        }
-
-        for config_key, env_key in bool_env_mapping.items():
-            val = get_bool(env_key)
-            if val is not None:
-                self._runtime_values[config_key] = val
-
-        theme_val = get_val("DEFAULT_THEME")
-        if theme_val and not self.config_path.exists():
-            self.config.theme = theme_val
 
     def save(self) -> None:
         """Save configuration to file.

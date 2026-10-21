@@ -19,6 +19,7 @@ from sok.ui.components.settings.api_section import ApiSection
 from sok.ui.components.settings.api_preferences_section import ApiPreferencesSection
 from sok.ui.components.settings.paths_section import PathsSection
 from sok.ui.components.settings.formats_section import FormatsSection
+from sok.ui.components.settings.input_formats_section import InputFormatsSection
 from sok.ui.components.settings.appearance_section import AppearanceSection
 from sok.ui.components.settings.behavior_section import BehaviorSection
 from sok.ui.components.settings.about_section import AboutSection
@@ -78,6 +79,7 @@ class SettingsPage(QScrollArea):
         self.api_pref_section = ApiPreferencesSection(self._config)
         self.paths_section = PathsSection(self._config)
         self.formats_section = FormatsSection(self._config)
+        self.input_formats_section = InputFormatsSection(self._config)
         self.appearance_section = AppearanceSection(self._config)
         self.behavior_section = BehaviorSection(self._config)
         self.about_section = AboutSection(self._config)
@@ -91,6 +93,7 @@ class SettingsPage(QScrollArea):
             self.api_pref_section,
             self.paths_section,
             self.formats_section,
+            self.input_formats_section,
             self.appearance_section,
             self.behavior_section,
             self.about_section,
@@ -112,6 +115,7 @@ class SettingsPage(QScrollArea):
             self.api_pref_section,
             self.paths_section,
             self.formats_section,
+            self.input_formats_section,
             self.appearance_section,
             self.behavior_section,
             self.about_section,
@@ -128,6 +132,7 @@ class SettingsPage(QScrollArea):
             self.api_pref_section,
             self.paths_section,
             self.formats_section,
+            self.input_formats_section,
             self.appearance_section,
             self.behavior_section,
             self.about_section,

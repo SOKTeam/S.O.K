@@ -12,7 +12,7 @@
 Track class for individual music tracks.
 """
 
-from typing import Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 from sok.media.base_media import BaseMedia
 from sok.core.interfaces import MediaType, ContentType
 from sok.core.media_manager import UniversalMediaManager
@@ -70,6 +70,7 @@ class Track(BaseMedia):
         self.duration: Optional[int] = None
         self.isrc: Optional[str] = None
         self.explicit: bool = False
+        self.year: Optional[int] = None
 
     def get_formatted_name(self) -> str:
         """Return the formatted track name.
@@ -81,6 +82,17 @@ class Track(BaseMedia):
         """
         track_num_str = f"{self.track_number:02d}"
         return f"{track_num_str} - {format_name(self.title)}"
+
+    def get_folder_structure(self) -> List[str]:
+        """Return the recommended folder hierarchy.
+
+        The batch pages use the music format of the settings instead (see
+        MusicFileOperations.format_track).
+
+        Returns:
+            List of folder names [artist, album], without the empty ones.
+        """
+        return [format_name(name) for name in (self.artist, self.album) if name]
 
     def get_full_name(self) -> str:
         """Return the full track name with artist.

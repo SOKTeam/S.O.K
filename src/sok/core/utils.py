@@ -17,6 +17,7 @@ information extraction, file type detection, and logging setup.
 import re
 import os
 import logging
+from pathlib import Path
 from typing import Optional
 
 
@@ -28,9 +29,51 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
     return logger
 
 
+def natural_key(path: Path) -> list:
+    """Sort key that orders numbers by value: "S01E2" before "S01E10".
+
+    Args:
+        path: File path, compared case-insensitively.
+    """
+    return [
+        int(part) if part.isdigit() else part
+        for part in re.split(r"(\d+)", str(path).casefold())
+    ]
+
+
 def format_name(name: str) -> str:
     """Formats a filename by removing forbidden characters"""
     return re.sub(" +", " ", re.sub(r'[<>:"/\\|?*]', "", name))
+
+
+class _Missing(dict):
+    """Values for str.format_map: an unknown field gives ""."""
+
+    def __missing__(self, key: str) -> str:
+        return ""
+
+
+def fill_format(fmt: str, values: dict[str, str]) -> str:
+    """Fill a name format of the settings, such as "{author} - {title} ({year})".
+
+    A value that is empty or unknown is left out with what it leaves around
+    it: without a year, the example gives "Author - Title".
+
+    Args:
+        fmt: The format, with {field} placeholders.
+        values: The value of each field.
+
+    Returns:
+        The filled text, or "" if the format is not valid ("{", "{0}"…).
+    """
+    try:
+        text = fmt.format_map(_Missing(values))
+    except (ValueError, IndexError, AttributeError, TypeError):
+        return ""
+    text = re.sub(r"\(\s*\)|\[\s*\]", "", text)
+    text = re.sub(r"\s*-\s*(?:-\s*)+", " - ", text)
+    text = re.sub(r"^[\s\-_.]+|[\s\-_.]+$", "", text)
+    return re.sub(r"\s{2,}", " ", text)
 
 
 def extract_episode_info(filename: str) -> Optional[dict]:

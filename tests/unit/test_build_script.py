@@ -55,7 +55,7 @@ class TestInjectEnvVars:
 
         names = declared_constants(source)
 
-        assert {"API_KEY_TMDB_V4", "IGDB_CLIENT_SECRET", "CHECK_UPDATES"} <= names
+        assert {"API_KEY_TMDB_V4", "IGDB_CLIENT_SECRET", "API_KEY_RAWG"} <= names
         assert "_K" not in names
 
     def test_injects_only_the_keys_the_app_reads(self, tmp_path, sok_dir):

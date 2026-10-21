@@ -15,6 +15,8 @@ Organize Worker for file moving and renaming.
 from pathlib import Path
 from typing import List
 from PySide6.QtCore import Signal
+from sok.core.history import content_kind, record
+from sok.file_operations.artwork import save_artwork
 from sok.ui.workers.base import BaseWorker
 
 
@@ -72,13 +74,21 @@ class OrganizeWorker(BaseWorker):
 
         self.progress.emit(0, "Analyzing files...")
 
-        report = self._ops.organize_files_list(
-            files=self._files,
-            dest_path=str(self._dest),
-            media_item=self._media_item,
-            dry_run=False,
-            progress_callback=self._on_progress,
-        )
+        with record(content_kind(self._media_item)) as journal:
+            report = self._ops.organize_files_list(
+                files=self._files,
+                dest_path=str(self._dest),
+                media_item=self._media_item,
+                dry_run=False,
+                progress_callback=self._on_progress,
+            )
+            if self._config.get("download_posters") and report.get("moved"):
+                self.progress.emit(100, "Downloading posters...")
+                save_artwork(
+                    [(f, self._media_item) for f in self._files],
+                    report["moved"],
+                    str(self._dest),
+                )
 
         self.progress.emit(100, "Done!")
         self.finished.emit(
@@ -86,5 +96,6 @@ class OrganizeWorker(BaseWorker):
                 "total": report.get("total_files", 0),
                 "success": report.get("total_moved", 0),
                 "errors": report.get("errors", []),
+                "operation": journal.operation_id,
             }
         )

@@ -54,7 +54,7 @@ class FormatsSection(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        self.label = make_section_label("file_formats", "File Formats")
+        self.label = make_section_label("file_formats", "Output Formats")
         layout.addWidget(self.label)
 
         card = Card()
@@ -83,6 +83,24 @@ class FormatsSection(QWidget):
                 "{track} - {title}",
                 "music_format",
                 "Variables: {artist}, {album}, {track}, {title}, {year}",
+            )
+        )
+        card.add(
+            self._create_format_row(
+                "book",
+                "Book",
+                "{author} - {title} ({year})",
+                "book_format",
+                "Variables: {author}, {title}, {year}, {series}, {series_number}",
+            )
+        )
+        card.add(
+            self._create_format_row(
+                "game",
+                "Game",
+                "{title} {tags}",
+                "game_format",
+                "Variables: {title}, {year}, {platform}, {tags}",
             )
         )
 
@@ -144,7 +162,7 @@ class FormatsSection(QWidget):
 
     def retranslate(self):
         """Update translatable UI text."""
-        self.label.setText(tr("file_formats", "File Formats"))
+        self.label.setText(tr("file_formats", "Output Formats"))
         for input_field in self._inputs.values():
             row = input_field.parentWidget()
             if not row:

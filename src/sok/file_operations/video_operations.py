@@ -21,9 +21,11 @@ This module handles:
 from pathlib import Path
 from sok.core.utils import format_name
 from sok.core.interfaces import MediaItem
+from sok.core.name_patterns import EPISODE, MOVIE, match_user_pattern
 from sok.file_operations.base_operations import (
     FileParsingMixin,
     FileValidationMixin,
+    make_folders,
     move_file,
 )
 
@@ -73,6 +75,45 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         ]
 
     def extract_info_from_filename(self, filename: str) -> Dict[str, Any]:
+        """Extract information from a video filename.
+
+        The input patterns of the settings are tried first
+        (sok.core.name_patterns); the name is otherwise read by the rules of
+        _parse_filename. "pattern" is the pattern that matched, if any.
+
+        Args:
+            filename: File name to parse.
+
+        Returns:
+            Dictionary with extracted information.
+        """
+        info = self._parse_filename(filename)
+        found = match_user_pattern(EPISODE, filename)
+        if found:
+            values = found.values
+            info.update(
+                type="series",
+                title=values.get("title"),
+                season=values.get("season", 1),
+                episode=values["episode"],
+                episode_title=values.get("episode_title"),
+                year=values.get("year"),
+                pattern=found.pattern,
+            )
+            return info
+        found = match_user_pattern(MOVIE, filename)
+        if found:
+            info.update(
+                type="movie",
+                title=found.values["title"],
+                year=found.values.get("year"),
+                season=None,
+                episode=None,
+                pattern=found.pattern,
+            )
+        return info
+
+    def _parse_filename(self, filename: str) -> Dict[str, Any]:
         """Extract information from a video filename.
 
         Supports formats:
@@ -130,7 +171,9 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
 
             info["year"] = self.extract_year(filename)
             if info["year"]:
-                info["title"] = self.clean_title(filename.split(str(info["year"]))[0])
+                # "Heat (1995)" leaves "Heat (" before the year.
+                before_year = filename.split(str(info["year"]))[0]
+                info["title"] = self.clean_title(before_year.rstrip(" ([{-_."))
             else:
                 info["title"] = self.clean_title(os.path.splitext(filename)[0])
 
@@ -344,12 +387,12 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         if isinstance(media_item, Series):
             series_folder = os.path.join(dest_path, folder_structure[0])
             if not dry_run and not os.path.exists(series_folder):
-                os.makedirs(series_folder, exist_ok=True)
+                make_folders(series_folder)
             base_path = series_folder
         else:
             base_path = os.path.join(dest_path, folder_structure[0])
             if not dry_run and not os.path.exists(base_path):
-                os.makedirs(base_path, exist_ok=True)
+                make_folders(base_path)
 
         for idx, (root, file) in enumerate(all_video_files):
             source_file = os.path.join(root, file)
@@ -382,7 +425,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             if not dry_run:
                 try:
                     if not os.path.exists(dest_folder):
-                        os.makedirs(dest_folder, exist_ok=True)
+                        make_folders(dest_folder)
 
                     move_file(source_file, dest_file)
                     report["moved"].append({"from": source_file, "to": dest_file})
@@ -442,7 +485,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             series_folder = os.path.join(dest_path, folder_structure[0])
             if not dry_run and not os.path.exists(series_folder):
                 if create_folders:
-                    os.makedirs(series_folder, exist_ok=True)
+                    make_folders(series_folder)
                 else:
                     report["errors"].append(
                         {
@@ -456,7 +499,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             base_path = os.path.join(dest_path, folder_structure[0])
             if not dry_run and not os.path.exists(base_path):
                 if create_folders:
-                    os.makedirs(base_path, exist_ok=True)
+                    make_folders(base_path)
                 else:
                     report["errors"].append(
                         {
@@ -507,7 +550,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                 try:
                     if not os.path.exists(dest_folder):
                         if create_folders:
-                            os.makedirs(dest_folder, exist_ok=True)
+                            make_folders(dest_folder)
                         else:
                             report["errors"].append(
                                 {

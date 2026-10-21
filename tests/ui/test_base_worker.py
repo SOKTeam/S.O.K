@@ -28,3 +28,23 @@ class TestBaseWorker:
         worker.run()
 
         assert errors == ["'Ops' object has no attribute 'organize_files_list'"]
+
+
+class QuotaWorker(BaseWorker):
+    def execute(self):
+        from sok.core.exceptions import APIRateLimitError
+
+        raise APIRateLimitError("HTTP 429: Quota exceeded", "google_books")
+
+
+def test_api_error_emits_a_translated_message(qtbot):
+    from sok.ui.errors import error_message
+    from sok.core.exceptions import APIRateLimitError
+
+    worker = QuotaWorker(config=MagicMock())
+    with qtbot.waitSignal(worker.error) as signal:
+        worker.run()
+
+    expected = error_message(APIRateLimitError("x", "google_books"))
+    assert signal.args == [expected]
+    assert "Google Books" in expected

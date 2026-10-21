@@ -15,6 +15,7 @@ Orange / Frameless / Modern Style
 
 import sys
 from ctypes.wintypes import MSG
+from pathlib import Path
 
 from PySide6.QtWidgets import (
     QMainWindow,
@@ -54,12 +55,32 @@ from sok.ui.components.window import WindowControlButton
 from sok.ui.controllers.window_chrome import ResizeGrips, hit_test_resize
 from sok.ui.pages.home_page import HomePage
 from sok.ui.pages.organize_page import OrganizePage
+from sok.ui.pages.batch_page import BatchPage
 from sok.ui.pages.movies_page import MoviesPage
+from sok.ui.pages.books_page import BooksPage
+from sok.ui.pages.games_page import GamesPage
+from sok.ui.pages.music_page import MusicPage
 from sok.ui.pages.settings_page import SettingsPage
+from sok.ui.pages.history_page import HistoryPage
 from sok.ui.components.integrations.discord import setup_discord_rpc
 from sok.ui.components.integrations.updates import check_and_show_updates
 from sok.config import get_config_manager
+from sok.core.interfaces import ContentType
+from sok.file_operations.detection import MediaGroup
 from sok.ui.i18n import tr, reload_language
+
+# Page of the stack that organizes each kind of detected file.
+# Index of the history page in the stack.
+HISTORY_PAGE = 7
+
+PAGE_BY_KIND = {
+    ContentType.EPISODE: 1,
+    ContentType.MOVIE: 2,
+    ContentType.ALBUM: 3,
+    ContentType.TRACK: 3,
+    ContentType.BOOK: 4,
+    ContentType.GAME: 5,
+}
 
 
 class MainWindow(QMainWindow):
@@ -252,10 +273,16 @@ class MainWindow(QMainWindow):
         self._sidebar_labels.append(section2_effect)
         sb_layout.addWidget(self.lbl_general)
 
+        # History is the last page (7) but sits above Settings.
+        history_btn = SidebarButton(tr("history", "History"), "history")
+        history_btn.clicked.connect(lambda: self._go(HISTORY_PAGE))
+        sb_layout.addWidget(history_btn)
+
         settings_btn = SidebarButton(tr("settings", "Settings"), "settings")
         settings_btn.clicked.connect(lambda: self._go(6))
         sb_layout.addWidget(settings_btn)
         self._nav.append(settings_btn)
+        self._nav.append(history_btn)
 
         return sidebar
 
@@ -364,17 +391,20 @@ class MainWindow(QMainWindow):
         """
         home_page = HomePage()
         home_page.navigate.connect(self._go)
+        home_page.open_group.connect(self._open_group)
         self._pages.addWidget(home_page)
 
         self._pages.addWidget(OrganizePage("video"))
         self._pages.addWidget(MoviesPage())
-        self._pages.addWidget(OrganizePage("music"))
-        self._pages.addWidget(OrganizePage("book"))
-        self._pages.addWidget(OrganizePage("game"))
+        self._pages.addWidget(MusicPage())
+        self._pages.addWidget(BooksPage())
+        self._pages.addWidget(GamesPage())
 
         settings_page = SettingsPage(self._toggle_theme)
         settings_page.language_changed.connect(self._on_language_changed)
         self._pages.addWidget(settings_page)
+
+        self._pages.addWidget(HistoryPage())
 
     def _on_language_changed(self, lang_code):
         """Handle language change from settings.
@@ -631,10 +661,32 @@ class MainWindow(QMainWindow):
         for i, btn in enumerate(self._nav):
             btn.setChecked(i == idx)
 
-        if idx == 0:
-            page = self._pages.widget(0)
-            if hasattr(page, "refresh"):
-                page.refresh()  # type: ignore[union-attr]
+        # The home page reads the drives again, the history its operations.
+        page = self._pages.widget(idx)
+        if hasattr(page, "refresh"):
+            page.refresh()  # type: ignore[union-attr]
+
+    def _open_group(self, group: MediaGroup, files: list[Path]):
+        """Open files sorted on the home page in the page of their type.
+
+        Args:
+            group: The group of the detection report.
+            files: Its files that are still in place.
+        """
+        idx = PAGE_BY_KIND[group.kind]
+        self._go(idx)
+        page = self._pages.widget(idx)
+        if isinstance(page, MusicPage):
+            if group.kind == ContentType.TRACK:
+                page.show_tracks()
+                page.tracks.load_files(files)
+            else:
+                page.show_albums()
+                page.albums.load_sources(files, group.title, "album")
+        elif isinstance(page, BatchPage):
+            page.load_files(files)
+        elif isinstance(page, OrganizePage):
+            page.load_sources(files, group.title, "series")
 
     def current_page(self) -> QWidget:
         """Return the page currently shown."""
@@ -654,6 +706,7 @@ class MainWindow(QMainWindow):
             tr("books", "Books"),
             tr("games", "Games"),
             tr("settings", "Settings"),
+            tr("history", "History"),
         ]
 
     def _update_title_by_index(self, idx: int):
@@ -1020,6 +1073,19 @@ class MainWindow(QMainWindow):
                 font-size: 13px;
             }}
 
+            /* Without these rules macOS draws the bar with its own accent
+               color (blue by default), not the app's. */
+            #Progress {{
+                background: {c["separator"]};
+                border: none;
+                border-radius: 3px;
+            }}
+
+            #Progress::chunk {{
+                background: {c["accent"]};
+                border-radius: 3px;
+            }}
+
             #PageSubtitle {{
                 color: {c["secondary"]};
             }}
@@ -1045,6 +1111,32 @@ class MainWindow(QMainWindow):
                 padding: 4px 12px;
                 color: {c["text"]};
                 font-size: 13px;
+            }}
+
+            #LinkBtn {{
+                background: transparent;
+                border: none;
+                color: {c["secondary"]};
+                font-size: 13px;
+            }}
+
+            #LinkBtn:hover {{
+                color: {c["text"]};
+                text-decoration: underline;
+            }}
+
+            #PatternRemoveBtn {{
+                background: {c["hover"]};
+                border: none;
+                border-radius: 10px;
+                color: {c["text"]};
+                font-weight: bold;
+                padding-bottom: 2px;
+            }}
+
+            #PatternRemoveBtn:hover {{
+                background: {c["red"]};
+                color: white;
             }}
 
             #SearchBar:focus, #SettingsInput:focus {{

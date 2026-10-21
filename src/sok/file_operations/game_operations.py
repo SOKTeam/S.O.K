@@ -21,13 +21,16 @@ This module handles:
 import os
 import re
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
 from sok.core.interfaces import FileOperations, MediaItem
-from sok.core.utils import format_name
+from sok.core.name_patterns import GAME, match_user_pattern
+from sok.config.config_manager import get_config_manager
+from sok.core.utils import fill_format, format_name
 from sok.file_operations.base_operations import (
     FileParsingMixin,
     FileValidationMixin,
+    make_folders,
     move_file,
 )
 from sok.file_operations.organize import FileListOrganizerMixin
@@ -169,6 +172,37 @@ class GameFileOperations(
     def extract_info_from_filename(self, filename: str) -> Dict[str, Any]:
         """Extract information from a game filename.
 
+        The input patterns of the settings are tried first
+        (sok.core.name_patterns); the name is otherwise read by the rules of
+        _parse_filename. "pattern" is the pattern that matched, if any.
+
+        Args:
+            filename: File name to parse.
+
+        Returns:
+            Dictionary with extracted information.
+        """
+        info = self._parse_filename(filename)
+        found = match_user_pattern(GAME, filename)
+        if found:
+            values = found.values
+            platform = values.get("platform")
+            region = values.get("region")
+            info.update(
+                title=values["title"],
+                year=values.get("year"),
+                pattern=found.pattern,
+            )
+            if platform:
+                info["platform"] = self.PLATFORMS.get(platform.lower(), platform)
+            if region:
+                info["region"] = self.REGIONS.get(region.lower(), region)
+                info["regions"] = [info["region"]]
+        return info
+
+    def _parse_filename(self, filename: str) -> Dict[str, Any]:
+        """Extract information from a game filename.
+
         Supports typical ROM formats:
         - 'Game Title (USA).iso'
         - 'Game Title (Europe) (Rev 1).bin'
@@ -269,6 +303,53 @@ class GameFileOperations(
 
         return info
 
+    def detect_platform(self, file_path: Path) -> Optional[str]:
+        """Platform of a game file: from a "[SNES]" tag, its extension or its
+        folders ("PS1/", "GameCube/"…).
+
+        Args:
+            file_path: The game file.
+
+        Returns:
+            The platform name, or None if nothing tells it.
+        """
+        info = self.extract_info_from_filename(file_path.name)
+        platform = info["platform"] or self.detect_platform_from_extension(
+            info["extension"]
+        )
+        if platform:
+            return platform
+        for folder in reversed(file_path.parent.parts):
+            words = re.split(r"[^0-9a-z]+", folder.lower())
+            for code, name in self.PLATFORMS.items():
+                if code in words:
+                    return name
+        return None
+
+    def batch_target(
+        self, media_item: MediaItem, file_path: Path, alone: bool
+    ) -> Tuple[List[str], str]:
+        """Folders and file name of one game file of a batch.
+
+        A game of one file goes to Platform/, renamed. A game of several
+        files (a .cue and its .bin, several discs) goes to
+        Platform/Title (Year)/ and keeps its file names: a .cue names its
+        .bin files, so renaming them would break it.
+
+        Args:
+            media_item: The Game of the file.
+            file_path: The file.
+            alone: False when the game has other files in the batch.
+
+        Returns:
+            The folders under the destination, and the new file name.
+        """
+        platform = self.detect_platform(file_path)
+        folders = [format_name(platform)] if platform else []
+        if alone:
+            return folders, self.generate_new_filename(media_item, file_path.name)
+        return folders + media_item.get_folder_structure(), file_path.name
+
     def detect_platform_from_extension(self, extension: str) -> Optional[str]:
         """Detects the platform from the file extension"""
         ext_to_platform = {
@@ -297,10 +378,13 @@ class GameFileOperations(
     ) -> str:
         """Generate a new filename for a game.
 
-        Format: 'Game Title (Region) [Code].ext'
+        With a game found online, the game format of the settings. By
+        default its title followed by the tags of the original name, which
+        ROM collections rely on: 'Super Mario World (USA) (Rev 1).sfc'.
+        Otherwise 'Game Title (Region) [Code].ext' from the original name.
 
         Args:
-            media_item: The media item (Game).
+            media_item: The media item (Game), or None.
             original_filename: Original filename.
 
         Returns:
@@ -308,6 +392,28 @@ class GameFileOperations(
         """
         info = self.extract_info_from_filename(original_filename)
         extension = info["extension"]
+
+        if media_item is not None and getattr(media_item, "title", None):
+            stem = os.path.splitext(original_filename)[0]
+            # A leading "[SNES]" is the platform, not a tag of the dump.
+            stem = re.sub(r"^\[[^\]]+\]\s*", "", stem)
+            tags = re.findall(r"[(\[][^)\]]*[)\]]", stem)
+            release = getattr(media_item, "release_date", None) or ""
+            platforms = getattr(media_item, "platforms", None) or []
+            platform = (
+                info["platform"]
+                or self.detect_platform_from_extension(extension)
+                or (platforms[0] if platforms else "")
+            )
+            values = {
+                "title": media_item.title,
+                "year": release.split("-")[0],
+                "platform": platform,
+                "tags": " ".join(tags),
+            }
+            fmt = get_config_manager().get("game_format", "") or "{title} {tags}"
+            name = fill_format(fmt, values) or media_item.title
+            return format_name(name) + extension
 
         if not info["title"]:
             return original_filename
@@ -403,7 +509,7 @@ class GameFileOperations(
 
                 if not dry_run:
                     try:
-                        os.makedirs(dest_folder, exist_ok=True)
+                        make_folders(dest_folder)
                         move_file(source_file, dest_file)
                         report["moved"].append({"from": source_file, "to": dest_file})
                         report["total_moved"] += 1
