@@ -81,3 +81,24 @@ def test_the_variable_unset(monkeypatch):
     monkeypatch.delenv("SOK_ENV_KEYS_WIN", raising=False)
 
     assert not env_keys_win()
+
+
+def test_every_key_of_a_service_is_encrypted(make_config):
+    from sok.config.api_registry import get_all_services
+
+    config = make_config()
+    for service in get_all_services():
+        for key in (service.config_key, service.secret_config_key):
+            if key and hasattr(config.config, key):
+                assert key in ConfigManager.SENSITIVE_FIELDS, key
+
+
+def test_a_key_is_saved_encrypted(make_config, tmp_path):
+    config = make_config()
+
+    config.set("google_books_api_key", "secret-key")
+
+    assert "secret-key" not in (tmp_path / "config.json").read_text()
+    assert ConfigManager(tmp_path / "config.json").get("google_books_api_key") == (
+        "secret-key"
+    )

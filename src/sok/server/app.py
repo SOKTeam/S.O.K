@@ -24,10 +24,12 @@ from typing import AsyncIterator, Optional
 from fastapi import FastAPI
 
 from sok.__version__ import __version__
-from sok.config.config_manager import data_dir, log_dir
-from sok.server.api import auth, health
+from sok.config.config_manager import data_dir, get_config_manager, log_dir
+from sok.core.history import LINK
+from sok.server.api import auth, health, settings
 from sok.server.auth import Accounts, auth_disabled
 from sok.server.db import Database
+from sok.server.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +48,12 @@ def create_app(folder: Optional[Path] = None) -> FastAPI:
         db = Database(Path(folder or data_dir()) / "sok.db")
         app.state.db = db
         app.state.accounts = Accounts(db)
+        config = get_config_manager()
+        if db.created:
+            # The server links by default, so that torrents keep seeding.
+            config.set("file_mode", LINK)
+        app.state.config = config
+        app.state.settings = Settings(db, config)
         if app.state.accounts.create_from_env():
             logger.info("Account created from SOK_USERNAME")
         if auth_disabled():
@@ -64,6 +72,7 @@ def create_app(folder: Optional[Path] = None) -> FastAPI:
     )
     app.include_router(health.router)
     app.include_router(auth.router)
+    app.include_router(settings.router)
     return app
 
 

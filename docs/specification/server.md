@@ -100,7 +100,8 @@ interface are planned.
 
 ### API keys
 
-**Planned.**
+**In place since v1.5.0** ([Settings](/server/overview/#settings)), except the
+"Test" button and the page of the interface.
 
 - The settings page lists the services like the desktop app, with a "Test"
   button. The keys typed there are encrypted in `/config`.
@@ -112,7 +113,8 @@ interface are planned.
 
 ### Folders
 
-**Planned.**
+**In place since v1.5.0** for the settings and the link check
+([Link checks](/server/overview/#link-checks)); the choice per row is planned.
 
 - Several source folders, scanned with their subfolders.
 - One or more destination folders per media type. With one, it is used for
