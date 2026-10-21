@@ -148,15 +148,13 @@ API_SERVICES: Dict[str, APIServiceConfig] = {
         name="Last.fm",
         description="Music metadata and scrobbling",
         media_type="music",
-        auth_type=AuthType.OAUTH,
+        # The searches only need the key: no login, no shared secret.
+        auth_type=AuthType.API_KEY,
         group=APIGroup.API_KEY,
         config_key="api_key_lastfm",
-        session_key="lastfm_session",
         api_key_url="https://www.last.fm/api/account/create",
         base_url="https://ws.audioscrobbler.com/2.0/",
         env_var="API_KEY_LASTFM",
-        requires_secret=True,
-        secret_config_key="api_secret_lastfm",
         icon="",
     ),
     "spotify": APIServiceConfig(

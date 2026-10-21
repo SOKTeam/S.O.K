@@ -62,3 +62,11 @@ def test_leaving_a_field_unchanged_saves_nothing(section):
     type_key(section._rawg_input, "")
 
     assert section.resets == []
+
+
+def test_lastfm_takes_a_key_without_a_secret(section, config):
+    assert not hasattr(section, "_lastfm_connect_btn")
+
+    type_key(section._lastfm_input, "my-lastfm-key")
+
+    assert config.get_user_value("api_key_lastfm") == "my-lastfm-key"
