@@ -221,7 +221,7 @@ class BaseAPI(MediaAPI):
                 self.api_name,
                 int(retry_after) if retry_after.isdigit() else 0,
             )
-        raise APIResponseError(message, self.api_name)
+        raise APIResponseError(message, self.api_name, status)
 
     @staticmethod
     async def _error_detail(response: aiohttp.ClientResponse) -> str:
