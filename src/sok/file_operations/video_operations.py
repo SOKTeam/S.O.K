@@ -21,6 +21,7 @@ This module handles:
 from pathlib import Path
 from sok.core.utils import format_name
 from sok.core.interfaces import MediaItem
+from sok.core.name_patterns import EPISODE, MOVIE, match_user_pattern
 from sok.file_operations.base_operations import (
     FileParsingMixin,
     FileValidationMixin,
@@ -73,6 +74,45 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         ]
 
     def extract_info_from_filename(self, filename: str) -> Dict[str, Any]:
+        """Extract information from a video filename.
+
+        The input patterns of the settings are tried first
+        (sok.core.name_patterns); the name is otherwise read by the rules of
+        _parse_filename. "pattern" is the pattern that matched, if any.
+
+        Args:
+            filename: File name to parse.
+
+        Returns:
+            Dictionary with extracted information.
+        """
+        info = self._parse_filename(filename)
+        found = match_user_pattern(EPISODE, filename)
+        if found:
+            values = found.values
+            info.update(
+                type="series",
+                title=values.get("title"),
+                season=values.get("season", 1),
+                episode=values["episode"],
+                episode_title=values.get("episode_title"),
+                year=values.get("year"),
+                pattern=found.pattern,
+            )
+            return info
+        found = match_user_pattern(MOVIE, filename)
+        if found:
+            info.update(
+                type="movie",
+                title=found.values["title"],
+                year=found.values.get("year"),
+                season=None,
+                episode=None,
+                pattern=found.pattern,
+            )
+        return info
+
+    def _parse_filename(self, filename: str) -> Dict[str, Any]:
         """Extract information from a video filename.
 
         Supports formats:

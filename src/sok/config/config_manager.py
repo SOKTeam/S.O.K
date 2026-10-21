@@ -19,8 +19,8 @@ import threading
 import logging
 from cryptography.fernet import Fernet, InvalidToken
 from pathlib import Path
-from typing import Dict, Any, Optional
-from dataclasses import dataclass, asdict
+from typing import Dict, Any, List, Optional
+from dataclasses import dataclass, asdict, field as dataclass_field
 from sok.core.constants import (
     Constants,
     SERVICE_TMDB,
@@ -213,6 +213,8 @@ class AppConfig:
     music_format: str = "{artist} - {album}/{track} - {title}"
     book_format: str = "{author} - {title} ({year})"
     game_format: str = "{title} {tags}"
+    # Input patterns per kind of name (see sok.core.name_patterns).
+    input_patterns: Dict[str, List[str]] = dataclass_field(default_factory=dict)
 
     backup_before_rename: bool = True
     skip_duplicates: bool = True

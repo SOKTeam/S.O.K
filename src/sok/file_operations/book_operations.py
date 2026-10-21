@@ -23,6 +23,7 @@ import re
 import logging
 from typing import Dict, Any, List, Optional
 from sok.core.interfaces import FileOperations, MediaItem
+from sok.core.name_patterns import BOOK, match_user_pattern
 from sok.config.config_manager import get_config_manager
 from sok.core.utils import fill_format, format_name
 from sok.file_operations.base_operations import (
@@ -74,6 +75,33 @@ class BookFileOperations(
         ]
 
     def extract_info_from_filename(self, filename: str) -> Dict[str, Any]:
+        """Extract information from a ebook filename.
+
+        The input patterns of the settings are tried first
+        (sok.core.name_patterns); the name is otherwise read by the rules of
+        _parse_filename. "pattern" is the pattern that matched, if any.
+
+        Args:
+            filename: File name to parse.
+
+        Returns:
+            Dictionary with extracted information.
+        """
+        info = self._parse_filename(filename)
+        found = match_user_pattern(BOOK, filename)
+        if found:
+            values = found.values
+            info.update(
+                author=values.get("author"),
+                title=values["title"],
+                series=values.get("series"),
+                series_number=values.get("series_number"),
+                year=values.get("year"),
+                pattern=found.pattern,
+            )
+        return info
+
+    def _parse_filename(self, filename: str) -> Dict[str, Any]:
         """Extract information from an ebook filename.
 
         Supports formats:

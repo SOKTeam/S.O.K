@@ -26,6 +26,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from sok.config.config_manager import get_config_manager
 from sok.core.interfaces import ContentType, FileOperations, MediaItem
+from sok.core.name_patterns import MUSIC, match_user_pattern
 from sok.core.utils import fill_format, format_name
 from sok.file_operations.base_operations import (
     FileParsingMixin,
@@ -72,6 +73,34 @@ class MusicFileOperations(
         ]
 
     def extract_info_from_filename(self, filename: str) -> Dict[str, Any]:
+        """Extract information from a audio filename.
+
+        The input patterns of the settings are tried first
+        (sok.core.name_patterns); the name is otherwise read by the rules of
+        _parse_filename. "pattern" is the pattern that matched, if any.
+
+        Args:
+            filename: File name to parse.
+
+        Returns:
+            Dictionary with extracted information.
+        """
+        info = self._parse_filename(filename)
+        found = match_user_pattern(MUSIC, filename)
+        if found:
+            values = found.values
+            info.update(
+                artist=values.get("artist"),
+                album=values.get("album"),
+                disc_number=values.get("disc"),
+                track_number=values.get("track"),
+                title=values["title"],
+                year=values.get("year"),
+                pattern=found.pattern,
+            )
+        return info
+
+    def _parse_filename(self, filename: str) -> Dict[str, Any]:
         """Extract information from an audio filename.
 
         Supports formats:

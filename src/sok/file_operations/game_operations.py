@@ -24,6 +24,7 @@ import logging
 from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
 from sok.core.interfaces import FileOperations, MediaItem
+from sok.core.name_patterns import GAME, match_user_pattern
 from sok.config.config_manager import get_config_manager
 from sok.core.utils import fill_format, format_name
 from sok.file_operations.base_operations import (
@@ -168,6 +169,37 @@ class GameFileOperations(
     }
 
     def extract_info_from_filename(self, filename: str) -> Dict[str, Any]:
+        """Extract information from a game filename.
+
+        The input patterns of the settings are tried first
+        (sok.core.name_patterns); the name is otherwise read by the rules of
+        _parse_filename. "pattern" is the pattern that matched, if any.
+
+        Args:
+            filename: File name to parse.
+
+        Returns:
+            Dictionary with extracted information.
+        """
+        info = self._parse_filename(filename)
+        found = match_user_pattern(GAME, filename)
+        if found:
+            values = found.values
+            platform = values.get("platform")
+            region = values.get("region")
+            info.update(
+                title=values["title"],
+                year=values.get("year"),
+                pattern=found.pattern,
+            )
+            if platform:
+                info["platform"] = self.PLATFORMS.get(platform.lower(), platform)
+            if region:
+                info["region"] = self.REGIONS.get(region.lower(), region)
+                info["regions"] = [info["region"]]
+        return info
+
+    def _parse_filename(self, filename: str) -> Dict[str, Any]:
         """Extract information from a game filename.
 
         Supports typical ROM formats:
