@@ -13,8 +13,17 @@ Base UI Components - Cards, Rows, Toggles and Buttons
 """
 
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QWidget, QPushButton
-from PySide6.QtCore import Qt, Signal, QPropertyAnimation, QEasingCurve, Property, QRect
-from PySide6.QtGui import QPainter, QColor, QFont
+from PySide6.QtCore import (
+    Qt,
+    Signal,
+    QPropertyAnimation,
+    QEasingCurve,
+    Property,
+    QPointF,
+    QRect,
+    QRectF,
+)
+from PySide6.QtGui import QPainter, QColor, QFont, QPen
 
 from sok.ui.platform import IS_MACOS
 from sok.ui.theme import Theme
@@ -232,15 +241,22 @@ class Row(QWidget):
 class Toggle(QWidget):
     """Toggle switch widget.
 
-    Animated on/off switch with custom painting.
+    Animated on/off switch with custom painting. macOS keeps the Apple
+    look (green track, large white knob); Windows and Linux get an
+    outlined track when off and an accent track when on, with a small
+    knob that grows under the mouse.
 
     Attributes:
         toggled: Signal emitted with new state when toggled.
         _on: Current toggle state.
-        _x: Knob x position for animation.
+        _x: Knob position for animation, from OFF_X to ON_X.
+        _hovered: Whether the mouse is over the switch.
     """
 
     toggled = Signal(bool)
+
+    OFF_X = 2.0
+    ON_X = 18.0
 
     def __init__(self, parent=None):
         """Initialize the toggle.
@@ -249,10 +265,14 @@ class Toggle(QWidget):
             parent: Parent widget.
         """
         super().__init__(parent)
-        self.setFixedSize(38, 22)
+        if IS_MACOS:
+            self.setFixedSize(38, 22)
+        else:
+            self.setFixedSize(40, 20)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self._on = True
-        self._x = 18.0
+        self._x = self.ON_X
+        self._hovered = False
         self._anim = QPropertyAnimation(self, b"knob")
         self._anim.setDuration(150)
         self._anim.setEasingCurve(QEasingCurve.Type.OutCubic)
@@ -272,7 +292,7 @@ class Toggle(QWidget):
             v: New state (True for on, False for off).
         """
         self._on = v
-        self._x = 18.0 if v else 2.0
+        self._x = self.ON_X if v else self.OFF_X
         self.update()
 
     def get_knob(self):
@@ -303,9 +323,27 @@ class Toggle(QWidget):
         self._on = not self._on
         self._anim.stop()
         self._anim.setStartValue(self._x)
-        self._anim.setEndValue(18.0 if self._on else 2.0)
+        self._anim.setEndValue(self.ON_X if self._on else self.OFF_X)
         self._anim.start()
         self.toggled.emit(self._on)
+
+    def enterEvent(self, e):
+        """Handle mouse enter event.
+
+        Args:
+            e: Enter event.
+        """
+        self._hovered = True
+        self.update()
+
+    def leaveEvent(self, e):
+        """Handle mouse leave event.
+
+        Args:
+            e: Leave event.
+        """
+        self._hovered = False
+        self.update()
 
     def paintEvent(self, e):
         """Paint the toggle switch.
@@ -316,11 +354,36 @@ class Toggle(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         c = self.window().c if hasattr(self.window(), "c") else Theme.DARK  # type: ignore[union-attr]
-        p.setBrush(parse_color(c["green"] if self._on else c["tertiary"]))
+        if IS_MACOS:
+            p.setBrush(parse_color(c["green"] if self._on else c["tertiary"]))
+            p.setPen(Qt.PenStyle.NoPen)
+            p.drawRoundedRect(0, 0, 38, 22, 11, 11)
+            p.setBrush(parse_color("#FFFFFF"))
+            p.drawEllipse(int(self._x), 2, 18, 18)
+            return
+
+        w, h = self.width(), self.height()
+        radius = h / 2
+        if self._on:
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(parse_color(c["accent"]))
+            p.drawRoundedRect(QRectF(0, 0, w, h), radius, radius)
+            knob_color = c["accent_text"]
+        else:
+            p.setPen(QPen(parse_color(c["secondary"]), 1))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawRoundedRect(
+                QRectF(0.5, 0.5, w - 1, h - 1), radius - 0.5, radius - 0.5
+            )
+            knob_color = c["secondary"]
+
+        # The knob center slides from the left end to the right end.
+        progress = (self._x - self.OFF_X) / (self.ON_X - self.OFF_X)
+        cx = radius + progress * (w - 2 * radius)
+        knob_r = 7.0 if self._hovered else 6.0
         p.setPen(Qt.PenStyle.NoPen)
-        p.drawRoundedRect(0, 0, 38, 22, 11, 11)
-        p.setBrush(parse_color("#FFFFFF"))
-        p.drawEllipse(int(self._x), 2, 18, 18)
+        p.setBrush(parse_color(knob_color))
+        p.drawEllipse(QPointF(cx, radius), knob_r, knob_r)
 
 
 class ActionButton(QPushButton):
