@@ -299,7 +299,8 @@ SYSTEM_FILES = {".DS_Store", "Thumbs.db", "desktop.ini"}
 
 def _remove_folders(operation: Operation) -> None:
     """Remove the folders the operation created, deepest first, if empty."""
-    for folder in sorted(set(operation.folders), key=len, reverse=True):
+    folders = sorted(set(operation.folders), key=lambda f: len(f), reverse=True)
+    for folder in folders:
         try:
             names = os.listdir(folder)
             if any(name not in SYSTEM_FILES for name in names):
