@@ -128,7 +128,8 @@ interface.
 
 ### Analysis
 
-**Planned.**
+**In place since v1.5.0 for the scan and the sort**
+([Analyses](/server/overview/#analyses)); the search is planned.
 
 - The files are sorted by `MediaTypeDetector`
   (`sok/file_operations/detection.py`) and searched by `BatchMatcher`
@@ -142,6 +143,23 @@ interface.
   is no longer "processed".
 - The table is kept in the database: reloading the page, opening a second tab
   or restarting the container keeps the analysis and the choices made.
+- **A new analysis keeps the choices.** A row found again keeps its search
+  text, its match and its destination; a series or an album keeps them when
+  episodes or tracks are added. The rows whose files are gone are removed, the
+  new files get rows.
+- **One row per series**, with its episodes as sub-rows, and one per album; a
+  series spread over several folders is one row.
+- **The titles of the episodes** are read when a series becomes Ready or is
+  picked by hand, one request per season; not for a series still to pick.
+- **A missing key or a used quota stops the analysis**, and the summary says so
+  ("TMDB key missing"). The files already sorted stay; the search can be run
+  again once the key is set.
+- **Files to check** (a type that is a guess, such as an `.iso`, a movie or a
+  game) are listed in the summary with the type suggested. The user confirms or
+  changes it, and the file joins the tab of that type; the next analyses
+  remember the choice.
+- Until the tabs of music, books and games arrive, their files are counted in
+  the summary.
 
 ### Renaming
 
@@ -242,6 +260,7 @@ Dockerfile                                            Node build of web/, then P
 | `GET /api/settings`, `PATCH /api/settings`                    | Settings (keys only as "set" or "not set")           |
 | `POST /api/settings/test-key`, `POST /api/settings/test-link` | Test a key, test a hard link                         |
 | `POST /api/scans`, `GET /api/scans/current`                   | Start an analysis, read its summary                  |
+| `POST /api/to-check`                                          | Give a file to check its type                        |
 | `GET /api/rows?type=movie`                                    | Rows of a tab                                        |
 | `PATCH /api/rows/{id}`                                        | Change the search text, the match or the destination |
 | `POST /api/rows/{id}/search`                                  | Search one row again                                 |

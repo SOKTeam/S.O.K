@@ -26,9 +26,11 @@ from fastapi import FastAPI
 from sok.__version__ import __version__
 from sok.config.config_manager import data_dir, get_config_manager, log_dir
 from sok.core.history import LINK
-from sok.server.api import auth, health, settings
+from sok.server.api import auth, events, health, scans, settings
 from sok.server.auth import Accounts, auth_disabled
 from sok.server.db import Database
+from sok.server.events import EventBus
+from sok.server.scans import Scans
 from sok.server.settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -54,6 +56,8 @@ def create_app(folder: Optional[Path] = None) -> FastAPI:
             config.set("file_mode", LINK)
         app.state.config = config
         app.state.settings = Settings(db, config)
+        app.state.events = EventBus()
+        app.state.scans = Scans(db, app.state.settings, app.state.events)
         if app.state.accounts.create_from_env():
             logger.info("Account created from SOK_USERNAME")
         if auth_disabled():
@@ -73,6 +77,8 @@ def create_app(folder: Optional[Path] = None) -> FastAPI:
     app.include_router(health.router)
     app.include_router(auth.router)
     app.include_router(settings.router)
+    app.include_router(scans.router)
+    app.include_router(events.router)
     return app
 
 
