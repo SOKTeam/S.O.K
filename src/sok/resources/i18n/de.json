@@ -242,5 +242,6 @@
     "drop_nothing_found": "Keine Mediendatei erkannt. Unterstützte Dateien: {extensions}. Archive, Programme und Textdokumente werden nur auf der Seite ihres Typs angenommen.",
     "drop_to_check": "Zu prüfen",
     "drop_error": "Die Dateien konnten nicht analysiert werden: {error}",
-    "rename_skips_to_pick": "{0} noch auszuwählende Datei(en) bleiben unverändert."
+    "rename_skips_to_pick": "{0} noch auszuwählende Datei(en) bleiben unverändert.",
+    "batch_drop_hint": "Dateien oder Ordner ablegen oder klicken, um zu durchsuchen"
 }

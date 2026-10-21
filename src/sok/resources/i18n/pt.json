@@ -242,5 +242,6 @@
     "drop_nothing_found": "Nenhum ficheiro multimédia reconhecido. Ficheiros aceites: {extensions}. Arquivos comprimidos, programas e documentos de texto só são aceites na página do seu tipo.",
     "drop_to_check": "Por verificar",
     "drop_error": "Não foi possível analisar os ficheiros: {error}",
-    "rename_skips_to_pick": "{0} ficheiro(s) ainda por escolher ficarão como estão."
+    "rename_skips_to_pick": "{0} ficheiro(s) ainda por escolher ficarão como estão.",
+    "batch_drop_hint": "Larga ficheiros ou pastas, ou clica para procurar"
 }

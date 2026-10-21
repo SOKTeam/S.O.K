@@ -242,5 +242,6 @@
     "drop_nothing_found": "No se ha reconocido ningún archivo multimedia. Archivos aceptados: {extensions}. Los archivos comprimidos, los programas y los documentos de texto solo se aceptan en la página de su tipo.",
     "drop_to_check": "Por revisar",
     "drop_error": "No se han podido analizar los archivos: {error}",
-    "rename_skips_to_pick": "{0} archivo(s) aún por elegir se dejarán como están."
+    "rename_skips_to_pick": "{0} archivo(s) aún por elegir se dejarán como están.",
+    "batch_drop_hint": "Suelta archivos o carpetas, o haz clic para explorar"
 }

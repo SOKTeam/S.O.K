@@ -8,10 +8,12 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-"""Table-style widget for batch movie renaming.
+"""Table-style widget for batch renaming.
 
-Each row represents one source file and lets the user pick a TMDB match
-among candidates, edit the search query, and preview the new name.
+Each row is one item (a movie, a book, a game…) made of one or more source
+files. It lets the user edit the search query, pick a match among the
+candidates, and preview the new name. The status of a row comes from
+sok.core.batch.
 """
 
 from __future__ import annotations
@@ -39,6 +41,7 @@ from sok.core.batch import (
     STATUS_MISSING,
     STATUS_READY,
     BatchMatch,
+    candidate_year,
 )
 from sok.ui.components.base import Card
 from sok.ui.components.window import StopPropagationScrollArea
@@ -53,9 +56,26 @@ logger = logging.getLogger(__name__)
 STATUS_OK = STATUS_READY
 STATUS_PENDING = "pending"
 
+# Text of a candidate in the menu of a row.
+Describe = Callable[[Dict[str, Any]], str]
+# Splits files into items, the files of each item together.
+GroupFiles = Callable[[List[Path]], List[List[Path]]]
 
-class MovieRow(QWidget):
-    """Single row in the movie batch table.
+
+def describe_dated(candidate: Dict[str, Any]) -> str:
+    """ "Title (year)", the default text of a candidate."""
+    title = candidate.get("title") or candidate.get("name") or tr("unknown", "Unknown")
+    year = candidate_year(candidate)
+    return f"{title} ({year})" if year else title
+
+
+def one_item_per_file(files: List[Path]) -> List[List[Path]]:
+    """Default grouping: every file is an item."""
+    return [[f] for f in files]
+
+
+class BatchRow(QWidget):
+    """Single row of the batch table: one item and its search.
 
     Signals:
         changed: Emitted when the user changes the selected candidate or query.
@@ -65,15 +85,25 @@ class MovieRow(QWidget):
     changed = Signal()
     rescan_requested = Signal(str)
 
-    def __init__(self, file: Path, parent: Optional[QWidget] = None):
-        """Initialize a movie row.
+    def __init__(
+        self,
+        files: List[Path],
+        describe: Describe = describe_dated,
+        query_placeholder: str = "",
+        parent: Optional[QWidget] = None,
+    ):
+        """Initialize a row.
 
         Args:
-            file: Source file path.
+            files: Source files of the item; the first one names it.
+            describe: Text of a candidate in the menu.
+            query_placeholder: Hint shown in the empty query field.
             parent: Parent widget.
         """
         super().__init__(parent)
-        self._file = file
+        self._files = list(files)
+        self._file = self._files[0]
+        self._describe = describe
         self._candidates: List[Dict[str, Any]] = []
         self._status = STATUS_PENDING
         self._new_name = ""
@@ -92,7 +122,11 @@ class MovieRow(QWidget):
 
         left = QVBoxLayout()
         left.setSpacing(2)
-        self._original_lbl = QLabel(file.name)
+        name = self._file.name
+        if len(self._files) > 1:
+            name += f"  (+{len(self._files) - 1})"
+        self._original_lbl = QLabel(name)
+        self._original_lbl.setToolTip("\n".join(f.name for f in self._files))
         self._original_lbl.setStyleSheet("font-size: 11px;")
         set_tone(self._original_lbl, "file")
         self._original_lbl.setSizePolicy(
@@ -114,7 +148,7 @@ class MovieRow(QWidget):
         query_row.setSpacing(4)
         self._query_edit = QLineEdit()
         self._query_edit.setPlaceholderText(
-            tr("movie_title_year", "Title (optional year)")
+            query_placeholder or tr("movie_title_year", "Title (optional year)")
         )
         self._query_edit.setFixedHeight(24)
         self._query_edit.setObjectName("SettingsInput")
@@ -178,8 +212,13 @@ class MovieRow(QWidget):
 
     @property
     def file(self) -> Path:
-        """Return the source file path."""
+        """Return the first source file, which names the item."""
         return self._file
+
+    @property
+    def files(self) -> List[Path]:
+        """Return the source files of the item."""
+        return list(self._files)
 
     def set_query(self, query: str, year: Optional[int] = None) -> None:
         """Set the editable query text without triggering editingFinished.
@@ -234,12 +273,7 @@ class MovieRow(QWidget):
         else:
             self._match_combo.setEnabled(True)
             for cand in candidates:
-                title = (
-                    cand.get("title") or cand.get("name") or tr("unknown", "Unknown")
-                )
-                year = (cand.get("release_date") or "")[:4]
-                label = f"{title} ({year})" if year else title
-                self._match_combo.addItem(label, cand)
+                self._match_combo.addItem(self._describe(cand), cand)
             self._match_combo.setCurrentIndex(selected or 0)
             self.set_status(status)
         self._match_combo.blockSignals(False)
@@ -302,12 +336,17 @@ class MovieRow(QWidget):
         self.changed.emit()
 
 
-class MovieBatchTable(QWidget):
-    """Scrollable table of MovieRow widgets.
+class MediaBatchTable(QWidget):
+    """Scrollable table of BatchRow widgets, one per item.
+
+    Rows are keyed by the first file of their item.
 
     Signals:
         row_changed: Emitted when any row's selection or query changes.
-        row_rescan_requested(Path, str): Emitted when a row requests a re-scan.
+        row_rescan_requested(Path, str): A row asks for a new search, with
+            its key and the typed query.
+        files_added(list): Items added by a drop or the file dialog, each a
+            list of files.
     """
 
     row_changed = Signal()
@@ -317,18 +356,37 @@ class MovieBatchTable(QWidget):
     def __init__(
         self,
         file_extensions: Optional[List[str]] = None,
+        empty_hint: str = "",
+        add_more_text: str = "",
+        describe: Describe = describe_dated,
+        query_placeholder: str = "",
+        group_files: GroupFiles = one_item_per_file,
         parent: Optional[QWidget] = None,
     ):
         """Initialize the table.
 
         Args:
             file_extensions: Allowed file extensions (with leading dot) for drop/browse.
+            empty_hint: Text of the empty table.
+            add_more_text: Text of the button under the rows.
+            describe: Text of a candidate in the menu of a row.
+            query_placeholder: Hint shown in an empty query field.
+            group_files: Splits added files into items.
             parent: Parent widget.
         """
         super().__init__(parent)
-        self._rows: Dict[Path, MovieRow] = {}
+        self._rows: Dict[Path, BatchRow] = {}
+        # Every file in the table, with the key of its row.
+        self._owner: Dict[Path, Path] = {}
         self._file_extensions = [e.lower() for e in (file_extensions or [])]
         self._add_more_btn: Optional[QPushButton] = None
+        self._empty_hint = empty_hint or tr(
+            "batch_drop_hint", "Drop files or folders, or click to browse"
+        )
+        self._add_more_text = add_more_text or tr("add_files", "+ Add files")
+        self._describe = describe
+        self._query_placeholder = query_placeholder
+        self._group_files = group_files
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -354,9 +412,21 @@ class MovieBatchTable(QWidget):
 
         layout.addWidget(self._container)
         self.setAcceptDrops(True)
-        self._show_empty(
-            tr("movies_drop_hint", "Drop video files or folders, or click to browse")
-        )
+        self._show_empty(self._empty_hint)
+
+    def set_texts(self, empty_hint: str, add_more_text: str) -> None:
+        """Change the texts of the empty table and of the add button.
+
+        Args:
+            empty_hint: Text of the empty table.
+            add_more_text: Text of the button under the rows.
+        """
+        self._empty_hint = empty_hint
+        self._add_more_text = add_more_text
+        if self._add_more_btn is not None:
+            self._add_more_btn.setText(add_more_text)
+        if not self._rows:
+            self._show_empty(empty_hint)
 
     def _show_empty(self, text: str) -> None:
         self.clear()
@@ -372,50 +442,48 @@ class MovieBatchTable(QWidget):
             if item.widget():
                 item.widget().deleteLater()
         self._rows.clear()
+        self._owner.clear()
         self._add_more_btn = None
 
     def set_files(self, files: List[Path]) -> None:
         """Populate the table with files and reset their state."""
         self.clear()
         if not files:
-            self._show_empty(
-                tr(
-                    "movies_drop_hint",
-                    "Drop video files or folders, or click to browse",
-                )
-            )
+            self._show_empty(self._empty_hint)
             return
-        for f in files:
-            self._append_row(f)
+        for item in self._group_files(files):
+            self._append_row(item)
 
-    def add_files(self, files: List[Path]) -> List[Path]:
-        """Append new files to the table, ignoring duplicates.
+    def add_files(self, files: List[Path]) -> List[List[Path]]:
+        """Append new files to the table, ignoring those already in it.
 
-        Returns the actually appended paths.
+        Returns:
+            The items actually appended, each a list of files.
         """
-        if not files:
+        new = [f for f in files if f not in self._owner]
+        if not new:
             return []
         if not self._rows:
             self._clear_empty_state()
-        appended: List[Path] = []
-        for f in files:
-            if f in self._rows:
-                continue
-            self._append_row(f)
-            appended.append(f)
-        return appended
+        items = self._group_files(new)
+        for item in items:
+            self._append_row(item)
+        return items
 
-    def _append_row(self, file: Path) -> None:
+    def _append_row(self, files: List[Path]) -> None:
         # Rows keep their height at the top of the card: without this, a few
         # rows are spread over the whole height.
         self._inner._layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._remove_add_more_button()
-        row = MovieRow(file)
+        key = files[0]
+        row = BatchRow(files, self._describe, self._query_placeholder)
         row.changed.connect(self.row_changed.emit)
         row.rescan_requested.connect(
-            lambda q, p=file: self.row_rescan_requested.emit(p, q)
+            lambda q, k=key: self.row_rescan_requested.emit(k, q)
         )
-        self._rows[file] = row
+        self._rows[key] = row
+        for f in files:
+            self._owner[f] = key
         self._inner.add(row)
         self._container.unsetCursor()
         self._ensure_add_more_button()
@@ -423,7 +491,7 @@ class MovieBatchTable(QWidget):
     def _ensure_add_more_button(self) -> None:
         if self._add_more_btn is not None:
             return
-        btn = QPushButton(tr("add_more_movies", "+ Add more movies"))
+        btn = QPushButton(self._add_more_text)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setFixedHeight(34)
         if IS_MACOS:
@@ -476,12 +544,21 @@ class MovieBatchTable(QWidget):
         self._add_more_btn = None
 
     def files(self) -> List[Path]:
-        """Return the list of files currently in the table."""
-        return list(self._rows.keys())
+        """Return every file in the table."""
+        return list(self._owner)
 
-    def set_row_loading(self, file: Path) -> None:
+    def items(self) -> List[List[Path]]:
+        """Return the files of every row, in order."""
+        return [row.files for row in self._rows.values()]
+
+    def item_files(self, key: Path) -> List[Path]:
+        """Return the files of the row with this key."""
+        row = self._rows.get(key)
+        return row.files if row else []
+
+    def set_row_loading(self, key: Path) -> None:
         """Mark a single row as pending."""
-        row = self._rows.get(file)
+        row = self._rows.get(key)
         if row:
             row.set_loading()
 
@@ -498,36 +575,43 @@ class MovieBatchTable(QWidget):
         for r in results:
             self.apply_search_result(r)
 
-    def update_new_names(self, compute: Callable[[Path, Dict[str, Any]], str]) -> None:
-        """Refresh the new-name preview for every row."""
-        for file, row in self._rows.items():
+    def update_new_names(
+        self, compute: Callable[[List[Path], Dict[str, Any]], str]
+    ) -> None:
+        """Refresh the new-name preview for every row.
+
+        Args:
+            compute: Gives the new name from the files of a row and its
+                selected candidate.
+        """
+        for row in self._rows.values():
             cand = row.get_selected_candidate()
-            new_name = compute(file, cand) if cand else ""
-            row.set_new_name(new_name)
+            row.set_new_name(compute(row.files, cand) if cand else "")
 
     def get_mappings(self) -> List[tuple]:
-        """Return [(file, selected_candidate_dict_or_None), ...] for every row."""
-        return [(f, r.get_selected_candidate()) for f, r in self._rows.items()]
+        """Return [(files, selected_candidate_dict_or_None), ...] for every row."""
+        return [(r.files, r.get_selected_candidate()) for r in self._rows.values()]
 
     def get_ready_mappings(self) -> List[tuple]:
-        """Return [(file, candidate), ...] for the rows that are Ready.
+        """Return [(files, candidate), ...] for the rows that are Ready.
 
         A row to pick is left out even if a candidate is selected: the user
         has not confirmed it.
         """
         return [
-            (f, r.get_selected_candidate())
-            for f, r in self._rows.items()
+            (r.files, r.get_selected_candidate())
+            for r in self._rows.values()
             if r.get_status() == STATUS_OK and r.get_selected_candidate()
         ]
 
     def remove_files(self, files: List[Path]) -> None:
-        """Remove the rows of the given files, such as the renamed ones."""
+        """Remove the rows that hold any of the given files, such as renamed ones."""
         layout = self._inner._layout
-        for file in files:
-            row = self._rows.pop(file, None)
-            if row is None:
-                continue
+        keys = list(dict.fromkeys(self._owner[f] for f in files if f in self._owner))
+        for key in keys:
+            row = self._rows.pop(key)
+            for f in row.files:
+                self._owner.pop(f, None)
             idx = layout.indexOf(row)
             if idx < 0:
                 row.deleteLater()

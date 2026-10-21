@@ -18,12 +18,12 @@ maintainability and testability of the code.
 from sok.ui.components.organize.search_panel import SearchPanel
 from sok.ui.components.organize.options_panel import OptionsPanel
 from sok.ui.components.organize.log_widget import OrganizeLogWidget
-from sok.ui.components.organize.movie_batch_table import MovieBatchTable, MovieRow
+from sok.ui.components.organize.media_batch_table import BatchRow, MediaBatchTable
 
 __all__ = [
     "SearchPanel",
     "OptionsPanel",
     "OrganizeLogWidget",
-    "MovieBatchTable",
-    "MovieRow",
+    "MediaBatchTable",
+    "BatchRow",
 ]
