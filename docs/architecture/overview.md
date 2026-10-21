@@ -28,13 +28,16 @@ Built in code with PySide6; no Qt Designer file is loaded at run time.
 - `main_window.py`: the window, the sidebar and the page stack. On Windows and
   Linux the window is frameless with its own title bar; on macOS it keeps the
   native title bar.
-- `pages/`: home, organize (TV shows, music, books, games), movies and settings.
+- `pages/`: home, TV shows (`organize_page.py`), music (an Albums and a Tracks
+  tab), the batch pages (`batch_page.py` and its movies, books, games and tracks
+  subclasses) and settings.
 - `components/`: reusable widgets (search results, preview, settings sections…).
 - `controllers/`: logic shared by the pages (source scanning, preview, window
   chrome, `WorkerRunner`).
-- `workers/`: background tasks (search, details, organize, folder scan, movie
-  batches).
+- `workers/`: background tasks (search, details, organize, folder creation,
+  batch search and rename, detection of dropped files).
 - `dialogs/`: the update dialog.
+- `errors.py`: the messages shown for API errors.
 - `factories/`: builds `sok.media` objects from API responses, so the pages do
   not create them themselves.
 - `theme.py`, `platform.py`, `i18n.py`: colors and fonts, per-system behavior,
@@ -51,6 +54,9 @@ Built in code with PySide6; no Qt Designer file is loaded at run time.
   `MediaType` and `ContentType` enums.
 - `adapters/media_adapters/`: one adapter per kind of content (movie, TV, music,
   book, game) that turns a service response into the fields the app uses.
+- `batch.py`: the batch engine. It reads file names, searches many files at once
+  and decides which ones are Ready (see
+  [The path of a rename](/architecture/organizing/)). No Qt dependency.
 - `exceptions.py`: the exception hierarchy (see below).
 - `updater.py`: checks GitHub releases and installs updates.
 - `desktop_entry.py`: adds S.O.K to the Linux applications menu.
@@ -74,7 +80,8 @@ the HTTP session and the error handling:
   `Track`, `Book`, `Game`…), all derived from `BaseMedia`.
 - `sok.file_operations`: reads names (season and episode numbers, years), builds
   the new names from the user's formats and moves the files. One module per
-  media type, with shared mixins.
+  media type, with shared mixins, `organize.py` for the batches and
+  `detection.py`, which sorts the files dropped on the home page by type.
 - `sok.config`: `config_manager.py` (settings and folders), `session_manager.py`
   (keys and tokens), `api_registry.py` (the list of services, their media type
   and how they authenticate).
@@ -89,6 +96,9 @@ the HTTP session and the error handling:
 4. The API calls the service with `aiohttp` and returns its response.
 5. The manager passes it through the adapter of the content type.
 6. The worker emits a Qt signal; the page shows the results in the GUI thread.
+
+Renaming follows a similar path, through the file operations instead of the
+APIs: see [The path of a rename](/architecture/organizing/).
 
 Each worker has its own event loop, so an API opens a new HTTP session when the
 loop changes (`BaseAPI._ensure_session()`): a session can only be used on the
