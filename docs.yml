@@ -35,6 +35,7 @@ sidebar:
   - label: Guides
     items:
       - guides/adding-an-api
+      - guides/testing
       - guides/translations
       - guides/building
       - guides/documentation
