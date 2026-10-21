@@ -17,6 +17,14 @@ Handles HTTP session management, request lifecycle, and connection pooling.
 import asyncio
 import aiohttp
 from typing import Dict, Any, Optional
+from sok.core.exceptions import (
+    APIAuthenticationError,
+    APIConnectionError,
+    APINotFoundError,
+    APIRateLimitError,
+    APIResponseError,
+    APITimeoutError,
+)
 from sok.core.interfaces import MediaAPI
 
 
@@ -156,14 +164,84 @@ class BaseAPI(MediaAPI):
 
         url = f"{self.base_url}{endpoint}"
 
-        if method.upper() == "POST":
-            async with session.post(
-                url, params=params, headers=headers, data=data, json=json_data
-            ) as response:
-                return await response.json()
-        else:
-            async with session.get(url, params=params, headers=headers) as response:
-                return await response.json()
+        try:
+            if method.upper() == "POST":
+                async with session.post(
+                    url, params=params, headers=headers, data=data, json=json_data
+                ) as response:
+                    return await self._read_response(response)
+            else:
+                async with session.get(url, params=params, headers=headers) as response:
+                    return await self._read_response(response)
+        except aiohttp.ContentTypeError as exc:
+            raise APIResponseError(
+                f"{self.api_name}: the response is not JSON", self.api_name
+            ) from exc
+        except aiohttp.ClientError as exc:
+            raise APIConnectionError(
+                f"{self.api_name}: request failed: {exc}", self.api_name
+            ) from exc
+        except asyncio.TimeoutError as exc:
+            raise APITimeoutError(
+                f"{self.api_name}: the request timed out", self.api_name
+            ) from exc
+
+    @property
+    def api_name(self) -> str:
+        """Name of the service in error messages, from the class name."""
+        return type(self).__name__.removesuffix("Api").removesuffix("API")
+
+    async def _read_response(self, response: aiohttp.ClientResponse) -> Any:
+        """Return the JSON of a response, or raise the error it reports.
+
+        Services answer errors with a JSON body too, so reading it without
+        the status turned an exhausted quota or a wrong key into an empty
+        result.
+
+        Raises:
+            APIAuthenticationError: 401 or 403, a missing or wrong key.
+            APINotFoundError: 404.
+            APIRateLimitError: 429, too many requests or the quota is used.
+            APIResponseError: Any other error status.
+        """
+        status = response.status
+        if status < 400:
+            return await response.json()
+
+        detail = await self._error_detail(response)
+        message = f"{self.api_name}: HTTP {status}" + (f": {detail}" if detail else "")
+        if status in (401, 403):
+            raise APIAuthenticationError(message, self.api_name)
+        if status == 404:
+            raise APINotFoundError(message, self.api_name)
+        if status == 429:
+            retry_after = response.headers.get("Retry-After", "")
+            raise APIRateLimitError(
+                message,
+                self.api_name,
+                int(retry_after) if retry_after.isdigit() else 0,
+            )
+        raise APIResponseError(message, self.api_name)
+
+    @staticmethod
+    async def _error_detail(response: aiohttp.ClientResponse) -> str:
+        """The message of an error response, whatever its shape."""
+        try:
+            body = await response.json(content_type=None)
+        except (aiohttp.ClientError, ValueError):
+            try:
+                return (await response.text())[:200].strip()
+            except aiohttp.ClientError:
+                return ""
+        if not isinstance(body, dict):
+            return ""
+        error = body.get("error")
+        if isinstance(error, dict):
+            return str(error.get("message") or "")[:200]
+        for key in ("status_message", "message", "error", "Error"):
+            if body.get(key):
+                return str(body[key])[:200]
+        return ""
 
     async def close(self) -> None:
         """Close the aiohttp session.

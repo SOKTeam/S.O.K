@@ -306,3 +306,15 @@ def test_a_folder_of_singles_by_several_artists_is_tracks(tmp_path):
         (ContentType.ALBUM, "Album", 3),
         (ContentType.TRACK, None, 3),
     ]
+
+
+def test_a_group_title_does_not_depend_on_the_file_system_order(tmp_path, monkeypatch):
+    from sok.file_operations import detection
+
+    files = [tmp_path / "severance.s02e01.mkv", tmp_path / "Severance.S01E02.mkv"]
+    make(tmp_path, *(f.name for f in files))
+    monkeypatch.setattr(detection, "_walk", lambda paths: iter(files))
+
+    report = detect_sources([tmp_path])
+
+    assert report.groups[0].title == "Severance"

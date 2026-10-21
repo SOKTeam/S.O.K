@@ -30,7 +30,8 @@ S.O.K/
 | `ui/`              | The PySide6 interface (see [Architecture](/architecture/overview/#interface-sokui))                                                      |
 | `resources/`       | Icons and logos (`assets/`), Inter font for Linux (`fonts/`), translations (`i18n/`)                                                     |
 
-`ui/designer/` holds old Qt Designer mockups. They are not used by the app.
+`ui/designer/` holds old Qt Designer mockups and `ui/generated/` is the empty
+folder meant for the code generated from them. Neither is used by the app.
 
 ## `tests/`
 
@@ -67,12 +68,12 @@ S.O.K/
 
 ## Workflows
 
-| File                       | When it runs                                                                                                        |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `ci.yml`                   | Pushes and pull requests to `develop` and `main`: lint, format, translations, type checks, tests on Linux and macOS |
-| `conventional-commits.yml` | Pull requests: checks the commit messages                                                                           |
-| `release.yml`              | Pushes to `main`: semantic-release creates the version and the GitHub release                                       |
-| `build-linux.yml`          | After a release, or by hand from the Actions tab: builds the AppImages and attaches them to the release             |
-| `build-windows.yml`        | After a release, or by hand: builds the Windows installer and attaches it to the release                            |
-| `build-macos.yml`          | After a release, or by hand: builds the macOS disk image and attaches it to the release                             |
-| `docs.yml`                 | Pushes to `main`, or by hand: publishes this documentation to GitHub Pages                                          |
+| File                       | When it runs                                                                                                                                                                     |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci.yml`                   | Pushes and pull requests to `develop` and `main`: lint, format, translations, type checks, tests on Linux and macOS                                                              |
+| `conventional-commits.yml` | Pull requests: checks the commit messages                                                                                                                                        |
+| `release.yml`              | Pushes to `main`: semantic-release creates the version and the GitHub release; then the three build workflows attach the packages to it and `main` is merged back into `develop` |
+| `build-linux.yml`          | Called by `release.yml`: builds the AppImages and attaches them to the release. By hand from the Actions tab: keeps them as an artifact of the run                               |
+| `build-windows.yml`        | Same for the Windows installer                                                                                                                                                   |
+| `build-macos.yml`          | Same for the macOS disk image                                                                                                                                                    |
+| `docs.yml`                 | Pushes to `main`, or by hand: publishes this documentation to GitHub Pages                                                                                                       |
