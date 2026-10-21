@@ -89,10 +89,19 @@ Releases are made by [semantic-release](https://semantic-release.gitbook.io)
 when `develop` is merged into `main`: it computes the version from the commit
 messages, updates
 [`CHANGELOG.md`](https://github.com/SOKTeam/S.O.K/blob/main/CHANGELOG.md) and
-the version files, and creates the GitHub release. `release.yml` then calls
-`build-windows.yml`, `build-macos.yml` and `build-linux.yml`, which build the
-Windows installer, the macOS disk image and both AppImages on GitHub runners and
-attach them to the release.
+the version files, and creates the GitHub release as a **draft**. `release.yml`
+then calls `build-windows.yml`, `build-macos.yml` and `build-linux.yml`, which
+build the Windows installer, the macOS disk image and both AppImages on GitHub
+runners and attach them to the draft.
+
+When the three builds succeed, the `publish` job publishes the release: only
+then do the apps offer the update and the website show the downloads. If a
+build fails, the release stays a draft: fix the build, re-run the failed job,
+and `publish` runs. The notes of the draft can be edited meanwhile.
+
+`publish` then calls the deploy hook of the website (Vercel) found in the
+`SITE_DEPLOY_HOOK` secret, so the website is rebuilt with the new downloads.
+Without the secret, this step does nothing.
 
 The workflows write `.env` from the `SOK_ENV` repository secret, which holds the
 contents of that file: without it the builds stop. Each workflow can also be run

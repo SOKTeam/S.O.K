@@ -120,3 +120,34 @@ jobs:
       tag: v${{ needs.release.outputs.version }}
     secrets:
       SOK_ENV: ${{ secrets.SOK_ENV }}
+
+  publish:
+    # The release is created as a draft (.releaserc.json), so the apps and the
+    # website never see it without its packages. It is published once the
+    # three builds have attached them; if one fails, it stays a draft.
+    name: Publish the release
+    needs: [release, linux, windows, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Publish the draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          gh release edit "v${{ needs.release.outputs.version }}"
+          --draft=false --latest --repo "${{ github.repository }}"
+
+      - name: Rebuild the website
+        # A Vercel deploy hook of the website, which reads the latest release
+        # when it is built. Without the secret, the step does nothing.
+        env:
+          SITE_DEPLOY_HOOK: ${{ secrets.SITE_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$SITE_DEPLOY_HOOK" ]; then
+            echo "SITE_DEPLOY_HOOK is not set: the website is not rebuilt."
+            exit 0
+          fi
+          curl --fail --silent --show-error -X POST "$SITE_DEPLOY_HOOK" > /dev/null
+          echo "Website rebuild requested."
