@@ -27,6 +27,8 @@ import shutil
 import logging
 from typing import List, Dict, Any, Optional, Callable
 
+from sok.core.history import current_journal
+
 from .mixins import (
     FileParsingMixin,
     FileValidationMixin,
@@ -44,6 +46,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "BaseFileOperations",
     "move_file",
+    "make_folders",
     "FileParsingMixin",
     "FileValidationMixin",
     "VIDEO_QUALITY_PATTERNS",
@@ -86,7 +89,33 @@ def move_file(source: str, destination: str, backup: bool = False) -> Optional[s
             os.replace(backup_path, destination)
         raise
 
+    journal = current_journal()
+    if journal:
+        journal.moved(source, destination, backup_path)
     return backup_path
+
+
+def make_folders(path: str) -> None:
+    """Create a folder and its missing parents, like os.makedirs.
+
+    The folders created are reported to the rename history, which removes
+    them when the rename is undone and they are empty.
+
+    Args:
+        path: The folder.
+    """
+    missing = []
+    folder = os.path.abspath(path)
+    while not os.path.exists(folder):
+        missing.append(folder)
+        parent = os.path.dirname(folder)
+        if parent == folder:
+            break
+        folder = parent
+    os.makedirs(path, exist_ok=True)
+    journal = current_journal()
+    if journal and missing:
+        journal.created_folders(missing)
 
 
 class BaseFileOperations(FileParsingMixin, FileValidationMixin):

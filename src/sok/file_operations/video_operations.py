@@ -25,6 +25,7 @@ from sok.core.name_patterns import EPISODE, MOVIE, match_user_pattern
 from sok.file_operations.base_operations import (
     FileParsingMixin,
     FileValidationMixin,
+    make_folders,
     move_file,
 )
 
@@ -386,12 +387,12 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         if isinstance(media_item, Series):
             series_folder = os.path.join(dest_path, folder_structure[0])
             if not dry_run and not os.path.exists(series_folder):
-                os.makedirs(series_folder, exist_ok=True)
+                make_folders(series_folder)
             base_path = series_folder
         else:
             base_path = os.path.join(dest_path, folder_structure[0])
             if not dry_run and not os.path.exists(base_path):
-                os.makedirs(base_path, exist_ok=True)
+                make_folders(base_path)
 
         for idx, (root, file) in enumerate(all_video_files):
             source_file = os.path.join(root, file)
@@ -424,7 +425,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             if not dry_run:
                 try:
                     if not os.path.exists(dest_folder):
-                        os.makedirs(dest_folder, exist_ok=True)
+                        make_folders(dest_folder)
 
                     move_file(source_file, dest_file)
                     report["moved"].append({"from": source_file, "to": dest_file})
@@ -484,7 +485,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             series_folder = os.path.join(dest_path, folder_structure[0])
             if not dry_run and not os.path.exists(series_folder):
                 if create_folders:
-                    os.makedirs(series_folder, exist_ok=True)
+                    make_folders(series_folder)
                 else:
                     report["errors"].append(
                         {
@@ -498,7 +499,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             base_path = os.path.join(dest_path, folder_structure[0])
             if not dry_run and not os.path.exists(base_path):
                 if create_folders:
-                    os.makedirs(base_path, exist_ok=True)
+                    make_folders(base_path)
                 else:
                     report["errors"].append(
                         {
@@ -549,7 +550,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                 try:
                     if not os.path.exists(dest_folder):
                         if create_folders:
-                            os.makedirs(dest_folder, exist_ok=True)
+                            make_folders(dest_folder)
                         else:
                             report["errors"].append(
                                 {

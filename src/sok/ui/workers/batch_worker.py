@@ -20,6 +20,7 @@ from sok.core.batch import BatchMatcher, QueryParser, SameWork
 from sok.core.interfaces import ContentType, MediaType
 from sok.core.media_manager import get_media_manager
 from sok.core.exceptions import APINotFoundError, UnsupportedMediaTypeError
+from sok.core.history import content_kind, record
 from sok.file_operations.artwork import save_artwork
 from sok.ui.workers.base import BaseWorker
 
@@ -153,15 +154,16 @@ class BatchOrganizeWorker(BaseWorker):
             return
 
         self.progress.emit(0, "Preparing...")
-        report = self._organize(
-            mappings=self._mappings,
-            dest_path=str(self._dest),
-            dry_run=False,
-            progress_callback=self._on_progress,
-        )
-        if self._config.get("download_posters") and report.get("moved"):
-            self.progress.emit(100, "Downloading posters...")
-            save_artwork(self._mappings, report["moved"], str(self._dest))
+        with record(content_kind(self._mappings[0][1])) as journal:
+            report = self._organize(
+                mappings=self._mappings,
+                dest_path=str(self._dest),
+                dry_run=False,
+                progress_callback=self._on_progress,
+            )
+            if self._config.get("download_posters") and report.get("moved"):
+                self.progress.emit(100, "Downloading posters...")
+                save_artwork(self._mappings, report["moved"], str(self._dest))
         self.progress.emit(100, "Done!")
         self.finished.emit(
             {
@@ -170,5 +172,6 @@ class BatchOrganizeWorker(BaseWorker):
                 "moved": report.get("moved", []),
                 "errors": report.get("errors", []),
                 "skipped": report.get("skipped", []),
+                "operation": journal.operation_id,
             }
         )

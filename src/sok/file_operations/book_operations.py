@@ -29,6 +29,7 @@ from sok.core.utils import fill_format, format_name
 from sok.file_operations.base_operations import (
     FileParsingMixin,
     FileValidationMixin,
+    make_folders,
     move_file,
 )
 from sok.file_operations.organize import FileListOrganizerMixin
@@ -448,7 +449,7 @@ class BookFileOperations(
                 # Move the file
                 if not dry_run:
                     try:
-                        os.makedirs(dest_folder, exist_ok=True)
+                        make_folders(dest_folder)
                         move_file(source_file, dest_file)
                         report["moved"].append({"from": source_file, "to": dest_file})
                         report["total_moved"] += 1
