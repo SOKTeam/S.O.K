@@ -271,5 +271,22 @@
     "input_test_placeholder": "Dateinamen einfügen",
     "input_test_pattern": "Gelesen mit Ihrem Muster {pattern}",
     "input_test_builtin": "Gelesen mit den Standardregeln",
-    "input_test_no_type": "Fügen Sie die Dateiendung hinzu (.mkv, .mp3, .epub…)"
+    "input_test_no_type": "Fügen Sie die Dateiendung hinzu (.mkv, .mp3, .epub…)",
+    "history": "Verlauf",
+    "history_files": "{0} Datei(en)",
+    "history_undone": "Rückgängig gemacht",
+    "history_partly_undone": "Teilweise rückgängig gemacht",
+    "undo": "Rückgängig",
+    "history_undo_file": "Diese Datei zurücklegen",
+    "history_confirm_undo": "{0} Datei(en) an ihren alten Ort zurücklegen?",
+    "history_clear": "Verlauf leeren",
+    "history_confirm_clear": "Verlauf leeren? Die Umbenennungen können dann nicht mehr rückgängig gemacht werden. Die Dateien bleiben, wo sie sind.",
+    "history_empty": "Noch keine Umbenennungen.",
+    "undo_rename": "Umbenennung rückgängig machen",
+    "undo_done": "Umbenennung rückgängig gemacht",
+    "undo_restored": "✓ {0} Datei(en) zurückgelegt.",
+    "undo_skipped": "{0} Datei(en) an Ort und Stelle gelassen:",
+    "undo_missing": "seit der Umbenennung verschoben oder gelöscht",
+    "undo_occupied": "eine andere Datei trägt ihren alten Namen",
+    "undo_failed": "konnte nicht verschoben werden"
 }

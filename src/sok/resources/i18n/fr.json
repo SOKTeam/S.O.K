@@ -271,5 +271,22 @@
     "input_test_placeholder": "Collez un nom de fichier",
     "input_test_pattern": "Lu avec votre modèle {pattern}",
     "input_test_builtin": "Lu par les règles par défaut",
-    "input_test_no_type": "Ajoutez l'extension du fichier (.mkv, .mp3, .epub…)"
+    "input_test_no_type": "Ajoutez l'extension du fichier (.mkv, .mp3, .epub…)",
+    "history": "Historique",
+    "history_files": "{0} fichier(s)",
+    "history_undone": "Annulé",
+    "history_partly_undone": "En partie annulé",
+    "undo": "Annuler",
+    "history_undo_file": "Remettre ce fichier",
+    "history_confirm_undo": "Remettre {0} fichier(s) à leur place d'origine ?",
+    "history_clear": "Vider l'historique",
+    "history_confirm_clear": "Vider l'historique ? Les renommages ne pourront plus être annulés. Les fichiers restent où ils sont.",
+    "history_empty": "Aucun renommage pour l'instant.",
+    "undo_rename": "Annuler le renommage",
+    "undo_done": "Renommage annulé",
+    "undo_restored": "✓ {0} fichier(s) remis en place.",
+    "undo_skipped": "{0} fichier(s) laissé(s) en place :",
+    "undo_missing": "déplacé ou supprimé depuis le renommage",
+    "undo_occupied": "un autre fichier porte son ancien nom",
+    "undo_failed": "n'a pas pu être déplacé"
 }

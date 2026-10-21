@@ -36,6 +36,7 @@ from urllib.parse import urlparse
 
 import requests
 
+from sok.core.history import current_journal
 from sok.media.books.book import Book
 from sok.media.music.album import Album
 from sok.media.music.track import Track
@@ -168,6 +169,17 @@ def save_artwork(
         moved_by_item.setdefault(id(item), []).append(entry["to"])
 
     targets: Dict[Path, str] = {}
+    # The renamed files each image belongs to, for the rename history: an
+    # undo deletes the image once they are all back.
+    owners: Dict[Path, List[str]] = {}
     for key, files in moved_by_item.items():
-        targets.update(artwork_targets(items[key], files, dest_path))
-    return download_artwork(targets)
+        item_targets = artwork_targets(items[key], files, dest_path)
+        targets.update(item_targets)
+        for target in item_targets:
+            owners[target] = [f for f in files if Path(f).is_relative_to(target.parent)]
+    report = download_artwork(targets)
+    journal = current_journal()
+    if journal:
+        for saved in report["saved"]:
+            journal.saved_artwork(saved, owners.get(Path(saved), []))
+    return report

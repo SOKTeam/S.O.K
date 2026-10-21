@@ -23,7 +23,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from sok.config.config_manager import get_config_manager
 from sok.core.interfaces import MediaItem
-from sok.file_operations.base_operations import move_file
+from sok.file_operations.base_operations import make_folders, move_file
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +139,7 @@ class FileListOrganizerMixin:
                             }
                         )
                         continue
-                    os.makedirs(dest_folder, exist_ok=True)
+                    make_folders(dest_folder)
                 backup_path = move_file(
                     source_file, dest_file, backup=backup_before_rename
                 )
@@ -211,7 +211,7 @@ class FileListOrganizerMixin:
                     }
                 )
                 return report
-            os.makedirs(dest_folder, exist_ok=True)
+            make_folders(dest_folder)
 
         for idx, file_path in enumerate(files):
             file = file_path.name

@@ -271,5 +271,22 @@
     "input_test_placeholder": "Wklej nazwę pliku",
     "input_test_pattern": "Odczytano Twoim wzorcem {pattern}",
     "input_test_builtin": "Odczytano regułami domyślnymi",
-    "input_test_no_type": "Dodaj rozszerzenie pliku (.mkv, .mp3, .epub…)"
+    "input_test_no_type": "Dodaj rozszerzenie pliku (.mkv, .mp3, .epub…)",
+    "history": "Historia",
+    "history_files": "Pliki: {0}",
+    "history_undone": "Cofnięto",
+    "history_partly_undone": "Częściowo cofnięto",
+    "undo": "Cofnij",
+    "history_undo_file": "Przywróć ten plik",
+    "history_confirm_undo": "Przywrócić pliki ({0}) na dawne miejsce?",
+    "history_clear": "Wyczyść historię",
+    "history_confirm_clear": "Wyczyścić historię? Zmian nazw nie będzie można już cofnąć. Pliki zostaną tam, gdzie są.",
+    "history_empty": "Brak zmian nazw.",
+    "undo_rename": "Cofnij zmianę nazw",
+    "undo_done": "Zmiana nazw cofnięta",
+    "undo_restored": "✓ Przywrócono pliki: {0}.",
+    "undo_skipped": "Pozostawiono na miejscu pliki ({0}):",
+    "undo_missing": "przeniesiony lub usunięty po zmianie nazwy",
+    "undo_occupied": "inny plik ma jego dawną nazwę",
+    "undo_failed": "nie udało się przenieść"
 }

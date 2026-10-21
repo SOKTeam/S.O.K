@@ -134,3 +134,45 @@ def question(
     if not IS_MACOS:
         return QMessageBox.question(parent, title, text, buttons, default)
     return _show(Icon.Question, parent, title, text, buttons, default)
+
+
+def rename_done(
+    parent: QWidget | None,
+    title: str,
+    text: str,
+    warning: bool = False,
+    reveal: Path | None = None,
+    undo: bool = False,
+) -> bool:
+    """Show the end of a rename, with a button to undo it.
+
+    Args:
+        parent: Parent widget.
+        title: Title of the message.
+        text: Summary of the rename.
+        warning: Some files could not be renamed.
+        reveal: Folder to offer to show in the Finder (macOS only).
+        undo: Offer to undo the rename.
+
+    Returns:
+        True if the user asked to undo the rename.
+    """
+    icon = Icon.Warning if warning else Icon.Information
+    box = QMessageBox(icon, title, text, StandardButton.Ok, parent)
+    box.setDefaultButton(StandardButton.Ok)
+    undo_btn = None
+    if undo:
+        undo_btn = box.addButton(
+            tr("undo_rename", "Undo rename"), QMessageBox.ButtonRole.ActionRole
+        )
+    reveal_btn = None
+    if reveal is not None and IS_MACOS:
+        reveal_btn = box.addButton(
+            tr("show_in_finder", "Show in Finder"),
+            QMessageBox.ButtonRole.ActionRole,
+        )
+    as_sheet(box, parent)
+    box.exec()
+    if reveal_btn is not None and box.clickedButton() is reveal_btn:
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(reveal)))
+    return undo_btn is not None and box.clickedButton() is undo_btn

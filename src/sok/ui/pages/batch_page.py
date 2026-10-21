@@ -42,6 +42,7 @@ from sok.core.batch import (
     QueryParser,
     SameWork,
 )
+from sok.core.history import UndoReport
 from sok.core.interfaces import ContentType, MediaType
 from sok.core.media_manager import get_media_manager
 from sok.ui.components.base import ActionButton
@@ -66,6 +67,7 @@ from sok.ui.workers import (
     BatchSearchWorker,
 )
 from sok.ui import message_box
+from sok.ui.controllers.undo import undo_operation
 from sok.ui.platform import request_attention
 
 logger = logging.getLogger(__name__)
@@ -470,26 +472,30 @@ class BatchPage(QScrollArea):
         reveal = Path(dest) if dest and Path(dest).is_dir() else None
         request_attention(self)
 
-        if errors:
-            message_box.warning(
-                self,
-                tr("finished_with_errors", "Finished with errors"),
-                tr("success_count", "{0}/{1} successful.").format(success, total),
-                reveal=reveal,
-            )
-        else:
-            message_box.information(
-                self,
-                tr("success", "Success"),
-                tr("files_organized", "✓ {0} file(s) organized!").format(success),
-                reveal=reveal,
-            )
-
         # Rows still to pick stay, so the user can finish them.
         self._table.remove_files([Path(m["from"]) for m in report.get("moved", [])])
         self._files = self._table.files()
         self._update_summary()
         self._refresh_action_state()
+
+        if errors:
+            title = tr("finished_with_errors", "Finished with errors")
+            text = tr("success_count", "{0}/{1} successful.").format(success, total)
+        else:
+            title = tr("success", "Success")
+            text = tr("files_organized", "✓ {0} file(s) organized!").format(success)
+        operation = report.get("operation")
+        undo = message_box.rename_done(
+            self, title, text, bool(errors), reveal, undo=bool(operation)
+        )
+        if undo and operation:
+            undo_operation(
+                self, self._organize_runner, operation, on_done=self._on_undone
+            )
+
+    def _on_undone(self, report: UndoReport) -> None:
+        """Put the files back in the table, to rename them again."""
+        self.load_files([Path(move.source) for move in report.restored])
 
     def _on_organize_error(self, error: str) -> None:
         self._set_progress(False)

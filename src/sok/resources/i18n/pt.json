@@ -271,5 +271,22 @@
     "input_test_placeholder": "Cole um nome de ficheiro",
     "input_test_pattern": "Lido com o seu padrão {pattern}",
     "input_test_builtin": "Lido pelas regras predefinidas",
-    "input_test_no_type": "Adicione a extensão do ficheiro (.mkv, .mp3, .epub…)"
+    "input_test_no_type": "Adicione a extensão do ficheiro (.mkv, .mp3, .epub…)",
+    "history": "Histórico",
+    "history_files": "{0} ficheiro(s)",
+    "history_undone": "Anulado",
+    "history_partly_undone": "Anulado em parte",
+    "undo": "Anular",
+    "history_undo_file": "Repor este ficheiro",
+    "history_confirm_undo": "Repor {0} ficheiro(s) no local de origem?",
+    "history_clear": "Limpar o histórico",
+    "history_confirm_clear": "Limpar o histórico? As renomeações deixarão de poder ser anuladas. Os ficheiros ficam onde estão.",
+    "history_empty": "Ainda não há renomeações.",
+    "undo_rename": "Anular a renomeação",
+    "undo_done": "Renomeação anulada",
+    "undo_restored": "✓ {0} ficheiro(s) reposto(s).",
+    "undo_skipped": "{0} ficheiro(s) deixado(s) no lugar:",
+    "undo_missing": "movido ou eliminado desde a renomeação",
+    "undo_occupied": "outro ficheiro tem o seu nome antigo",
+    "undo_failed": "não foi possível movê-lo"
 }

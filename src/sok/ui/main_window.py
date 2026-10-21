@@ -61,6 +61,7 @@ from sok.ui.pages.books_page import BooksPage
 from sok.ui.pages.games_page import GamesPage
 from sok.ui.pages.music_page import MusicPage
 from sok.ui.pages.settings_page import SettingsPage
+from sok.ui.pages.history_page import HistoryPage
 from sok.ui.components.integrations.discord import setup_discord_rpc
 from sok.ui.components.integrations.updates import check_and_show_updates
 from sok.config import get_config_manager
@@ -69,6 +70,9 @@ from sok.file_operations.detection import MediaGroup
 from sok.ui.i18n import tr, reload_language
 
 # Page of the stack that organizes each kind of detected file.
+# Index of the history page in the stack.
+HISTORY_PAGE = 7
+
 PAGE_BY_KIND = {
     ContentType.EPISODE: 1,
     ContentType.MOVIE: 2,
@@ -269,10 +273,16 @@ class MainWindow(QMainWindow):
         self._sidebar_labels.append(section2_effect)
         sb_layout.addWidget(self.lbl_general)
 
+        # History is the last page (7) but sits above Settings.
+        history_btn = SidebarButton(tr("history", "History"), "history")
+        history_btn.clicked.connect(lambda: self._go(HISTORY_PAGE))
+        sb_layout.addWidget(history_btn)
+
         settings_btn = SidebarButton(tr("settings", "Settings"), "settings")
         settings_btn.clicked.connect(lambda: self._go(6))
         sb_layout.addWidget(settings_btn)
         self._nav.append(settings_btn)
+        self._nav.append(history_btn)
 
         return sidebar
 
@@ -393,6 +403,8 @@ class MainWindow(QMainWindow):
         settings_page = SettingsPage(self._toggle_theme)
         settings_page.language_changed.connect(self._on_language_changed)
         self._pages.addWidget(settings_page)
+
+        self._pages.addWidget(HistoryPage())
 
     def _on_language_changed(self, lang_code):
         """Handle language change from settings.
@@ -649,10 +661,10 @@ class MainWindow(QMainWindow):
         for i, btn in enumerate(self._nav):
             btn.setChecked(i == idx)
 
-        if idx == 0:
-            page = self._pages.widget(0)
-            if hasattr(page, "refresh"):
-                page.refresh()  # type: ignore[union-attr]
+        # The home page reads the drives again, the history its operations.
+        page = self._pages.widget(idx)
+        if hasattr(page, "refresh"):
+            page.refresh()  # type: ignore[union-attr]
 
     def _open_group(self, group: MediaGroup, files: list[Path]):
         """Open files sorted on the home page in the page of their type.
@@ -694,6 +706,7 @@ class MainWindow(QMainWindow):
             tr("books", "Books"),
             tr("games", "Games"),
             tr("settings", "Settings"),
+            tr("history", "History"),
         ]
 
     def _update_title_by_index(self, idx: int):
@@ -1098,6 +1111,18 @@ class MainWindow(QMainWindow):
                 padding: 4px 12px;
                 color: {c["text"]};
                 font-size: 13px;
+            }}
+
+            #LinkBtn {{
+                background: transparent;
+                border: none;
+                color: {c["secondary"]};
+                font-size: 13px;
+            }}
+
+            #LinkBtn:hover {{
+                color: {c["text"]};
+                text-decoration: underline;
             }}
 
             #PatternRemoveBtn {{

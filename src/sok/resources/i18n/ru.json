@@ -271,5 +271,22 @@
     "input_test_placeholder": "Вставьте имя файла",
     "input_test_pattern": "Прочитано по вашему шаблону {pattern}",
     "input_test_builtin": "Прочитано по стандартным правилам",
-    "input_test_no_type": "Добавьте расширение файла (.mkv, .mp3, .epub…)"
+    "input_test_no_type": "Добавьте расширение файла (.mkv, .mp3, .epub…)",
+    "history": "История",
+    "history_files": "Файлов: {0}",
+    "history_undone": "Отменено",
+    "history_partly_undone": "Частично отменено",
+    "undo": "Отменить",
+    "history_undo_file": "Вернуть этот файл",
+    "history_confirm_undo": "Вернуть файлы ({0}) на прежнее место?",
+    "history_clear": "Очистить историю",
+    "history_confirm_clear": "Очистить историю? Переименования больше нельзя будет отменить. Файлы останутся на месте.",
+    "history_empty": "Переименований пока нет.",
+    "undo_rename": "Отменить переименование",
+    "undo_done": "Переименование отменено",
+    "undo_restored": "✓ Возвращено файлов: {0}.",
+    "undo_skipped": "Оставлено на месте файлов: {0}:",
+    "undo_missing": "перемещён или удалён после переименования",
+    "undo_occupied": "другой файл носит его прежнее имя",
+    "undo_failed": "не удалось переместить"
 }
