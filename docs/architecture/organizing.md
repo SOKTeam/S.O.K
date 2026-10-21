@@ -74,7 +74,9 @@ Titles are compared after `normalize_title`: accents, case, punctuation and
 spaces are ignored, and "&" counts as "and". Without a year in the file name,
 the title must be unique among the results. Two results can count as one work:
 the editions of a book (`same_book`), or a track on an album and on a
-compilation or a live album (`same_track`).
+compilation or a live album (`same_track`). A track found only on compilations,
+live or remix releases is never Ready (`on_other_release`): the album it came
+out on is still unknown.
 
 The user can change the selected result of a row, or type another search (the
 row is searched again with that text as its title).
