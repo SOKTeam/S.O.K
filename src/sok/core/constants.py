@@ -121,11 +121,6 @@ class Constants:
 
     CLIENT_ID_DISCORD = ""
 
-    DEFAULT_LANGUAGE = ""
-    DEFAULT_THEME = ""
-    ENABLE_DISCORD_RPC = ""
-    CHECK_UPDATES = ""
-
     @classmethod
     def get(cls, attr: str) -> str | None:
         """Retrieves and decrypts a constant value."""
