@@ -77,6 +77,24 @@ def test_compilations_do_not_count_as_another_album():
     assert evaluate("Locket", None, results, "Crumb", same_track) == (0, STATUS_READY)
 
 
+def test_a_track_found_only_on_compilations_is_to_pick():
+    """MusicBrainz can return a song on hundreds of compilations without its
+    album: it used to be Ready on the first DJ mix."""
+    results = [
+        track("Locket", "Club Cutz 606", "compilation", "2001"),
+        track("Locket", "Boom 2001", "compilation", "2001-12"),
+    ]
+    assert evaluate("Locket", None, results, "Crumb", same_track) == (
+        0,
+        STATUS_AMBIGUOUS,
+    )
+
+
+def test_its_own_album_is_chosen_before_a_compilation_listed_first():
+    results = [LOCKET[2], LOCKET[0]]
+    assert evaluate("Locket", None, results, "Crumb", same_track) == (1, STATUS_READY)
+
+
 def test_another_artist_is_not_the_track():
     results = [{**LOCKET[0], "artist": "Someone"}]
     assert evaluate("Locket", None, results, "Crumb", same_track)[1] == STATUS_AMBIGUOUS

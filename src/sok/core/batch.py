@@ -18,7 +18,8 @@ a status:
 - Ready: one candidate has the title of the file and, when the file
   gives them, its year, its author or artist, and its album. It is selected and can be renamed
   as is. Several candidates can count as one when they are the same work,
-  such as the editions of a book.
+  such as the editions of a book. A track found only on compilations,
+  live or remix releases is not Ready: its own album is still unknown.
 - Pick one: candidates were found, but none or several match exactly. The
   most likely one is selected, and the user must confirm it.
 - Missing: the search found nothing.
@@ -173,6 +174,19 @@ def same_book(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
     ) and set(candidate_authors(a)) == set(candidate_authors(b))
 
 
+# Releases a track is on after its own album or single.
+OTHER_RELEASES = ("compilation", "live", "remix")
+
+
+def on_other_release(candidate: Dict[str, Any]) -> bool:
+    """True for a track result on a compilation, a live or a remix release.
+
+    The album the track came out on is then still unknown, so such a
+    result is never Ready on its own.
+    """
+    return candidate.get("album_type") in OTHER_RELEASES
+
+
 def same_track(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
     """Two results are the same track on the same album.
 
@@ -186,7 +200,7 @@ def same_track(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
         and (
             normalize_title(str(a.get("album") or ""))
             == normalize_title(str(b.get("album") or ""))
-            or b.get("album_type") in ("compilation", "live", "remix")
+            or on_other_release(b)
         )
     )
 
@@ -198,6 +212,15 @@ def _one_work(indexes: List[int], candidates, same_work: Optional[SameWork]) -> 
     first = candidates[indexes[0]]
     return same_work is not None and all(
         same_work(first, candidates[i]) for i in indexes[1:]
+    )
+
+
+def _is_ready(indexes: List[int], candidates, same_work: Optional[SameWork]) -> bool:
+    """True if the candidates at these indexes are one work, on its own release."""
+    return (
+        bool(indexes)
+        and _one_work(indexes, candidates, same_work)
+        and not on_other_release(candidates[indexes[0]])
     )
 
 
@@ -233,6 +256,8 @@ def evaluate(
         for i, c in enumerate(candidates)
         if title_matches(query, c) and (not author or author_matches(author, c))
     ]
+    # A track on its own album or single comes before its compilations.
+    titled.sort(key=lambda i: on_other_release(candidates[i]))
     if album:
         on_album = [
             i
@@ -244,12 +269,12 @@ def evaluate(
             return on_album[0], STATUS_READY
 
     if year is None:
-        if titled and _one_work(titled, candidates, same_work):
+        if _is_ready(titled, candidates, same_work):
             return titled[0], STATUS_READY
         return (titled[0] if titled else 0), STATUS_AMBIGUOUS
 
     exact = [i for i in titled if candidate_year(candidates[i]) == year]
-    if exact and _one_work(exact, candidates, same_work):
+    if _is_ready(exact, candidates, same_work):
         return exact[0], STATUS_READY
     if exact:
         return exact[0], STATUS_AMBIGUOUS

@@ -15,6 +15,8 @@ This module defines an exception hierarchy to improve
 error handling and facilitate debugging.
 """
 
+from typing import Optional
+
 
 class SOKBaseError(Exception):
     """Base class for all S.O.K. exceptions."""
@@ -104,16 +106,25 @@ class APIAuthenticationError(APIError):
 
 
 class APIResponseError(APIError):
-    """Exception raised on response parsing errors."""
+    """Exception raised on response parsing errors.
 
-    def __init__(self, message: str, api_name: str = "unknown"):
+    Attributes:
+        status: HTTP status of the response, or None when the response
+            could not be read.
+    """
+
+    def __init__(
+        self, message: str, api_name: str = "unknown", status: Optional[int] = None
+    ):
         """Initialize an API response error.
 
         Args:
             message: Error description.
             api_name: Name of the API with response issues.
+            status: HTTP status of the response, if any.
         """
         super().__init__(message, api_name)
+        self.status = status
 
 
 class MediaError(SOKBaseError):

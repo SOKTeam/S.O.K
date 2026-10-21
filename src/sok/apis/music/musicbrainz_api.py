@@ -16,10 +16,18 @@ Note: Free API, no authentication required. Rate limit: 1 request/second.
 """
 
 import asyncio
+import logging
 import time
 from typing import Any, Dict, List, Optional
 from sok.apis.base_api import BaseAPI
+from sok.core.exceptions import APIResponseError
 from sok.core.interfaces import MediaType, ContentType
+
+logger = logging.getLogger(__name__)
+
+# Answers 503 "busy": retries, waiting BUSY_WAIT seconds more each time.
+BUSY_RETRIES = 2
+BUSY_WAIT = 2.0
 
 
 class MusicBrainzApi(BaseAPI):
@@ -53,8 +61,26 @@ class MusicBrainzApi(BaseAPI):
         """Send a request, at most one per second.
 
         A batch searches several tracks at once; without waiting, most
-        requests would be refused.
+        requests would be refused. MusicBrainz answers 503 when it is busy
+        or the requests come too fast: the request is then sent again, after
+        a longer wait each time.
         """
+        attempt = 0
+        while True:
+            await self._wait_turn()
+            try:
+                return await super()._make_request(
+                    endpoint, params, headers, method, data, json_data
+                )
+            except APIResponseError as exc:
+                if exc.status != 503 or attempt == BUSY_RETRIES:
+                    raise
+            attempt += 1
+            logger.info("MusicBrainz busy, retrying %s", endpoint)
+            await asyncio.sleep(BUSY_WAIT * attempt)
+
+    async def _wait_turn(self) -> None:
+        """Wait until a second has passed since the last request."""
         loop = asyncio.get_running_loop()
         if self._throttle_loop is not loop:
             # A lock only works in the event loop of its first use.
@@ -66,9 +92,6 @@ class MusicBrainzApi(BaseAPI):
             if wait > 0:
                 await asyncio.sleep(wait)
             self._last_request = time.monotonic()
-        return await super()._make_request(
-            endpoint, params, headers, method, data, json_data
-        )
 
     @property
     def supported_media_types(self) -> List[MediaType]:
@@ -206,8 +229,9 @@ class MusicBrainzApi(BaseAPI):
 
         Args:
             query: Free search text, used without title and artist.
-            limit: Maximum number of recordings, at least 25 for a precise
-                search so the studio recording is among them.
+            limit: Maximum number of recordings, 100 (the most MusicBrainz
+                gives) for a precise search: a hit song has more than a
+                hundred recordings, and the studio one is not always first.
             title: Track title, for a precise search.
             artist: Artist name, for a precise search.
 
@@ -215,20 +239,54 @@ class MusicBrainzApi(BaseAPI):
             Dictionary containing one result per album.
         """
         if title and artist:
-            query = f'recording:"{_lucene(title)}" AND artist:"{_lucene(artist)}"'
-            limit = max(limit, 25)
+            # The recordings of DJ mixes ("part of … DJ-mix") are a third of
+            # the results of a hit, and never the track of a file.
+            query = (
+                f'recording:"{_lucene(title)}" AND artist:"{_lucene(artist)}"'
+                ' AND NOT comment:"dj mix"'
+            )
+            limit = max(limit, 100)
         params = {"query": query, "limit": limit, "fmt": "json"}
 
         response = await self._make_request(
             "recording", params, headers=self._get_headers()
         )
 
+        recordings = response.get("recordings", [])
         found = []
-        for recording in response.get("recordings", []):
-            artist_credit = recording.get("artist-credit", [{}])
-            artist_name = artist_credit[0].get("name", "") if artist_credit else ""
+        for recording in recordings:
+            artist_name = _credited_artist(recording)
             for release in recording.get("releases") or []:
                 found.append((_release_rank(release), recording, artist_name, release))
+
+        if (
+            title
+            and artist
+            and recordings
+            and not any(
+                _album_type(release.get("release-group", {})) not in OTHER_RELEASES
+                for _, _, _, release in found
+            )
+        ):
+            # A hit lists only some releases of its recording: a song on
+            # hundreds of compilations can come back without its own album.
+            # The most released recording is the song itself: ask for all
+            # of its releases.
+            song = max(recordings, key=lambda r: len(r.get("releases") or []))
+            more = await self._make_request(
+                "release",
+                {
+                    "recording": song.get("id"),
+                    "status": "official",
+                    "inc": "release-groups",
+                    "limit": 100,
+                    "fmt": "json",
+                },
+                headers=self._get_headers(),
+            )
+            artist_name = _credited_artist(song)
+            for release in more.get("releases", []):
+                found.append((_release_rank(release), song, artist_name, release))
         found.sort(key=lambda entry: entry[0])
 
         results = []
@@ -409,6 +467,12 @@ def _album_type(group: Dict[str, Any]) -> str:
         if kind in secondary:
             return "remix" if kind == "DJ-mix" else kind.lower()
     return str(group.get("primary-type") or "").lower()
+
+
+def _credited_artist(recording: Dict[str, Any]) -> str:
+    """Name of the first artist credited on a recording."""
+    credit = recording.get("artist-credit") or [{}]
+    return credit[0].get("name", "")
 
 
 def _release_rank(release: Dict[str, Any]) -> tuple:

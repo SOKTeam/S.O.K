@@ -150,3 +150,127 @@ def test_spotify_searches_tracks_with_field_filters():
         4,
         "single",
     )
+
+
+def recording(rid, releases):
+    return {
+        "id": rid,
+        "title": "One More Time",
+        "artist-credit": [{"name": "Daft Punk"}],
+        "releases": releases,
+    }
+
+
+def release(title, secondary=None, date="2001"):
+    return {
+        "id": title,
+        "title": title,
+        "status": "Official",
+        "date": date,
+        "release-group": {"primary-type": "Album", "secondary-types": secondary or []},
+    }
+
+
+def test_musicbrainz_asks_for_the_releases_of_a_song_seen_on_compilations_only():
+    """A search hit lists only some releases of its recording."""
+    api = musicbrainz_api.MusicBrainzApi()
+    compilations = [
+        release("Monsterhits", ["Compilation"]),
+        release("Boom 2001", ["Compilation"]),
+    ]
+    calls = []
+
+    async def fake_request(endpoint, params=None, *args, **kwargs):
+        calls.append((endpoint, params))
+        if endpoint == "recording":
+            return {
+                "recordings": [
+                    recording("live", compilations[:1]),
+                    recording("song", compilations),
+                ]
+            }
+        return {"releases": [release("Discovery", date="2001-03-12"), compilations[0]]}
+
+    api._make_request = fake_request
+
+    result = asyncio.run(
+        api.search("x", ContentType.TRACK, title="One More Time", artist="Daft Punk")
+    )
+
+    assert calls[1] == (
+        "release",
+        {
+            "recording": "song",
+            "status": "official",
+            "inc": "release-groups",
+            "limit": 100,
+            "fmt": "json",
+        },
+    )
+    assert [r["album"] for r in result["results"]] == [
+        "Discovery",
+        "Monsterhits",
+        "Boom 2001",
+    ]
+
+
+def test_musicbrainz_does_not_ask_more_when_the_album_is_there():
+    api = musicbrainz_api.MusicBrainzApi()
+    calls = []
+
+    async def fake_request(endpoint, params=None, *args, **kwargs):
+        calls.append(endpoint)
+        return {"recordings": [recording("song", [release("Discovery")])]}
+
+    api._make_request = fake_request
+    asyncio.run(
+        api.search("x", ContentType.TRACK, title="One More Time", artist="Daft Punk")
+    )
+
+    assert calls == ["recording"]
+
+
+def test_musicbrainz_precise_search_leaves_dj_mixes_out():
+    api = musicbrainz_api.MusicBrainzApi()
+    calls = []
+
+    async def fake_request(endpoint, params=None, *args, **kwargs):
+        calls.append(params)
+        return {"recordings": [recording("song", [release("Discovery")])]}
+
+    api._make_request = fake_request
+    asyncio.run(
+        api.search("x", ContentType.TRACK, title="One More Time", artist="Daft Punk")
+    )
+
+    assert calls[0]["query"].endswith('AND NOT comment:"dj mix"')
+    assert calls[0]["limit"] == 100
+
+
+@pytest.mark.parametrize(
+    "statuses, outcome",
+    [([503, 503, None], "ok"), ([503, 503, 503], 503), ([500, None], 500)],
+)
+def test_musicbrainz_retries_when_it_is_busy(monkeypatch, statuses, outcome):
+    from sok.apis.base_api import BaseAPI
+    from sok.core.exceptions import APIResponseError
+
+    monkeypatch.setattr(musicbrainz_api, "BUSY_WAIT", 0)
+    monkeypatch.setattr(musicbrainz_api.MusicBrainzApi, "MIN_INTERVAL", 0)
+    answers = iter(statuses)
+
+    async def fake_request(self, *args, **kwargs):
+        status = next(answers)
+        if status:
+            raise APIResponseError(f"HTTP {status}", "MusicBrainz", status)
+        return {"recordings": []}
+
+    monkeypatch.setattr(BaseAPI, "_make_request", fake_request)
+    api = musicbrainz_api.MusicBrainzApi()
+
+    if outcome == "ok":
+        assert asyncio.run(api._make_request("recording", {})) == {"recordings": []}
+    else:
+        with pytest.raises(APIResponseError) as info:
+            asyncio.run(api._make_request("recording", {}))
+        assert info.value.status == outcome
