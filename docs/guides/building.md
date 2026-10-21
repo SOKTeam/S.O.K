@@ -87,7 +87,14 @@ want to keep first.
 
 Releases are made by [semantic-release](https://semantic-release.gitbook.io)
 when `develop` is merged into `main`: it computes the version from the commit
-messages, updates `CHANGELOG.md` and the version files, and creates the GitHub
-release. The `build-linux.yml` workflow then builds both AppImages and attaches
-them to the release. The Windows installer and the macOS disk image are built
-locally and attached by hand.
+messages, updates
+[`CHANGELOG.md`](https://github.com/SOKTeam/S.O.K/blob/main/CHANGELOG.md) and
+the version files, and creates the GitHub release. `release.yml` then calls
+`build-windows.yml`, `build-macos.yml` and `build-linux.yml`, which build the
+Windows installer, the macOS disk image and both AppImages on GitHub runners and
+attach them to the release.
+
+The workflows write `.env` from the `SOK_ENV` repository secret, which holds the
+contents of that file: without it the builds stop. Each workflow can also be run
+by hand from the Actions tab, on any branch: the package is then kept as an
+artifact of the run instead of being attached to a release.

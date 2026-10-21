@@ -32,9 +32,15 @@ Built in code with PySide6; no Qt Designer file is loaded at run time.
 - `components/`: reusable widgets (search results, preview, settings sections…).
 - `controllers/`: logic shared by the pages (source scanning, preview, window
   chrome, `WorkerRunner`).
-- `workers/`: background tasks (search, details, organize, folder scan).
+- `workers/`: background tasks (search, details, organize, folder scan, movie
+  batches).
+- `dialogs/`: the update dialog.
+- `factories/`: builds `sok.media` objects from API responses, so the pages do
+  not create them themselves.
 - `theme.py`, `platform.py`, `i18n.py`: colors and fonts, per-system behavior,
   translations.
+- `message_box.py`: message boxes, shown as sheets on macOS.
+- `macos_menu.py`: the native macOS menu bar.
 
 ### Core (`sok.core`)
 
