@@ -22,6 +22,8 @@ This documentation is for people who work on the code. To use the app, see the
   search reaches an online database.
 - **[Contributing](/contributing/)**: branches, commit messages, checks and pull
   requests.
+- **[S.O.K Server](/specification/server/)**: the specification of the Docker
+  version with a web interface, agreed before writing it.
 - **API reference** (at the bottom of the sidebar): every module, class and
   function, generated from the docstrings.
 - **[Changelog](https://github.com/SOKTeam/S.O.K/blob/main/CHANGELOG.md)**: what
