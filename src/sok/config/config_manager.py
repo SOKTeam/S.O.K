@@ -81,6 +81,39 @@ def get_base_path() -> Path:
 BASE_PATH = get_base_path()
 
 
+def config_dir_override() -> Optional[Path]:
+    """The folder given by SOK_CONFIG_DIR (/config in the Docker image), if set."""
+    value = os.environ.get("SOK_CONFIG_DIR", "").strip()
+    return Path(value).expanduser().absolute() if value else None
+
+
+def data_dir() -> Path:
+    """Return the folder of the settings, their key and the rename history.
+
+    SOK_CONFIG_DIR when it is set, the data folder of the installation
+    otherwise.
+    """
+    return config_dir_override() or BASE_PATH / "data"
+
+
+def log_dir() -> Path:
+    """Return the folder of the log.
+
+    "logs" in SOK_CONFIG_DIR when it is set; otherwise ~/Library/Logs/S.O.K
+    for the macOS app (its bundle is read-only), the XDG state folder for
+    the Linux AppImage (read-only too), and "logs" next to the executable or
+    in the repository.
+    """
+    override = config_dir_override()
+    if override:
+        return override / "logs"
+    if IS_COMPILED and sys.platform == "darwin":
+        return Path.home() / "Library" / "Logs" / "S.O.K"
+    if IS_COMPILED and sys.platform.startswith("linux"):
+        return xdg_dir("XDG_STATE_HOME", ".local/state") / "logs"
+    return BASE_PATH / "logs"
+
+
 def resources_dir() -> Path:
     """Return the folder of the bundled resources (assets, translations).
 
@@ -145,13 +178,14 @@ if not HAS_SECURE_CONSTANTS:
 def get_local_key() -> bytes:
     """Retrieve or generate an encryption key specific to this installation.
 
-    The key is stored in data/.local.key and is hidden on Windows.
+    The key is stored in .local.key next to config.json (data_dir()) and is
+    hidden on Windows.
     If no key exists, a new one is generated using Fernet.
 
     Returns:
         The local encryption key as bytes.
     """
-    key_file = BASE_PATH / "data" / ".local.key"
+    key_file = data_dir() / ".local.key"
     if key_file.exists():
         return key_file.read_bytes()
 
@@ -277,7 +311,7 @@ class ConfigManager:
             config_path: Path to configuration file
         """
         if config_path is None:
-            config_path = BASE_PATH / "data" / "config.json"
+            config_path = data_dir() / "config.json"
 
         self.config_path = Path(config_path)
         self.config = AppConfig()

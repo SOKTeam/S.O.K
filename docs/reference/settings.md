@@ -11,7 +11,9 @@ The settings are saved in `config.json`: `data/config.json` in the repository
 when S.O.K runs from source, and the folders given in
 [Set up](/getting-started/setup/#run-the-app) for the installed app. The file is
 written each time a setting changes (`ConfigManager.set()`), and created with
-the default values when it is missing.
+the default values when it is missing. With `SOK_CONFIG_DIR` set, it is in that
+folder, with its key, the rename history and the log (`data_dir()` and
+`log_dir()` in `sok.config.config_manager`).
 
 | Key                                                                                        | Default                                       | In the settings    | Effect                                                                                                                                                           |
 | ------------------------------------------------------------------------------------------ | --------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -62,7 +64,7 @@ those of the build or of `.env`.
 
 - **In `config.json`**, the user's keys are encrypted with
   [Fernet](https://cryptography.io/en/latest/fernet/) and saved as `ENC:…`. The
-  encryption key is `data/.local.key`, next to `config.json`, created at the
+  encryption key is `.local.key`, next to `config.json`, created at the
   first start (hidden on Windows). A `config.json` copied to another computer
   without its `.local.key` loses its keys: S.O.K logs the failure and leaves
   them empty.
@@ -80,15 +82,16 @@ Code and PyCharm, are not native debuggers and are not detected.
 
 ## Environment variables
 
-| Variable                                                       | Effect                                                  |
-| -------------------------------------------------------------- | ------------------------------------------------------- |
-| `API_KEY_TMDB_V4`, `API_KEY_TVDB`, `API_KEY_OMDB`              | Keys of the video services (TMDB: the v4 read token)    |
-| `API_KEY_LASTFM`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | Keys of the music services                              |
-| `GOOGLE_BOOKS_API_KEY`                                         | Key of Google Books                                     |
-| `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `API_KEY_RAWG`         | Keys of the game services                               |
-| `API_KEY_FANART`                                               | Key of Fanart.tv                                        |
-| `CLIENT_ID_DISCORD`                                            | Application of the Discord activity                     |
-| `SOK_LOG_LEVEL`                                                | Level of the log: `DEBUG`, `INFO` (default), `WARNING`… |
+| Variable                                                       | Effect                                                                                            |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `API_KEY_TMDB_V4`, `API_KEY_TVDB`, `API_KEY_OMDB`              | Keys of the video services (TMDB: the v4 read token)                                              |
+| `API_KEY_LASTFM`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | Keys of the music services                                                                        |
+| `GOOGLE_BOOKS_API_KEY`                                         | Key of Google Books                                                                               |
+| `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `API_KEY_RAWG`         | Keys of the game services                                                                         |
+| `API_KEY_FANART`                                               | Key of Fanart.tv                                                                                  |
+| `CLIENT_ID_DISCORD`                                            | Application of the Discord activity                                                               |
+| `SOK_LOG_LEVEL`                                                | Level of the log: `DEBUG`, `INFO` (default), `WARNING`…                                           |
+| `SOK_CONFIG_DIR`                                               | Folder of `config.json`, `.local.key`, `history.json` and `logs/` (`/config` in the Docker image) |
 
 `.env.example` lists the keys with the page where each one is created. Deezer,
 MusicBrainz and Open Library need none.

@@ -1,7 +1,6 @@
 ---
 title: Set up a development environment
-description:
-  Clone the repository, install the dependencies and run S.O.K from source.
+description: Clone the repository, install the dependencies and run S.O.K from source.
 ---
 
 ## Requirements
@@ -64,7 +63,8 @@ log. Every setting and variable is listed in
 The installed app stores them elsewhere: next to the executable on Windows, in
 `~/Library/Application Support/S.O.K` and `~/Library/Logs/S.O.K` on macOS, and
 in the XDG folders (`~/.local/share/S.O.K`, `~/.local/state/S.O.K/logs`) on
-Linux.
+Linux. `SOK_CONFIG_DIR` puts the settings, the history and the log in one folder
+instead, such as a test folder.
 :::
 
 ## Check your setup
