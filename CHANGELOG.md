@@ -1,3 +1,42 @@
+# [1.4.0](https://github.com/SOKTeam/S.O.K/compare/v1.3.1...v1.4.0) (2026-10-21)
+
+
+### Bug Fixes
+
+* **apis:** give their key to the free APIs that take one ([ca93d0b](https://github.com/SOKTeam/S.O.K/commit/ca93d0b52e5887e39b2395f2161e5f98e7352614))
+* **apis:** report HTTP errors instead of empty results ([63c8272](https://github.com/SOKTeam/S.O.K/commit/63c8272229c62643e3206870281689e047d02137))
+* **config:** remove the settings and variables that did nothing ([471bb16](https://github.com/SOKTeam/S.O.K/commit/471bb16319ba7194d858a209dcfe3e5ef751e20e))
+* **core:** give the type checker the type of the folders to remove ([75074d2](https://github.com/SOKTeam/S.O.K/commit/75074d2c15f8bfb4c3947749e322e32215cf117c))
+* **file-ops:** give detected groups the same title on every system ([6983c89](https://github.com/SOKTeam/S.O.K/commit/6983c8951dbd550ea5ddd883b9a58b1a4b372694))
+* **games:** remove the console name at the end of RAWG titles ([0718da2](https://github.com/SOKTeam/S.O.K/commit/0718da252434bdf36db88554c3cf413bc3171b76))
+* **games:** remove the release year at the end of RAWG titles ([6589e49](https://github.com/SOKTeam/S.O.K/commit/6589e4914efd28b6044a2851aa7c8d84a1c7747b))
+* **macos:** download the update disk image from the update dialog ([4a22ccb](https://github.com/SOKTeam/S.O.K/commit/4a22ccb7bc0bdf9e72e957628acde43947c41edc))
+* **movies:** keep rows at the top of the table ([78c38f3](https://github.com/SOKTeam/S.O.K/commit/78c38f3a63901d2bf4f8e810d87c72360217fa62))
+* **music:** skip audio files whose tags cannot be read ([bc010de](https://github.com/SOKTeam/S.O.K/commit/bc010de1dd2d4e5eab91bc29d5e36d59a8b48d9f))
+* **music:** stop putting tracks on compilations found by MusicBrainz ([70a2c04](https://github.com/SOKTeam/S.O.K/commit/70a2c0430a32798c9f9c25431ee667cc873264af))
+* **ui:** draw progress bars with the app accent color ([51a0403](https://github.com/SOKTeam/S.O.K/commit/51a0403386558160492617015b2281ff40d75aa0))
+* **ui:** give Windows and Linux their own toggle switch ([a5efb06](https://github.com/SOKTeam/S.O.K/commit/a5efb06d08c39fc4deb6e26e37048563eaa037d3))
+* **video:** take the last year of a movie name, not a number of its title ([5285f1b](https://github.com/SOKTeam/S.O.K/commit/5285f1b999cf83e7ee0ccd7322800a128927340f))
+
+
+### Features
+
+* **books:** rename books in batches, like movies ([ba8b599](https://github.com/SOKTeam/S.O.K/commit/ba8b599a3e55b643769bfa1f9a7a4a00bfc2e548))
+* **core:** match files in batches with a strict Ready status ([eb165aa](https://github.com/SOKTeam/S.O.K/commit/eb165aa86ea6e4aec4bdd400ca7cbd5fb649ab1c))
+* **core:** record each rename in a history that can undo it ([ca481e7](https://github.com/SOKTeam/S.O.K/commit/ca481e7fcc38a0f81e5b5ec60fe8fd3b9d43be6a))
+* **file-ops:** detect the media type of dropped files ([e337467](https://github.com/SOKTeam/S.O.K/commit/e33746764b6e61667ea316db6cafe97c1db82c08))
+* **file-ops:** download posters and covers next to the organized files ([a88c43d](https://github.com/SOKTeam/S.O.K/commit/a88c43dd9045f9911d47833fc84a6947c622665e))
+* **games:** rename games in batches, like movies and books ([12ab3ef](https://github.com/SOKTeam/S.O.K/commit/12ab3efd59a10a8196f7bc77f5cc66d6c3ef07f2))
+* **music:** name album tracks with the music format, drop the Artist search ([4d36e7b](https://github.com/SOKTeam/S.O.K/commit/4d36e7b424658ec0ca195cd7efbe5e16b17e63f6))
+* **music:** rename tracks in batches in a Tracks tab ([ccf6c8a](https://github.com/SOKTeam/S.O.K/commit/ccf6c8a0aa28eabba2d30ad37417ef6b187c2257))
+* **music:** search tracks in the four music APIs ([d3f9a16](https://github.com/SOKTeam/S.O.K/commit/d3f9a166d6081aa0e4837503b29b151c876ff8e2))
+* **organize:** add book and game name formats to the settings ([3cec65d](https://github.com/SOKTeam/S.O.K/commit/3cec65d6a3c3466876d95d51e65d964351477a5a))
+* **organize:** read file names with patterns from the settings ([910d597](https://github.com/SOKTeam/S.O.K/commit/910d59729a650953babae25ae319eb75e8ea6466))
+* **ui:** add a History page and an Undo button after each rename ([054bdad](https://github.com/SOKTeam/S.O.K/commit/054bdad93f573812b050d6abbc0ff9f11763776d))
+* **ui:** explain API errors to the user in their language ([6010dd1](https://github.com/SOKTeam/S.O.K/commit/6010dd14cb56893622e107316a24a6de72de9e29))
+* **ui:** open the files dropped on the home page in the batch pages ([807c796](https://github.com/SOKTeam/S.O.K/commit/807c7967f0f843d56efd5963786e61c0d7dd8569))
+* **ui:** sort files dropped on the home page by media type ([086360f](https://github.com/SOKTeam/S.O.K/commit/086360fea747cd085c3bd2db7493ef706cf4c345))
+
 ## [1.3.1](https://github.com/SOKTeam/S.O.K/compare/v1.3.0...v1.3.1) (2026-10-16)
 
 
