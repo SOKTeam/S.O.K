@@ -344,6 +344,8 @@ def build(allow_missing_keys: bool = False):
         "--output-filename=SOK.exe",
         "--enable-plugin=pyside6",
         "--include-package=sok",
+        # S.O.K Server runs from the Docker image; its FastAPI is not installed.
+        "--nofollow-import-to=sok.server",
         "--follow-imports",
         "--include-data-dir="
         + str(ROOT_DIR / "src" / "sok" / "resources")

@@ -27,6 +27,7 @@ S.O.K/
 | `media/`           | Data classes: `Movie`, `Series`, `Episode`, `Album`, `Track`, `Artist`, `Playlist`, `Book`, `Ebook`, `Audiobook`, `Comic`, `Game`, `DLC` |
 | `file_operations/` | Name parsing, renaming and moving, by media type, with shared mixins                                                                     |
 | `config/`          | Settings and folders, keys and sessions, service registry, OAuth providers                                                               |
+| `server/`          | S.O.K Server, the FastAPI application (see [S.O.K Server](/server/overview/))                                                            |
 | `ui/`              | The PySide6 interface (see [Architecture](/architecture/overview/#interface-sokui))                                                      |
 | `resources/`       | Icons and logos (`assets/`), Inter font for Linux (`fonts/`), translations (`i18n/`)                                                     |
 
@@ -41,6 +42,7 @@ folder meant for the code generated from them. Neither is used by the app.
 | `integration/`               | Several modules together                                         |
 | `functional/`, `acceptance/` | Complete scenarios: renaming, organizing videos, music and books |
 | `ui/`                        | Widgets and pages, with pytest-qt                                |
+| `server/`                    | The API of S.O.K Server, with FastAPI's `TestClient`             |
 | `mock/`                      | Tests against recorded API responses                             |
 | `performance/`               | Timing of file operations                                        |
 

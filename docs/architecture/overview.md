@@ -10,6 +10,7 @@ layers below it.
 
 ```text
 ui               PySide6 interface: window, pages, components, workers
+server           S.O.K Server: FastAPI application, database, login (no Qt)
  │
 core             media manager, interfaces, adapters, exceptions, updater
  │
