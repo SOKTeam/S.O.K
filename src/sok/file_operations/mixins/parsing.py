@@ -17,6 +17,7 @@ Provides utilities to extract information from filenames:
 - Title and filename cleaning
 """
 
+import datetime
 import os
 import re
 from pathlib import Path
@@ -96,19 +97,28 @@ class FileParsingMixin:
     def extract_year(text: str) -> Optional[int]:
         """Extract a year from text.
 
+        A year in parentheses wins; otherwise the last one, since a title
+        can hold a number that looks like a year: "Blade.Runner.2049.2017"
+        is 2017, "1917.2019" is 2019. A year after next year is not one.
+
         Args:
             text: Text potentially containing a year.
 
         Returns:
             Extracted year or None.
         """
-        year_pattern = r"\((\d{4})\)|\b(19\d{2}|20\d{2})\b"
-        match = re.search(year_pattern, text)
-        if match:
-            year_str = match.group(1) or match.group(2)
-            year = int(year_str)
-            if 1900 <= year <= 2100:
-                return year
+        latest = datetime.date.today().year + 1
+        in_parentheses = [int(y) for y in re.findall(r"\((\d{4})\)", text)]
+        bare = [
+            int(y)
+            for y in re.findall(
+                r"(?<![0-9A-Za-z])(19\d{2}|20\d{2})(?![0-9A-Za-z])", text
+            )
+        ]
+        for candidates in (in_parentheses, bare):
+            years = [y for y in candidates if 1900 <= y <= latest]
+            if years:
+                return years[-1]
         return None
 
     @staticmethod

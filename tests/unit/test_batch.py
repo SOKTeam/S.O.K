@@ -11,6 +11,8 @@
 import asyncio
 from pathlib import Path
 
+import pytest
+
 from sok.core.batch import (
     STATUS_AMBIGUOUS,
     STATUS_MISSING,
@@ -91,6 +93,21 @@ def test_movie_query_and_year_come_from_the_file_name():
     assert parse_movie([Path("Dune.Part.Two.2024.2160p.mkv")]) == ParsedName(
         "Dune Part Two", 2024
     )
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("blade.runner.2049.2017.mkv", ("Blade Runner 2049", 2017)),
+        ("Blade Runner 2049 (2017).mkv", ("Blade Runner 2049", 2017)),
+        ("1917.2019.1080p.mkv", ("1917", 2019)),
+        ("Movie.2010.1920x1080.mkv", ("Movie", 2010)),
+    ],
+)
+def test_a_number_of_the_title_is_not_the_year(name, expected):
+    parsed = parse_movie([Path(name)])
+
+    assert (parsed.query.title(), parsed.year) == expected
 
 
 class FakeManager:
