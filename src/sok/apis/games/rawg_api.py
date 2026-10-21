@@ -30,25 +30,33 @@ PLATFORM_TAGS = set(
 
 
 def clean_title(
-    name: Optional[str], platforms: Iterable[Optional[str]] = ()
+    name: Optional[str],
+    platforms: Iterable[Optional[str]] = (),
+    released: Optional[str] = None,
 ) -> Optional[str]:
-    """Remove a console name at the end of a RAWG title.
+    """Remove a console name or the release year at the end of a RAWG title.
 
-    Only a short console name or one of the game's own platforms is
-    removed, so a real subtitle in parentheses is kept.
+    Only a short console name, one of the game's own platforms or its
+    release year is removed, so a real subtitle in parentheses is kept.
 
     Args:
         name: The title as RAWG gives it.
         platforms: Platform names of the game.
+        released: Release date of the game, as "YYYY-MM-DD".
 
     Returns:
-        The title without the console: "Pokemon: Emerald Version (GBA)"
-        gives "Pokemon: Emerald Version".
+        The title without them: "Pokemon: Emerald Version (GBA)" gives
+        "Pokemon: Emerald Version", and "DOOM (2016)" released in 2016
+        gives "DOOM".
     """
     tags = PLATFORM_TAGS | {p.casefold() for p in platforms if p}
-    match = re.match(r"(.+?)\s*\(([^()]+)\)\s*$", name or "")
-    if match and match.group(2).strip().casefold() in tags:
-        return match.group(1)
+    if released and re.match(r"\d{4}", released):
+        tags.add(released[:4])
+    while name:
+        match = re.match(r"(.+?)\s*\(([^()]+)\)\s*$", name)
+        if not match or match.group(2).strip().casefold() not in tags:
+            break
+        name = match.group(1)
     return name
 
 
@@ -126,7 +134,9 @@ class RAWGApi(BaseAPI):
             results.append(
                 {
                     "id": game.get("id"),
-                    "title": clean_title(game.get("name"), platforms),
+                    "title": clean_title(
+                        game.get("name"), platforms, game.get("released")
+                    ),
                     "release_date": game.get("released"),
                     "rating": game.get("rating"),
                     "platforms": platforms,
@@ -158,7 +168,9 @@ class RAWGApi(BaseAPI):
 
         return {
             "id": response.get("id"),
-            "name": clean_title(response.get("name"), platforms),
+            "name": clean_title(
+                response.get("name"), platforms, response.get("released")
+            ),
             "description": response.get("description_raw"),
             "release_date": response.get("released"),
             "rating": response.get("rating"),
