@@ -24,7 +24,8 @@ import logging
 from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
 from sok.core.interfaces import FileOperations, MediaItem
-from sok.core.utils import format_name
+from sok.config.config_manager import get_config_manager
+from sok.core.utils import fill_format, format_name
 from sok.file_operations.base_operations import (
     FileParsingMixin,
     FileValidationMixin,
@@ -344,10 +345,10 @@ class GameFileOperations(
     ) -> str:
         """Generate a new filename for a game.
 
-        With a game found online, its title followed by the tags of the
-        original name, which ROM collections rely on: 'Super Mario World
-        (USA) (Rev 1).sfc'. Otherwise 'Game Title (Region) [Code].ext' from
-        the original name.
+        With a game found online, the game format of the settings. By
+        default its title followed by the tags of the original name, which
+        ROM collections rely on: 'Super Mario World (USA) (Rev 1).sfc'.
+        Otherwise 'Game Title (Region) [Code].ext' from the original name.
 
         Args:
             media_item: The media item (Game), or None.
@@ -364,7 +365,22 @@ class GameFileOperations(
             # A leading "[SNES]" is the platform, not a tag of the dump.
             stem = re.sub(r"^\[[^\]]+\]\s*", "", stem)
             tags = re.findall(r"[(\[][^)\]]*[)\]]", stem)
-            return " ".join([format_name(media_item.title), *tags]) + extension
+            release = getattr(media_item, "release_date", None) or ""
+            platforms = getattr(media_item, "platforms", None) or []
+            platform = (
+                info["platform"]
+                or self.detect_platform_from_extension(extension)
+                or (platforms[0] if platforms else "")
+            )
+            values = {
+                "title": media_item.title,
+                "year": release.split("-")[0],
+                "platform": platform,
+                "tags": " ".join(tags),
+            }
+            fmt = get_config_manager().get("game_format", "") or "{title} {tags}"
+            name = fill_format(fmt, values) or media_item.title
+            return format_name(name) + extension
 
         if not info["title"]:
             return original_filename

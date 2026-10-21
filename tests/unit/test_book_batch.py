@@ -78,3 +78,54 @@ def test_batch_moves_each_book_to_its_own_folder(tmp_path):
         / "out/Isaac Asimov/Isaac Asimov - Foundation (1951)/Isaac Asimov - Foundation (1951).pdf"
     ).exists()
     assert not Path(dune).exists()
+
+
+def use_format(monkeypatch, module, key, fmt):
+    class Config:
+        def get(self, name, default=None):
+            return fmt if name == key else default
+
+    monkeypatch.setattr(module, "get_config_manager", lambda: Config())
+
+
+def test_book_format_of_the_settings_is_used(monkeypatch):
+    from sok.file_operations import book_operations
+
+    use_format(
+        monkeypatch,
+        book_operations,
+        "book_format",
+        "{series} {series_number} - {title} ({year}) - {author}",
+    )
+    book = Book("Dune Messiah", "en", None, author="Frank Herbert")
+    book.published_date = "1969"
+
+    assert (
+        BookFileOperations().generate_new_filename(
+            book, "Frank Herbert - [Dune 2] - Dune Messiah.epub"
+        )
+        == "Dune 02 - Dune Messiah (1969) - Frank Herbert.epub"
+    )
+
+
+def test_book_format_leaves_missing_values_out(monkeypatch):
+    from sok.file_operations import book_operations
+
+    use_format(
+        monkeypatch, book_operations, "book_format", "{series} - {title} ({year})"
+    )
+    book = Book("Dune", "en", None, author="Frank Herbert")
+
+    assert BookFileOperations().generate_new_filename(book, "dune.epub") == "Dune.epub"
+
+
+def test_an_invalid_book_format_gives_the_default_name(monkeypatch):
+    from sok.file_operations import book_operations
+
+    use_format(monkeypatch, book_operations, "book_format", "{title")
+    book = Book("Dune", "en", None, author="Frank Herbert")
+
+    assert (
+        BookFileOperations().generate_new_filename(book, "dune.epub")
+        == "Frank Herbert - Dune.epub"
+    )

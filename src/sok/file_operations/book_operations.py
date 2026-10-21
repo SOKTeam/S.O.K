@@ -23,7 +23,8 @@ import re
 import logging
 from typing import Dict, Any, List, Optional
 from sok.core.interfaces import FileOperations, MediaItem
-from sok.core.utils import format_name
+from sok.config.config_manager import get_config_manager
+from sok.core.utils import fill_format, format_name
 from sok.file_operations.base_operations import (
     FileParsingMixin,
     FileValidationMixin,
@@ -295,9 +296,9 @@ class BookFileOperations(
     ) -> str:
         """Generate a new filename for a book.
 
-        With a book found online: 'Author - Title (Year).epub'. Otherwise the
-        file name is tidied: 'Author - Title.epub' or
-        'Author - [Series 01] - Title.epub'.
+        With a book found online, the book format of the settings:
+        'Author - Title (Year).epub' by default. Otherwise the file name is
+        tidied: 'Author - Title.epub' or 'Author - [Series 01] - Title.epub'.
 
         Args:
             media_item: The media item (Book), or None.
@@ -310,7 +311,21 @@ class BookFileOperations(
         extension = info["extension"]
 
         if media_item is not None and getattr(media_item, "title", None):
-            return f"{media_item.get_formatted_name()}{extension}"
+            published = getattr(media_item, "published_date", None) or ""
+            number = info["series_number"]
+            values = {
+                "author": getattr(media_item, "author", None) or "",
+                "title": media_item.title,
+                "year": published.split("-")[0],
+                # The services give no series: they come from the file name.
+                "series": info["series"] or "",
+                "series_number": str(number).zfill(2) if number else "",
+            }
+            fmt = get_config_manager().get("book_format", "") or (
+                "{author} - {title} ({year})"
+            )
+            name = fill_format(fmt, values) or media_item.get_formatted_name()
+            return f"{format_name(name)}{extension}"
 
         if not info["author"] or not info["title"]:
             return original_filename

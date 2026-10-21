@@ -46,6 +46,36 @@ def format_name(name: str) -> str:
     return re.sub(" +", " ", re.sub(r'[<>:"/\\|?*]', "", name))
 
 
+class _Missing(dict):
+    """Values for str.format_map: an unknown field gives ""."""
+
+    def __missing__(self, key: str) -> str:
+        return ""
+
+
+def fill_format(fmt: str, values: dict[str, str]) -> str:
+    """Fill a name format of the settings, such as "{author} - {title} ({year})".
+
+    A value that is empty or unknown is left out with what it leaves around
+    it: without a year, the example gives "Author - Title".
+
+    Args:
+        fmt: The format, with {field} placeholders.
+        values: The value of each field.
+
+    Returns:
+        The filled text, or "" if the format is not valid ("{", "{0}"…).
+    """
+    try:
+        text = fmt.format_map(_Missing(values))
+    except (ValueError, IndexError, AttributeError, TypeError):
+        return ""
+    text = re.sub(r"\(\s*\)|\[\s*\]", "", text)
+    text = re.sub(r"\s*-\s*(?:-\s*)+", " - ", text)
+    text = re.sub(r"^[\s\-_.]+|[\s\-_.]+$", "", text)
+    return re.sub(r"\s{2,}", " ", text)
+
+
 def extract_episode_info(filename: str) -> Optional[dict]:
     """Extracts episode information from a filename"""
     match = re.search(

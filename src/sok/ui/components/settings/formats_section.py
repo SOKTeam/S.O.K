@@ -85,6 +85,24 @@ class FormatsSection(QWidget):
                 "Variables: {artist}, {album}, {track}, {title}, {year}",
             )
         )
+        card.add(
+            self._create_format_row(
+                "book",
+                "Book",
+                "{author} - {title} ({year})",
+                "book_format",
+                "Variables: {author}, {title}, {year}, {series}, {series_number}",
+            )
+        )
+        card.add(
+            self._create_format_row(
+                "game",
+                "Game",
+                "{title} {tags}",
+                "game_format",
+                "Variables: {title}, {year}, {platform}, {tags}",
+            )
+        )
 
         card.setGraphicsEffect(card_shadow())
         card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
