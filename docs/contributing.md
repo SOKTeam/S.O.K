@@ -1,7 +1,6 @@
 ---
 title: Contributing
-description:
-  Branches, commit messages, checks and pull requests in the S.O.K repository.
+description: Branches, commit messages, checks and pull requests in the S.O.K repository.
 ---
 
 Thank you for helping. Be respectful and constructive in issues and reviews, and
@@ -42,7 +41,7 @@ only be used on the loop that created it.
 - **Scopes** (optional, but only from this list): `video`, `movies`, `music`,
   `books`, `games`, `images`, `ui`, `core`, `apis`, `config`, `file-ops`,
   `organize`, `i18n`, `deps`, `tools`, `macos`, `windows`, `linux`, `release`,
-  `merge`.
+  `merge`, `server`, `web`, `docker`.
 - Write the subject in the imperative, in English, without a final period.
   Explain the why in the body.
 
