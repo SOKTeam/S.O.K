@@ -153,14 +153,16 @@ disk. The example mounts the common parent folder once.
 
 ### Subtitles
 
-**Planned, in the shared core: the desktop app gets it too.**
+**In place since v1.5.0, in the shared core: the desktop app has it too**
+([Subtitles](/architecture/organizing/#subtitles)).
 
 - A subtitle whose name starts with the name of the video goes with it:
   `Movie.srt`, `Movie.fr.srt`, `Movie.en.forced.srt`, `Movie.en.sdh.srt`.
 - It is renamed like the video and keeps what follows the video's name:
   `Dune (2021).fr.srt`.
 - Extensions: `.srt`, `.ass`, `.ssa`, `.sub`, `.idx`, `.vtt`.
-- A setting turns it off (on by default).
+- A setting turns it off (`subtitles_follow_video`, on by default).
+- Undoing the video puts its subtitles back too.
 - `.nfo`, `.txt`, images and samples are left where they are.
 
 ### History and undo
@@ -215,7 +217,8 @@ Dockerfile                                            Node build of web/, then P
    order.
 3. A file mode (`move`, `link`, `copy`) in `move_file` and in the history
    (`Move.mode`), with the undo rules above.
-4. Subtitles that follow their video, with their setting.
+4. Subtitles that follow their video, with their setting (in place since
+   v1.5.0).
 
 ### API
 

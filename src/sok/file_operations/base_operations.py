@@ -58,13 +58,20 @@ __all__ = [
 ]
 
 
-def move_file(source: str, destination: str, backup: bool = False) -> Optional[str]:
+def move_file(
+    source: str,
+    destination: str,
+    backup: bool = False,
+    follows: Optional[str] = None,
+) -> Optional[str]:
     """Move a file, replacing the destination if it already exists.
 
     Args:
         source: Source file path.
         destination: Destination file path.
         backup: Whether to keep the replaced file as '<destination>.backup'.
+        follows: New path of the file this one goes with, such as the
+            video of a subtitle; undoing that file puts this one back too.
 
     Returns:
         Path of the created backup, or None if no backup was made.
@@ -91,7 +98,7 @@ def move_file(source: str, destination: str, backup: bool = False) -> Optional[s
 
     journal = current_journal()
     if journal:
-        journal.moved(source, destination, backup_path)
+        journal.moved(source, destination, backup_path, follows)
     return backup_path
 
 
