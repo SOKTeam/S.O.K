@@ -219,7 +219,7 @@ Dockerfile                                            Node build of web/, then P
    (in place since v1.5.0).
 2. Environment variables win over the keys of the settings when
    `SOK_ENV_KEYS_WIN` is set (the image sets it). The desktop app keeps today's
-   order.
+   order (in place since v1.5.0).
 3. A file mode (`move`, `link`, `copy`) in `move_file` and in the history
    (`Move.mode`), with the undo rules above (in place since v1.5.0; the desktop
    app offers it too, `move` by default).

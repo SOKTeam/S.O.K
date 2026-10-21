@@ -87,6 +87,17 @@ def config_dir_override() -> Optional[Path]:
     return Path(value).expanduser().absolute() if value else None
 
 
+def env_keys_win() -> bool:
+    """Whether the keys of the environment win over those of the settings.
+
+    SOK_ENV_KEYS_WIN set to 1, true, yes or on (the Docker image sets it):
+    a key given to the container is the one used. Without it, a key typed
+    in the settings wins, as in the desktop app.
+    """
+    value = os.environ.get("SOK_ENV_KEYS_WIN", "").strip().lower()
+    return value in ("1", "true", "yes", "on")
+
+
 def data_dir() -> Path:
     """Return the folder of the settings, their key and the rename history.
 
@@ -316,6 +327,8 @@ class ConfigManager:
         self.config_path = Path(config_path)
         self.config = AppConfig()
         self._runtime_values: Dict[str, Any] = {}
+        # The keys given by environment variables (not the build constants).
+        self._env_values: Dict[str, Any] = {}
         self.fernet = Fernet(get_local_key())
         self.load()
 
@@ -326,6 +339,8 @@ class ConfigManager:
         1. User configuration file (config.json)
         2. Compile-time constants (in production builds)
         3. Environment variables (.env file)
+
+        With SOK_ENV_KEYS_WIN set, the environment variables come first.
 
         Sensitive fields are automatically decrypted if prefixed with 'ENC:'.
         """
@@ -393,6 +408,11 @@ class ConfigManager:
                 if val:
                     self._runtime_values[config_key] = val
 
+        for config_key, env_key in env_mapping.items():
+            val = os.getenv(env_key)
+            if val:
+                self._env_values[config_key] = val
+
     def save(self) -> None:
         """Save configuration to file.
 
@@ -417,7 +437,8 @@ class ConfigManager:
     def get(self, key: str, default: Any = None) -> Any:
         """
         Get configuration value (Effective value).
-        Priority: User Config > Runtime Overrides (Env/Constants)
+        Priority: User Config > Runtime Overrides (Env/Constants), or
+        Env > User Config > Constants when SOK_ENV_KEYS_WIN is set.
 
         Args:
             key: Configuration key
@@ -426,6 +447,9 @@ class ConfigManager:
         Returns:
             Configuration value
         """
+        if self.env_locked(key):
+            return self._env_values[key]
+
         val = getattr(self.config, key, None)
         if val not in (None, ""):
             return val
@@ -434,6 +458,13 @@ class ConfigManager:
             return self._runtime_values[key]
 
         return default
+
+    def env_locked(self, key: str) -> bool:
+        """Whether a key comes from the environment and wins over the settings.
+
+        The settings of the server show such a key as locked.
+        """
+        return env_keys_win() and key in self._env_values
 
     def get_user_value(self, key: str, default: Any = None) -> Any:
         """
