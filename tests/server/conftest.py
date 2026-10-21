@@ -27,3 +27,62 @@ def config_folder(tmp_path, monkeypatch):
     config_manager.reset_config_manager()
     yield folder
     config_manager.reset_config_manager()
+
+
+class FakeVideoApi:
+    async def get_tv_episodes(self, series_id, season, language):
+        return [
+            {"season_number": season, "episode_number": n, "name": f"Episode {n}"}
+            for n in (1, 2, 3)
+        ]
+
+
+class FakeManager:
+    """A media manager that answers from RESULTS, without the network."""
+
+    RESULTS = {
+        "dune": [
+            {"id": 438631, "title": "Dune", "release_date": "2021-09-15"},
+            {"id": 841, "title": "Dune", "release_date": "1984-12-14"},
+        ],
+        "the matrix": [
+            {"id": 603, "title": "The Matrix", "release_date": "1999-03-31"}
+        ],
+        "severance": [
+            {"id": 95396, "name": "Severance", "first_air_date": "2022-02-17"}
+        ],
+    }
+
+    def __init__(self, apis=("tmdb",), error=None):
+        self.apis = list(apis)
+        self.error = error
+        self.searches = []
+
+    def get_available_apis_for_media_type(self, media_type):
+        return self.apis
+
+    def get_current_api(self, media_type):
+        return FakeVideoApi()
+
+    async def search(self, query, content_type, **kwargs):
+        self.searches.append(query)
+        if self.error:
+            raise self.error
+        return {"results": self.RESULTS.get(query.lower(), [])}
+
+    async def get_details(self, item_id, content_type, **kwargs):
+        return {
+            "id": item_id,
+            "number_of_seasons": 1,
+            "seasons": [{"season_number": 1, "name": "Season 1"}],
+        }
+
+
+@pytest.fixture(autouse=True)
+def media_manager(monkeypatch):
+    """The fake media manager of the server, for every test."""
+    from sok.server import search
+
+    manager = FakeManager()
+    monkeypatch.setattr(search, "get_media_manager", lambda: manager)
+    return manager

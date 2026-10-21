@@ -11,8 +11,8 @@ part describes what is built.
 :::note
 The server is being built. In place today: the database, the account, the
 login, the health check, the settings, the test of a key, the Docker image and
-the analyses (scan and sort). The search, the renames and the web interface
-follow.
+the analyses with the search of movies and TV shows. The search of music, books
+and games, the renames and the web interface follow.
 :::
 
 ## Running it from source
@@ -75,18 +75,19 @@ pull it without logging in.
 
 ## Code
 
-| File                                          | Contents                                                                     |
-| --------------------------------------------- | ---------------------------------------------------------------------------- |
-| `server/app.py`                               | `create_app(folder)`, the logging and `main()`                               |
-| `server/db.py`                                | `Database`: `sok.db` and its migrations                                      |
-| `server/auth.py`                              | `Accounts`: the account, the password check, the sessions; `auth_disabled()` |
-| `server/api/auth.py`                          | The routes of the account and the session, and `require_login`               |
-| `server/api/health.py`                        | `GET /api/health`                                                            |
-| `server/settings.py`                          | `Settings`: the settings, the keys and the folders; `check_link()`           |
-| `server/api/settings.py`                      | The routes of the settings                                                   |
-| `server/scans.py`                             | `Scans`: the analyses, the rows, the files to check                          |
-| `server/events.py`                            | `EventBus`: the events sent to the browsers                                  |
-| `server/api/scans.py`, `server/api/events.py` | The routes of the analyses and `GET /api/events`                             |
+| File                                          | Contents                                                                             |
+| --------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `server/app.py`                               | `create_app(folder)`, the logging and `main()`                                       |
+| `server/db.py`                                | `Database`: `sok.db` and its migrations                                              |
+| `server/auth.py`                              | `Accounts`: the account, the password check, the sessions; `auth_disabled()`         |
+| `server/api/auth.py`                          | The routes of the account and the session, and `require_login`                       |
+| `server/api/health.py`                        | `GET /api/health`                                                                    |
+| `server/settings.py`                          | `Settings`: the settings, the keys and the folders; `check_link()`                   |
+| `server/api/settings.py`                      | The routes of the settings                                                           |
+| `server/scans.py`                             | `Scans`: the analyses, the rows, the files to check                                  |
+| `server/events.py`                            | `EventBus`: the events sent to the browsers                                          |
+| `server/api/scans.py`, `server/api/events.py` | The routes of the analyses and `GET /api/events`                                     |
+| `server/search.py`, `server/api/rows.py`      | `Searcher`: the search of the rows, their changes and what the tabs show; its routes |
 
 `create_app()` opens the database when the application starts (its lifespan),
 creates the account from `SOK_USERNAME` and `SOK_PASSWORD` if needed, and puts
@@ -99,21 +100,25 @@ the server (the desktop app moves).
 
 JSON under `/api`. FastAPI's own `/docs` page is turned off.
 
-| Route                          | Login | Does                                                                                         |
-| ------------------------------ | ----- | -------------------------------------------------------------------------------------------- |
-| `GET /api/health`              | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker                          |
-| `GET /api/session`             | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`                               |
-| `POST /api/setup`              | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)                  |
-| `POST /api/login`              | No    | Opens a session (`401` for a wrong login, `429` while waiting)                               |
-| `POST /api/logout`             | Yes   | Closes the session                                                                           |
-| `GET /api/settings`            | Yes   | The settings, the keys, the folders and the link checks (see below)                          |
-| `PATCH /api/settings`          | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`                     |
-| `POST /api/settings/test-link` | Yes   | `{source, destination}`: whether a hard link works between them                              |
-| `POST /api/settings/test-key`  | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key))        |
-| `POST /api/scans`              | Yes   | Starts an analysis (`202`, `{"id"}`); `409` with `already_running` or `no_sources`           |
-| `GET /api/scans/current`       | Yes   | The last analysis, the counts of the rows and the files to check (see [Analyses](#analyses)) |
-| `POST /api/to-check`           | Yes   | `{path, kind}`: gives a file to check its type; answers the summary                          |
-| `GET /api/events`              | Yes   | Server-sent events (see [Live events](#live-events))                                         |
+| Route                          | Login | Does                                                                                           |
+| ------------------------------ | ----- | ---------------------------------------------------------------------------------------------- |
+| `GET /api/health`              | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker                            |
+| `GET /api/session`             | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`                                 |
+| `POST /api/setup`              | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)                    |
+| `POST /api/login`              | No    | Opens a session (`401` for a wrong login, `429` while waiting)                                 |
+| `POST /api/logout`             | Yes   | Closes the session                                                                             |
+| `GET /api/settings`            | Yes   | The settings, the keys, the folders and the link checks (see below)                            |
+| `PATCH /api/settings`          | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`                       |
+| `POST /api/settings/test-link` | Yes   | `{source, destination}`: whether a hard link works between them                                |
+| `POST /api/settings/test-key`  | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key))          |
+| `POST /api/scans`              | Yes   | Starts an analysis (`202`, `{"id"}`); `409` with `already_running` or `no_sources`             |
+| `GET /api/scans/current`       | Yes   | The last analysis, the counts of the rows and the files to check (see [Analyses](#analyses))   |
+| `POST /api/to-check`           | Yes   | `{path, kind}`: gives a file to check its type; answers the summary                            |
+| `GET /api/events`              | Yes   | Server-sent events (see [Live events](#live-events))                                           |
+| `GET /api/rows?type=movies`    | Yes   | The rows of a tab (see [Rows](#rows))                                                          |
+| `GET /api/rows/{id}`           | Yes   | One row                                                                                        |
+| `PATCH /api/rows/{id}`         | Yes   | `{selected?, destination?}`: picks a candidate (the row is then Ready) or a destination folder |
+| `POST /api/rows/{id}/search`   | Yes   | `{query?}`: searches the row again, with the text typed; `409` when a key stops it             |
 
 The interface starts with `GET /api/session`: no account → the setup page; an
 account and no session → the login page; otherwise the app.
@@ -244,6 +249,53 @@ are deleted. A new row is `pending` until it is searched.
   `episode`, `album`, `track`, `book`, `game`): it becomes a row, or joins its
   series or album. The choice goes into `type_choices`, which the next
   analyses apply before making the rows.
+
+## Search
+
+After the sort, the analysis searches the rows not searched yet
+(`Searcher.search_pending`), with the batch engine of the desktop app
+(`BatchMatcher`), in the language of the settings (`fr` → `fr-FR`):
+
+| Tab      | Searched as             | Read by        |
+| -------- | ----------------------- | -------------- |
+| `movies` | `ContentType.MOVIE`     | `parse_movie`  |
+| `tv`     | `ContentType.TV_SERIES` | `parse_series` |
+
+Music, books and games stay `pending` for now. Each row gets its search text,
+year, candidates (5 at most), the candidate selected and its status: `ok`
+(Ready), `ambiguous` (Pick one) or `missing`. A row is searched once: a new
+analysis only searches the new rows.
+
+- **Series.** A series that is Ready, or picked by hand, gets its details and
+  the titles of its episodes (`sok.core.series.fetch_episode_titles`), kept in
+  `rows.details`: they name the episodes. A series still to pick gets none, to
+  spare the quota.
+- **When the search stops.** Without a video API (no TMDB key), with a key
+  refused or a quota used, the analysis ends `failed` with
+  `error: {"code", "service"}`: `missing_key`, `key_refused` or
+  `rate_limited`, and the service (`tmdb`). The rows keep what they had; the
+  sorted files stay `pending`.
+- **Progress.** The analysis publishes `progress` events:
+  `{"phase": "detect" | "search", "done", "total"}`; the summary gives the same
+  in `scan.progress` while it runs.
+
+### Rows
+
+`GET /api/rows?type=movies` gives the rows of a tab:
+
+| Field                                 | Contents                                                                                                                                                         |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`, `media_type`, `kind`, `title`   | The row; `title` is the one of a series or an album                                                                                                              |
+| `query`, `year`, `status`, `selected` | The search                                                                                                                                                       |
+| `candidates`                          | `id`, `title`, `original_title`, `year`, `poster`, `overview` (300 characters) of each result                                                                    |
+| `files`                               | `path`, `name` and `new_name` of each file: the name the formats give with the candidate selected (`create_media_item`, then `generate_new_filename`), or `null` |
+| `destination`                         | Index of the destination folder of its type                                                                                                                      |
+| `episodes_found`                      | For a series: how many episode titles were found, or `null`                                                                                                      |
+
+`PATCH /api/rows/{id}` with `selected` makes the row Ready, as picking a match
+does in the desktop app; for a series, it reads the episodes of the new choice.
+`destination` is an index in the destination folders of its type
+(`invalid_destination` beyond them).
 
 ### Live events
 

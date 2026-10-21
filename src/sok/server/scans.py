@@ -8,7 +8,8 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-"""The analyses of S.O.K Server: scan the source folders, sort the files.
+"""The analyses of S.O.K Server: scan the source folders, sort the files,
+search them.
 
 An analysis runs in the background, one at a time. The type detector of the
 desktop home page (MediaTypeDetector) sorts the files of the source folders;
@@ -23,6 +24,10 @@ A new analysis keeps the rows it finds again, with the choices made on them
 episodes or tracks are added. The rows whose files are gone are removed.
 The files whose type is a guess are "to check", until the user confirms a
 type, which the next analyses remember.
+
+Then the rows not searched yet are searched (Searcher): movies and TV shows
+for now. A missing key or a used quota stops the analysis, with the rows
+sorted; its error says which key.
 """
 
 import asyncio
@@ -44,6 +49,7 @@ from sok.file_operations.detection import (
 )
 from sok.server.db import Database
 from sok.server.events import EventBus
+from sok.server.search import Searcher, SearchStopped, search_error
 from sok.server.settings import MEDIA_TYPES, Settings
 
 logger = logging.getLogger(__name__)
@@ -148,11 +154,20 @@ def _apply_choices(
 class Scans:
     """Start the analyses and keep their results in the database."""
 
-    def __init__(self, db: Database, settings: Settings, events: EventBus) -> None:
+    def __init__(
+        self,
+        db: Database,
+        settings: Settings,
+        events: EventBus,
+        searcher: Searcher,
+    ) -> None:
         self._db = db
         self._settings = settings
         self._events = events
+        self._searcher = searcher
         self._task: Optional[asyncio.Task] = None
+        # Phase of the running analysis (detect, search) and its progress.
+        self._progress: Optional[Dict[str, Any]] = None
         with db.transaction() as conn:
             # The server stopped during an analysis.
             conn.execute(
@@ -202,15 +217,29 @@ class Scans:
                     row["path"]: row["kind"]
                     for row in conn.execute("SELECT path, kind FROM type_choices")
                 }
+            self._set_progress("detect", 0, 0)
             report = await asyncio.to_thread(
                 self._detect, [s for s in sources if s not in missing], choices
             )
             self._save(report)
+            self._set_progress("search", 0, 0)
+            await self._searcher.search_pending(
+                lambda done, total: self._set_progress("search", done, total)
+            )
+        except SearchStopped as exc:
+            self._finish(scan_id, FAILED, search_error(exc), missing)
+            return
         except Exception as exc:  # noqa: BLE001 - the analysis must end
             logger.exception("Analysis %s failed", scan_id, exc_info=exc)
-            self._finish(scan_id, FAILED, str(exc)[:500], missing)
+            self._finish(
+                scan_id, FAILED, {"code": "failed", "message": str(exc)[:500]}, missing
+            )
             return
         self._finish(scan_id, DONE, None, missing)
+
+    def _set_progress(self, phase: str, done: int, total: int) -> None:
+        self._progress = {"phase": phase, "done": done, "total": total}
+        self._events.publish({"type": "progress", **self._progress})
 
     @staticmethod
     def _detect(sources: List[str], choices: Dict[str, str]) -> DetectionReport:
@@ -262,13 +291,24 @@ class Scans:
             )
 
     def _finish(
-        self, scan_id: int, status: str, error: Optional[str], missing: List[str]
+        self,
+        scan_id: int,
+        status: str,
+        error: Optional[Dict[str, str]],
+        missing: List[str],
     ) -> None:
+        self._progress = None
         with self._db.transaction() as conn:
             conn.execute(
                 "UPDATE scans SET status = ?, finished = ?, error = ?,"
                 " missing_sources = ? WHERE id = ?",
-                (status, _now(), error, json.dumps(missing), scan_id),
+                (
+                    status,
+                    _now(),
+                    json.dumps(error) if error else None,
+                    json.dumps(missing),
+                    scan_id,
+                ),
             )
         self._publish()
 
@@ -313,8 +353,9 @@ class Scans:
                 "status": scan["status"],
                 "started": scan["started"],
                 "finished": scan["finished"],
-                "error": scan["error"],
+                "error": json.loads(scan["error"]) if scan["error"] else None,
                 "missing_sources": json.loads(scan["missing_sources"]),
+                "progress": self._progress if scan["status"] == RUNNING else None,
             },
             "counts": counts,
             "to_check": to_check,
