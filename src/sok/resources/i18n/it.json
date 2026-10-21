@@ -248,5 +248,8 @@
     "nothing_ready": "Nessun file è pronto per essere rinominato.",
     "books_drop_hint": "Trascina file di libri o cartelle, oppure fai clic per sfogliare",
     "add_more_books": "+ Aggiungi altri libri",
-    "book_title_author": "Titolo (autore facoltativo)"
+    "book_title_author": "Titolo (autore facoltativo)",
+    "games_drop_hint": "Trascina file di giochi o cartelle, oppure fai clic per sfogliare",
+    "add_more_games": "+ Aggiungi altri giochi",
+    "game_title": "Titolo del gioco"
 }

@@ -248,5 +248,8 @@
     "nothing_ready": "Aucun fichier n'est prêt à être renommé.",
     "books_drop_hint": "Glissez des livres ou des dossiers, ou cliquez pour parcourir",
     "add_more_books": "+ Ajouter d'autres livres",
-    "book_title_author": "Titre (auteur facultatif)"
+    "book_title_author": "Titre (auteur facultatif)",
+    "games_drop_hint": "Glissez des jeux ou des dossiers, ou cliquez pour parcourir",
+    "add_more_games": "+ Ajouter d'autres jeux",
+    "game_title": "Titre du jeu"
 }

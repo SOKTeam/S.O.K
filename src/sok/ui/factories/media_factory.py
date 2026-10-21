@@ -82,8 +82,12 @@ def create_media_item(
             book.published_date = str(data["published_date"])
         item = book
     elif content_type == "game":
-        game = Game(title, language, manager)
+        # The platform comes from the files (see GameFileOperations), not from
+        # the many platforms a game is released on.
+        game = Game(title, language, manager, platform="")
         game.id = str(data.get("id"))
+        if data.get("release_date"):
+            game.release_date = str(data["release_date"])
         item = game
 
     return item

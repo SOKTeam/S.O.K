@@ -248,5 +248,8 @@
     "nothing_ready": "Żaden plik nie jest gotowy do zmiany nazwy.",
     "books_drop_hint": "Upuść pliki książek lub foldery albo kliknij, aby przeglądać",
     "add_more_books": "+ Dodaj więcej książek",
-    "book_title_author": "Tytuł (autor opcjonalnie)"
+    "book_title_author": "Tytuł (autor opcjonalnie)",
+    "games_drop_hint": "Upuść pliki gier lub foldery albo kliknij, aby przeglądać",
+    "add_more_games": "+ Dodaj więcej gier",
+    "game_title": "Tytuł gry"
 }

@@ -248,5 +248,8 @@
     "nothing_ready": "Ningún archivo está listo para renombrar.",
     "books_drop_hint": "Suelta archivos de libros o carpetas, o haz clic para explorar",
     "add_more_books": "+ Añadir más libros",
-    "book_title_author": "Título (autor opcional)"
+    "book_title_author": "Título (autor opcional)",
+    "games_drop_hint": "Suelta archivos de juegos o carpetas, o haz clic para explorar",
+    "add_more_games": "+ Añadir más juegos",
+    "game_title": "Título del juego"
 }

@@ -248,5 +248,8 @@
     "nothing_ready": "Nenhum ficheiro está pronto para mudar de nome.",
     "books_drop_hint": "Larga ficheiros de livros ou pastas, ou clica para procurar",
     "add_more_books": "+ Adicionar mais livros",
-    "book_title_author": "Título (autor opcional)"
+    "book_title_author": "Título (autor opcional)",
+    "games_drop_hint": "Larga ficheiros de jogos ou pastas, ou clica para procurar",
+    "add_more_games": "+ Adicionar mais jogos",
+    "game_title": "Título do jogo"
 }

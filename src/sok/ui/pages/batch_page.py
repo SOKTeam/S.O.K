@@ -304,6 +304,8 @@ class BatchPage(QScrollArea):
 
     def _on_search_error(self, error: str) -> None:
         self._set_progress(False)
+        self._table.fail_pending()
+        self._update_summary()
         self._rescan_all_btn.setEnabled(bool(self._files))
         message_box.warning(
             self,
@@ -344,6 +346,11 @@ class BatchPage(QScrollArea):
         logger.warning("Row rescan failed for %s: %s", files[0].name, error)
         self._table.apply_search_result(BatchMatch(files, query, None))
         self._refresh_previews_and_action()
+        message_box.warning(
+            self,
+            tr("error", "Error"),
+            f"{tr('search_failed', 'Search failed:')} {error}",
+        )
 
     # ------------------------------------------------------------- Preview
 

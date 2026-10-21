@@ -125,3 +125,14 @@ class TestMediaBatchTableItems:
 
         assert table.files() == []
         assert not table.has_rows()
+
+
+def test_rows_still_searching_become_missing_after_a_failed_search(qtbot):
+    table = MediaBatchTable([".mkv"])
+    qtbot.addWidget(table)
+    table.add_files([Path("/a/Dune.mkv")])
+    table.set_row_loading(Path("/a/Dune.mkv"))
+
+    table.fail_pending()
+
+    assert table.count_by_status()["missing"] == 1

@@ -35,9 +35,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
-from sok.core.exceptions import APIError
+from sok.core.exceptions import APIAuthenticationError, APIError, APIRateLimitError
 from sok.core.interfaces import ContentType
 from sok.file_operations.book_operations import BookFileOperations
+from sok.file_operations.game_operations import GameFileOperations
 from sok.file_operations.video_operations import VideoFileOperations
 
 logger = logging.getLogger(__name__)
@@ -240,6 +241,38 @@ def parse_book(files: Sequence[Path]) -> ParsedName:
     return ParsedName(query, None, title, author)
 
 
+def parse_game(files: Sequence[Path]) -> ParsedName:
+    """Read a game file name: "Crash Bandicoot (USA) (Track 2).bin" → Crash Bandicoot.
+
+    The region and the other tags are left out of the search.
+    """
+    info = GameFileOperations().extract_info_from_filename(files[0].name)
+    return ParsedName(info.get("title") or files[0].stem)
+
+
+# Files that list the other files of a game.
+_INDEX_EXTENSIONS = {".cue", ".m3u", ".gdi"}
+# "(Disc 2)", "(Track 03)": parts of one game.
+_GAME_PART = re.compile(r"\s*\((?:disc|disk|cd|track)\s*\d+[^)]*\)", re.IGNORECASE)
+
+
+def group_game_files(files: List[Path]) -> List[List[Path]]:
+    """Put the files of one game together: a .cue and its .bin, the discs.
+
+    Files of the same folder whose names only differ by their extension or
+    a "(Disc N)" / "(Track N)" part are one game.
+    """
+    groups: Dict[Tuple[Path, str], List[Path]] = {}
+    for file in files:
+        key = (file.parent, _GAME_PART.sub("", file.stem).casefold().strip())
+        groups.setdefault(key, []).append(file)
+    # The file that lists the others (.cue, .m3u, .gdi) names the row.
+    return [
+        sorted(group, key=lambda f: f.suffix.lower() not in _INDEX_EXTENSIONS)
+        for group in groups.values()
+    ]
+
+
 class BatchMatcher:
     """Search the online database for every item of a batch.
 
@@ -278,6 +311,10 @@ class BatchMatcher:
 
         Returns:
             The match. A failed search gives no candidates (Missing).
+
+        Raises:
+            APIAuthenticationError: The key of the service is missing or wrong.
+            APIRateLimitError: The quota of the service is used.
         """
         parsed = self._parse(files)
         text = (query or parsed.query).strip()
@@ -289,6 +326,10 @@ class BatchMatcher:
             result = await self._manager.search(text, self._content_type, **kwargs)
             raw = result.get("results", []) if isinstance(result, dict) else result
             candidates = list(raw or [])[:MAX_CANDIDATES]
+        except (APIAuthenticationError, APIRateLimitError):
+            # Every other item would fail the same way: stop the batch and
+            # let the user know (missing key, quota used).
+            raise
         except APIError as exc:
             logger.warning("Search failed for %s: %s", files[0].name, exc)
         selected, status = evaluate(

@@ -21,7 +21,7 @@ This module handles:
 import os
 import re
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
 from sok.core.interfaces import FileOperations, MediaItem
 from sok.core.utils import format_name
@@ -269,6 +269,53 @@ class GameFileOperations(
 
         return info
 
+    def detect_platform(self, file_path: Path) -> Optional[str]:
+        """Platform of a game file: from a "[SNES]" tag, its extension or its
+        folders ("PS1/", "GameCube/"…).
+
+        Args:
+            file_path: The game file.
+
+        Returns:
+            The platform name, or None if nothing tells it.
+        """
+        info = self.extract_info_from_filename(file_path.name)
+        platform = info["platform"] or self.detect_platform_from_extension(
+            info["extension"]
+        )
+        if platform:
+            return platform
+        for folder in reversed(file_path.parent.parts):
+            words = re.split(r"[^0-9a-z]+", folder.lower())
+            for code, name in self.PLATFORMS.items():
+                if code in words:
+                    return name
+        return None
+
+    def batch_target(
+        self, media_item: MediaItem, file_path: Path, alone: bool
+    ) -> Tuple[List[str], str]:
+        """Folders and file name of one game file of a batch.
+
+        A game of one file goes to Platform/, renamed. A game of several
+        files (a .cue and its .bin, several discs) goes to
+        Platform/Title (Year)/ and keeps its file names: a .cue names its
+        .bin files, so renaming them would break it.
+
+        Args:
+            media_item: The Game of the file.
+            file_path: The file.
+            alone: False when the game has other files in the batch.
+
+        Returns:
+            The folders under the destination, and the new file name.
+        """
+        platform = self.detect_platform(file_path)
+        folders = [format_name(platform)] if platform else []
+        if alone:
+            return folders, self.generate_new_filename(media_item, file_path.name)
+        return folders + media_item.get_folder_structure(), file_path.name
+
     def detect_platform_from_extension(self, extension: str) -> Optional[str]:
         """Detects the platform from the file extension"""
         ext_to_platform = {
@@ -297,10 +344,13 @@ class GameFileOperations(
     ) -> str:
         """Generate a new filename for a game.
 
-        Format: 'Game Title (Region) [Code].ext'
+        With a game found online, its title followed by the tags of the
+        original name, which ROM collections rely on: 'Super Mario World
+        (USA) (Rev 1).sfc'. Otherwise 'Game Title (Region) [Code].ext' from
+        the original name.
 
         Args:
-            media_item: The media item (Game).
+            media_item: The media item (Game), or None.
             original_filename: Original filename.
 
         Returns:
@@ -308,6 +358,13 @@ class GameFileOperations(
         """
         info = self.extract_info_from_filename(original_filename)
         extension = info["extension"]
+
+        if media_item is not None and getattr(media_item, "title", None):
+            stem = os.path.splitext(original_filename)[0]
+            # A leading "[SNES]" is the platform, not a tag of the dump.
+            stem = re.sub(r"^\[[^\]]+\]\s*", "", stem)
+            tags = re.findall(r"[(\[][^)\]]*[)\]]", stem)
+            return " ".join([format_name(media_item.title), *tags]) + extension
 
         if not info["title"]:
             return original_filename
