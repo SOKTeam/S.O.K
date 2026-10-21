@@ -21,6 +21,18 @@ from sok.core.interfaces import ContentType
 from .base import BaseAdapter, _clean_str
 
 
+def _authors(item: Dict[str, Any]) -> List[str]:
+    """Authors of a book, as a list.
+
+    The book APIs give them as one string, "Frank Herbert, Brian Herbert".
+    """
+    authors = item.get("authors")
+    if authors:
+        return list(authors)
+    joined = item.get("author") or ""
+    return [a.strip() for a in joined.split(",") if a.strip()]
+
+
 class BookAdapter(BaseAdapter):
     """Adapter for normalizing book API responses."""
 
@@ -44,7 +56,7 @@ class BookAdapter(BaseAdapter):
                     "poster_path": item.get("poster_path") or item.get("image_url"),
                     "media_type": item.get("media_type") or content_type.value,
                     "title": _clean_str(item.get("title") or item.get("name")),
-                    "authors": item.get("authors") or [],
+                    "authors": _authors(item),
                     "published_date": _clean_str(item.get("published_date")),
                 }
             )
@@ -64,6 +76,6 @@ class BookAdapter(BaseAdapter):
         """
         data = dict(payload) if payload else {}
         data.setdefault("title", data.get("name"))
-        data.setdefault("authors", data.get("authors") or [])
+        data["authors"] = _authors(data)
         data.setdefault("published_date", _clean_str(data.get("published_date")))
         return data

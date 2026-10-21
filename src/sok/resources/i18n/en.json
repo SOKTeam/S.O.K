@@ -243,5 +243,10 @@
     "drop_to_check": "To check",
     "drop_error": "The files could not be analyzed: {error}",
     "rename_skips_to_pick": "{0} file(s) still to pick will be left as they are.",
-    "batch_drop_hint": "Drop files or folders, or click to browse"
+    "batch_drop_hint": "Drop files or folders, or click to browse",
+    "rename_confirm_files": "Rename {0} file(s)?",
+    "nothing_ready": "No file is ready to rename.",
+    "books_drop_hint": "Drop book files or folders, or click to browse",
+    "add_more_books": "+ Add more books",
+    "book_title_author": "Title (optional author)"
 }

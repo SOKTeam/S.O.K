@@ -243,5 +243,10 @@
     "drop_to_check": "Por revisar",
     "drop_error": "No se han podido analizar los archivos: {error}",
     "rename_skips_to_pick": "{0} archivo(s) aún por elegir se dejarán como están.",
-    "batch_drop_hint": "Suelta archivos o carpetas, o haz clic para explorar"
+    "batch_drop_hint": "Suelta archivos o carpetas, o haz clic para explorar",
+    "rename_confirm_files": "¿Renombrar {0} archivo(s)?",
+    "nothing_ready": "Ningún archivo está listo para renombrar.",
+    "books_drop_hint": "Suelta archivos de libros o carpetas, o haz clic para explorar",
+    "add_more_books": "+ Añadir más libros",
+    "book_title_author": "Título (autor opcional)"
 }

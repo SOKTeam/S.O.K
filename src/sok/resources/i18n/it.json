@@ -243,5 +243,10 @@
     "drop_to_check": "Da verificare",
     "drop_error": "Impossibile analizzare i file: {error}",
     "rename_skips_to_pick": "{0} file ancora da scegliere verranno lasciati così come sono.",
-    "batch_drop_hint": "Trascina file o cartelle, oppure fai clic per sfogliare"
+    "batch_drop_hint": "Trascina file o cartelle, oppure fai clic per sfogliare",
+    "rename_confirm_files": "Rinominare {0} file?",
+    "nothing_ready": "Nessun file è pronto per essere rinominato.",
+    "books_drop_hint": "Trascina file di libri o cartelle, oppure fai clic per sfogliare",
+    "add_more_books": "+ Aggiungi altri libri",
+    "book_title_author": "Titolo (autore facoltativo)"
 }
