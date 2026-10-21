@@ -57,13 +57,14 @@ When it runs from source, S.O.K keeps its files in the repository:
 | Log      | `logs/sok.log`     |
 
 Both folders are ignored by git. Set `SOK_LOG_LEVEL=DEBUG` for a more detailed
-log.
+log. Every setting and variable is listed in
+[Settings and environment](/reference/settings/).
 
 :::note
-The installed app stores them elsewhere: next to the executable on
-Windows, in `~/Library/Application Support/S.O.K` and `~/Library/Logs/S.O.K` on
-macOS, and in the XDG folders (`~/.local/share/S.O.K`,
-`~/.local/state/S.O.K/logs`) on Linux.
+The installed app stores them elsewhere: next to the executable on Windows, in
+`~/Library/Application Support/S.O.K` and `~/Library/Logs/S.O.K` on macOS, and
+in the XDG folders (`~/.local/share/S.O.K`, `~/.local/state/S.O.K/logs`) on
+Linux.
 :::
 
 ## Check your setup
