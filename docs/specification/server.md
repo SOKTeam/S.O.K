@@ -167,7 +167,8 @@ disk. The example mounts the common parent folder once.
 
 ### History and undo
 
-**Planned, on `sok.core.history`.**
+**Planned, on `sok.core.history`.** The undo of each mode is in place since
+v1.5.0 ([File modes](/architecture/organizing/#file-modes)).
 
 - Same rules as the desktop app: undo a whole rename or one file, never replace
   a file, keep the last 100 operations.
@@ -178,6 +179,9 @@ disk. The example mounts the common parent folder once.
 | Move      | The file goes back to its old place                                                                       |
 | Hard link | The link is deleted, if it is still the same file as the source; the source and the torrent are untouched |
 | Copy      | The copy is deleted, if the source is still there with the same size                                      |
+
+With the source gone, a link or a copy goes back in its place; with another
+file there, it stays.
 
 ## How it is built
 
@@ -216,7 +220,8 @@ Dockerfile                                            Node build of web/, then P
    `SOK_ENV_KEYS_WIN` is set (the image sets it). The desktop app keeps today's
    order.
 3. A file mode (`move`, `link`, `copy`) in `move_file` and in the history
-   (`Move.mode`), with the undo rules above.
+   (`Move.mode`), with the undo rules above (in place since v1.5.0; the desktop
+   app offers it too, `move` by default).
 4. Subtitles that follow their video, with their setting (in place since
    v1.5.0).
 

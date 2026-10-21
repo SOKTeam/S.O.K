@@ -219,6 +219,8 @@ class AppConfig:
     backup_before_rename: bool = True
     skip_duplicates: bool = True
     subtitles_follow_video: bool = True
+    # move, link (hard link) or copy
+    file_mode: str = "move"
     log_operations: bool = True
 
     preferred_api_video: str = SERVICE_TMDB
