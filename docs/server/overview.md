@@ -10,8 +10,9 @@ part describes what is built.
 
 :::note
 The server is being built. In place today: the database, the account, the
-login, the health check, the settings, the test of a key and the Docker image.
-The analysis, the renames and the web interface follow.
+login, the health check, the settings, the test of a key, the Docker image and
+the analyses (scan and sort). The search, the renames and the web interface
+follow.
 :::
 
 ## Running it from source
@@ -74,15 +75,18 @@ pull it without logging in.
 
 ## Code
 
-| File                     | Contents                                                                     |
-| ------------------------ | ---------------------------------------------------------------------------- |
-| `server/app.py`          | `create_app(folder)`, the logging and `main()`                               |
-| `server/db.py`           | `Database`: `sok.db` and its migrations                                      |
-| `server/auth.py`         | `Accounts`: the account, the password check, the sessions; `auth_disabled()` |
-| `server/api/auth.py`     | The routes of the account and the session, and `require_login`               |
-| `server/api/health.py`   | `GET /api/health`                                                            |
-| `server/settings.py`     | `Settings`: the settings, the keys and the folders; `check_link()`           |
-| `server/api/settings.py` | The routes of the settings                                                   |
+| File                                          | Contents                                                                     |
+| --------------------------------------------- | ---------------------------------------------------------------------------- |
+| `server/app.py`                               | `create_app(folder)`, the logging and `main()`                               |
+| `server/db.py`                                | `Database`: `sok.db` and its migrations                                      |
+| `server/auth.py`                              | `Accounts`: the account, the password check, the sessions; `auth_disabled()` |
+| `server/api/auth.py`                          | The routes of the account and the session, and `require_login`               |
+| `server/api/health.py`                        | `GET /api/health`                                                            |
+| `server/settings.py`                          | `Settings`: the settings, the keys and the folders; `check_link()`           |
+| `server/api/settings.py`                      | The routes of the settings                                                   |
+| `server/scans.py`                             | `Scans`: the analyses, the rows, the files to check                          |
+| `server/events.py`                            | `EventBus`: the events sent to the browsers                                  |
+| `server/api/scans.py`, `server/api/events.py` | The routes of the analyses and `GET /api/events`                             |
 
 `create_app()` opens the database when the application starts (its lifespan),
 creates the account from `SOK_USERNAME` and `SOK_PASSWORD` if needed, and puts
@@ -95,17 +99,21 @@ the server (the desktop app moves).
 
 JSON under `/api`. FastAPI's own `/docs` page is turned off.
 
-| Route                          | Login | Does                                                                                  |
-| ------------------------------ | ----- | ------------------------------------------------------------------------------------- |
-| `GET /api/health`              | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker                   |
-| `GET /api/session`             | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`                        |
-| `POST /api/setup`              | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)           |
-| `POST /api/login`              | No    | Opens a session (`401` for a wrong login, `429` while waiting)                        |
-| `POST /api/logout`             | Yes   | Closes the session                                                                    |
-| `GET /api/settings`            | Yes   | The settings, the keys, the folders and the link checks (see below)                   |
-| `PATCH /api/settings`          | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`              |
-| `POST /api/settings/test-link` | Yes   | `{source, destination}`: whether a hard link works between them                       |
-| `POST /api/settings/test-key`  | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key)) |
+| Route                          | Login | Does                                                                                         |
+| ------------------------------ | ----- | -------------------------------------------------------------------------------------------- |
+| `GET /api/health`              | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker                          |
+| `GET /api/session`             | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`                               |
+| `POST /api/setup`              | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)                  |
+| `POST /api/login`              | No    | Opens a session (`401` for a wrong login, `429` while waiting)                               |
+| `POST /api/logout`             | Yes   | Closes the session                                                                           |
+| `GET /api/settings`            | Yes   | The settings, the keys, the folders and the link checks (see below)                          |
+| `PATCH /api/settings`          | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`                     |
+| `POST /api/settings/test-link` | Yes   | `{source, destination}`: whether a hard link works between them                              |
+| `POST /api/settings/test-key`  | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key))        |
+| `POST /api/scans`              | Yes   | Starts an analysis (`202`, `{"id"}`); `409` with `already_running` or `no_sources`           |
+| `GET /api/scans/current`       | Yes   | The last analysis, the counts of the rows and the files to check (see [Analyses](#analyses)) |
+| `POST /api/to-check`           | Yes   | `{path, kind}`: gives a file to check its type; answers the summary                          |
+| `GET /api/events`              | Yes   | Server-sent events (see [Live events](#live-events))                                         |
 
 The interface starts with `GET /api/session`: no account → the setup page; an
 account and no session → the login page; otherwise the app.
@@ -202,6 +210,51 @@ return no result.
 
 A new service with a key needs its probe: a test fails while one is missing.
 
+## Analyses
+
+`POST /api/scans` starts an analysis of the source folders; `Scans` runs it as
+a task of the event loop, one at a time. The type detector of the desktop home
+page (`MediaTypeDetector.detect_sources`) runs in a thread, since it reads the
+disk; its groups become the rows of the `rows` table (`drafts_from_report`):
+
+| Kind                     | Rows                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| `movie`, `track`, `book` | One per file                                                                   |
+| `game`                   | One per game: the `.cue` and `.bin` of a game are one row (`group_game_files`) |
+| `episode`                | One per series, its episodes being its files                                   |
+| `album`                  | One per album                                                                  |
+
+Each row has a `key`: the kind and the file, or the kind and the series or the
+album (as the detector groups them). A new analysis finds its rows again by
+that key: a row found again keeps its search, match and destination, and gets
+the files of now (a new episode joins its series). The rows not found again
+are deleted. A new row is `pending` until it is searched.
+
+`GET /api/scans/current` answers:
+
+| Field      | Contents                                                                                                                                                   |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scan`     | The last analysis: `id`, `status` (`running`, `done`, `failed`, `interrupted`), `started`, `finished`, `error`, `missing_sources`; `null` before the first |
+| `counts`   | For each media type (`movies`, `tv`, `music`, `books`, `games`): the rows per status, and `total`                                                          |
+| `to_check` | The files whose type is a guess: `path`, `kind` suggested, its `media_type`, `title`, `reason`                                                             |
+
+- A source folder that is gone is skipped and listed in `missing_sources`.
+- An analysis cut by a restart of the server is `interrupted` at the next start.
+- `POST /api/to-check` gives a file to check its type (`kind`: `movie`,
+  `episode`, `album`, `track`, `book`, `game`): it becomes a row, or joins its
+  series or album. The choice goes into `type_choices`, which the next
+  analyses apply before making the rows.
+
+### Live events
+
+`GET /api/events` is a stream of
+[server-sent events](https://developer.mozilla.org/docs/Web/API/Server-sent_events)
+(`EventSource` in the browser, with the session cookie). It starts with a
+`scan` event holding the summary, then sends each event of the `EventBus` as
+it happens, and a comment every 15 seconds so that proxies keep it open. Every
+change of an analysis publishes a `scan` event with the new summary. A listener
+that reads too slowly loses its oldest events (100 are kept).
+
 ## Database
 
 `sok.db` is a SQLite file (the `sqlite3` module of Python) in `data_dir()`. Each
@@ -210,11 +263,15 @@ user_version` says how many are applied, and the missing ones run when the
 database opens. A released entry is never changed: a change of the schema is a
 new entry.
 
-| Table      | Contents                                                            |
-| ---------- | ------------------------------------------------------------------- |
-| `account`  | The account: `username`, `password_hash`, `created`                 |
-| `sessions` | The open sessions: `token_hash`, `created`, `expires`               |
-| `folders`  | The folders: `role` (`sources` or a media type), `position`, `path` |
+| Table          | Contents                                                                                                                                                             |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `account`      | The account: `username`, `password_hash`, `created`                                                                                                                  |
+| `sessions`     | The open sessions: `token_hash`, `created`, `expires`                                                                                                                |
+| `folders`      | The folders: `role` (`sources` or a media type), `position`, `path`                                                                                                  |
+| `scans`        | The analyses: `started`, `finished`, `status`, `error`, `missing_sources`                                                                                            |
+| `rows`         | The rows of the tabs: `key`, `media_type`, `kind`, `title`, `files`, then the search (`query`, `year`, `candidates`, `selected`, `status`), `destination`, `details` |
+| `to_check`     | The files to check of the last analysis                                                                                                                              |
+| `type_choices` | The types the user gave to files to check                                                                                                                            |
 
 `Database.transaction()` runs a block of statements together, under a lock: the
 requests of the server share one connection.

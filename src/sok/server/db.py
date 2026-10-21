@@ -44,6 +44,42 @@ MIGRATIONS: List[str] = [
         PRIMARY KEY (role, position)
     );
     """,
+    """
+    CREATE TABLE scans (
+        id INTEGER PRIMARY KEY,
+        started TEXT NOT NULL,
+        finished TEXT,
+        status TEXT NOT NULL,
+        error TEXT,
+        missing_sources TEXT NOT NULL DEFAULT '[]'
+    );
+    CREATE TABLE rows (
+        id INTEGER PRIMARY KEY,
+        key TEXT NOT NULL UNIQUE,
+        media_type TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        title TEXT,
+        files TEXT NOT NULL,
+        query TEXT,
+        year INTEGER,
+        candidates TEXT NOT NULL DEFAULT '[]',
+        selected INTEGER,
+        status TEXT NOT NULL,
+        destination INTEGER NOT NULL DEFAULT 0,
+        details TEXT
+    );
+    CREATE INDEX rows_media_type ON rows (media_type);
+    CREATE TABLE to_check (
+        path TEXT PRIMARY KEY,
+        kind TEXT NOT NULL,
+        title TEXT,
+        reason TEXT NOT NULL
+    );
+    CREATE TABLE type_choices (
+        path TEXT PRIMARY KEY,
+        kind TEXT NOT NULL
+    );
+    """,
 ]
 
 
