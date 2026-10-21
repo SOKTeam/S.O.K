@@ -13,24 +13,24 @@ when S.O.K runs from source, and the folders given in
 written each time a setting changes (`ConfigManager.set()`), and created with
 the default values when it is missing.
 
-| Key                                                                                        | Default                                       | In the settings       | Effect                                                                                                                   |
-| ------------------------------------------------------------------------------------------ | --------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `language`                                                                                 | `en`                                          | Appearance            | Language of the interface and of the folder names (`Season`, `Saison`…)                                                  |
-| `theme`                                                                                    | `system` on macOS, `dark` elsewhere           | Appearance            | `light`, `dark`, or `system` to follow the system                                                                        |
-| `use_system_accent`                                                                        | `false`                                       | Appearance (macOS)    | Uses the accent color of macOS instead of orange                                                                         |
-| `default_video_path`, `default_music_path`, `default_books_path`, `default_games_path`     | empty                                         | Default Folders       | Destination folder filled in on the pages of that type                                                                   |
-| `movie_format`                                                                             | `{title} ({year})`                            | File Formats          | Name of a movie. Also `{quality}`                                                                                        |
-| `video_format`                                                                             | `{title} S{season}E{episode} {episode_title}` | File Formats          | Name of an episode. Also `{season_num}`, `{episode_num}` (not padded)                                                    |
-| `music_format`                                                                             | `{artist} - {album}/{track} - {title}`        | File Formats          | Folders and name of a track: one part per folder, the name last. Also `{year}`                                           |
-| `create_folders`                                                                           | `true`                                        | Behavior              | Creates the missing folders; when off, a file whose folder is missing is an error                                        |
-| `backup_before_rename`                                                                     | `true`                                        | Behavior              | Keeps a replaced file as `<name>.backup`                                                                                 |
-| `skip_duplicates`                                                                          | `true`                                        | Behavior              | Leaves a file in place when its new name already exists                                                                  |
-| `log_operations`                                                                           | `true`                                        | Behavior              | Writes each move to the log                                                                                              |
-| `auto_organize`, `download_posters`                                                        | `false`                                       | Behavior (greyed out) | Not used yet                                                                                                             |
-| `preferred_api_video`, `preferred_api_music`, `preferred_api_books`, `preferred_api_games` | `tmdb`, `deezer`, `google_books`, `igdb`      | Preferred API         | Service searched for that type, when its key is available ([Choosing the API](/architecture/overview/#choosing-the-api)) |
-| `check_updates`                                                                            | `true`                                        | About                 | Looks for a new release at startup ([Updates](/architecture/updates/))                                                   |
-| `use_discord_rpc`                                                                          | `false`                                       | About                 | Shows the activity of S.O.K in Discord                                                                                   |
-| `api_key_*`, `spotify_*`, `igdb_*`, `google_books_api_key`, `client_id_discord`            | empty                                         | API Keys              | The user's own keys (see below)                                                                                          |
+| Key                                                                                        | Default                                       | In the settings    | Effect                                                                                                                     |
+| ------------------------------------------------------------------------------------------ | --------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `language`                                                                                 | `en`                                          | Appearance         | Language of the interface and of the folder names (`Season`, `Saison`…)                                                    |
+| `theme`                                                                                    | `system` on macOS, `dark` elsewhere           | Appearance         | `light`, `dark`, or `system` to follow the system                                                                          |
+| `use_system_accent`                                                                        | `false`                                       | Appearance (macOS) | Uses the accent color of macOS instead of orange                                                                           |
+| `default_video_path`, `default_music_path`, `default_books_path`, `default_games_path`     | empty                                         | Default Folders    | Destination folder filled in on the pages of that type                                                                     |
+| `movie_format`                                                                             | `{title} ({year})`                            | File Formats       | Name of a movie. Also `{quality}`                                                                                          |
+| `video_format`                                                                             | `{title} S{season}E{episode} {episode_title}` | File Formats       | Name of an episode. Also `{season_num}`, `{episode_num}` (not padded)                                                      |
+| `music_format`                                                                             | `{artist} - {album}/{track} - {title}`        | File Formats       | Folders and name of a track: one part per folder, the name last. Also `{year}`                                             |
+| `create_folders`                                                                           | `true`                                        | Behavior           | Creates the missing folders; when off, a file whose folder is missing is an error                                          |
+| `backup_before_rename`                                                                     | `true`                                        | Behavior           | Keeps a replaced file as `<name>.backup`                                                                                   |
+| `skip_duplicates`                                                                          | `true`                                        | Behavior           | Leaves a file in place when its new name already exists                                                                    |
+| `log_operations`                                                                           | `true`                                        | Behavior           | Writes each move to the log                                                                                                |
+| `download_posters`                                                                         | `false`                                       | Behavior           | Saves the poster or cover of each item after a rename ([Posters and covers](/architecture/organizing/#posters-and-covers)) |
+| `preferred_api_video`, `preferred_api_music`, `preferred_api_books`, `preferred_api_games` | `tmdb`, `deezer`, `google_books`, `igdb`      | Preferred API      | Service searched for that type, when its key is available ([Choosing the API](/architecture/overview/#choosing-the-api))   |
+| `check_updates`                                                                            | `true`                                        | About              | Looks for a new release at startup ([Updates](/architecture/updates/))                                                     |
+| `use_discord_rpc`                                                                          | `false`                                       | About              | Shows the activity of S.O.K in Discord                                                                                     |
+| `api_key_*`, `spotify_*`, `igdb_*`, `google_books_api_key`, `client_id_discord`            | empty                                         | API Keys           | The user's own keys (see below)                                                                                            |
 
 In the formats, a value that a file does not have is left out with the text
 around it: without a year, `{title} ({year})` gives `Title`. Folder and file
@@ -87,14 +87,6 @@ Code and PyCharm, are not native debuggers and are not detected.
 
 `.env.example` lists the keys with the page where each one is created. Deezer,
 MusicBrainz and Open Library need none.
-
-:::note
-`ConfigManager.load()` also reads `CHECK_UPDATES`, `ENABLE_DISCORD_RPC`,
-`AUTO_ORGANIZE`, `CREATE_FOLDERS`, `DOWNLOAD_POSTERS`, `BACKUP_BEFORE_RENAME`,
-`SKIP_DUPLICATES`, `LOG_OPERATIONS` and `DEFAULT_THEME`, but they have no effect
-at the moment: the value of `config.json` always wins, and the file always has
-one.
-:::
 
 The installed app also uses variables set by the system: `APPIMAGE` and `APPDIR`
 (Linux, set by the AppImage), `XDG_DATA_HOME` and `XDG_STATE_HOME` (Linux
