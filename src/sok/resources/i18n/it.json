@@ -241,5 +241,6 @@
     "drop_clear": "Cancella",
     "drop_nothing_found": "Nessun file multimediale riconosciuto. File accettati: {extensions}. Archivi, programmi e documenti di testo sono accettati solo nella pagina del loro tipo.",
     "drop_to_check": "Da verificare",
-    "drop_error": "Impossibile analizzare i file: {error}"
+    "drop_error": "Impossibile analizzare i file: {error}",
+    "rename_skips_to_pick": "{0} file ancora da scegliere verranno lasciati così come sono."
 }

@@ -241,5 +241,6 @@
     "drop_clear": "Clear",
     "drop_nothing_found": "No media file recognized. Accepted files: {extensions}. Archives, programs and text documents are only accepted in the page of their type.",
     "drop_to_check": "To check",
-    "drop_error": "The files could not be analyzed: {error}"
+    "drop_error": "The files could not be analyzed: {error}",
+    "rename_skips_to_pick": "{0} file(s) still to pick will be left as they are."
 }

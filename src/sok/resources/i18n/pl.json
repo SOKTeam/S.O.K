@@ -241,5 +241,6 @@
     "drop_clear": "Wyczyść",
     "drop_nothing_found": "Nie rozpoznano plików multimedialnych. Obsługiwane pliki: {extensions}. Archiwa, programy i dokumenty tekstowe są akceptowane tylko na stronie ich typu.",
     "drop_to_check": "Do sprawdzenia",
-    "drop_error": "Nie udało się przeanalizować plików: {error}"
+    "drop_error": "Nie udało się przeanalizować plików: {error}",
+    "rename_skips_to_pick": "Pliki wciąż do wybrania ({0}) pozostaną bez zmian."
 }

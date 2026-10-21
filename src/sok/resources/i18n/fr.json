@@ -241,5 +241,6 @@
     "drop_clear": "Effacer",
     "drop_nothing_found": "Aucun fichier multimédia reconnu. Fichiers acceptés : {extensions}. Les archives, les programmes et les documents texte ne sont acceptés que dans la page de leur type.",
     "drop_to_check": "À vérifier",
-    "drop_error": "Impossible d'analyser les fichiers : {error}"
+    "drop_error": "Impossible d'analyser les fichiers : {error}",
+    "rename_skips_to_pick": "{0} fichier(s) encore à choisir seront laissés tels quels."
 }
