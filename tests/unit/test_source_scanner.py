@@ -49,3 +49,16 @@ def test_a_file_found_twice_is_listed_once():
     ops = FakeOps(["/a/x.mkv"])
 
     assert scan_sources(ops, [Path("/a"), Path("/a")]) == [Path("/a/x.mkv")]
+
+
+class ExtensionOps(FakeOps):
+    supported_extensions = [".mkv"]
+
+
+def test_files_are_kept_when_their_extension_is_supported(tmp_path):
+    episode = tmp_path / "Show S01E01.mkv"
+    notes = tmp_path / "notes.txt"
+    episode.write_bytes(b"")
+    notes.write_bytes(b"")
+
+    assert scan_sources(ExtensionOps([]), [episode, notes]) == [episode]

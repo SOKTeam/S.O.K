@@ -17,6 +17,8 @@ import logging
 from typing import Optional
 from PySide6.QtCore import QObject, Signal
 from sok.config.config_manager import ConfigManager, get_config_manager
+from sok.core.exceptions import APIError
+from sok.ui.errors import error_message
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +63,11 @@ class BaseWorker(QObject):
                 self.execute()
             finally:
                 self._loop.close()
+        except APIError as exc:
+            # The technical message goes to the log, the user gets a
+            # translated sentence (quota, key, connection…).
+            logger.warning("Worker API error: %s", exc)
+            self.error.emit(error_message(exc))
         except (asyncio.CancelledError, RuntimeError, OSError) as exc:
             logger.exception("Worker execution failed", exc_info=exc)
             self.error.emit(str(exc))

@@ -137,6 +137,14 @@ class OptionsPanel(QWidget):
         self._action_btn.clicked.connect(self.organize_clicked.emit)
         layout.addWidget(self._action_btn)
 
+    def set_sources(self, paths: List[Path]):
+        """Replace the sources, as if the user had dropped them.
+
+        Args:
+            paths: Files or folders.
+        """
+        self._source_drop.set_paths(paths)
+
     def _on_source_dropped(self, paths: List[Path]):
         """Handle files dropped in the source zone.
 

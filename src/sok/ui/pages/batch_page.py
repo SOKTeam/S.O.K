@@ -252,6 +252,14 @@ class BatchPage(QScrollArea):
 
     # ------------------------------------------------------------- Sources
 
+    def load_files(self, files: List[Path]) -> None:
+        """Add files found elsewhere, such as on the home page, and search them.
+
+        Args:
+            files: Files to add; those already in the table are skipped.
+        """
+        self._on_files_added(self._table.add_files(files))
+
     def _on_files_added(self, items: List[List[Path]]) -> None:
         """Run a batch search on newly added items only."""
         if not items:
