@@ -142,15 +142,34 @@ The "Behavior" settings apply to every page:
 | `skip_duplicates`      | Leaves a file in place when its new name already exists                           |
 | `backup_before_rename` | Keeps the replaced file as `<name>.backup`                                        |
 | `log_operations`       | Writes each move to the log                                                       |
+| `download_posters`     | Saves the poster or cover of each item next to its files (see below)              |
 
 Files are moved by `move_file` (`sok.file_operations.base_operations`). It
 replaces an existing file of the same name, unless `skip_duplicates` is on. A
 move to another drive is a copy followed by a deletion. If the move fails, the
 backup it made is put back.
 
+### Posters and covers
+
+With `download_posters` on, the rename workers call
+`sok.file_operations.artwork.save_artwork` after the moves. The image of each
+item (`poster_url`, kept by `create_media_item` from the search result) is saved
+where Plex, Jellyfin and Kodi look for it:
+
+| Type         | Image                                              |
+| ------------ | -------------------------------------------------- |
+| Movie        | `Title (Year)-poster.jpg` next to the file         |
+| Series       | `poster.jpg` in the series folder                  |
+| Album, track | `cover.jpg` in the album folder, when there is one |
+| Book         | `cover.jpg` in the book folder                     |
+
+An image already in place is kept, and a failed download is only logged. Games
+get none: RAWG gives screenshots, not covers. Like the batch engine, the module
+has no Qt dependency.
+
 :::caution
-There is no undo yet: once moved, a file stays where it is. Test with copies
-of your files.
+There is no undo yet: once moved, a file stays where it is. Test with copies of
+your files.
 :::
 
 ## Adding a batch page
