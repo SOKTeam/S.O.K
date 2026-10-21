@@ -215,7 +215,8 @@ Dockerfile                                            Node build of web/, then P
 **Planned.** Made first, tested with the desktop app:
 
 1. `SOK_CONFIG_DIR`: the folder of the settings, the key, the history and the
-   logs (`/config` in the image). Without it, the paths stay those of today.
+   logs (`/config` in the image). Without it, the paths stay those of today
+   (in place since v1.5.0).
 2. Environment variables win over the keys of the settings when
    `SOK_ENV_KEYS_WIN` is set (the image sets it). The desktop app keeps today's
    order.

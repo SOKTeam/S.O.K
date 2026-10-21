@@ -24,26 +24,12 @@ from PySide6.QtGui import QIcon
 from sok.ui.main_window import MainWindow
 from sok.__version__ import __version__
 from sok.core.security import check_security
-from sok.config.config_manager import xdg_dir
+from sok.config.config_manager import log_dir
 from sok.core.desktop_entry import install_desktop_entry
 from sok.ui.theme import APP_ICON, load_bundled_fonts
 
 # Add src to path if running from source to find sok package
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-
-# Detect if running as compiled executable (Nuitka)
-IS_COMPILED = "__compiled__" in globals()
-
-
-def get_app_data_dir() -> Path:
-    """Get the application data directory (works in dev and compiled builds)."""
-    if IS_COMPILED:
-        # Running as compiled executable (Nuitka)
-        return Path(sys.executable).parent
-    else:
-        # Running in development
-        return Path(__file__).parent.parent.parent
 
 
 def configure_logging():
@@ -52,16 +38,9 @@ def configure_logging():
         return
 
     log_level = os.getenv("SOK_LOG_LEVEL", "INFO").upper()
-    if IS_COMPILED and sys.platform == "darwin":
-        # The .app bundle is read-only; macOS apps log to ~/Library/Logs.
-        log_dir = Path.home() / "Library" / "Logs" / "S.O.K"
-    elif IS_COMPILED and sys.platform.startswith("linux"):
-        # The AppImage is read-only; logs are XDG state data.
-        log_dir = xdg_dir("XDG_STATE_HOME", ".local/state") / "logs"
-    else:
-        log_dir = get_app_data_dir() / "logs"
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / "sok.log"
+    folder = log_dir()
+    folder.mkdir(parents=True, exist_ok=True)
+    log_file = folder / "sok.log"
 
     formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
