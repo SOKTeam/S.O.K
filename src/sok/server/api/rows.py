@@ -11,7 +11,7 @@
 """The rows of the tabs: /api/rows, /api/rows/{id}, /api/rows/{id}/search.
 
 An error gives a code in "detail": unknown_type, unknown_row,
-invalid_selection, invalid_destination, not_searched, or the code of a
+invalid_selection, invalid_destination, or the code of a
 stopped search ({"code": "missing_key", "service": "tmdb"}).
 """
 

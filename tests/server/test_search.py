@@ -214,3 +214,80 @@ def test_progress_events_during_the_search(client):
                 break
 
     assert "progress" in seen
+
+
+@pytest.fixture
+def library(tmp_path):
+    folder = tmp_path / "library"
+    for name in [
+        "Daft Punk - Discovery (2001)/01 - One More Time.mp3",
+        "Daft Punk - Discovery (2001)/02 - Aerodynamic.mp3",
+        "Daft Punk - Discovery (2001)/03 - Digital Love.mp3",
+        "Singles/Daft Punk - Get Lucky.mp3",
+        "Frank Herbert - Dune.epub",
+        "Chrono Trigger (USA).smc",
+    ]:
+        path = folder / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(name)
+    return folder
+
+
+def test_music_books_and_games_are_searched(client, library):
+    client.patch("/api/settings", json={"folders": {"sources": [str(library)]}})
+
+    summary = scan(client)
+
+    assert summary["scan"]["status"] == "done"
+    found = {
+        row["kind"]: (row["status"], [f["new_name"] for f in row["files"]])
+        for media in ("music", "books", "games")
+        for row in client.get(f"/api/rows?type={media}").json()["rows"]
+    }
+    assert found == {
+        # Data Punk is another artist: the album is Ready.
+        "album": (
+            "ok",
+            [
+                "Daft Punk - Discovery/01 - One More Time.mp3",
+                "Daft Punk - Discovery/02 - Aerodynamic.mp3",
+                "Daft Punk - Discovery/03 - Digital Love.mp3",
+            ],
+        ),
+        "track": ("ok", ["Daft Punk - Random Access Memories/08 - Get Lucky.mp3"]),
+        # Two editions of one book.
+        "book": (
+            "ok",
+            ["Frank Herbert/Frank Herbert - Dune/Frank Herbert - Dune.epub"],
+        ),
+        "game": ("ok", ["Super Nintendo/Chrono Trigger (USA).smc"]),
+    }
+
+
+def test_a_missing_key_names_the_service_of_each_type(client, library, media_manager):
+    client.patch("/api/settings", json={"folders": {"sources": [str(library)]}})
+    media_manager.apis = []
+
+    error = scan(client)["scan"]["error"]
+
+    # The first kind searched here is the album, with the music service.
+    assert (error["code"], error["service"]) == ("missing_key", "deezer")
+    assert [o["service"] for o in error["others"]] == ["google_books", "igdb"]
+
+
+def test_a_used_quota_stops_only_its_service(client, library, media_manager):
+    from sok.core.interfaces import ContentType
+
+    client.patch("/api/settings", json={"folders": {"sources": [str(library)]}})
+    media_manager.errors[ContentType.BOOK] = APIRateLimitError("429", "GoogleBooks")
+
+    summary = scan(client)
+
+    assert summary["scan"]["status"] == "failed"
+    assert summary["scan"]["error"] == {
+        "code": "rate_limited",
+        "service": "google_books",
+    }
+    # The games, searched after the books, are found all the same.
+    assert summary["counts"]["games"]["ok"] == 1
+    assert summary["counts"]["books"]["pending"] == 1
