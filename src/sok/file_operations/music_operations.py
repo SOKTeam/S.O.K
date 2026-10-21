@@ -26,7 +26,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from sok.config.config_manager import get_config_manager
 from sok.core.interfaces import ContentType, FileOperations, MediaItem
-from sok.core.utils import format_name
+from sok.core.utils import fill_format, format_name
 from sok.file_operations.base_operations import (
     FileParsingMixin,
     FileValidationMixin,
@@ -291,7 +291,7 @@ class MusicFileOperations(
             "track": f"{number:02d}" if number else "",
             "year": str(year) if year else "",
         }
-        parts = [_tidy(part.format_map(_Missing(values))) for part in fmt.split("/")]
+        parts = [fill_format(part, values) for part in fmt.split("/")]
         parts = [format_name(p) for p in parts if p]
         if not parts:
             parts = [format_name(track.title or "Untitled")]
@@ -459,18 +459,3 @@ def _is_album(media_item: Any) -> bool:
 def _is_track(media_item: Any) -> bool:
     """True for a Track, which is named from the music format."""
     return getattr(media_item, "content_type", None) == ContentType.TRACK
-
-
-class _Missing(dict):
-    """Values for str.format_map: an unknown field gives ""."""
-
-    def __missing__(self, key: str) -> str:
-        return ""
-
-
-def _tidy(text: str) -> str:
-    """Remove what a missing value leaves: "Crumb - " → "Crumb", "()" → ""."""
-    text = re.sub(r"\(\s*\)|\[\s*\]", "", text)
-    text = re.sub(r"\s*-\s*(?:-\s*)+", " - ", text)
-    text = re.sub(r"^[\s\-_.]+|[\s\-_.]+$", "", text)
-    return re.sub(r"\s{2,}", " ", text)

@@ -110,3 +110,21 @@ def test_a_missing_key_or_quota_stops_the_batch(error):
 
     with pytest.raises(type(error)):
         asyncio.run(matcher.match_all([[Path("Halo.iso")], [Path("Doom.iso")]]))
+
+
+def test_game_format_of_the_settings_is_used(monkeypatch):
+    from sok.file_operations import game_operations
+
+    class Config:
+        def get(self, key, default=None):
+            if key == "game_format":
+                return "{title} ({year}) [{platform}] {tags}"
+            return default
+
+    monkeypatch.setattr(game_operations, "get_config_manager", lambda: Config())
+    item = game("Super Mario World", "1990-11-21")
+
+    assert (
+        GameFileOperations().generate_new_filename(item, "smw (USA).sfc")
+        == "Super Mario World (1990) [Super Nintendo] (USA).sfc"
+    )

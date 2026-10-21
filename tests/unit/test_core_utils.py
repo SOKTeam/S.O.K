@@ -36,3 +36,12 @@ class TestCoreUtils:
         assert is_video_file("video.mp4") is True
         assert is_video_file("image.jpg") is False
         assert is_video_file("document.txt") is False
+
+
+def test_fill_format_leaves_missing_values_out():
+    from sok.core.utils import fill_format
+
+    assert fill_format("{author} - {title} ({year})", {"title": "Dune"}) == "Dune"
+    assert fill_format("{title} [{platform}]", {"title": "Doom"}) == "Doom"
+    assert fill_format("{title} {unknown}", {"title": "Doom"}) == "Doom"
+    assert fill_format("{title", {"title": "Doom"}) == ""

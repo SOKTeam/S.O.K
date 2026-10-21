@@ -91,8 +91,8 @@ where `batch_target(item, file, alone)` says:
 | Type  | Destination                                                                                                                                          |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Movie | `Title (Year).ext`, from the movie format setting                                                                                                    |
-| Book  | `Author/Author - Title (Year)/Author - Title (Year).ext`                                                                                             |
-| Game  | One file: `Platform/Title (tags of the dump).ext`. Several files: `Platform/Title (Year)/`, with their names kept, since a .cue names its .bin files |
+| Book  | `Author/Author - Title (Year)/`, then the name from the book format setting (`Author - Title (Year).ext` by default)                                 |
+| Game  | One file: `Platform/`, then the name from the game format setting. Several files: `Platform/Title (Year)/`, names kept (a .cue names its .bin files) |
 | Track | The music format setting, `{artist} - {album}/{track} - {title}` by default                                                                          |
 
 The platform of a game comes from a `[SNES]` tag, the extension or the folder
@@ -135,6 +135,8 @@ The formats can be changed in the settings:
 | `movie_format` | `{title} ({year})`                            |
 | `video_format` | `{title} S{season}E{episode} {episode_title}` |
 | `music_format` | `{artist} - {album}/{track} - {title}`        |
+| `book_format`  | `{author} - {title} ({year})`                 |
+| `game_format`  | `{title} {tags}`                              |
 
 The "Behavior" settings apply to every page:
 

@@ -211,6 +211,8 @@ class AppConfig:
     video_format: str = "{title} S{season}E{episode} {episode_title}"
     movie_format: str = "{title} ({year})"
     music_format: str = "{artist} - {album}/{track} - {title}"
+    book_format: str = "{author} - {title} ({year})"
+    game_format: str = "{title} {tags}"
 
     backup_before_rename: bool = True
     skip_duplicates: bool = True
