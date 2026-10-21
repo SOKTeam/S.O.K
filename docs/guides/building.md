@@ -99,9 +99,21 @@ then do the apps offer the update and the website show the downloads. If a
 build fails, the release stays a draft: fix the build, re-run the failed job,
 and `publish` runs. The notes of the draft can be edited meanwhile.
 
-`publish` then calls the deploy hook of the website (Vercel) found in the
-`SITE_DEPLOY_HOOK` secret, so the website is rebuilt with the new downloads.
-Without the secret, this step does nothing.
+`publish` then updates the website, which shows the downloads of the latest
+release when it is built:
+
+- Changes of the website for a version wait on the branch `release/vX.Y.Z` of
+  [SOKTeam/site](https://github.com/SOKTeam/site), made from its `master`.
+  `publish` fast-forwards `master` to it and deletes it; Vercel then deploys
+  `master`. This needs the `SITE_TOKEN` secret: a fine-grained token with
+  _Contents: read and write_ on SOKTeam/site.
+- Without that branch, `publish` calls the Vercel deploy hook of the website
+  (`SITE_DEPLOY_HOOK` secret), which rebuilds `master` as it is, with the new
+  downloads.
+- If `master` moved since the branch was made, the branch is left for a merge by
+  hand (a warning in the run) and the deploy hook is called.
+
+Without the secrets, this step does nothing.
 
 The workflows write `.env` from the `SOK_ENV` repository secret, which holds the
 contents of that file: without it the builds stop. Each workflow can also be run

@@ -139,12 +139,30 @@ jobs:
           gh release edit "v${{ needs.release.outputs.version }}"
           --draft=false --latest --repo "${{ github.repository }}"
 
-      - name: Rebuild the website
-        # A Vercel deploy hook of the website, which reads the latest release
-        # when it is built. Without the secret, the step does nothing.
+      - name: Update the website
+        # The website shows the downloads of the latest release when it is
+        # built. Its changes for this version wait on the branch
+        # release/vX.Y.Z of SOKTeam/site: it is fast-forwarded into master,
+        # which Vercel deploys. Without that branch, or if master moved since
+        # it was made, the Vercel deploy hook rebuilds master as it is.
         env:
+          GH_TOKEN: ${{ secrets.SITE_TOKEN }}
           SITE_DEPLOY_HOOK: ${{ secrets.SITE_DEPLOY_HOOK }}
+          BRANCH: release/v${{ needs.release.outputs.version }}
+          SITE: SOKTeam/site
         run: |
+          if [ -n "$GH_TOKEN" ] &&
+            sha=$(gh api "repos/$SITE/git/ref/heads/$BRANCH" --jq .object.sha 2>/dev/null); then
+            if gh api -X PATCH "repos/$SITE/git/refs/heads/master" \
+              -f sha="$sha" -F force=false > /dev/null; then
+              gh api -X DELETE "repos/$SITE/git/refs/heads/$BRANCH"
+              echo "Merged $BRANCH into master: Vercel deploys it."
+              exit 0
+            fi
+            echo "::warning::Could not fast-forward master to $BRANCH (master moved, or SITE_TOKEN cannot write): merge it by hand."
+          else
+            echo "No $BRANCH branch (or no SITE_TOKEN secret)."
+          fi
           if [ -z "$SITE_DEPLOY_HOOK" ]; then
             echo "SITE_DEPLOY_HOOK is not set: the website is not rebuilt."
             exit 0
