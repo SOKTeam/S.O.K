@@ -32,7 +32,7 @@ from sok.file_operations.base_operations import (
     move_file,
 )
 from sok.file_operations.organize import FileListOrganizerMixin
-from mutagen import File
+from mutagen import File, MutagenError
 
 logger = logging.getLogger(__name__)
 
@@ -223,8 +223,10 @@ class MusicFileOperations(
 
         except ImportError:
             pass
-        except (OSError, ValueError) as e:
-            logger.exception("Metadata reading error %s", file_path, exc_info=e)
+        except (OSError, ValueError, MutagenError) as e:
+            # A damaged or empty audio file has no readable tags: keep the
+            # empty metadata rather than stopping a whole batch.
+            logger.warning("Metadata reading error %s: %s", file_path, e)
 
         return metadata
 

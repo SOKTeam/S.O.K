@@ -128,33 +128,50 @@ def test_music_is_grouped_by_album_folder_across_discs(tmp_path):
         tmp_path,
         "Crumb - Locket/01 - Locket.flac",
         "Crumb - Locket/02 - Plants.flac",
+        "Crumb - Locket/03 - Bones.flac",
         "The Wall/CD1/01 - In the Flesh.mp3",
+        "The Wall/CD1/02 - The Thin Ice.mp3",
         "The Wall/CD2/01 - Hey You.mp3",
     )
 
     report = detect_sources([tmp_path])
 
     assert [(g.kind, g.title, len(g.files)) for g in report.groups] == [
-        (ContentType.ALBUM, "Crumb - Locket", 2),
-        (ContentType.ALBUM, "The Wall", 2),
+        (ContentType.ALBUM, "Crumb - Locket", 3),
+        (ContentType.ALBUM, "The Wall", 3),
     ]
 
 
-def test_books_and_games(tmp_path):
+def test_audio_files_of_small_folders_are_tracks(tmp_path):
+    make(
+        tmp_path,
+        "Daft Punk - Get Lucky.mp3",
+        "Stromae - Alors on danse.mp3",
+        "Singles/Crumb - Locket.flac",
+    )
+
+    report = detect_sources([tmp_path])
+
+    assert [(g.kind, g.title, len(g.files)) for g in report.groups] == [
+        (ContentType.TRACK, None, 3)
+    ]
+
+
+def test_books_and_games_are_one_group_each(tmp_path):
     make(
         tmp_path,
         "Frank Herbert - Dune.epub",
         "Isaac Asimov - Foundation.pdf",
         "Crash Bandicoot (USA).cue",
         "Crash Bandicoot (USA).bin",
+        "Super Mario World (USA).sfc",
     )
 
     report = detect_sources([tmp_path])
 
-    assert [(g.kind, len(g.files)) for g in report.groups] == [
-        (ContentType.BOOK, 1),
-        (ContentType.BOOK, 1),
-        (ContentType.GAME, 2),
+    assert [(g.kind, g.title, len(g.files)) for g in report.groups] == [
+        (ContentType.BOOK, None, 2),
+        (ContentType.GAME, None, 3),
     ]
 
 
@@ -207,6 +224,9 @@ def test_groups_follow_the_page_order(tmp_path):
         "Halo (USA).bin",
         "Frank Herbert - Dune.epub",
         "Album/01 - Track.mp3",
+        "Album/02 - Track.mp3",
+        "Album/03 - Track.mp3",
+        "Single.mp3",
         "Andor S01E01.mkv",
         "Dune (2021).mkv",
     )
@@ -217,6 +237,7 @@ def test_groups_follow_the_page_order(tmp_path):
         ContentType.MOVIE,
         ContentType.EPISODE,
         ContentType.ALBUM,
+        ContentType.TRACK,
         ContentType.BOOK,
         ContentType.GAME,
     ]
@@ -255,7 +276,7 @@ def test_a_confirmed_file_can_change_type(tmp_path):
 
     assert [(g.kind, g.title) for g in report.groups] == [
         (ContentType.MOVIE, None),
-        (ContentType.GAME, "Halo"),
+        (ContentType.GAME, None),
     ]
 
 
@@ -266,6 +287,25 @@ def test_generic_files_are_ignored(tmp_path):
 
     assert report.total_files == 0
     assert len(report.ignored) == 4
+
+
+def test_a_folder_of_singles_by_several_artists_is_tracks(tmp_path):
+    make(
+        tmp_path,
+        "Singles/Daft Punk - Get Lucky.mp3",
+        "Singles/Stromae - Alors on danse.mp3",
+        "Singles/Crumb - Locket.mp3",
+        "Album/01 - One.mp3",
+        "Album/02 - Two.mp3",
+        "Album/03 - Three.mp3",
+    )
+
+    report = detect_sources([tmp_path])
+
+    assert [(g.kind, g.title, len(g.files)) for g in report.groups] == [
+        (ContentType.ALBUM, "Album", 3),
+        (ContentType.TRACK, None, 3),
+    ]
 
 
 def test_a_group_title_does_not_depend_on_the_file_system_order(tmp_path, monkeypatch):

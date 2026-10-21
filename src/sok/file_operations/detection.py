@@ -12,9 +12,11 @@
 Detection of the media type of files dropped in the app.
 
 The user drops files or folders without saying what they are. This module
-sorts them into groups that one page of the app can handle at a time: all
-the movies together, then one group per series, album, book and game.
-Files whose type is a guess are kept apart for the user to check.
+sorts them into groups that one page of the app can handle at a time. The
+batch pages take all their files at once: one group of movies, one of
+tracks, one of books, one of games. The other pages take one item at a
+time: one group per series and per album. Files whose type is a guess are
+kept apart for the user to check.
 """
 
 import os
@@ -62,9 +64,14 @@ KIND_ORDER = [
     ContentType.MOVIE,
     ContentType.EPISODE,
     ContentType.ALBUM,
+    ContentType.TRACK,
     ContentType.BOOK,
     ContentType.GAME,
 ]
+# Kinds whose page renames many items at once: one group for all files.
+BATCH_KINDS = {ContentType.MOVIE, ContentType.TRACK, ContentType.BOOK, ContentType.GAME}
+# Audio files of a folder with fewer files are tracks, not an album.
+ALBUM_MIN_TRACKS = 3
 
 
 @dataclass
@@ -73,8 +80,9 @@ class DetectedFile:
 
     Attributes:
         path: The file.
-        kind: MOVIE, EPISODE, ALBUM (a music file), BOOK or GAME.
-        title: Series, album, book or game title, or None for a movie.
+        kind: MOVIE, EPISODE, ALBUM (a track of an album), TRACK (a track on
+            its own), BOOK or GAME.
+        title: Series or album title, book or game title, or None.
         certain: False when the type is a guess the user should check.
         reason: Why the type was chosen, for the log and the interface.
     """
@@ -91,9 +99,9 @@ class MediaGroup:
     """Files that one page of the app organizes together.
 
     Attributes:
-        kind: MOVIE, EPISODE, ALBUM, BOOK or GAME.
-        title: Series, album, book or game title; None for the movies, which
-            are all in one group.
+        kind: MOVIE, EPISODE, ALBUM, TRACK, BOOK or GAME.
+        title: Series or album title; None for the kinds of BATCH_KINDS,
+            whose files are all in one group.
         files: The files, sorted naturally.
     """
 
@@ -138,7 +146,8 @@ class DetectionReport:
             (g for g in self.groups if g.kind == item.kind and g.key == key), None
         )
         if group is None:
-            group = MediaGroup(item.kind, item.title, key=key)
+            title = None if item.kind in BATCH_KINDS else item.title
+            group = MediaGroup(item.kind, title, key=key)
             self.groups.append(group)
             self.groups.sort(
                 key=lambda g: (
@@ -253,6 +262,8 @@ class MediaTypeDetector:
 
         Folders are scanned recursively. A movie found in a folder that holds
         mostly episodes is kept apart: it is often a bonus of the series.
+        Audio files are an album when their folder holds one album (see
+        _is_album), tracks on their own otherwise.
 
         Args:
             paths: Files and folders, in the order they were dropped.
@@ -285,6 +296,16 @@ class MediaTypeDetector:
                 d.certain = False
                 d.reason = "video next to episodes"
 
+        folders: Dict[Path, List[DetectedFile]] = {}
+        for d in detected:
+            if d.kind == ContentType.ALBUM:
+                folders.setdefault(_album_folder(d.path), []).append(d)
+        for files in folders.values():
+            if not self._is_album(files):
+                for d in files:
+                    d.kind = ContentType.TRACK
+                    d.title = None
+
         for d in detected:
             if d.certain:
                 report.add(d)
@@ -292,6 +313,33 @@ class MediaTypeDetector:
                 report.to_check.append(d)
         report.to_check.sort(key=lambda d: natural_key(d.path))
         return report
+
+    def _is_album(self, files: List[DetectedFile]) -> bool:
+        """True if the audio files of a folder are one album.
+
+        An album has at least ALBUM_MIN_TRACKS tracks with the same album in
+        their tags, or, without album tags, the same artist. A folder of
+        singles by several artists is tracks.
+        """
+        if len(files) < ALBUM_MIN_TRACKS:
+            return False
+        albums, artists = set(), set()
+        for d in files:
+            tags = self._music.read_metadata(str(d.path))
+            if tags.get("album"):
+                albums.add(tags["album"].casefold())
+            artist = tags.get("artist")
+            if not artist and " - " in d.path.stem:
+                # "Artist - Title.mp3", the usual name of a single.
+                artist = d.path.stem.split(" - ", 1)[0]
+                if artist.strip().isdigit():
+                    # "01 - Title.mp3": a track number, not an artist.
+                    artist = None
+            if artist:
+                artists.add(artist.strip().casefold())
+        if albums:
+            return len(albums) == 1
+        return len(artists) <= 1
 
     def confirm(
         self, report: DetectionReport, item: DetectedFile, kind: ContentType
@@ -301,7 +349,7 @@ class MediaTypeDetector:
         Args:
             report: The report that holds the file in to_check.
             item: The file to check.
-            kind: MOVIE, EPISODE, ALBUM, BOOK or GAME.
+            kind: MOVIE, EPISODE, ALBUM, TRACK, BOOK or GAME.
 
         Returns:
             The group the file went into.
@@ -317,7 +365,7 @@ class MediaTypeDetector:
         """Title of a file once its type is known."""
         if kind == item.kind:
             return item.title
-        if kind == ContentType.MOVIE:
+        if kind in (ContentType.MOVIE, ContentType.TRACK):
             return None
         if kind == ContentType.EPISODE:
             return _series_folder_title(item.path)
@@ -364,14 +412,9 @@ def _album_folder(path: Path) -> Path:
 
 
 def _group_key(item: DetectedFile) -> str:
-    """Key that puts the files of the same series, album, book or game together."""
-    if item.kind == ContentType.MOVIE:
+    """Key that puts the files of one group together: same series, same album."""
+    if item.kind in BATCH_KINDS:
         return ""
     if item.kind == ContentType.ALBUM:
         return str(_album_folder(item.path))
-    if item.kind == ContentType.GAME:
-        # A .cue and its .bin share their name.
-        return str(item.path.with_suffix(""))
-    if item.kind == ContentType.BOOK:
-        return str(item.path)
     return re.sub(r"[^0-9a-z]+", "", (item.title or "").casefold())

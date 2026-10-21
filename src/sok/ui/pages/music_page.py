@@ -93,6 +93,10 @@ class MusicPage(QWidget):
                 else "padding: 0 14px; background: transparent; color: palette(text);"
             )
 
+    def show_albums(self) -> None:
+        """Switch to the Albums page."""
+        self._albums_btn.setChecked(True)
+
     def show_tracks(self) -> None:
         """Switch to the Tracks page."""
         self._tracks_btn.setChecked(True)

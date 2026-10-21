@@ -44,7 +44,7 @@ class OptionsPanel(QWidget):
     - Folder creation button (TV series only)
 
     Attributes:
-        _media_type (str): Media type ('video', 'music', 'book', 'game')
+        _media_type (str): Media type ('video', 'music')
         _source_drop (DropZone): Source drop zone
         _dest_drop (DropZone): Destination drop zone
         _action_btn (ActionButton): Main action button
@@ -75,7 +75,7 @@ class OptionsPanel(QWidget):
         """Initialize the options panel.
 
         Args:
-            media_type: Type of media ('video', 'music', 'book', 'game').
+            media_type: Type of media ('video', 'music').
             parent: Parent widget.
         """
         super().__init__(parent)

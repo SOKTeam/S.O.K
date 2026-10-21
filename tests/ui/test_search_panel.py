@@ -14,6 +14,7 @@ Tests unitaires pour le composant SearchPanel.
 Ces tests vérifient le comportement isolé du panel de recherche,
 indépendamment de la page d'organisation.
 """
+
 from sok.ui.components.organize import SearchPanel
 
 
@@ -35,20 +36,6 @@ class TestSearchPanelInitialization:
 
         assert panel._media_type == "music"
         assert panel._content_type == "album"  # Default for music
-
-    def test_init_book_type(self, qtbot):
-        """Test initialization with book media type."""
-        panel = SearchPanel("book")
-
-        assert panel._media_type == "book"
-        assert panel._content_type == "book"
-
-    def test_init_game_type(self, qtbot):
-        """Test initialization with game media type."""
-        panel = SearchPanel("game")
-
-        assert panel._media_type == "game"
-        assert panel._content_type == "game"
 
 
 class TestSearchPanelPublicAPI:
