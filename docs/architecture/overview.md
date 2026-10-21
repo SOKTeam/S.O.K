@@ -19,6 +19,11 @@ core             media manager, interfaces, adapters, exceptions, updater
  └── config           settings, API keys and sessions, service registry
 ```
 
+Only `sok.ui` and `sok.main` import Qt. PySide6 and pypresence are in the
+`desktop` extra, so the layers below run without them, as S.O.K Server does;
+`tests/unit/test_core_without_qt.py` imports them with the desktop dependencies
+blocked.
+
 ## Layers
 
 ### Interface (`sok.ui`)

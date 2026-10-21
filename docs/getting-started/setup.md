@@ -20,13 +20,15 @@ uv sync --extra dev
 ```
 
 `uv sync` creates `.venv/` and installs the exact versions from `uv.lock`. The
-extras add tools on top of the app dependencies:
+dependencies of the core need no Qt; the extras add the rest:
 
-| Extra   | Contents                                                         |
-| ------- | ---------------------------------------------------------------- |
-| `dev`   | pytest, pytest-qt, pytest-asyncio, ruff, mypy, ty, python-dotenv |
-| `docs`  | griffe, which describes the package for the API reference        |
-| `build` | Nuitka and the packaging tools                                   |
+| Extra     | Contents                                                                              |
+| --------- | ------------------------------------------------------------------------------------- |
+| `desktop` | PySide6 and pypresence, for the desktop app                                           |
+| `server`  | FastAPI and uvicorn, for S.O.K Server                                                 |
+| `dev`     | `desktop`, `server`, pytest, pytest-qt, pytest-asyncio, ruff, mypy, ty, python-dotenv |
+| `docs`    | griffe, which describes the package for the API reference                             |
+| `build`   | `desktop`, Nuitka and the packaging tools                                             |
 
 Combine them as needed, for example `uv sync --extra dev --extra docs`.
 
