@@ -128,8 +128,9 @@ interface.
 
 ### Analysis
 
-**In place since v1.5.0 for the scan and the sort**
-([Analyses](/server/overview/#analyses)); the search is planned.
+**In place since v1.5.0 for movies and TV shows**
+([Analyses](/server/overview/#analyses), [Search](/server/overview/#search));
+music, books and games are sorted and counted, their search is planned.
 
 - The files are sorted by `MediaTypeDetector`
   (`sok/file_operations/detection.py`) and searched by `BatchMatcher`

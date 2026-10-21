@@ -8,7 +8,10 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-"""Helpers to build media domain objects from API payloads."""
+"""Build the media items (Movie, Series, Album…) from search results.
+
+No Qt: the desktop app and S.O.K Server share it.
+"""
 
 from __future__ import annotations
 

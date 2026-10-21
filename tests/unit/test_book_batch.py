@@ -14,7 +14,7 @@ from sok.core.adapters.media_adapters import adapt_search_results
 from sok.core.interfaces import ContentType
 from sok.file_operations import BookFileOperations
 from sok.media.books.book import Book
-from sok.ui.factories.media_factory import create_media_item
+from sok.media.factory import create_media_item
 
 
 def test_adapter_splits_the_authors_string_of_the_apis():

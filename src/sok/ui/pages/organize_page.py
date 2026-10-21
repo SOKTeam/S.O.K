@@ -38,7 +38,7 @@ from sok.ui.workers import (
     DetailsWorker,
     CreateFoldersWorker,
 )
-from sok.ui.factories.media_factory import create_media_item
+from sok.media.factory import create_media_item
 from sok.core.media_manager import get_media_manager
 from sok.config import get_config_manager
 from sok.ui.i18n import tr

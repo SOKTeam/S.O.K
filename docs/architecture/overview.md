@@ -44,8 +44,6 @@ Built in code with PySide6; no Qt Designer file is loaded at run time.
   batch search and rename, detection of dropped files, undo of a rename).
 - `dialogs/`: the update dialog.
 - `errors.py`: the messages shown for API errors.
-- `factories/`: builds `sok.media` objects from API responses, so the pages do
-  not create them themselves.
 - `theme.py`, `platform.py`, `i18n.py`: colors and fonts, per-system behavior,
   translations.
 - `message_box.py`: message boxes, shown as sheets on macOS.
@@ -88,6 +86,8 @@ the HTTP session and the error handling:
 
 - `sok.media`: data classes for each kind of item (`Movie`, `Episode`, `Album`,
   `Track`, `Book`, `Game`…), all derived from `BaseMedia`.
+  `sok.media.factory.create_media_item` builds them from a search result, for
+  the pages and for S.O.K Server.
 - `sok.file_operations`: reads names (season and episode numbers, years), builds
   the new names from the user's formats and moves the files. One module per
   media type, with shared mixins, `organize.py` for the batches and

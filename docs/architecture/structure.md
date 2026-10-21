@@ -18,18 +18,18 @@ S.O.K/
 
 ## `src/sok/`
 
-| Path               | Contents                                                                                                                                 |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `main.py`          | Entry point (`uv run sok`): logging, `QApplication`, main window                                                                         |
-| `__version__.py`   | Version, kept in sync with `pyproject.toml`                                                                                              |
-| `core/`            | Media manager, interfaces, adapters, batch engine, input patterns, rename history, exceptions, constants, updater, Linux desktop entry   |
-| `apis/`            | One module per online database, by media type (`video/`, `music/`, `books/`, `games/`, `images/`)                                        |
-| `media/`           | Data classes: `Movie`, `Series`, `Episode`, `Album`, `Track`, `Artist`, `Playlist`, `Book`, `Ebook`, `Audiobook`, `Comic`, `Game`, `DLC` |
-| `file_operations/` | Name parsing, renaming and moving, by media type, with shared mixins                                                                     |
-| `config/`          | Settings and folders, keys and sessions, service registry, OAuth providers                                                               |
-| `server/`          | S.O.K Server, the FastAPI application (see [S.O.K Server](/server/overview/))                                                            |
-| `ui/`              | The PySide6 interface (see [Architecture](/architecture/overview/#interface-sokui))                                                      |
-| `resources/`       | Icons and logos (`assets/`), Inter font for Linux (`fonts/`), translations (`i18n/`)                                                     |
+| Path               | Contents                                                                                                                                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `main.py`          | Entry point (`uv run sok`): logging, `QApplication`, main window                                                                                                                                             |
+| `__version__.py`   | Version, kept in sync with `pyproject.toml`                                                                                                                                                                  |
+| `core/`            | Media manager, interfaces, adapters, batch engine, input patterns, rename history, exceptions, constants, updater, Linux desktop entry                                                                       |
+| `apis/`            | One module per online database, by media type (`video/`, `music/`, `books/`, `games/`, `images/`)                                                                                                            |
+| `media/`           | Data classes: `Movie`, `Series`, `Episode`, `Album`, `Track`, `Artist`, `Playlist`, `Book`, `Ebook`, `Audiobook`, `Comic`, `Game`, `DLC`; `factory.py` builds them from search results (`create_media_item`) |
+| `file_operations/` | Name parsing, renaming and moving, by media type, with shared mixins                                                                                                                                         |
+| `config/`          | Settings and folders, keys and sessions, service registry, OAuth providers                                                                                                                                   |
+| `server/`          | S.O.K Server, the FastAPI application (see [S.O.K Server](/server/overview/))                                                                                                                                |
+| `ui/`              | The PySide6 interface (see [Architecture](/architecture/overview/#interface-sokui))                                                                                                                          |
+| `resources/`       | Icons and logos (`assets/`), Inter font for Linux (`fonts/`), translations (`i18n/`)                                                                                                                         |
 
 `ui/designer/` holds old Qt Designer mockups and `ui/generated/` is the empty
 folder meant for the code generated from them. Neither is used by the app.

@@ -26,7 +26,7 @@ from sok.media.music.album import Album
 from sok.media.music.track import Track
 from sok.media.video.movie import Movie
 from sok.media.video.series import Series
-from sok.ui.factories.media_factory import create_media_item
+from sok.media.factory import create_media_item
 
 
 def with_poster(item, url="https://img/x.jpg"):
