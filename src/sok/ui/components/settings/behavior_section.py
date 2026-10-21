@@ -54,7 +54,6 @@ class BehaviorSection(QWidget):
 
         card = Card()
         for tr_key, default, config_key, enabled in [
-            ("auto_organize", "Automatic organization", "auto_organize", False),
             (
                 "create_missing_folders",
                 "Create missing folders",

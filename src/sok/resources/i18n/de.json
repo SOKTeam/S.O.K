@@ -81,7 +81,6 @@
     "dark_mode": "Dunkelmodus",
     "language": "Sprache",
     "behavior": "Verhalten",
-    "auto_organize": "Automatisch organisieren",
     "create_missing_folders": "Fehlende Ordner erstellen",
     "download_posters": "Poster herunterladen",
     "backup_before_rename": "Backup vor dem Umbenennen",

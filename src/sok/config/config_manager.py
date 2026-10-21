@@ -203,7 +203,6 @@ class AppConfig:
     default_books_path: str = ""
     default_games_path: str = ""
 
-    auto_organize: bool = False
     create_folders: bool = True
     download_posters: bool = False
     use_discord_rpc: bool = False
@@ -317,38 +316,6 @@ class ConfigManager:
 
         self.config.is_prod = HAS_SECURE_CONSTANTS
 
-        def get_val(key):
-            """Get configuration value from constants or environment.
-
-            Args:
-                key: Configuration key name.
-
-            Returns:
-                Value from constants if available, otherwise from environment.
-            """
-            if HAS_SECURE_CONSTANTS and hasattr(Constants, key):
-                return Constants.get(key)
-            return os.getenv(key)
-
-        def get_bool(key):
-            """Get boolean configuration value from constants or environment.
-
-            Args:
-                key: Configuration key name.
-
-            Returns:
-                Boolean value, or None if not found.
-            """
-            if HAS_SECURE_CONSTANTS and hasattr(Constants, key):
-                val = Constants.get(key)
-                if isinstance(val, bool):
-                    return val
-                return str(val).lower() in ("true", "1", "yes", "on")
-            env_val = os.getenv(key)
-            if env_val is not None:
-                return env_val.lower() in ("true", "1", "yes", "on")
-            return None
-
         env_mapping = {
             "api_key_tmdb_v4": "API_KEY_TMDB_V4",
             "api_key_tvdb": "API_KEY_TVDB",
@@ -384,26 +351,6 @@ class ConfigManager:
                 val = os.getenv(env_key)
                 if val:
                     self._runtime_values[config_key] = val
-
-        bool_env_mapping = {
-            "use_discord_rpc": "ENABLE_DISCORD_RPC",
-            "check_updates": "CHECK_UPDATES",
-            "auto_organize": "AUTO_ORGANIZE",
-            "create_folders": "CREATE_FOLDERS",
-            "download_posters": "DOWNLOAD_POSTERS",
-            "backup_before_rename": "BACKUP_BEFORE_RENAME",
-            "skip_duplicates": "SKIP_DUPLICATES",
-            "log_operations": "LOG_OPERATIONS",
-        }
-
-        for config_key, env_key in bool_env_mapping.items():
-            val = get_bool(env_key)
-            if val is not None:
-                self._runtime_values[config_key] = val
-
-        theme_val = get_val("DEFAULT_THEME")
-        if theme_val and not self.config_path.exists():
-            self.config.theme = theme_val
 
     def save(self) -> None:
         """Save configuration to file.
