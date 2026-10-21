@@ -98,11 +98,13 @@ window places the pages in a `QStackedWidget` and selects them by **index**:
 
 1. Create the page in `sok/ui/pages/` and export it in `pages/__init__.py`.
 2. Add it in `MainWindow` (`main_window.py`) with `self._pages.addWidget()`, in
-   sidebar order.
+   sidebar order. The History page is the exception: it is the last one of the
+   stack (`HISTORY_PAGE = 7`) but its button sits above Settings.
 3. Add its sidebar button (the list of `(text_key, icon_name, index)` in
    `MainWindow`) and its title in `_nav_titles()`.
 4. On macOS, add it to `PAGE_ACTIONS` in `macos_menu.py` (it gives the
-   <kbd>Cmd</kbd>+<kbd>1</kbd>… shortcuts) and update `SETTINGS_PAGE`.
+   <kbd>Cmd</kbd>+<kbd>1</kbd>… shortcuts) and update `SETTINGS_PAGE` and
+   `HISTORY_PAGE`.
 5. If the home page can send files to it, add its type to `PAGE_BY_KIND`.
 
 :::caution
@@ -111,12 +113,13 @@ the pages after it: check every index listed above, and the `navigate.emit()`
 calls of the shortcuts of the home page (`home_page.py`).
 :::
 
-The window calls two methods of a page when it has them:
+The window calls three methods of a page when it has them:
 
-| Method            | Called                             | Does                                            |
-| ----------------- | ---------------------------------- | ----------------------------------------------- |
-| `retranslateUi()` | When the user changes the language | Sets every text of the page again with `tr()`   |
-| `stop_workers()`  | When the window closes             | Stops the runners of the page (`runner.stop()`) |
+| Method            | Called                             | Does                                                                               |
+| ----------------- | ---------------------------------- | ---------------------------------------------------------------------------------- |
+| `retranslateUi()` | When the user changes the language | Sets every text of the page again with `tr()`                                      |
+| `refresh()`       | Each time the page is shown        | Reads its data again: the drives on the home page, the renames on the History page |
+| `stop_workers()`  | When the window closes             | Stops the runners of the page (`runner.stop()`)                                    |
 
 Without `stop_workers()`, closing the window during a search can leave a thread
 running.

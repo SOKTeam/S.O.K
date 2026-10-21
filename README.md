@@ -44,11 +44,11 @@ preview of every new name before anything moves.
     <th width="50%">Windows &amp; Linux</th>
   </tr>
   <tr>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/home-mac-dark.png"><img src="docs/assets/screenshots/home-mac-light.png" alt="Home page on macOS"></picture></td>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/home-linux-dark.png"><img src="docs/assets/screenshots/home-linux-light.png" alt="Home page on Windows and Linux"></picture></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/home-mac-dark.png"><img src="docs/assets/screenshots/home-mac-light.png" alt="Home page on macOS, with a drop sorted by type"></picture></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/home-linux-dark.png"><img src="docs/assets/screenshots/home-linux-light.png" alt="Home page on Windows and Linux, with a drop sorted by type"></picture></td>
   </tr>
   <tr>
-    <td colspan="2" align="center"><sub>Home page</sub></td>
+    <td colspan="2" align="center"><sub>Home page: drop anything, S.O.K sorts it by type</sub></td>
   </tr>
   <tr>
     <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/tv-shows-mac-dark.png"><img src="docs/assets/screenshots/tv-shows-mac-light.png" alt="TV shows: the preview of the new names on macOS"></picture></td>
@@ -95,8 +95,9 @@ Rename a whole folder of movies in one go.
 
 Rediscover your audio library.
 
-- **Album by album**: tracks are renamed `01 - Title.mp3` and sorted into
-  `Artist/Artist - Album (Year)/`.
+- **Albums and loose tracks**: a whole album at once, or a batch of single
+  tracks, renamed with your music format:
+  `Daft Punk - Discovery/01 - One More Time.mp3` by default.
 - **All the usual formats**: MP3, FLAC, M4A, OGG, Opus, WAV, AIFF, DSD…
 - **Sources**: Deezer, MusicBrainz, Spotify and Last.fm.
 
@@ -105,8 +106,8 @@ Rediscover your audio library.
 Your digital library, finally sorted.
 
 - **E-books and comics**: EPUB, MOBI, AZW3, PDF, FB2, CBZ, CBR and more.
-- **Classification**: `Author/Author - Title (Year)/`, with series numbers kept
-  (`Author - [Series 01] - Title`).
+- **A whole folder at once**: each book gets its own match, sorted into
+  `Author/Author - Title (Year)/`.
 - **Sources**: Google Books and Open Library.
 
 ### 🎮 Video Games
@@ -114,13 +115,24 @@ Your digital library, finally sorted.
 For ROM and ISO collectors.
 
 - **Retrogaming ready**: disc images and cartridge ROMs, from NES to PS3.
-- **Details kept**: one folder per game, `Title (Year) [Platform]`, with the
-  region and game code of each file.
+- **Details kept**: sorted by platform, with the tags of the dump that ROM
+  collections rely on: `Super Nintendo/Super Mario World (USA) (Rev 1).sfc`. A
+  game of several files (a `.cue` and its `.bin`, several discs) gets its own
+  folder.
 - **Sources**: RAWG and IGDB.
 
 ### 🎨 And everywhere
 
-- **Your naming rules**: every format can be changed in the settings.
+- **Drop anything on the home page**: S.O.K sorts the files by type and opens
+  the right page.
+- **Only sure matches are Ready**: the title and the year (or the author, the
+  artist) must match. The others wait for you to pick.
+- **Undo**: every rename can be undone from the History page, all at once or
+  file by file.
+- **Your naming rules**: change the name of every type in the settings, and
+  describe how your own files are named so S.O.K reads them right.
+- **Posters and covers** (optional): saved where Plex, Jellyfin and Kodi look
+  for them.
 - **8 languages**: English, French, German, Spanish, Italian, Portuguese,
   Russian and Polish, down to the folder names (`Season`, `Saison`,
   `Staffel`…).
@@ -129,7 +141,8 @@ For ROM and ISO collectors.
 
 > [!IMPORTANT]
 > S.O.K **moves** your files: they leave the source folder. Check the preview
-> before you confirm, and try it first on a copy of a few files.
+> before you confirm. A rename can be undone from the History page, as long as
+> the files were not moved since.
 
 ---
 
@@ -213,9 +226,6 @@ database, translations and building the Windows, macOS and Linux packages.
 - Movies, TV shows, music, books and games
 - Windows, macOS (Apple Silicon) and Linux (AppImage) apps
 - Built-in updates
-
-**🔨 Now**
-
 - Automatic detection of the media type
 - A more reliable "Ready" status: the title and year must match
 - History of renamed files, with undo

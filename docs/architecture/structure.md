@@ -22,7 +22,7 @@ S.O.K/
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `main.py`          | Entry point (`uv run sok`): logging, `QApplication`, main window                                                                         |
 | `__version__.py`   | Version, kept in sync with `pyproject.toml`                                                                                              |
-| `core/`            | Media manager, interfaces, adapters, exceptions, constants, updater, Linux desktop entry                                                 |
+| `core/`            | Media manager, interfaces, adapters, batch engine, input patterns, rename history, exceptions, constants, updater, Linux desktop entry   |
 | `apis/`            | One module per online database, by media type (`video/`, `music/`, `books/`, `games/`, `images/`)                                        |
 | `media/`           | Data classes: `Movie`, `Series`, `Episode`, `Album`, `Track`, `Artist`, `Playlist`, `Book`, `Ebook`, `Audiobook`, `Comic`, `Game`, `DLC` |
 | `file_operations/` | Name parsing, renaming and moving, by media type, with shared mixins                                                                     |

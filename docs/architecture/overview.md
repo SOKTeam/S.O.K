@@ -30,12 +30,12 @@ Built in code with PySide6; no Qt Designer file is loaded at run time.
   native title bar.
 - `pages/`: home, TV shows (`organize_page.py`), music (an Albums and a Tracks
   tab), the batch pages (`batch_page.py` and its movies, books, games and tracks
-  subclasses) and settings.
+  subclasses), settings and the history of renames (`history_page.py`).
 - `components/`: reusable widgets (search results, preview, settings sections…).
 - `controllers/`: logic shared by the pages (source scanning, preview, window
   chrome, `WorkerRunner`).
 - `workers/`: background tasks (search, details, organize, folder creation,
-  batch search and rename, detection of dropped files).
+  batch search and rename, detection of dropped files, undo of a rename).
 - `dialogs/`: the update dialog.
 - `errors.py`: the messages shown for API errors.
 - `factories/`: builds `sok.media` objects from API responses, so the pages do
@@ -57,6 +57,10 @@ Built in code with PySide6; no Qt Designer file is loaded at run time.
 - `batch.py`: the batch engine. It reads file names, searches many files at once
   and decides which ones are Ready (see
   [The path of a rename](/architecture/organizing/)). No Qt dependency.
+- `name_patterns.py`: the input patterns of the settings, which the file
+  operations try before their own rules to read a file name. No Qt dependency.
+- `history.py`: the rename history and its undo (see
+  [Rename history](/architecture/organizing/#rename-history)). No Qt dependency.
 - `exceptions.py`: the exception hierarchy (see below).
 - `updater.py`: checks GitHub releases and installs updates.
 - `desktop_entry.py`: adds S.O.K to the Linux applications menu.
