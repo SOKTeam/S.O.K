@@ -46,6 +46,10 @@ class MusicAdapter(BaseAdapter):
                     "title": _clean_str(item.get("title") or item.get("name")),
                     "artist": _clean_str(item.get("artist")),
                     "release_date": _clean_str(item.get("release_date")),
+                    # Tracks: the album they are on and their place in it.
+                    "album": _clean_str(item.get("album")),
+                    "album_type": _clean_str(item.get("album_type")),
+                    "track_number": item.get("track_number"),
                 }
             )
         return {"results": normalized}

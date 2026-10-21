@@ -15,7 +15,9 @@ API Documentation: https://musicbrainz.org/doc/MusicBrainz_API
 Note: Free API, no authentication required. Rate limit: 1 request/second.
 """
 
-from typing import Dict, List, Any
+import asyncio
+import time
+from typing import Any, Dict, List, Optional
 from sok.apis.base_api import BaseAPI
 from sok.core.interfaces import MediaType, ContentType
 
@@ -29,10 +31,44 @@ class MusicBrainzApi(BaseAPI):
     """
 
     USER_AGENT = "S.O.K/1.0 (https://github.com/sok-team/sok)"
+    # MusicBrainz answers 503 above one request per second.
+    MIN_INTERVAL = 1.0
 
     def __init__(self):
         """Initialize MusicBrainz API (no API key required)."""
         super().__init__("", "https://musicbrainz.org/ws/2/")
+        self._last_request = 0.0
+        self._throttle_lock: Optional[asyncio.Lock] = None
+        self._throttle_loop: Optional[asyncio.AbstractEventLoop] = None
+
+    async def _make_request(
+        self,
+        endpoint: str,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        method: str = "GET",
+        data: Optional[str] = None,
+        json_data: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Send a request, at most one per second.
+
+        A batch searches several tracks at once; without waiting, most
+        requests would be refused.
+        """
+        loop = asyncio.get_running_loop()
+        if self._throttle_loop is not loop:
+            # A lock only works in the event loop of its first use.
+            self._throttle_lock = asyncio.Lock()
+            self._throttle_loop = loop
+        assert self._throttle_lock is not None
+        async with self._throttle_lock:
+            wait = self._last_request + self.MIN_INTERVAL - time.monotonic()
+            if wait > 0:
+                await asyncio.sleep(wait)
+            self._last_request = time.monotonic()
+        return await super()._make_request(
+            endpoint, params, headers, method, data, json_data
+        )
 
     @property
     def supported_media_types(self) -> List[MediaType]:
@@ -80,7 +116,9 @@ class MusicBrainzApi(BaseAPI):
         elif content_type == ContentType.ARTIST:
             return await self._search_artists(query, limit)
         elif content_type == ContentType.TRACK:
-            return await self._search_recordings(query, limit)
+            return await self._search_recordings(
+                query, limit, kwargs.get("title"), kwargs.get("artist")
+            )
 
         return {"results": []}
 
@@ -150,36 +188,63 @@ class MusicBrainzApi(BaseAPI):
 
         return {"results": results}
 
-    async def _search_recordings(self, query: str, limit: int) -> Dict[str, Any]:
+    async def _search_recordings(
+        self,
+        query: str,
+        limit: int,
+        title: Optional[str] = None,
+        artist: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """Search for track recordings on MusicBrainz.
 
+        A song has many recordings (studio, live, remasters) on many
+        releases (its album, singles, compilations). Each release is a
+        result, all sorted together with the most likely first (see
+        _release_rank), so the album of the track can be chosen. Track
+        numbers are left out: they differ from one edition to another.
+
         Args:
-            query: Search query string.
-            limit: Maximum number of results.
+            query: Free search text, used without title and artist.
+            limit: Maximum number of recordings, at least 25 for a precise
+                search so the studio recording is among them.
+            title: Track title, for a precise search.
+            artist: Artist name, for a precise search.
 
         Returns:
-            Dictionary containing recording search results.
+            Dictionary containing one result per album.
         """
+        if title and artist:
+            query = f'recording:"{_lucene(title)}" AND artist:"{_lucene(artist)}"'
+            limit = max(limit, 25)
         params = {"query": query, "limit": limit, "fmt": "json"}
 
         response = await self._make_request(
             "recording", params, headers=self._get_headers()
         )
 
-        results = []
+        found = []
         for recording in response.get("recordings", []):
             artist_credit = recording.get("artist-credit", [{}])
             artist_name = artist_credit[0].get("name", "") if artist_credit else ""
+            for release in recording.get("releases") or []:
+                found.append((_release_rank(release), recording, artist_name, release))
+        found.sort(key=lambda entry: entry[0])
 
-            releases = recording.get("releases", [{}])
-            album = releases[0].get("title", "") if releases else ""
-
+        results = []
+        seen_albums = set()
+        for _, recording, artist_name, release in found:
+            album = release.get("title", "")
+            if album.casefold() in seen_albums:
+                continue
+            seen_albums.add(album.casefold())
             results.append(
                 {
                     "id": recording.get("id"),
                     "title": recording.get("title"),
                     "artist": artist_name,
                     "album": album,
+                    "album_type": _album_type(release.get("release-group", {})),
+                    "release_date": release.get("date", ""),
                     "duration": recording.get("length", 0),
                 }
             )
@@ -312,3 +377,40 @@ class MusicBrainzApi(BaseAPI):
             Empty list as MusicBrainz doesn't have this endpoint.
         """
         return []
+
+
+# Releases that are not the own album of a track.
+OTHER_RELEASES = {"compilation", "live", "remix"}
+
+
+def _lucene(text: str) -> str:
+    """Escape a value for a MusicBrainz (Lucene) query."""
+    return text.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _album_type(group: Dict[str, Any]) -> str:
+    """ "album", "single", "ep", "compilation", "live" or "remix".
+
+    Like Spotify's album_type, with the secondary types of MusicBrainz that
+    mean the track is not on its own album.
+    """
+    secondary = group.get("secondary-types") or []
+    for kind in ("Compilation", "Live", "Remix", "DJ-mix"):
+        if kind in secondary:
+            return "remix" if kind == "DJ-mix" else kind.lower()
+    return str(group.get("primary-type") or "").lower()
+
+
+def _release_rank(release: Dict[str, Any]) -> tuple:
+    """Sort key of the releases of a song: the first release first.
+
+    Official releases first; compilations, live and remix releases last;
+    then the oldest first: the release a track came out on (its album, or
+    its single or EP).
+    """
+    kind = _album_type(release.get("release-group", {}))
+    return (
+        release.get("status", "Official") != "Official",
+        kind in OTHER_RELEASES,
+        release.get("date") or "9999",
+    )

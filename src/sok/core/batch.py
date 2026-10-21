@@ -15,8 +15,8 @@ Each file (or group of files, such as the .cue and .bin of a game) gets a
 search query read from its name, the candidates of the online database and
 a status:
 
-- Ready: one candidate has the title of the file and, when the file name
-  gives them, its year and its author. It is selected and can be renamed
+- Ready: one candidate has the title of the file and, when the file
+  gives them, its year, its author or artist, and its album. It is selected and can be renamed
   as is. Several candidates can count as one when they are the same work,
   such as the editions of a book.
 - Pick one: candidates were found, but none or several match exactly. The
@@ -39,6 +39,7 @@ from sok.core.exceptions import APIAuthenticationError, APIError, APIRateLimitEr
 from sok.core.interfaces import ContentType
 from sok.file_operations.book_operations import BookFileOperations
 from sok.file_operations.game_operations import GameFileOperations
+from sok.file_operations.music_operations import MusicFileOperations
 from sok.file_operations.video_operations import VideoFileOperations
 
 logger = logging.getLogger(__name__)
@@ -63,13 +64,18 @@ class ParsedName:
         query: Text to search.
         year: Year in the name, or None.
         title: Title to compare with the results; the query if None.
-        author: Author in the name (books), or None.
+        author: Author (books) or artist (tracks), or None.
+        album: Album of a track, from its tags, or None.
+        search_kwargs: Extra search parameters, such as the title and the
+            artist of a track for a precise search.
     """
 
     query: str
     year: Optional[int] = None
     title: Optional[str] = None
     author: Optional[str] = None
+    album: Optional[str] = None
+    search_kwargs: Dict[str, Any] = field(default_factory=dict)
 
 
 # Reads the file name of an item.
@@ -136,8 +142,13 @@ def title_matches(query: str, candidate: Dict[str, Any]) -> bool:
 
 
 def candidate_authors(candidate: Dict[str, Any]) -> List[str]:
-    """Authors of a search result, normalized."""
-    authors = candidate.get("authors") or candidate.get("author") or []
+    """Authors (books) or artist (music) of a search result, normalized."""
+    authors = (
+        candidate.get("authors")
+        or candidate.get("author")
+        or candidate.get("artist")
+        or []
+    )
     if isinstance(authors, str):
         authors = [authors]
     return [normalize_title(str(a)) for a in authors if a]
@@ -162,6 +173,24 @@ def same_book(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
     ) and set(candidate_authors(a)) == set(candidate_authors(b))
 
 
+def same_track(a: Dict[str, Any], b: Dict[str, Any]) -> bool:
+    """Two results are the same track on the same album.
+
+    A compilation, a live or a remix release does not count as another
+    album: the track still came out on the first one.
+    """
+    return (
+        normalize_title(str(a.get("title") or ""))
+        == normalize_title(str(b.get("title") or ""))
+        and set(candidate_authors(a)) == set(candidate_authors(b))
+        and (
+            normalize_title(str(a.get("album") or ""))
+            == normalize_title(str(b.get("album") or ""))
+            or b.get("album_type") in ("compilation", "live", "remix")
+        )
+    )
+
+
 def _one_work(indexes: List[int], candidates, same_work: Optional[SameWork]) -> bool:
     """True if the candidates at these indexes are a single work."""
     if len(indexes) == 1:
@@ -178,6 +207,7 @@ def evaluate(
     candidates: List[Dict[str, Any]],
     author: Optional[str] = None,
     same_work: Optional[SameWork] = None,
+    album: Optional[str] = None,
 ) -> Tuple[Optional[int], str]:
     """Choose the candidate to select and the status of an item.
 
@@ -185,9 +215,11 @@ def evaluate(
         query: Title to compare with the results.
         year: Year read from the file name, or None.
         candidates: Search results.
-        author: Author read from the file name, or None.
+        author: Author or artist read from the file, or None.
         same_work: Tells when several matching results are one work. By
             default every result is a different work (movies).
+        album: Album of a track, from its tags: a result on that album is
+            the one.
 
     Returns:
         The index of the candidate to select (None without candidates) and
@@ -201,6 +233,16 @@ def evaluate(
         for i, c in enumerate(candidates)
         if title_matches(query, c) and (not author or author_matches(author, c))
     ]
+    if album:
+        on_album = [
+            i
+            for i in titled
+            if normalize_title(str(candidates[i].get("album") or ""))
+            == normalize_title(album)
+        ]
+        if on_album:
+            return on_album[0], STATUS_READY
+
     if year is None:
         if titled and _one_work(titled, candidates, same_work):
             return titled[0], STATUS_READY
@@ -248,6 +290,26 @@ def parse_game(files: Sequence[Path]) -> ParsedName:
     """
     info = GameFileOperations().extract_info_from_filename(files[0].name)
     return ParsedName(info.get("title") or files[0].stem)
+
+
+def parse_track(files: Sequence[Path]) -> ParsedName:
+    """Read a track: its tags first (artist, title, album), then its name.
+
+    Tags are what players show and are usually right; file names of
+    downloads are often "01 - Title.mp3" with no artist.
+    """
+    ops = MusicFileOperations()
+    tags = ops.read_metadata(str(files[0]))
+    info = ops.extract_info_from_filename(files[0].name)
+    title = tags.get("title") or info.get("title") or files[0].stem
+    artist = tags.get("artist") or info.get("artist")
+    album = tags.get("album") or info.get("album")
+    if not artist and " - " in title:
+        # "Daft Punk - Get Lucky.mp3", the usual name of a single.
+        artist, title = (part.strip() for part in title.split(" - ", 1))
+    query = f"{title} {artist}" if artist else title
+    search_kwargs = {"title": title, "artist": artist} if artist else {}
+    return ParsedName(query, None, title, artist, album, search_kwargs)
 
 
 # Files that list the other files of a game.
@@ -320,8 +382,11 @@ class BatchMatcher:
         text = (query or parsed.query).strip()
         title = text if query else (parsed.title or parsed.query)
         author = None if query else parsed.author
+        album = None if query else parsed.album
         candidates: List[Dict[str, Any]] = []
-        kwargs = {"language": self._language} if self._language else {}
+        kwargs: Dict[str, Any] = {} if query else dict(parsed.search_kwargs)
+        if self._language:
+            kwargs["language"] = self._language
         try:
             result = await self._manager.search(text, self._content_type, **kwargs)
             raw = result.get("results", []) if isinstance(result, dict) else result
@@ -333,7 +398,7 @@ class BatchMatcher:
         except APIError as exc:
             logger.warning("Search failed for %s: %s", files[0].name, exc)
         selected, status = evaluate(
-            title, parsed.year, candidates, author, self._same_work
+            title, parsed.year, candidates, author, self._same_work, album
         )
         return BatchMatch(list(files), text, parsed.year, candidates, selected, status)
 

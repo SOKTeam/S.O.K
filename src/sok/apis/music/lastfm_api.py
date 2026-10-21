@@ -181,6 +181,10 @@ class LastFMApi(BaseAPI):
             results = await self.search_album(query, limit)
         elif content_type == ContentType.ARTIST:
             results = await self.search_artist(query, limit)
+        elif content_type == ContentType.TRACK:
+            results = await self.search_track(
+                kwargs.get("title") or query, limit, kwargs.get("artist")
+            )
         else:
             results = await self.search_album(query, limit)
 
@@ -229,6 +233,43 @@ class LastFMApi(BaseAPI):
             )
 
         return albums
+
+    async def search_track(
+        self, title: str, limit: int = 20, artist: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Search for tracks on Last.fm.
+
+        Last.fm does not give the album of a track in its search results.
+
+        Args:
+            title: Track title, or free search text.
+            limit: Maximum number of results.
+            artist: Artist name, to narrow the search.
+
+        Returns:
+            List of track dictionaries.
+        """
+        params: Dict[str, Any] = {"track": title, "limit": limit}
+        if artist:
+            params["artist"] = artist
+        data = await self._make_request("track.search", params)
+
+        matches = data.get("results", {}).get("trackmatches", {}).get("track", [])
+        if isinstance(matches, dict):
+            matches = [matches]
+
+        return [
+            {
+                "id": match.get("mbid") or match.get("url", ""),
+                "title": match.get("name", ""),
+                "artist": match.get("artist", ""),
+                "album": "",
+                "poster_path": self._extract_image(match.get("image", [])),
+                "release_date": "",
+            }
+            for match in matches
+            if match.get("name")
+        ]
 
     async def search_artist(self, query: str, limit: int = 20) -> List[Dict[str, Any]]:
         """Search for artists on Last.fm.

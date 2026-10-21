@@ -251,5 +251,10 @@
     "book_title_author": "Título (autor opcional)",
     "games_drop_hint": "Larga ficheiros de jogos ou pastas, ou clica para procurar",
     "add_more_games": "+ Adicionar mais jogos",
-    "game_title": "Título do jogo"
+    "game_title": "Título do jogo",
+    "albums": "Álbuns",
+    "tracks": "Faixas",
+    "tracks_drop_hint": "Larga ficheiros de áudio ou pastas, ou clica para procurar",
+    "add_more_tracks": "+ Adicionar mais faixas",
+    "track_title_artist": "Título (artista opcional)"
 }

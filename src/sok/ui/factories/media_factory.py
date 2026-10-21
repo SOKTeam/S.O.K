@@ -17,13 +17,14 @@ from typing import Union
 from sok.media.video.series import Series
 from sok.media.video.movie import Movie
 from sok.media.music.album import Album
+from sok.media.music.track import Track
 from sok.media.books.book import Book
 from sok.media.games.game import Game
 from sok.core.media_manager import UniversalMediaManager
 
 logger = logging.getLogger(__name__)
 
-MediaItem = Union[Series, Movie, Album, Book, Game]
+MediaItem = Union[Series, Movie, Album, Track, Book, Game]
 
 
 def create_media_item(
@@ -71,6 +72,21 @@ def create_media_item(
         if "tracks" in data:
             album.tracks = data.get("tracks", {})
         item = album
+    elif content_type == "track":
+        track = Track(
+            title,
+            language,
+            manager,
+            artist=data.get("artist") or "",
+            album=data.get("album") or "",
+            track_number=0,
+        )
+        track.id = str(data.get("id"))
+        number = str(data.get("track_number") or "")
+        track.track_number = int(number) if number.isdigit() else 0
+        release = str(data.get("release_date") or "")
+        track.year = int(release[:4]) if release[:4].isdigit() else None
+        item = track
     elif content_type == "book":
         book = Book(title, language, manager)
         book.id = str(data.get("id"))

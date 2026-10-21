@@ -251,5 +251,10 @@
     "book_title_author": "Title (optional author)",
     "games_drop_hint": "Drop game files or folders, or click to browse",
     "add_more_games": "+ Add more games",
-    "game_title": "Game title"
+    "game_title": "Game title",
+    "albums": "Albums",
+    "tracks": "Tracks",
+    "tracks_drop_hint": "Drop audio files or folders, or click to browse",
+    "add_more_tracks": "+ Add more tracks",
+    "track_title_artist": "Title (optional artist)"
 }
