@@ -44,11 +44,11 @@ preview of every new name before anything moves.
     <th width="50%">Windows &amp; Linux</th>
   </tr>
   <tr>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/home-mac-dark.png"><img src="docs/assets/screenshots/home-mac-light.png" alt="Home page on macOS"></picture></td>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/home-linux-dark.png"><img src="docs/assets/screenshots/home-linux-light.png" alt="Home page on Windows and Linux"></picture></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/home-mac-dark.png"><img src="docs/assets/screenshots/home-mac-light.png" alt="Home page on macOS, with a drop sorted by type"></picture></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/home-linux-dark.png"><img src="docs/assets/screenshots/home-linux-light.png" alt="Home page on Windows and Linux, with a drop sorted by type"></picture></td>
   </tr>
   <tr>
-    <td colspan="2" align="center"><sub>Home page</sub></td>
+    <td colspan="2" align="center"><sub>Home page: drop anything, S.O.K sorts it by type</sub></td>
   </tr>
   <tr>
     <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/tv-shows-mac-dark.png"><img src="docs/assets/screenshots/tv-shows-mac-light.png" alt="TV shows: the preview of the new names on macOS"></picture></td>
