@@ -169,6 +169,16 @@ class MoviesPage(QScrollArea):
 
     # ------------------------------------------------------------- Sources
 
+    def load_files(self, files: List[Path]) -> None:
+        """Add files found elsewhere, such as on the home page, and search them.
+
+        Args:
+            files: Video files; those already in the table are skipped.
+        """
+        appended = self._table.add_files(files)
+        if appended:
+            self._on_files_added(appended)
+
     def _on_files_added(self, files: List[Path]) -> None:
         """Run a batch search on newly added files only."""
         new_files = [p for p in files if p.is_file()]

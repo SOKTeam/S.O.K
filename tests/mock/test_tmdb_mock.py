@@ -40,6 +40,7 @@ class TestTMDBMock:
         # Mock aiohttp.ClientSession used in BaseAPI
         # We need to mock the context manager returned by session.get()
         mock_response = MagicMock()
+        mock_response.status = 200
         mock_response.json = AsyncMock(return_value=mock_response_data)
 
         mock_context = AsyncMock()
@@ -87,6 +88,7 @@ class TestTMDBMock:
 
         # Setup Mock
         mock_response = MagicMock()
+        mock_response.status = 200
         mock_response.json = AsyncMock(return_value=mock_response_data)
         mock_context = AsyncMock()
         mock_context.__aenter__.return_value = mock_response

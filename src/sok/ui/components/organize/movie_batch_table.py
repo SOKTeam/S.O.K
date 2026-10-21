@@ -360,6 +360,8 @@ class MovieBatchTable(QWidget):
 
     def _show_empty(self, text: str) -> None:
         self.clear()
+        # The hint fills the card, centered.
+        self._inner._layout.setAlignment(Qt.AlignmentFlag(0))
         set_empty_state(self._inner._layout, text)
         self._container.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -404,6 +406,9 @@ class MovieBatchTable(QWidget):
         return appended
 
     def _append_row(self, file: Path) -> None:
+        # Rows keep their height at the top of the card: without this, a few
+        # rows are spread over the whole height.
+        self._inner._layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._remove_add_more_button()
         row = MovieRow(file)
         row.changed.connect(self.row_changed.emit)
