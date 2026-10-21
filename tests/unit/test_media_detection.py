@@ -266,3 +266,15 @@ def test_generic_files_are_ignored(tmp_path):
 
     assert report.total_files == 0
     assert len(report.ignored) == 4
+
+
+def test_a_group_title_does_not_depend_on_the_file_system_order(tmp_path, monkeypatch):
+    from sok.file_operations import detection
+
+    files = [tmp_path / "severance.s02e01.mkv", tmp_path / "Severance.S01E02.mkv"]
+    make(tmp_path, *(f.name for f in files))
+    monkeypatch.setattr(detection, "_walk", lambda paths: iter(files))
+
+    report = detect_sources([tmp_path])
+
+    assert report.groups[0].title == "Severance"

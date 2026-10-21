@@ -1051,6 +1051,19 @@ class MainWindow(QMainWindow):
                 font-size: 13px;
             }}
 
+            /* Without these rules macOS draws the bar with its own accent
+               color (blue by default), not the app's. */
+            #Progress {{
+                background: {c["separator"]};
+                border: none;
+                border-radius: 3px;
+            }}
+
+            #Progress::chunk {{
+                background: {c["accent"]};
+                border-radius: 3px;
+            }}
+
             #PageSubtitle {{
                 color: {c["secondary"]};
             }}
