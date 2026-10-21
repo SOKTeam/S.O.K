@@ -59,23 +59,27 @@ folder meant for the code generated from them. Neither is used by the app.
 
 ## `packaging/`
 
-| File                            | Purpose                                      |
-| ------------------------------- | -------------------------------------------- |
-| `windows/installation.iss`      | Inno Setup script of the Windows installer   |
-| `macos/dmg_settings.py`         | Layout of the disk image window (dmgbuild)   |
-| `macos/dmg_background.tiff`     | Disk image background, standard and Retina   |
-| `macos/icon_1024.png`           | 1024 px app icon                             |
-| `linux/build_appimage.sh`       | Builds an AppImage in an AlmaLinux container |
-| `linux/com.sokteam.sok.desktop` | Desktop entry of the AppImage                |
+| File                            | Purpose                                                |
+| ------------------------------- | ------------------------------------------------------ |
+| `windows/installation.iss`      | Inno Setup script of the Windows installer             |
+| `macos/dmg_settings.py`         | Layout of the disk image window (dmgbuild)             |
+| `macos/dmg_background.tiff`     | Disk image background, standard and Retina             |
+| `macos/icon_1024.png`           | 1024 px app icon                                       |
+| `linux/build_appimage.sh`       | Builds an AppImage in an AlmaLinux container           |
+| `linux/com.sokteam.sok.desktop` | Desktop entry of the AppImage                          |
+| `docker/entrypoint.sh`          | Entry point of the S.O.K Server image (`PUID`, `PGID`) |
+
+The `Dockerfile` and `.dockerignore` of the S.O.K Server image are at the root.
 
 ## Workflows
 
-| File                       | When it runs                                                                                                                                                                                                                           |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ci.yml`                   | Pushes and pull requests to `develop` and `main`: lint, format, translations, type checks, tests on Linux and macOS                                                                                                                    |
-| `conventional-commits.yml` | Pull requests: checks the commit messages                                                                                                                                                                                              |
-| `release.yml`              | Pushes to `main`: semantic-release creates the version and a draft GitHub release; the three build workflows attach the packages to it, then the release is published, the website is rebuilt and `main` is merged back into `develop` |
-| `build-linux.yml`          | Called by `release.yml`: builds the AppImages and attaches them to the release. By hand from the Actions tab: keeps them as an artifact of the run                                                                                     |
-| `build-windows.yml`        | Same for the Windows installer                                                                                                                                                                                                         |
-| `build-macos.yml`          | Same for the macOS disk image                                                                                                                                                                                                          |
-| `docs.yml`                 | Pushes to `main`, or by hand: publishes this documentation to GitHub Pages                                                                                                                                                             |
+| File                       | When it runs                                                                                                                                                                                                                                                   |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci.yml`                   | Pushes and pull requests to `develop` and `main`: lint, format, translations, type checks, tests on Linux and macOS                                                                                                                                            |
+| `conventional-commits.yml` | Pull requests: checks the commit messages                                                                                                                                                                                                                      |
+| `release.yml`              | Pushes to `main`: semantic-release creates the version and a draft GitHub release; the three build workflows attach the packages to it and the image is pushed, then the release is published, the website is rebuilt and `main` is merged back into `develop` |
+| `build-linux.yml`          | Called by `release.yml`: builds the AppImages and attaches them to the release. By hand from the Actions tab: keeps them as an artifact of the run                                                                                                             |
+| `build-windows.yml`        | Same for the Windows installer                                                                                                                                                                                                                                 |
+| `build-macos.yml`          | Same for the macOS disk image                                                                                                                                                                                                                                  |
+| `build-docker.yml`         | Called by `release.yml`: builds the S.O.K Server image (amd64, arm64) and pushes it to GHCR. By hand: builds it without pushing                                                                                                                                |
+| `docs.yml`                 | Pushes to `main`, or by hand: publishes this documentation to GitHub Pages                                                                                                                                                                                     |

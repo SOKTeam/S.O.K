@@ -92,9 +92,10 @@ messages, updates
 the version files, and creates the GitHub release as a **draft**. `release.yml`
 then calls `build-windows.yml`, `build-macos.yml` and `build-linux.yml`, which
 build the Windows installer, the macOS disk image and both AppImages on GitHub
-runners and attach them to the draft.
+runners and attach them to the draft, and `build-docker.yml`, which pushes the
+S.O.K Server image (see [Docker image](/server/overview/#docker-image)).
 
-When the three builds succeed, the `publish` job publishes the release: only
+When the four builds succeed, the `publish` job publishes the release: only
 then do the apps offer the update and the website show the downloads. If a
 build fails, the release stays a draft: fix the build, re-run the failed job,
 and `publish` runs. The notes of the draft can be edited meanwhile.
@@ -115,7 +116,8 @@ release when it is built:
 
 Without the secrets, this step does nothing.
 
-The workflows write `.env` from the `SOK_ENV` repository secret, which holds the
-contents of that file: without it the builds stop. Each workflow can also be run
+The desktop workflows write `.env` from the `SOK_ENV` repository secret, which
+holds the contents of that file: without it the builds stop. The image never
+gets it. Each workflow can also be run
 by hand from the Actions tab, on any branch: the package is then kept as an
 artifact of the run instead of being attached to a release.
