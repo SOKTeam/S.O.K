@@ -96,6 +96,14 @@ the HTTP session and the error handling:
   (keys and tokens), `api_registry.py` (the list of services, their media type
   and how they authenticate).
 
+### S.O.K Server (`sok.server`)
+
+A FastAPI application over the same layers as the desktop app: it scans and
+sorts the files with `detection.py`, searches them with the batch engine,
+renames them with `file_operations` and records them in the rename history,
+kept in its SQLite database. Its web interface (`web/`, Svelte) is built to
+static files that it serves. See [S.O.K Server](/server/overview/).
+
 ## The path of a search
 
 1. The user types in a search field. The page starts a `SearchWorker` with a

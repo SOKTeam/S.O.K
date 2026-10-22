@@ -32,6 +32,11 @@ dependencies of the core need no Qt; the extras add the rest:
 
 Combine them as needed, for example `uv sync --extra dev --extra docs`.
 
+The web interface of S.O.K Server (`web/`) also needs
+[Node](https://nodejs.org) 24 and `npm ci` in `web/` (see
+[The web project](/server/overview/#the-web-project)). The desktop app does
+not.
+
 ## API keys
 
 Most databases need a key. Copy `.env.example` to `.env` at the repository root
