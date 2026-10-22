@@ -134,6 +134,49 @@ class Accounts:
             return False
         return True
 
+    def reset_from_env(self) -> bool:
+        """Give the account the password of SOK_PASSWORD, with
+        SOK_RESET_PASSWORD=1: the way back from a forgotten password.
+
+        SOK_USERNAME, when set, renames the account too. The open sessions
+        are closed. Nothing else changes: the settings, the history and the
+        analyses stay.
+
+        Returns:
+            True when the password was changed.
+        """
+        if os.environ.get("SOK_RESET_PASSWORD", "").strip().lower() not in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        ):
+            return False
+        password = os.environ.get("SOK_PASSWORD", "")
+        username = os.environ.get("SOK_USERNAME", "").strip() or self.username()
+        if not self.exists():
+            return False
+        if not username or len(password) < MIN_PASSWORD_LENGTH:
+            logger.warning(
+                "SOK_RESET_PASSWORD ignored: SOK_PASSWORD needs %d characters",
+                MIN_PASSWORD_LENGTH,
+            )
+            return False
+        password_hash = self._hasher.hash(password)
+        with self._db.transaction() as db:
+            db.execute(
+                "UPDATE account SET username = ?, password_hash = ? WHERE id = 1",
+                (username, password_hash),
+            )
+            db.execute("DELETE FROM sessions")
+        with self._lock:
+            self._failures.clear()
+        logger.warning(
+            "Password of %s reset from SOK_PASSWORD: remove SOK_RESET_PASSWORD",
+            username,
+        )
+        return True
+
     def check(self, username: str, password: str) -> bool:
         """Check a login.
 

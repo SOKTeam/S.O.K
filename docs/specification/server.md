@@ -92,7 +92,8 @@ disk. The example mounts the common parent folder once.
 - One account. It is created on the first visit, or with `SOK_USERNAME` and
   `SOK_PASSWORD` (taken only when no account exists yet).
 - The password is stored hashed (Argon2) in `/config`. A forgotten password is
-  reset by deleting the account file and visiting the page again.
+  reset by starting the server with `SOK_RESET_PASSWORD=1` and the new password
+  in `SOK_PASSWORD`: the settings, the history and the analyses stay.
 - A session cookie (`HttpOnly`, `SameSite=Strict`) keeps the user logged in for
   30 days. After 5 failed logins, the next attempts wait 30 seconds.
 - `SOK_AUTH=none` turns the login off, for a reverse proxy that already asks for

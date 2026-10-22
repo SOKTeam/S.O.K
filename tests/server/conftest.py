@@ -22,7 +22,13 @@ def config_folder(tmp_path, monkeypatch):
     monkeypatch.setattr(config_manager, "load_dotenv", lambda *a, **k: None)
     for variable in get_all_env_vars().values():
         monkeypatch.delenv(variable, raising=False)
-    for name in ("SOK_AUTH", "SOK_USERNAME", "SOK_PASSWORD", "SOK_ENV_KEYS_WIN"):
+    for name in (
+        "SOK_AUTH",
+        "SOK_USERNAME",
+        "SOK_PASSWORD",
+        "SOK_RESET_PASSWORD",
+        "SOK_ENV_KEYS_WIN",
+    ):
         monkeypatch.delenv(name, raising=False)
     # No interface, even when web/dist is built: a test gives its own.
     monkeypatch.setenv("SOK_WEB_DIR", str(tmp_path / "no-web"))

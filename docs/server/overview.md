@@ -31,6 +31,7 @@ SOK_CONFIG_DIR=/tmp/sok-config uv run sok-server
 | `SOK_HOST`, `SOK_PORT`         | Address and port, `0.0.0.0` and `8080` by default                      |
 | `SOK_CONFIG_DIR`               | Folder of the database, the settings and the log (`/config` in Docker) |
 | `SOK_USERNAME`, `SOK_PASSWORD` | Create the account at startup, when none exists                        |
+| `SOK_RESET_PASSWORD=1`         | With `SOK_PASSWORD`: replaces the password of the account at startup   |
 | `SOK_AUTH=none`                | Turns the login off, behind a reverse proxy that asks for one          |
 | `SOK_LOG_LEVEL`                | Level of the log: `DEBUG`, `INFO` (default)…                           |
 | `SOK_WEB_DIR`                  | Folder of the built interface, `web/dist` of the repository by default |
@@ -245,8 +246,11 @@ interface at each change and sends the `/api` requests to the server.
 - **The account**: one row of the `account` table. The user name is not empty,
   the password has at least 8 characters (`MIN_PASSWORD_LENGTH`). The password
   is hashed with Argon2 (`argon2-cffi`), and hashed again at the next login when
-  the parameters of Argon2 change. A forgotten password: stop the server,
-  delete `sok.db`, start it again.
+  the parameters of Argon2 change. A forgotten password: start the server
+  with `SOK_RESET_PASSWORD=1` and the new password in `SOK_PASSWORD`
+  (`Accounts.reset_from_env`): the password is replaced (and the user name, with
+  `SOK_USERNAME`), the sessions are closed, and nothing else changes. Remove
+  the variable afterwards; the log reminds it.
 - **The session**: a random token in the `sok_session` cookie, `HttpOnly`,
   `SameSite=Strict`, for 30 days; `Secure` when the request comes over HTTPS.
   The database only keeps the SHA-256 of the token, so a copy of `sok.db` opens
