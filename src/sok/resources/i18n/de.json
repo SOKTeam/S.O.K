@@ -336,8 +336,6 @@
     "web_link_different_drives": "„{source}“ und „{destination}“ liegen auf zwei Laufwerken oder zwei Docker-Mounts: Binden Sie ihren gemeinsamen übergeordneten Ordner einmal ein.",
     "web_link_missing_folder": "„{source}“ oder „{destination}“ fehlt.",
     "web_link_no_hard_links": "Der Datenträger von „{destination}“ kennt keine Hardlinks (FAT, exFAT, die meisten Netzwerkfreigaben).",
-    "web_link_ok": "Hardlinks funktionieren von „{source}“ nach „{destination}“.",
-    "web_link_untested": "„{source}“ und „{destination}“ liegen auf demselben Laufwerk; der Testlink wird erstellt, sobald „{source}“ eine Datei enthält.",
     "web_remove": "Entfernen",
     "web_remove_folder": "{path} entfernen",
     "web_save": "Speichern",
@@ -397,5 +395,15 @@
     "web_choose_this_folder": "Diesen Ordner wählen",
     "web_parent_folder": "Übergeordneter Ordner",
     "web_no_subfolder": "Kein Ordner darin.",
-    "web_error_unreadable_folder": "Der Server kann diesen Ordner nicht lesen."
+    "web_error_unreadable_folder": "Der Server kann diesen Ordner nicht lesen.",
+    "web_link_problem_title": "Hardlinks werden nicht funktionieren",
+    "web_link_problem_text": "Zwischen diesen Ordnern können Dateien nicht per Hardlink umbenannt werden: Die Umbenennung würde anhalten, bevor etwas verschoben wird.",
+    "web_link_fix": "So beheben Sie es:",
+    "web_link_fix_different_drives": "Binden Sie den Ordner, der beide enthält, einmal im Container ein (zum Beispiel /mnt/storage:/data) und wählen Sie sie dann unter /data. Bei zwei echten Laufwerken wählen Sie ein Ziel auf dem Laufwerk der Downloads.",
+    "web_link_fix_no_hard_links": "Wählen Sie ein Ziel auf einem Laufwerk mit Hardlinks (ext4, Btrfs, XFS, ZFS, NTFS, APFS) oder den Modus Kopieren.",
+    "web_link_fix_missing_folder": "Prüfen Sie, ob der Ordner noch existiert und im Container eingebunden ist.",
+    "web_link_use_copy": "Stattdessen Kopieren verwenden",
+    "web_understood": "Verstanden",
+    "web_see_details": "Details anzeigen",
+    "web_link_problems": "Hardlinks funktionieren zwischen einigen Ihrer Ordner nicht."
 }

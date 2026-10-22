@@ -336,8 +336,6 @@
     "web_link_different_drives": "„{source}” i „{destination}” są na dwóch dyskach lub w dwóch montowaniach Dockera: zamontuj raz ich wspólny folder nadrzędny.",
     "web_link_missing_folder": "Brak „{source}” lub „{destination}”.",
     "web_link_no_hard_links": "Dysk „{destination}” nie obsługuje twardych dowiązań (FAT, exFAT, większość udziałów sieciowych).",
-    "web_link_ok": "Twarde dowiązania działają z „{source}” do „{destination}”.",
-    "web_link_untested": "„{source}” i „{destination}” są na tym samym dysku; dowiązanie testowe zostanie utworzone, gdy w „{source}” pojawi się plik.",
     "web_remove": "Usuń",
     "web_remove_folder": "Usuń {path}",
     "web_save": "Zapisz",
@@ -397,5 +395,15 @@
     "web_choose_this_folder": "Wybierz ten folder",
     "web_parent_folder": "Folder nadrzędny",
     "web_no_subfolder": "Brak folderów w środku.",
-    "web_error_unreadable_folder": "Serwer nie może odczytać tego folderu."
+    "web_error_unreadable_folder": "Serwer nie może odczytać tego folderu.",
+    "web_link_problem_title": "Twarde dowiązania nie zadziałają",
+    "web_link_problem_text": "Między tymi folderami nie można zmieniać nazw plików przez twarde dowiązanie: zmiana nazw zatrzyma się, zanim cokolwiek przeniesie.",
+    "web_link_fix": "Jak to naprawić:",
+    "web_link_fix_different_drives": "zamontuj raz w kontenerze folder, który zawiera oba (na przykład /mnt/storage:/data), i wybierz je w /data. Przy dwóch fizycznych dyskach wybierz folder docelowy na dysku pobranych.",
+    "web_link_fix_no_hard_links": "wybierz folder docelowy na dysku obsługującym twarde dowiązania (ext4, Btrfs, XFS, ZFS, NTFS, APFS) albo tryb Kopiuj.",
+    "web_link_fix_missing_folder": "sprawdź, czy folder nadal istnieje i czy jest zamontowany w kontenerze.",
+    "web_link_use_copy": "Użyj kopiowania",
+    "web_understood": "Rozumiem",
+    "web_see_details": "Zobacz szczegóły",
+    "web_link_problems": "Twarde dowiązania nie zadziałają między niektórymi folderami."
 }

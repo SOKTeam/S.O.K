@@ -336,8 +336,6 @@
     "web_link_different_drives": "«{source}» и «{destination}» находятся на двух дисках или в двух точках монтирования Docker: смонтируйте их общую родительскую папку один раз.",
     "web_link_missing_folder": "«{source}» или «{destination}» не найдена.",
     "web_link_no_hard_links": "Диск «{destination}» не поддерживает жёсткие ссылки (FAT, exFAT, большинство сетевых ресурсов).",
-    "web_link_ok": "Жёсткие ссылки работают из «{source}» в «{destination}».",
-    "web_link_untested": "«{source}» и «{destination}» на одном диске; тестовая ссылка будет создана, когда в «{source}» появится файл.",
     "web_remove": "Удалить",
     "web_remove_folder": "Удалить {path}",
     "web_save": "Сохранить",
@@ -397,5 +395,15 @@
     "web_choose_this_folder": "Выбрать эту папку",
     "web_parent_folder": "Родительская папка",
     "web_no_subfolder": "Внутри нет папок.",
-    "web_error_unreadable_folder": "Сервер не может прочитать эту папку."
+    "web_error_unreadable_folder": "Сервер не может прочитать эту папку.",
+    "web_link_problem_title": "Жёсткие ссылки работать не будут",
+    "web_link_problem_text": "Между этими папками файлы нельзя переименовать жёсткой ссылкой: переименование остановится, ничего не переместив.",
+    "web_link_fix": "Как исправить:",
+    "web_link_fix_different_drives": "смонтируйте в контейнер один раз папку, содержащую обе (например /mnt/storage:/data), и выберите их внутри /data. Если это два разных диска, выберите папку назначения на диске загрузок.",
+    "web_link_fix_no_hard_links": "выберите папку на диске с поддержкой жёстких ссылок (ext4, Btrfs, XFS, ZFS, NTFS, APFS) или режим «Копировать».",
+    "web_link_fix_missing_folder": "проверьте, что папка ещё существует и смонтирована в контейнер.",
+    "web_link_use_copy": "Использовать копирование",
+    "web_understood": "Понятно",
+    "web_see_details": "Подробнее",
+    "web_link_problems": "Жёсткие ссылки не будут работать между некоторыми папками."
 }

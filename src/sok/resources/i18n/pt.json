@@ -336,8 +336,6 @@
     "web_link_different_drives": "«{source}» e «{destination}» estão em dois discos, ou duas montagens Docker: monte uma só vez a pasta-mãe comum.",
     "web_link_missing_folder": "«{source}» ou «{destination}» não existe.",
     "web_link_no_hard_links": "O disco de «{destination}» não suporta ligações físicas (FAT, exFAT, a maioria das partilhas de rede).",
-    "web_link_ok": "As ligações físicas funcionam de «{source}» para «{destination}».",
-    "web_link_untested": "«{source}» e «{destination}» estão no mesmo disco; a ligação de teste será feita quando «{source}» tiver um ficheiro.",
     "web_remove": "Remover",
     "web_remove_folder": "Remover {path}",
     "web_save": "Guardar",
@@ -397,5 +395,15 @@
     "web_choose_this_folder": "Escolher esta pasta",
     "web_parent_folder": "Pasta superior",
     "web_no_subfolder": "Nenhuma pasta lá dentro.",
-    "web_error_unreadable_folder": "O servidor não consegue ler esta pasta."
+    "web_error_unreadable_folder": "O servidor não consegue ler esta pasta.",
+    "web_link_problem_title": "As ligações físicas não vão funcionar",
+    "web_link_problem_text": "Os ficheiros não podem ser renomeados com uma ligação física entre estas pastas: a renomeação pararia antes de mover o que quer que seja.",
+    "web_link_fix": "Para corrigir:",
+    "web_link_fix_different_drives": "monte uma única vez no contentor a pasta que contém as duas (por exemplo /mnt/storage:/data) e escolha-as em /data. Com dois discos reais, escolha um destino no disco das transferências.",
+    "web_link_fix_no_hard_links": "escolha um destino num disco que suporte ligações físicas (ext4, Btrfs, XFS, ZFS, NTFS, APFS), ou o modo Copiar.",
+    "web_link_fix_missing_folder": "verifique se a pasta ainda existe e se está montada no contentor.",
+    "web_link_use_copy": "Usar Copiar em vez disso",
+    "web_understood": "Entendido",
+    "web_see_details": "Ver o detalhe",
+    "web_link_problems": "As ligações físicas não vão funcionar entre algumas das suas pastas."
 }
