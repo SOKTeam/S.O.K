@@ -507,10 +507,20 @@ def _candidate(candidate: Dict[str, Any]) -> Dict[str, Any]:
         "title": candidate.get("title") or candidate.get("name"),
         "original_title": candidate.get("original_title")
         or candidate.get("original_name"),
+        "by": _by(candidate),
         "year": candidate_year(candidate),
         "poster": candidate.get("poster_path") or candidate.get("image_url"),
         "overview": overview[:OVERVIEW_LENGTH],
     }
+
+
+def _by(candidate: Dict[str, Any]) -> Optional[str]:
+    """The artist of an album or a track, the authors of a book."""
+    artist = candidate.get("artist")
+    if isinstance(artist, str) and artist:
+        return artist
+    authors = [a for a in candidate.get("authors") or [] if isinstance(a, str)]
+    return ", ".join(authors) or None
 
 
 def search_error(exc: SearchStopped) -> Dict[str, Any]:

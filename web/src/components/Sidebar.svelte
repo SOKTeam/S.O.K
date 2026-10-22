@@ -3,11 +3,13 @@
   import { t } from "../lib/i18n.svelte";
   import { ANALYSIS, MEDIA_PAGES, OTHER_PAGES, type Page } from "../lib/pages";
   import { follow, router } from "../lib/router.svelte";
+  import { analysis } from "../lib/scan.svelte";
   import { logOut, session } from "../lib/session.svelte";
 </script>
 
 {#snippet link(page: Page)}
   {@const current = router.path === page.path}
+  {@const counts = page.mediaType ? analysis.summary?.counts[page.mediaType] : undefined}
   <a
     href={page.path}
     onclick={follow}
@@ -19,6 +21,15 @@
   >
     <Icon name={page.icon} class={["size-4.5", current && "text-accent"].join(" ")} />
     <span class="flex-1 truncate">{t(page.key, page.english)}</span>
+    {#if counts?.ambiguous}
+      <span
+        class="rounded-full bg-warn/15 px-1.5 text-xs font-semibold text-warn tabular-nums"
+        title={t("status_ambiguous", "Pick one")}>{counts.ambiguous}</span
+      >
+    {/if}
+    {#if counts?.total}
+      <span class="text-xs text-muted tabular-nums">{counts.total}</span>
+    {/if}
   </a>
 {/snippet}
 

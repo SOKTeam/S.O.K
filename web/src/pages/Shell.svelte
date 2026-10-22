@@ -1,12 +1,20 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+
   import Sidebar from "../components/Sidebar.svelte";
-  import Settings from "./Settings.svelte";
   import { t } from "../lib/i18n.svelte";
   import { pageOf } from "../lib/pages";
   import { router } from "../lib/router.svelte";
+  import { listen } from "../lib/scan.svelte";
   import { session } from "../lib/session.svelte";
+  import Analysis from "./Analysis.svelte";
+  import MediaTab from "./MediaTab.svelte";
+  import Settings from "./Settings.svelte";
 
   const page = $derived(pageOf(router.path));
+
+  // The analysis and its progress, live, for every page.
+  onMount(listen);
 </script>
 
 <div class="flex h-full">
@@ -23,6 +31,10 @@
     <main class="flex-1 overflow-y-auto p-8">
       {#if page.path === "/settings"}
         <Settings />
+      {:else if page.path === "/"}
+        <Analysis />
+      {:else if page.mediaType}
+        <MediaTab {page} />
       {:else}
         <h1 class="text-2xl font-bold">{t(page.key, page.english)}</h1>
       {/if}
