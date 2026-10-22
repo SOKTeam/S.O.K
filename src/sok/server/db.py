@@ -100,6 +100,17 @@ MIGRATIONS: List[str] = [
         operation TEXT NOT NULL
     );
     """,
+    """
+    ALTER TABLE scans ADD COLUMN processed INTEGER NOT NULL DEFAULT 0;
+    CREATE TABLE processed (
+        path TEXT PRIMARY KEY,
+        size INTEGER NOT NULL,
+        mtime_ns INTEGER NOT NULL,
+        target TEXT NOT NULL,
+        operation_id TEXT NOT NULL,
+        date TEXT NOT NULL
+    );
+    """,
 ]
 
 
