@@ -189,6 +189,60 @@ def test_the_environment_never_replaces_an_account(tmp_path, monkeypatch):
         assert client.get("/api/session").json()["username"] == "william"
 
 
+def test_a_forgotten_password_is_reset_from_the_environment(tmp_path, monkeypatch):
+    with make_client(tmp_path) as client:
+        setup(client)
+        client.patch("/api/settings", json={"settings": {"language": "fr"}})
+        cookie = client.cookies.get(COOKIE_NAME)
+    monkeypatch.setenv("SOK_RESET_PASSWORD", "1")
+    monkeypatch.setenv("SOK_PASSWORD", "a new password")
+
+    with make_client(tmp_path) as client:
+        client.cookies.set(COOKIE_NAME, cookie)
+        # The sessions are closed; the rest stays.
+        assert not client.get("/api/session").json()["logged_in"]
+        assert (
+            client.post(
+                "/api/login", json={"username": "william", "password": PASSWORD}
+            ).status_code
+            == 401
+        )
+        assert (
+            client.post(
+                "/api/login",
+                json={"username": "william", "password": "a new password"},
+            ).status_code
+            == 200
+        )
+        assert client.get("/api/settings").json()["settings"]["language"] == "fr"
+
+
+def test_the_reset_can_rename_the_account(tmp_path, monkeypatch):
+    with make_client(tmp_path) as client:
+        setup(client)
+    monkeypatch.setenv("SOK_RESET_PASSWORD", "true")
+    monkeypatch.setenv("SOK_USERNAME", "admin")
+    monkeypatch.setenv("SOK_PASSWORD", "a new password")
+
+    with make_client(tmp_path) as client:
+        assert client.get("/api/session").json()["username"] == "admin"
+
+
+def test_a_reset_needs_a_valid_password(tmp_path, monkeypatch):
+    with make_client(tmp_path) as client:
+        setup(client)
+    monkeypatch.setenv("SOK_RESET_PASSWORD", "1")
+    monkeypatch.setenv("SOK_PASSWORD", "short")
+
+    with make_client(tmp_path) as client:
+        assert (
+            client.post(
+                "/api/login", json={"username": "william", "password": PASSWORD}
+            ).status_code
+            == 200
+        )
+
+
 def test_sok_auth_none_turns_the_login_off(tmp_path, monkeypatch):
     monkeypatch.setenv("SOK_AUTH", "none")
 

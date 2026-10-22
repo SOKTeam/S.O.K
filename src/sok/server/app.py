@@ -90,6 +90,7 @@ def create_app(folder: Optional[Path] = None) -> FastAPI:
         )
         if app.state.accounts.create_from_env():
             logger.info("Account created from SOK_USERNAME")
+        app.state.accounts.reset_from_env()
         if auth_disabled():
             logger.warning("SOK_AUTH=none: the login is turned off")
         try:
