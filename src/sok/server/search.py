@@ -20,6 +20,7 @@ used quota stops the search (SearchStopped); the rows keep what they had.
 
 import json
 import logging
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
@@ -45,14 +46,16 @@ from sok.core.batch import (
 from sok.core.exceptions import APIAuthenticationError, APIError, APIRateLimitError
 from sok.core.interfaces import ContentType, MediaType
 from sok.core.media_manager import get_media_manager
-from sok.core.series import fetch_episode_titles
+from sok.core.series import fetch_episode_titles, season_folders
 from sok.file_operations.book_operations import BookFileOperations
 from sok.file_operations.game_operations import GameFileOperations
 from sok.file_operations.music_operations import MusicFileOperations
 from sok.file_operations.organize import FileListOrganizerMixin
 from sok.file_operations.video_operations import VideoFileOperations
 from sok.media.factory import create_media_item
+from sok.media.video.series import Series
 from sok.server.db import Database
+from sok.server.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -152,9 +155,10 @@ def api_language(language: str) -> str:
 class Searcher:
     """Search the rows, change them, and describe them for the tabs."""
 
-    def __init__(self, db: Database, config: ConfigManager) -> None:
+    def __init__(self, db: Database, config: ConfigManager, settings: Settings) -> None:
         self._db = db
         self._config = config
+        self._settings = settings
         self._video = VideoFileOperations()
         self._batch_ops: Dict[str, FileListOrganizerMixin] = {
             "music": MusicFileOperations(),
@@ -381,10 +385,15 @@ class Searcher:
     def describe(self, row: Any) -> Dict[str, Any]:
         """A row with its candidates and, once matched, the new names."""
         candidates = json.loads(row["candidates"])
-        selected = row["selected"]
         details = json.loads(row["details"]) if row["details"] else None
         files = json.loads(row["files"])
-        names = self._new_names(row, files, candidates, selected, details)
+        errors = json.loads(row["errors"]) if row["errors"] else {}
+        item = self.media_item(row)
+        names = (
+            self.new_names(row["media_type"], item, files, self.destination(row))
+            if item is not None
+            else [None] * len(files)
+        )
         return {
             "id": row["id"],
             "media_type": row["media_type"],
@@ -393,36 +402,43 @@ class Searcher:
             "query": row["query"],
             "year": row["year"],
             "status": row["status"],
-            "selected": selected,
+            "selected": row["selected"],
             "destination": row["destination"],
             "candidates": [_candidate(c) for c in candidates],
             "files": [
-                {"path": path, "name": Path(path).name, "new_name": name}
+                {
+                    "path": path,
+                    "name": Path(path).name,
+                    "new_name": name,
+                    # Why the last rename left the file: {"code", "message"}.
+                    "error": errors.get(path),
+                }
                 for path, name in zip(files, names)
             ],
             "episodes_found": len(details["episodes"]) if details else None,
         }
 
-    def _new_names(
-        self,
-        row: Any,
-        files: List[str],
-        candidates: List[Dict[str, Any]],
-        selected: Optional[int],
-        details: Optional[Dict[str, Any]],
-    ) -> List[Optional[str]]:
-        """The new path of each file under the destination, or None before a
+    def destination(self, row: Any) -> Optional[str]:
+        """The destination folder of a row, if its media type has one."""
+        folders = self._settings.folders()[row["media_type"]]
+        if not folders:
+            return None
+        return folders[row["destination"] if row["destination"] < len(folders) else 0]
+
+    def media_item(self, row: Any) -> Any:
+        """The media item of the candidate picked for a row, or None before a
         match.
 
-        Movies and episodes get their file name; the other kinds the folders
-        and the name the desktop batches give them (batch_target): the
-        artist and album folder of a track, the author folder of a book, the
-        platform folder of a game.
+        A series gets the titles of its episodes and the folders of its
+        seasons ("Season 2 - The Name", in the language of the settings).
         """
         search = SEARCHES.get(row["kind"])
+        candidates = json.loads(row["candidates"])
+        selected = row["selected"]
         if search is None or selected is None or not candidates:
-            return [None] * len(files)
+            return None
         candidate = dict(candidates[selected])
+        details = json.loads(row["details"]) if row["details"] else None
         if details:
             candidate["episodes"] = details["episodes"]
         item = create_media_item(
@@ -431,19 +447,56 @@ class Searcher:
             get_media_manager(),
             language=self._config.get("language", "en") or "en",
         )
-        if item is None:
-            return [None] * len(files)
-        if row["media_type"] in ("movies", "tv"):
+        if isinstance(item, Series) and details:
+            season_word = self._config.load_language().get("season", "Season")
+            item.seasons = season_folders(details, season_word)
+        return item
+
+    def new_names(
+        self,
+        media_type: str,
+        item: Any,
+        files: List[str],
+        destination: Optional[str],
+    ) -> List[str]:
+        """The new path of each file of a row under its destination.
+
+        A movie gets its file name, an episode its series and season folders
+        (an existing season folder of the destination first), the other kinds
+        the folders and the name the desktop batches give them
+        (batch_target): the artist and album folder of a track, the author
+        folder of a book, the platform folder of a game.
+        """
+        if media_type == "movies":
             return [
                 self._video.generate_new_filename(item, Path(f).name) for f in files
             ]
-        ops = self._batch_ops[row["media_type"]]
+        if media_type == "tv":
+            root = destination or ""
+            series = os.path.join(root, item.get_folder_structure()[0])
+            names = []
+            for file in files:
+                name = Path(file).name
+                folder = self._video.episode_folder(
+                    item, name, series, on_disk=bool(root)
+                )
+                path = os.path.join(
+                    os.path.relpath(folder, root) if root else folder,
+                    self._video.generate_new_filename(item, name),
+                )
+                names.append(Path(path).as_posix())
+            return names
+        ops = self._batch_ops[media_type]
         alone = len(files) == 1
-        names: List[Optional[str]] = []
+        names = []
         for file in files:
             folders, name = ops.batch_target(item, Path(file), alone)
             names.append("/".join([*folders, name]))
         return names
+
+    def batch_ops(self, media_type: str) -> Any:
+        """The file operations that rename a media type."""
+        return self._batch_ops.get(media_type, self._video)
 
 
 def _candidate(candidate: Dict[str, Any]) -> Dict[str, Any]:

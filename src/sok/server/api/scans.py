@@ -10,8 +10,8 @@
 # ===----------------------------------------------------------------------=== #
 """The analyses: /api/scans, /api/scans/current and /api/to-check.
 
-An error gives a code in "detail": already_running, no_sources,
-unknown_file or invalid_kind.
+An error gives a code in "detail": already_running, rename_running,
+no_sources, unknown_file or invalid_kind.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status

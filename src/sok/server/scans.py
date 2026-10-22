@@ -49,6 +49,7 @@ from sok.file_operations.detection import (
 )
 from sok.server.db import Database
 from sok.server.events import EventBus
+from sok.server.jobs import SCAN, Busy, Jobs
 from sok.server.search import Searcher, SearchStopped, search_error
 from sok.server.settings import MEDIA_TYPES, Settings
 
@@ -79,7 +80,8 @@ GROUP_KINDS = (ContentType.EPISODE, ContentType.ALBUM)
 
 
 class ScanError(Exception):
-    """An analysis that cannot start: already_running or no_sources."""
+    """An analysis that cannot start: already_running, rename_running or
+    no_sources."""
 
     def __init__(self, code: str) -> None:
         super().__init__(code)
@@ -160,12 +162,13 @@ class Scans:
         settings: Settings,
         events: EventBus,
         searcher: Searcher,
+        jobs: Jobs,
     ) -> None:
         self._db = db
         self._settings = settings
         self._events = events
         self._searcher = searcher
-        self._task: Optional[asyncio.Task] = None
+        self._jobs = jobs
         # Phase of the running analysis (detect, search) and its progress.
         self._progress: Optional[Dict[str, Any]] = None
         with db.transaction() as conn:
@@ -175,10 +178,6 @@ class Scans:
                 (INTERRUPTED, _now(), RUNNING),
             )
 
-    @property
-    def running(self) -> bool:
-        return self._task is not None and not self._task.done()
-
     def start(self) -> int:
         """Start an analysis of the source folders, in the background.
 
@@ -186,11 +185,13 @@ class Scans:
             The id of the analysis.
 
         Raises:
-            ScanError: already_running, or no_sources when no source folder
-                is set.
+            ScanError: already_running, rename_running, or no_sources when
+                no source folder is set.
         """
-        if self.running:
-            raise ScanError("already_running")
+        try:
+            self._jobs.check(SCAN)
+        except Busy as exc:
+            raise ScanError(exc.code) from exc
         sources = self._settings.folders()["sources"]
         if not sources:
             raise ScanError("no_sources")
@@ -200,14 +201,9 @@ class Scans:
                 (_now(), RUNNING),
             ).lastrowid
         assert scan_id is not None
-        self._task = asyncio.get_running_loop().create_task(self._run(scan_id, sources))
+        self._jobs.start(SCAN, self._run(scan_id, sources))
         self._publish()
         return scan_id
-
-    async def wait(self) -> None:
-        """Wait for the running analysis, if any (for the tests)."""
-        if self._task is not None:
-            await asyncio.shield(self._task)
 
     async def _run(self, scan_id: int, sources: List[str]) -> None:
         missing = [s for s in sources if not os.path.isdir(s)]

@@ -52,10 +52,10 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Paris
-      - API_KEY_TMDB_V4=...        # optional: can be typed in the settings
+      - API_KEY_TMDB_V4=... # optional: can be typed in the settings
     volumes:
       - /srv/sok/config:/config
-      - /mnt/storage:/data         # one parent folder: hard links work inside it
+      - /mnt/storage:/data # one parent folder: hard links work inside it
     ports:
       - 8080:8080
     restart: unless-stopped
@@ -137,7 +137,7 @@ interface.
   Ready status and the input patterns of the settings.
 - One analysis at a time. Its progress reaches the browser live (server-sent
   events). Closing the tab does not stop it.
-- **Files already processed are hidden.** With hard links, a renamed file stays
+- **Files already processed are hidden** (planned). With hard links, a renamed file stays
   in the downloads: S.O.K remembers every file it renamed (path, size, date) and
   leaves it out of the next analyses. A filter shows them again. An undone file
   is no longer "processed".
@@ -167,8 +167,21 @@ interface.
 
 ### Renaming
 
-**Planned.**
+**In place since v1.5.0** ([Renames](/server/overview/#renames)).
 
+- **One tab at a time**: all its Ready rows (Ready, or picked by hand), or the
+  rows ticked. The others are left out. One rename is one operation of the
+  history.
+- It runs in the background with its progress live, like an analysis, and
+  **never at the same time as one**: one task at a time.
+- **With hard links, everything is tested first**: if a source and a
+  destination of the rename cannot be linked, nothing is renamed and the error
+  names the two folders and the fix.
+- **The files renamed leave the table.** A file that fails, or is skipped as a
+  duplicate, stays on its row with why; the row leaves once all its files are
+  renamed.
+- A series goes to `Series/Season N/` (in the language of the settings), or to
+  a season folder that already exists; the preview of the row shows that path.
 - File mode, in the settings: **hard link** (default), **copy** or **move**. A
   hard link that fails gives an error on its row; S.O.K never copies instead
   without being told.
@@ -193,11 +206,12 @@ interface.
 
 ### History and undo
 
-**Planned, on `sok.core.history`.** The undo of each mode is in place since
-v1.5.0 ([File modes](/architecture/organizing/#file-modes)).
+**In place since v1.5.0** ([History](/server/overview/#history)), on
+`sok.core.history`, kept in the database of the server.
 
 - Same rules as the desktop app: undo a whole rename or one file, never replace
   a file, keep the last 100 operations.
+- An undone file is not analyzed again on its own: the next analysis finds it.
 - Undoing depends on the mode the file was renamed with:
 
 | Mode      | Undo                                                                                                      |

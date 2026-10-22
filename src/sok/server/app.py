@@ -26,10 +26,13 @@ from fastapi import FastAPI
 from sok.__version__ import __version__
 from sok.config.config_manager import data_dir, get_config_manager, log_dir
 from sok.core.history import LINK
-from sok.server.api import auth, events, health, rows, scans, settings
+from sok.server.api import auth, events, health, renames, rows, scans, settings
 from sok.server.auth import Accounts, auth_disabled
 from sok.server.db import Database
 from sok.server.events import EventBus
+from sok.server.history import History
+from sok.server.jobs import Jobs
+from sok.server.renames import Renamer
 from sok.server.scans import Scans
 from sok.server.search import Searcher
 from sok.server.settings import Settings
@@ -58,9 +61,23 @@ def create_app(folder: Optional[Path] = None) -> FastAPI:
         app.state.config = config
         app.state.settings = Settings(db, config)
         app.state.events = EventBus()
-        app.state.searcher = Searcher(db, config)
+        app.state.searcher = Searcher(db, config, app.state.settings)
+        app.state.jobs = Jobs()
+        app.state.history = History(db)
         app.state.scans = Scans(
-            db, app.state.settings, app.state.events, app.state.searcher
+            db,
+            app.state.settings,
+            app.state.events,
+            app.state.searcher,
+            app.state.jobs,
+        )
+        app.state.renamer = Renamer(
+            db,
+            config,
+            app.state.events,
+            app.state.searcher,
+            app.state.history,
+            app.state.jobs,
         )
         if app.state.accounts.create_from_env():
             logger.info("Account created from SOK_USERNAME")
@@ -83,6 +100,7 @@ def create_app(folder: Optional[Path] = None) -> FastAPI:
     app.include_router(settings.router)
     app.include_router(scans.router)
     app.include_router(rows.router)
+    app.include_router(renames.router)
     app.include_router(events.router)
     return app
 

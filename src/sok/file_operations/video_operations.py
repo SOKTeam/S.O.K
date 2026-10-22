@@ -266,6 +266,41 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         season_word = translations.get("season", "Season")
         return f"{season_word} {season_num}"
 
+    def episode_folder(
+        self,
+        media_item: MediaItem,
+        filename: str,
+        base_path: str,
+        on_disk: bool = True,
+    ) -> str:
+        """The folder of a file of a series: its season folder, an existing
+        one first ("Saison 01"), or the base folder without a season.
+
+        Args:
+            media_item: The media item; only a Series has season folders.
+            filename: The name of the file, which gives its season.
+            base_path: The folder of the series (or of the movie).
+            on_disk: Look for an existing season folder in base_path.
+        """
+        if not isinstance(media_item, Series):
+            return base_path
+        season_num = self.extract_info_from_filename(filename)["season"]
+        if season_num is None:
+            return base_path
+        existing = (
+            self._find_existing_season_folder(base_path, season_num)
+            if on_disk
+            else None
+        )
+        if existing:
+            return existing
+        return os.path.join(
+            base_path,
+            self._find_season_in_structure(
+                media_item.get_folder_structure(), season_num
+            ),
+        )
+
     def generate_new_filename(
         self, media_item: MediaItem, original_filename: str
     ) -> str:
@@ -430,24 +465,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             if progress_callback:
                 progress_callback(idx + 1, total_files, file)
 
-            info = self.extract_info_from_filename(file)
-
-            if isinstance(media_item, Series) and info["season"] is not None:
-                season_num = info["season"]
-
-                existing_season_folder = self._find_existing_season_folder(
-                    base_path, season_num
-                )
-
-                if existing_season_folder:
-                    dest_folder = existing_season_folder
-                else:
-                    season_folder_name = self._find_season_in_structure(
-                        folder_structure, season_num
-                    )
-                    dest_folder = os.path.join(base_path, season_folder_name)
-            else:
-                dest_folder = base_path
+            dest_folder = self.episode_folder(media_item, file, base_path)
 
             new_filename = self.generate_new_filename(media_item, file)
             dest_file = os.path.join(dest_folder, new_filename)
@@ -549,24 +567,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             if progress_callback:
                 progress_callback(idx + 1, len(files), file)
 
-            info = self.extract_info_from_filename(file)
-
-            if isinstance(media_item, Series) and info["season"] is not None:
-                season_num = info["season"]
-
-                existing_season_folder = self._find_existing_season_folder(
-                    base_path, season_num
-                )
-
-                if existing_season_folder:
-                    dest_folder = existing_season_folder
-                else:
-                    season_folder_name = self._find_season_in_structure(
-                        folder_structure, season_num
-                    )
-                    dest_folder = os.path.join(base_path, season_folder_name)
-            else:
-                dest_folder = base_path
+            dest_folder = self.episode_folder(media_item, file, base_path)
 
             new_filename = self.generate_new_filename(media_item, file)
             dest_file = os.path.join(dest_folder, new_filename)
