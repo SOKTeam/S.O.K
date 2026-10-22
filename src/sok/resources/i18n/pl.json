@@ -298,5 +298,21 @@
     "undo_skipped": "Pozostawiono na miejscu pliki ({0}):",
     "undo_missing": "przeniesiony lub usunięty po zmianie nazwy",
     "undo_occupied": "inny plik ma jego dawną nazwę",
-    "undo_failed": "nie udało się przenieść"
+    "undo_failed": "nie udało się przenieść",
+    "web_analysis": "Analiza",
+    "web_setup_title": "Witaj",
+    "web_setup_text": "Utwórz konto, które chroni ten serwer.",
+    "web_username": "Nazwa użytkownika",
+    "web_password": "Hasło",
+    "web_password_confirm": "Potwierdź hasło",
+    "web_create_account": "Utwórz konto",
+    "web_log_in": "Zaloguj się",
+    "web_log_out": "Wyloguj się",
+    "web_auth_off": "Logowanie jest wyłączone (SOK_AUTH=none): chroń ten serwer swoim reverse proxy.",
+    "web_error_unknown": "Coś poszło nie tak. Spróbuj ponownie.",
+    "web_error_offline": "Serwer nie odpowiada.",
+    "web_error_invalid_account": "Podaj nazwę użytkownika i hasło o długości co najmniej 8 znaków.",
+    "web_error_wrong_login": "Nieprawidłowa nazwa użytkownika lub hasło.",
+    "web_error_too_many_attempts": "Zbyt wiele prób. Spróbuj ponownie za {seconds} s.",
+    "web_error_password_mismatch": "Hasła nie są takie same."
 }
