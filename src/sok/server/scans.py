@@ -26,9 +26,9 @@ The files whose type is a guess are "to check", until the user confirms a
 type, which the next analyses remember. The files already processed (renamed
 before, with the same size and date) are left out and counted.
 
-Then the rows not searched yet are searched (Searcher): movies and TV shows
-for now. A missing key or a used quota stops the analysis, with the rows
-sorted; its error says which key.
+Then the rows not searched yet are searched (Searcher), kind by kind. A
+missing key or a used quota stops the media types of that service, with the
+rows sorted; the error of the analysis says which key.
 """
 
 import asyncio
