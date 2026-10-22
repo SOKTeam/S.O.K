@@ -12,11 +12,16 @@
   let {
     row,
     destinations,
+    selected = false,
+    onselect,
     onchange,
   }: {
     row: Row;
     /** The destination folders of its media type. */
     destinations: string[];
+    /** Ticked, to be renamed with "Rename the selection". */
+    selected?: boolean;
+    onselect: (selected: boolean) => void;
     onchange: (row: Row) => void;
   } = $props();
 
@@ -96,6 +101,14 @@
 
 <div class="border-b border-line last:border-0">
   <div class={["flex items-center gap-3 px-4 py-2.5", open && "bg-hover"]}>
+    <input
+      type="checkbox"
+      class="size-4 shrink-0 accent-(--color-accent) disabled:opacity-30"
+      checked={selected && row.status === "ok"}
+      disabled={row.status !== "ok"}
+      aria-label={t("web_select_row", "Select")}
+      onchange={(event) => onselect(event.currentTarget.checked)}
+    />
     <Poster poster={match?.poster ?? null} />
     <div class="min-w-0 flex-1">
       <button
@@ -187,7 +200,7 @@
   </div>
 
   {#if open}
-    <div class="bg-hover px-4 pt-1 pb-4 pl-15">
+    <div class="bg-hover px-4 pt-1 pb-4 pl-22">
       {#if row.candidates.length}
         <p class="mb-2 text-xs text-muted">
           {t("web_pick_text", "Pick the right result, or search another title.")}
@@ -241,7 +254,7 @@
   {#if grouped && unfolded}
     <div class="pb-2">
       {#each all ? row.files : row.files.slice(0, SHOWN) as file (file.path)}
-        <div class="flex items-center gap-2 py-1 pr-4 pl-15 font-mono text-xs">
+        <div class="flex items-center gap-2 py-1 pr-4 pl-22 font-mono text-xs">
           <span class="w-72 shrink-0 truncate text-muted" title={file.path}>{file.name}</span>
           {#if file.new_name && row.status === "ok"}
             <span class="text-faint">→</span>
@@ -255,7 +268,7 @@
       {#if !all && row.files.length > SHOWN}
         <button
           type="button"
-          class="py-1 pl-15 text-xs text-muted hover:text-fg"
+          class="py-1 pl-22 text-xs text-muted hover:text-fg"
           onclick={() => (all = true)}
         >
           {t("web_more_files", "+ {n} more", { n: row.files.length - SHOWN })}

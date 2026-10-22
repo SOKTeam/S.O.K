@@ -86,8 +86,8 @@ disk. The example mounts the common parent folder once.
 
 ### Accounts
 
-**In place since v1.5.0** ([Login](/server/overview/#login)); the pages of the
-interface are planned.
+**In place since v1.5.0** ([Login](/server/overview/#login),
+[The web project](/server/overview/#the-web-project)).
 
 - One account. It is created on the first visit, or with `SOK_USERNAME` and
   `SOK_PASSWORD` (taken only when no account exists yet).
@@ -101,8 +101,7 @@ interface are planned.
 ### API keys
 
 **In place since v1.5.0** ([Settings](/server/overview/#settings),
-[Testing a key](/server/overview/#testing-a-key)), except the page of the
-interface.
+[Testing a key](/server/overview/#testing-a-key)).
 
 - The settings page lists the services like the desktop app, with a "Test"
   button. The keys typed there are encrypted in `/config`.
@@ -115,7 +114,8 @@ interface.
 ### Folders
 
 **In place since v1.5.0** for the settings and the link check
-([Link checks](/server/overview/#link-checks)); the choice per row is planned.
+([Link checks](/server/overview/#link-checks)), and the choice per row in the
+tabs.
 
 - Several source folders, scanned with their subfolders.
 - One or more destination folders per media type. With one, it is used for
@@ -227,7 +227,7 @@ file there, it stays.
 
 ### Code
 
-**Planned.**
+**In place since v1.5.0** ([Code](/server/overview/#code)).
 
 ```text
 src/sok/
@@ -253,7 +253,7 @@ Dockerfile                                            Node build of web/, then P
 
 ### Changes in the shared core
 
-**Planned.** Made first, tested with the desktop app:
+**In place since v1.5.0.** Made first, tested with the desktop app:
 
 1. `SOK_CONFIG_DIR`: the folder of the settings, the key, the history and the
    logs (`/config` in the image). Without it, the paths stay those of today
@@ -269,7 +269,8 @@ Dockerfile                                            Node build of web/, then P
 
 ### API
 
-**Planned.** JSON under `/api`, the session cookie on every call:
+**In place since v1.5.0** ([API](/server/overview/#api)). JSON under `/api`,
+the session cookie on every call:
 
 | Route                                                         | Does                                                 |
 | ------------------------------------------------------------- | ---------------------------------------------------- |

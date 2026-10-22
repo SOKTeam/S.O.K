@@ -8,7 +8,7 @@
 </script>
 
 {#snippet link(page: Page)}
-  {@const current = router.path === page.path}
+  {@const current = router.path === page.path || router.path.startsWith(`${page.path}/`)}
   {@const counts = page.mediaType ? analysis.summary?.counts[page.mediaType] : undefined}
   <a
     href={page.path}

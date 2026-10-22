@@ -37,6 +37,19 @@ export function errorText(error: unknown): string {
       return t("web_error_rename_running", "A rename is running: wait for its end.");
     case "scan_running":
       return t("web_error_scan_running", "An analysis is running: wait for its end.");
+    case "nothing_to_rename":
+      return t("web_error_nothing_to_rename", "No Ready row to rename.");
+    case "no_destination":
+      return t(
+        "web_error_no_destination",
+        "Add a destination folder for this type in the settings first.",
+      );
+    case "different_drives":
+    case "no_hard_links":
+    case "missing_folder": {
+      const detail = error.detail as { source?: string; destination?: string };
+      return linkProblemText(error.code, detail.source ?? "", detail.destination ?? "");
+    }
     case "no_sources":
       return t("web_error_no_sources", "Add a source folder in the settings first.");
     default:
@@ -99,4 +112,25 @@ export function searchErrorText(error: ApiError): string {
 /** What a refused setting is about: {"code", "item"} of "detail". */
 function item(error: ApiError): string {
   return String((error.detail as { item?: string } | null)?.item ?? "");
+}
+
+/** Why a hard link cannot be made from a folder to another. */
+export function linkProblemText(problem: string, source: string, destination: string): string {
+  const values = { source, destination };
+  switch (problem) {
+    case "different_drives":
+      return t(
+        "web_link_different_drives",
+        "“{source}” and “{destination}” are on two drives, or two Docker mounts: mount their common parent folder once.",
+        values,
+      );
+    case "no_hard_links":
+      return t(
+        "web_link_no_hard_links",
+        "The disk of “{destination}” has no hard links (FAT, exFAT, most network shares).",
+        values,
+      );
+    default:
+      return t("web_link_missing_folder", "“{source}” or “{destination}” is missing.", values);
+  }
 }

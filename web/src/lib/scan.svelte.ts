@@ -2,6 +2,7 @@
 // events of the server (GET /api/events).
 
 import { api } from "./api";
+import { setRename, setRenameProgress, type Rename } from "./renames.svelte";
 
 export type RowStatus = "pending" | "ok" | "ambiguous" | "missing";
 
@@ -82,10 +83,24 @@ export function listen(): () => void {
     const { type: _type, ...summary } = JSON.parse((event as MessageEvent).data);
     setSummary(summary as Summary);
   });
+  source.addEventListener("rename", (event) => {
+    const { rename } = JSON.parse((event as MessageEvent).data) as { rename: Rename | null };
+    setRename(rename);
+    if (rename && rename.status !== "running") {
+      // The renamed files left their rows.
+      refreshSummary()
+        .then(() => (state.changes += 1))
+        .catch(() => {});
+    }
+  });
   source.addEventListener("progress", (event) => {
     const { type: _type, ...progress } = JSON.parse((event as MessageEvent).data);
+    if (progress.phase === "rename") {
+      setRenameProgress(progress);
+      return;
+    }
     const scan = state.summary?.scan;
-    if (scan && progress.phase !== "rename") {
+    if (scan) {
       const sorted = scan.progress?.phase !== "search" && progress.phase === "search";
       scan.progress = progress as Progress;
       if (sorted) {

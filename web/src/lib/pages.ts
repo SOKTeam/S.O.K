@@ -27,7 +27,12 @@ export const OTHER_PAGES: Page[] = [
 
 export const PAGES = [ANALYSIS, ...MEDIA_PAGES, ...OTHER_PAGES];
 
-/** The page of a path; the analysis for an unknown one. */
+/** The page of a path; the analysis for an unknown one. A page can have
+ * sub-pages: /history/processed is the history. */
 export function pageOf(path: string): Page {
-  return PAGES.find((page) => page.path === path) ?? ANALYSIS;
+  return (
+    PAGES.find((page) => page.path === path) ??
+    PAGES.find((page) => page.path !== "/" && path.startsWith(`${page.path}/`)) ??
+    ANALYSIS
+  );
 }
