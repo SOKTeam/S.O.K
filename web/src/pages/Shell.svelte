@@ -1,5 +1,6 @@
 <script lang="ts">
   import Sidebar from "../components/Sidebar.svelte";
+  import Settings from "./Settings.svelte";
   import { t } from "../lib/i18n.svelte";
   import { pageOf } from "../lib/pages";
   import { router } from "../lib/router.svelte";
@@ -20,7 +21,11 @@
       </p>
     {/if}
     <main class="flex-1 overflow-y-auto p-8">
-      <h1 class="text-2xl font-bold">{t(page.key, page.english)}</h1>
+      {#if page.path === "/settings"}
+        <Settings />
+      {:else}
+        <h1 class="text-2xl font-bold">{t(page.key, page.english)}</h1>
+      {/if}
     </main>
   </div>
 </div>

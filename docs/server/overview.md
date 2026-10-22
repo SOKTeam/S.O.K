@@ -180,18 +180,19 @@ npm run build   # web/dist, served by sok-server
 During development, run `sok-server` next to `npm run dev`: Vite reloads the
 interface at each change and sends the `/api` requests to the server.
 
-| File                        | Contents                                                                                                                            |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `src/App.svelte`            | The first page: setup without an account, login without a session, else the app (directly with `SOK_AUTH=none`)                     |
-| `src/pages/`                | `Setup`, `Login`, and `Shell`: the sidebar and the page of the address                                                              |
-| `src/components/`           | `Sidebar`, `AuthCard`, `Icon`                                                                                                       |
-| `src/lib/api.ts`            | `api()`: calls `/api` with the session cookie; an error is an `ApiError` with the `code` of `detail`                                |
-| `src/lib/i18n.svelte.ts`    | `loadTexts()` and `t(key, english, values)`                                                                                         |
-| `src/lib/router.svelte.ts`  | The page is the path of the address (`/movies`); `navigate()`, `follow` for the links                                               |
-| `src/lib/session.svelte.ts` | `GET /api/session`, `logOut()`                                                                                                      |
-| `src/lib/pages.ts`          | The pages of the sidebar                                                                                                            |
-| `src/lib/icons.ts`          | The icons of the desktop app (`src/sok/resources/assets`), in the color of the text                                                 |
-| `src/app.css`               | Tailwind and the colors of the desktop app: the macOS light theme and the dark theme, as Tailwind colors (`bg-card`, `text-muted`…) |
+| File                         | Contents                                                                                                                            |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `src/App.svelte`             | The first page: setup without an account, login without a session, else the app (directly with `SOK_AUTH=none`)                     |
+| `src/pages/`                 | `Setup`, `Login`, `Shell` (the sidebar and the page of the address), `Settings`                                                     |
+| `src/components/`            | `Sidebar`, `AuthCard`, `Icon`, `Section` (a titled card), `Toggle`, `FolderList`, `KeyRow` (a service and its keys)                 |
+| `src/lib/api.ts`             | `api()`: calls `/api` with the session cookie; an error is an `ApiError` with the `code` of `detail`                                |
+| `src/lib/i18n.svelte.ts`     | `loadTexts()` and `t(key, english, values)`                                                                                         |
+| `src/lib/router.svelte.ts`   | The page is the path of the address (`/movies`); `navigate()`, `follow` for the links                                               |
+| `src/lib/session.svelte.ts`  | `GET /api/session`, `logOut()`                                                                                                      |
+| `src/lib/settings.svelte.ts` | `loadSettings()`, `saveSettings(change)`, `testKey(service)`                                                                        |
+| `src/lib/pages.ts`           | The pages of the sidebar                                                                                                            |
+| `src/lib/icons.ts`           | The icons of the desktop app (`src/sok/resources/assets`), in the color of the text                                                 |
+| `src/app.css`                | Tailwind and the colors of the desktop app: the macOS light theme and the dark theme, as Tailwind colors (`bg-card`, `text-muted`…) |
 
 - **Colors.** `app.css` declares the colors of `src/sok/ui/theme.py` in
   `@theme`; the dark theme only changes the variables, under
@@ -202,6 +203,15 @@ interface at each change and sends the `/api` requests to the server.
   keys in the translation files of the desktop app (see
   [Translations](/guides/translations/)). The keys of the desktop app can be
   reused (`movies`, `settings`); the new ones start with `web_`.
+- **Settings page.** Each change is saved at once, as in the desktop app: a
+  switch, a file mode or a preferred service when it is picked, a format when
+  its field is left, a folder or a key with its button (`PATCH /api/settings`;
+  the answer replaces the settings shown). A refused change shows its error at
+  the top of the page (a folder: under its list). The paths are typed as the
+  server sees them; the link checks show under the file modes in `link` mode.
+  A key is never shown: only whether it is set, or set by an environment
+  variable (then it cannot be changed), with a test of the saved key. A new
+  language loads its texts at once.
 - **Language at startup.** Without an account, the interface asks
   `GET /api/i18n` for the languages, then loads the first language of the
   browser that S.O.K has (`pickLanguage`); the setup sends it to the server.
