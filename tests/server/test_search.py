@@ -95,8 +95,8 @@ def test_a_ready_series_gets_its_episode_titles(client):
     assert series["status"] == "ok"
     assert series["episodes_found"] == 3
     assert [f["new_name"] for f in series["files"]] == [
-        "Severance S01E01 Episode 1.mkv",
-        "Severance S01E02 Episode 2.mkv",
+        "Severance/Season 1/Severance S01E01 Episode 1.mkv",
+        "Severance/Season 1/Severance S01E02 Episode 2.mkv",
     ]
 
 

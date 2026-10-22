@@ -88,6 +88,10 @@ pull it without logging in.
 | `server/events.py`                            | `EventBus`: the events sent to the browsers                                          |
 | `server/api/scans.py`, `server/api/events.py` | The routes of the analyses and `GET /api/events`                                     |
 | `server/search.py`, `server/api/rows.py`      | `Searcher`: the search of the rows, their changes and what the tabs show; its routes |
+| `server/jobs.py`                              | `Jobs`: the slot of the background work, one analysis or one rename at a time        |
+| `server/renames.py`                           | `Renamer`: the renames                                                               |
+| `server/history.py`                           | `History`: the rename history in the database                                        |
+| `server/api/renames.py`                       | The routes of the renames and of the history                                         |
 
 `create_app()` opens the database when the application starts (its lifespan),
 creates the account from `SOK_USERNAME` and `SOK_PASSWORD` if needed, and puts
@@ -100,25 +104,29 @@ the server (the desktop app moves).
 
 JSON under `/api`. FastAPI's own `/docs` page is turned off.
 
-| Route                          | Login | Does                                                                                           |
-| ------------------------------ | ----- | ---------------------------------------------------------------------------------------------- |
-| `GET /api/health`              | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker                            |
-| `GET /api/session`             | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`                                 |
-| `POST /api/setup`              | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)                    |
-| `POST /api/login`              | No    | Opens a session (`401` for a wrong login, `429` while waiting)                                 |
-| `POST /api/logout`             | Yes   | Closes the session                                                                             |
-| `GET /api/settings`            | Yes   | The settings, the keys, the folders and the link checks (see below)                            |
-| `PATCH /api/settings`          | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`                       |
-| `POST /api/settings/test-link` | Yes   | `{source, destination}`: whether a hard link works between them                                |
-| `POST /api/settings/test-key`  | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key))          |
-| `POST /api/scans`              | Yes   | Starts an analysis (`202`, `{"id"}`); `409` with `already_running` or `no_sources`             |
-| `GET /api/scans/current`       | Yes   | The last analysis, the counts of the rows and the files to check (see [Analyses](#analyses))   |
-| `POST /api/to-check`           | Yes   | `{path, kind}`: gives a file to check its type; answers the summary                            |
-| `GET /api/events`              | Yes   | Server-sent events (see [Live events](#live-events))                                           |
-| `GET /api/rows?type=movies`    | Yes   | The rows of a tab (see [Rows](#rows))                                                          |
-| `GET /api/rows/{id}`           | Yes   | One row                                                                                        |
-| `PATCH /api/rows/{id}`         | Yes   | `{selected?, destination?}`: picks a candidate (the row is then Ready) or a destination folder |
-| `POST /api/rows/{id}/search`   | Yes   | `{query?}`: searches the row again, with the text typed; `409` when a key stops it             |
+| Route                          | Login | Does                                                                                                 |
+| ------------------------------ | ----- | ---------------------------------------------------------------------------------------------------- |
+| `GET /api/health`              | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker                                  |
+| `GET /api/session`             | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`                                       |
+| `POST /api/setup`              | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)                          |
+| `POST /api/login`              | No    | Opens a session (`401` for a wrong login, `429` while waiting)                                       |
+| `POST /api/logout`             | Yes   | Closes the session                                                                                   |
+| `GET /api/settings`            | Yes   | The settings, the keys, the folders and the link checks (see below)                                  |
+| `PATCH /api/settings`          | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`                             |
+| `POST /api/settings/test-link` | Yes   | `{source, destination}`: whether a hard link works between them                                      |
+| `POST /api/settings/test-key`  | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key))                |
+| `POST /api/scans`              | Yes   | Starts an analysis (`202`, `{"id"}`); `409` with `already_running`, `rename_running` or `no_sources` |
+| `GET /api/scans/current`       | Yes   | The last analysis, the counts of the rows and the files to check (see [Analyses](#analyses))         |
+| `POST /api/to-check`           | Yes   | `{path, kind}`: gives a file to check its type; answers the summary                                  |
+| `GET /api/events`              | Yes   | Server-sent events (see [Live events](#live-events))                                                 |
+| `GET /api/rows?type=movies`    | Yes   | The rows of a tab (see [Rows](#rows))                                                                |
+| `GET /api/rows/{id}`           | Yes   | One row                                                                                              |
+| `PATCH /api/rows/{id}`         | Yes   | `{selected?, destination?}`: picks a candidate (the row is then Ready) or a destination folder       |
+| `POST /api/rows/{id}/search`   | Yes   | `{query?}`: searches the row again, with the text typed; `409` when a key stops it                   |
+| `POST /api/renames`            | Yes   | `{type, rows?}`: renames the Ready rows of a tab (`202`, `{"id"}`); see [Renames](#renames)          |
+| `GET /api/renames/current`     | Yes   | The last rename: its progress, then its result                                                       |
+| `GET /api/history`             | Yes   | The operations of the history, newest first (see [History](#history))                                |
+| `POST /api/history/{id}/undo`  | Yes   | `{index?}`: undoes the operation, or one of its files; answers what was put back                     |
 
 The interface starts with `GET /api/session`: no account → the setup page; an
 account and no session → the login page; otherwise the app.
@@ -290,14 +298,15 @@ analysis only searches the new rows.
 
 `GET /api/rows?type=movies` gives the rows of a tab:
 
-| Field                                 | Contents                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`, `media_type`, `kind`, `title`   | The row; `title` is the one of a series or an album                                                                                                                                                                                                                                                                                                                                                                                    |
-| `query`, `year`, `status`, `selected` | The search                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `candidates`                          | `id`, `title`, `original_title`, `year`, `poster`, `overview` (300 characters) of each result                                                                                                                                                                                                                                                                                                                                          |
-| `files`                               | `path`, `name` and `new_name` of each file, or `null` before a match: for movies and episodes the file name the formats give (`generate_new_filename`); for the other kinds the path under the destination, as the desktop batches move them (`batch_target`): `Daft Punk - Discovery/01 - One More Time.mp3`, `Frank Herbert/Frank Herbert - Dune (1965)/Frank Herbert - Dune (1965).epub`, `Super Nintendo/Chrono Trigger (USA).smc` |
-| `destination`                         | Index of the destination folder of its type                                                                                                                                                                                                                                                                                                                                                                                            |
-| `episodes_found`                      | For a series: how many episode titles were found, or `null`                                                                                                                                                                                                                                                                                                                                                                            |
+| Field                                 | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`, `media_type`, `kind`, `title`   | The row; `title` is the one of a series or an album                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `query`, `year`, `status`, `selected` | The search                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `candidates`                          | `id`, `title`, `original_title`, `year`, `poster`, `overview` (300 characters) of each result                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `files`                               | `path`, `name` and `new_name` of each file, or `null` before a match: for movies the file name the formats give (`generate_new_filename`); for episodes the series and season folders with that name (`Severance/Season 1/Severance S01E01 Good News About Hell.mkv`, or a season folder that already exists in the destination: `episode_folder`); for the other kinds the path under the destination, as the desktop batches move them (`batch_target`): `Daft Punk - Discovery/01 - One More Time.mp3`, `Frank Herbert/Frank Herbert - Dune (1965)/Frank Herbert - Dune (1965).epub`, `Super Nintendo/Chrono Trigger (USA).smc` |
+| `files[].error`                       | Why the last rename left the file: `{"code": "already_exists" or "failed", "message"}`, or `null`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `destination`                         | Index of the destination folder of its type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `episodes_found`                      | For a series: how many episode titles were found, or `null`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 `PATCH /api/rows/{id}` with `selected` makes the row Ready, as picking a match
 does in the desktop app; for a series, it reads the episodes of the new choice.
@@ -311,8 +320,71 @@ does in the desktop app; for a series, it reads the episodes of the new choice.
 (`EventSource` in the browser, with the session cookie). It starts with a
 `scan` event holding the summary, then sends each event of the `EventBus` as
 it happens, and a comment every 15 seconds so that proxies keep it open. Every
-change of an analysis publishes a `scan` event with the new summary. A listener
+change of an analysis publishes a `scan` event with the new summary, every
+change of a rename a `rename` event with `GET /api/renames/current`. A listener
 that reads too slowly loses its oldest events (100 are kept).
+
+## Renames
+
+`POST /api/renames` with `{"type": "movies"}` renames all the Ready rows of the
+tab (status `ok` with a candidate selected); `rows` limits it to some of them,
+and the rows not Ready are left out. `Renamer` checks before starting, and
+answers `409` with a code:
+
+| Code                                                  | Why                                                                                         |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `nothing_to_rename`                                   | No Ready row among those asked                                                              |
+| `no_destination`                                      | The media type has no destination folder                                                    |
+| `scan_running`, `already_running`                     | An analysis or a rename runs (`Jobs`); an analysis answers `rename_running` during a rename |
+| `different_drives`, `no_hard_links`, `missing_folder` | In link mode: `{"code", "source", "destination"}`, the folders that cannot be linked        |
+
+In link mode, one test link (`can_hard_link`) is made for each drive of the
+files and each destination: a pair that fails stops the whole rename before
+any file moves. An unknown `type` answers `422`.
+
+The rename then runs in a thread, inside `record()` of `sok.core.history`
+with the `History` of the server: one operation for the whole tab. Each
+destination folder gets the file operations of the desktop batches, which
+apply the file mode, the behavior settings and the subtitles:
+
+| Tab                       | Renamed by                                                                               |
+| ------------------------- | ---------------------------------------------------------------------------------------- |
+| `movies`                  | `VideoFileOperations.organize_movies_batch`                                              |
+| `tv`                      | `VideoFileOperations.organize_files_list`, one series at a time, with its season folders |
+| `music`, `books`, `games` | `organize_items_batch` of their file operations (`batch_target`)                         |
+
+With `download_posters`, the posters are saved after (`save_artwork`). The
+season folders are named in the language of the settings (`season` of the
+translation files, read by `ConfigManager.load_language()`).
+
+At the end, the files renamed leave their row; a row left without files is
+deleted. A file skipped (`skip_duplicates`) or failed stays, with its reason in
+`rows.errors`. `GET /api/renames/current` gives the last rename: `status`
+(`running`, `done`, `failed`, `interrupted`), `progress` (`{"done",
+"total"}`, also sent as `progress` events with `"phase": "rename"`), and once
+done `result`: `renamed`, `subtitles`, `skipped`, `errors` and the id of the
+`operation` in the history.
+
+## History
+
+`History` (`server/history.py`) is the `HistoryStore` of the desktop app with
+another place to keep it: the `history` table of `sok.db` instead of
+`history.json`. It only replaces `_load()` and `_save()`; recording a rename
+and undoing it are the code of the desktop app, with its rules (never replace
+a file, a link or a copy deleted only if it is still the original, the last
+100 operations). Each operation is one row, its `position` the order (0 is the
+newest), with its `media_type`.
+
+`GET /api/history` lists the operations: `id`, `date`, `kind`, `media_type`,
+`undone`, `partly_undone`, and `files`: `index`, `source`, `target`, `mode`,
+`undone`, `follows` (the new path of the video of a subtitle).
+
+`POST /api/history/{id}/undo` undoes the whole operation, or with `{"index"}`
+one file and its subtitles. It answers `restored` (the paths put back),
+`skipped` (`source`, `target` and `reason`: `missing`, `occupied`, `failed`)
+and the `operation`. It waits while a rename runs (`409`
+`rename_running`); an unknown id or index answers `404` `unknown_operation`.
+An undone file is not a row again until the next analysis finds it.
 
 ## Database
 
@@ -322,15 +394,17 @@ user_version` says how many are applied, and the missing ones run when the
 database opens. A released entry is never changed: a change of the schema is a
 new entry.
 
-| Table          | Contents                                                                                                                                                             |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `account`      | The account: `username`, `password_hash`, `created`                                                                                                                  |
-| `sessions`     | The open sessions: `token_hash`, `created`, `expires`                                                                                                                |
-| `folders`      | The folders: `role` (`sources` or a media type), `position`, `path`                                                                                                  |
-| `scans`        | The analyses: `started`, `finished`, `status`, `error`, `missing_sources`                                                                                            |
-| `rows`         | The rows of the tabs: `key`, `media_type`, `kind`, `title`, `files`, then the search (`query`, `year`, `candidates`, `selected`, `status`), `destination`, `details` |
-| `to_check`     | The files to check of the last analysis                                                                                                                              |
-| `type_choices` | The types the user gave to files to check                                                                                                                            |
+| Table          | Contents                                                                                                                                                                       |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `account`      | The account: `username`, `password_hash`, `created`                                                                                                                            |
+| `sessions`     | The open sessions: `token_hash`, `created`, `expires`                                                                                                                          |
+| `folders`      | The folders: `role` (`sources` or a media type), `position`, `path`                                                                                                            |
+| `scans`        | The analyses: `started`, `finished`, `status`, `error`, `missing_sources`                                                                                                      |
+| `rows`         | The rows of the tabs: `key`, `media_type`, `kind`, `title`, `files`, then the search (`query`, `year`, `candidates`, `selected`, `status`), `destination`, `details`, `errors` |
+| `to_check`     | The files to check of the last analysis                                                                                                                                        |
+| `type_choices` | The types the user gave to files to check                                                                                                                                      |
+| `renames`      | The renames: `media_type`, `started`, `finished`, `status`, `error`, `result`                                                                                                  |
+| `history`      | The rename history: `id`, `position`, `date`, `kind`, `media_type`, and the `operation` as JSON                                                                                |
 
 `Database.transaction()` runs a block of statements together, under a lock: the
 requests of the server share one connection.

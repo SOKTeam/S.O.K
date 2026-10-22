@@ -80,6 +80,26 @@ MIGRATIONS: List[str] = [
         kind TEXT NOT NULL
     );
     """,
+    """
+    ALTER TABLE rows ADD COLUMN errors TEXT;
+    CREATE TABLE renames (
+        id INTEGER PRIMARY KEY,
+        media_type TEXT NOT NULL,
+        started TEXT NOT NULL,
+        finished TEXT,
+        status TEXT NOT NULL,
+        error TEXT,
+        result TEXT
+    );
+    CREATE TABLE history (
+        id TEXT PRIMARY KEY,
+        position INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        media_type TEXT NOT NULL,
+        operation TEXT NOT NULL
+    );
+    """,
 ]
 
 
