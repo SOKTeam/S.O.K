@@ -246,8 +246,9 @@ Dockerfile                                            Node build of web/, then P
   extra adds FastAPI, uvicorn and argon2-cffi. The image installs only
   `server`, so it has no Qt.
 - The interface texts reuse `src/sok/resources/i18n/*.json`, plus the texts of
-  the server. The language follows the browser and can be changed in the
-  settings.
+  the server. One language for the interface and the folder names: the one of
+  the settings, taken from the browser when the account is created, and
+  changed in the settings.
 - Commit scopes added to `.commitlintrc.json`: `server`, `web`, `docker`.
 
 ### Changes in the shared core

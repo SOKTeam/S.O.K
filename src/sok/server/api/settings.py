@@ -25,7 +25,13 @@ from sok.config.api_registry import get_service
 from sok.core.history import LINK
 from sok.core.media_manager import reset_media_manager
 from sok.server.api.auth import require_login
-from sok.server.settings import InvalidSetting, Settings, as_dict, check_link
+from sok.server.settings import (
+    PREFERRED_API_SETTINGS,
+    InvalidSetting,
+    Settings,
+    as_dict,
+    check_link,
+)
 
 router = APIRouter(prefix="/api/settings", dependencies=[Depends(require_login)])
 
@@ -58,6 +64,8 @@ def _read(request: Request) -> dict:
     return {
         "settings": values,
         "languages": request.app.state.config.get_available_languages(),
+        # The choices of the preferred_api_* settings.
+        "services": current.services(),
         "keys": current.keys(),
         "folders": current.folders(),
         # Only the hard link mode needs them.
@@ -85,8 +93,9 @@ def change_settings(change: SettingsChange, request: Request) -> dict:
             status.HTTP_422_UNPROCESSABLE_CONTENT,
             {"code": exc.code, "item": exc.item},
         )
-    if change.keys:
-        # The next search builds its API clients with the new keys.
+    if change.keys or PREFERRED_API_SETTINGS.keys() & (change.settings or {}).keys():
+        # The next search builds its API clients with the new keys and
+        # services.
         reset_media_manager()
     return _read(request)
 
