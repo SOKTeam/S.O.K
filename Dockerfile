@@ -4,9 +4,19 @@
 #   docker run -p 8080:8080 -v ./config:/config -v /mnt/storage:/data sok-server
 #
 # Only the "server" extra is installed: no Qt. The image holds no API key of
-# the project (see .dockerignore): the users give their own.
+# the project (see .dockerignore): the users give their own. Node only builds
+# the interface (web/dist); the image does not keep it.
 
 FROM ghcr.io/astral-sh/uv:0.9.21 AS uv
+
+# The interface is the same files on every platform: built once, on the
+# platform of the build machine.
+FROM --platform=$BUILDPLATFORM node:24-alpine AS web
+WORKDIR /web
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+COPY web/ ./
+RUN npm run build
 
 FROM python:3.13-slim-trixie
 
@@ -29,6 +39,7 @@ RUN uv sync --frozen --no-install-project --no-dev --extra server \
 
 # The code runs from src/, without the desktop interface.
 COPY src/ ./src/
+COPY --from=web /web/dist ./web/dist
 COPY packaging/docker/entrypoint.sh /usr/local/bin/sok-entrypoint
 
 ENV PATH="/app/.venv/bin:$PATH" \

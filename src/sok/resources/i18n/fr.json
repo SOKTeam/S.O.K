@@ -298,5 +298,21 @@
     "undo_skipped": "{0} fichier(s) laissé(s) en place :",
     "undo_missing": "déplacé ou supprimé depuis le renommage",
     "undo_occupied": "un autre fichier porte son ancien nom",
-    "undo_failed": "n'a pas pu être déplacé"
+    "undo_failed": "n'a pas pu être déplacé",
+    "web_analysis": "Analyse",
+    "web_setup_title": "Bienvenue",
+    "web_setup_text": "Créez le compte qui protège ce serveur.",
+    "web_username": "Nom d'utilisateur",
+    "web_password": "Mot de passe",
+    "web_password_confirm": "Confirmez le mot de passe",
+    "web_create_account": "Créer le compte",
+    "web_log_in": "Se connecter",
+    "web_log_out": "Se déconnecter",
+    "web_auth_off": "La connexion est désactivée (SOK_AUTH=none) : protégez ce serveur avec votre reverse proxy.",
+    "web_error_unknown": "Une erreur est survenue. Réessayez.",
+    "web_error_offline": "Le serveur ne répond pas.",
+    "web_error_invalid_account": "Indiquez un nom d'utilisateur et un mot de passe d'au moins 8 caractères.",
+    "web_error_wrong_login": "Nom d'utilisateur ou mot de passe incorrect.",
+    "web_error_too_many_attempts": "Trop de tentatives. Réessayez dans {seconds} s.",
+    "web_error_password_mismatch": "Les deux mots de passe ne sont pas identiques."
 }

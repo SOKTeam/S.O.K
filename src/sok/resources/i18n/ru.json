@@ -298,5 +298,21 @@
     "undo_skipped": "Оставлено на месте файлов: {0}:",
     "undo_missing": "перемещён или удалён после переименования",
     "undo_occupied": "другой файл носит его прежнее имя",
-    "undo_failed": "не удалось переместить"
+    "undo_failed": "не удалось переместить",
+    "web_analysis": "Анализ",
+    "web_setup_title": "Добро пожаловать",
+    "web_setup_text": "Создайте учётную запись, которая защищает этот сервер.",
+    "web_username": "Имя пользователя",
+    "web_password": "Пароль",
+    "web_password_confirm": "Подтвердите пароль",
+    "web_create_account": "Создать учётную запись",
+    "web_log_in": "Войти",
+    "web_log_out": "Выйти",
+    "web_auth_off": "Вход отключён (SOK_AUTH=none): защитите этот сервер своим обратным прокси.",
+    "web_error_unknown": "Что-то пошло не так. Попробуйте ещё раз.",
+    "web_error_offline": "Сервер не отвечает.",
+    "web_error_invalid_account": "Укажите имя пользователя и пароль не короче 8 символов.",
+    "web_error_wrong_login": "Неверное имя пользователя или пароль.",
+    "web_error_too_many_attempts": "Слишком много попыток. Повторите через {seconds} с.",
+    "web_error_password_mismatch": "Пароли не совпадают."
 }

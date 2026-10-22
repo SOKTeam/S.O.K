@@ -298,5 +298,21 @@
     "undo_skipped": "{0} archivo(s) dejado(s) en su sitio:",
     "undo_missing": "movido o eliminado desde el renombrado",
     "undo_occupied": "otro archivo tiene su nombre anterior",
-    "undo_failed": "no se pudo mover"
+    "undo_failed": "no se pudo mover",
+    "web_analysis": "Análisis",
+    "web_setup_title": "Bienvenido",
+    "web_setup_text": "Cree la cuenta que protege este servidor.",
+    "web_username": "Nombre de usuario",
+    "web_password": "Contraseña",
+    "web_password_confirm": "Confirme la contraseña",
+    "web_create_account": "Crear la cuenta",
+    "web_log_in": "Iniciar sesión",
+    "web_log_out": "Cerrar sesión",
+    "web_auth_off": "El inicio de sesión está desactivado (SOK_AUTH=none): proteja este servidor con su proxy inverso.",
+    "web_error_unknown": "Algo salió mal. Inténtelo de nuevo.",
+    "web_error_offline": "El servidor no responde.",
+    "web_error_invalid_account": "Indique un nombre de usuario y una contraseña de al menos 8 caracteres.",
+    "web_error_wrong_login": "Nombre de usuario o contraseña incorrectos.",
+    "web_error_too_many_attempts": "Demasiados intentos. Inténtelo de nuevo en {seconds} s.",
+    "web_error_password_mismatch": "Las dos contraseñas no coinciden."
 }

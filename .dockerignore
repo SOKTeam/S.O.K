@@ -1,4 +1,5 @@
-# The image is built from pyproject.toml, uv.lock, src/ and packaging/docker.
+# The image is built from pyproject.toml, uv.lock, src/, web/ and
+# packaging/docker.
 # Everything else stays out, above all the keys of .env and the local data.
 *
 !pyproject.toml
@@ -6,6 +7,9 @@
 !README.md
 !src/
 !packaging/docker/
+!web/
+web/node_modules/
+web/dist/
 **/__pycache__
 **/*.py[oc]
 src/sok/ui/

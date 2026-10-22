@@ -298,5 +298,21 @@
     "undo_skipped": "{0} file(s) left in place:",
     "undo_missing": "moved or deleted since the rename",
     "undo_occupied": "another file has its old name",
-    "undo_failed": "could not be moved"
+    "undo_failed": "could not be moved",
+    "web_analysis": "Analysis",
+    "web_setup_title": "Welcome",
+    "web_setup_text": "Create the account that protects this server.",
+    "web_username": "User name",
+    "web_password": "Password",
+    "web_password_confirm": "Confirm the password",
+    "web_create_account": "Create the account",
+    "web_log_in": "Log in",
+    "web_log_out": "Log out",
+    "web_auth_off": "The login is turned off (SOK_AUTH=none): protect this server with your reverse proxy.",
+    "web_error_unknown": "Something went wrong. Try again.",
+    "web_error_offline": "The server does not answer.",
+    "web_error_invalid_account": "Give a user name, and a password of 8 characters or more.",
+    "web_error_wrong_login": "Wrong user name or password.",
+    "web_error_too_many_attempts": "Too many attempts. Try again in {seconds} s.",
+    "web_error_password_mismatch": "The two passwords are not the same."
 }

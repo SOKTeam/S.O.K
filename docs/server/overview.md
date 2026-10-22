@@ -161,6 +161,54 @@ file of `src/sok/resources/i18n/` (the same as the desktop app): of `lang` when
 S.O.K has it, else of the settings. It needs no login, for the setup and login
 pages.
 
+### The web project
+
+`web/` is a Svelte 5 application in TypeScript, built by Vite, styled with
+Tailwind CSS 4. Node is only needed to build it: the Docker image builds it in a
+`node` stage and keeps only `web/dist`; `web/dist` is never committed.
+
+```sh
+cd web
+npm ci
+npm run dev     # http://localhost:5173, /api sent to SOK_API (localhost:8080)
+npm run format  # Prettier, with the Svelte plugin and the Tailwind class order
+npm run check   # svelte-check (types)
+npm test        # Vitest
+npm run build   # web/dist, served by sok-server
+```
+
+During development, run `sok-server` next to `npm run dev`: Vite reloads the
+interface at each change and sends the `/api` requests to the server.
+
+| File                        | Contents                                                                                                                            |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `src/App.svelte`            | The first page: setup without an account, login without a session, else the app (directly with `SOK_AUTH=none`)                     |
+| `src/pages/`                | `Setup`, `Login`, and `Shell`: the sidebar and the page of the address                                                              |
+| `src/components/`           | `Sidebar`, `AuthCard`, `Icon`                                                                                                       |
+| `src/lib/api.ts`            | `api()`: calls `/api` with the session cookie; an error is an `ApiError` with the `code` of `detail`                                |
+| `src/lib/i18n.svelte.ts`    | `loadTexts()` and `t(key, english, values)`                                                                                         |
+| `src/lib/router.svelte.ts`  | The page is the path of the address (`/movies`); `navigate()`, `follow` for the links                                               |
+| `src/lib/session.svelte.ts` | `GET /api/session`, `logOut()`                                                                                                      |
+| `src/lib/pages.ts`          | The pages of the sidebar                                                                                                            |
+| `src/lib/icons.ts`          | The icons of the desktop app (`src/sok/resources/assets`), in the color of the text                                                 |
+| `src/app.css`               | Tailwind and the colors of the desktop app: the macOS light theme and the dark theme, as Tailwind colors (`bg-card`, `text-muted`…) |
+
+- **Colors.** `app.css` declares the colors of `src/sok/ui/theme.py` in
+  `@theme`; the dark theme only changes the variables, under
+  `prefers-color-scheme: dark`. Use the theme colors (`bg-bg`, `bg-card`,
+  `bg-sidebar`, `text-fg`, `text-muted`, `border-line`, `bg-accent`,
+  `text-ok`, `text-warn`, `text-error`…), never a color of Tailwind's palette.
+- **Texts.** Every text goes through `t("web_key", "English text")`, with the
+  keys in the translation files of the desktop app (see
+  [Translations](/guides/translations/)). The keys of the desktop app can be
+  reused (`movies`, `settings`); the new ones start with `web_`.
+- **Language at startup.** Without an account, the interface asks
+  `GET /api/i18n` for the languages, then loads the first language of the
+  browser that S.O.K has (`pickLanguage`); the setup sends it to the server.
+  With an account, it loads the language of the settings.
+- **CI.** The `Web interface` job of `ci.yml` runs `npm ci`, `format:check`,
+  `check`, `test` and `build` on every pull request.
+
 ## Login
 
 - **The account**: one row of the `account` table. The user name is not empty,

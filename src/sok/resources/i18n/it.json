@@ -298,5 +298,21 @@
     "undo_skipped": "{0} file lasciati al loro posto:",
     "undo_missing": "spostato o eliminato dopo la rinominazione",
     "undo_occupied": "un altro file ha il suo vecchio nome",
-    "undo_failed": "non è stato possibile spostarlo"
+    "undo_failed": "non è stato possibile spostarlo",
+    "web_analysis": "Analisi",
+    "web_setup_title": "Benvenuto",
+    "web_setup_text": "Crea l'account che protegge questo server.",
+    "web_username": "Nome utente",
+    "web_password": "Password",
+    "web_password_confirm": "Conferma la password",
+    "web_create_account": "Crea l'account",
+    "web_log_in": "Accedi",
+    "web_log_out": "Esci",
+    "web_auth_off": "L'accesso è disattivato (SOK_AUTH=none): proteggi questo server con il tuo reverse proxy.",
+    "web_error_unknown": "Qualcosa è andato storto. Riprova.",
+    "web_error_offline": "Il server non risponde.",
+    "web_error_invalid_account": "Indica un nome utente e una password di almeno 8 caratteri.",
+    "web_error_wrong_login": "Nome utente o password errati.",
+    "web_error_too_many_attempts": "Troppi tentativi. Riprova tra {seconds} s.",
+    "web_error_password_mismatch": "Le due password non coincidono."
 }
