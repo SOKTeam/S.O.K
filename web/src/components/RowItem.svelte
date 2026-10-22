@@ -153,7 +153,7 @@
             class={["size-3.5 transition-transform", !unfolded && "-rotate-90"]}
             ><path d="m6 9 6 6 6-6" /></svg
           >
-          {#if row.title && row.title !== match?.title}
+          {#if row.title && row.title.toLowerCase() !== match?.title?.toLowerCase()}
             <span class="truncate">{row.title} ·</span>
           {/if}
           {count(row)}

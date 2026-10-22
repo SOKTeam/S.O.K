@@ -390,5 +390,6 @@
     "web_see_history": "Verlauf ansehen, um sie rückgängig zu machen",
     "web_select_all": "Alle auswählen",
     "web_select_row": "Auswählen",
-    "web_show_processed": "Anzeigen"
+    "web_show_processed": "Anzeigen",
+    "web_file_mode_is": "Dateimodus: {mode}"
 }

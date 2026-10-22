@@ -390,5 +390,6 @@
     "web_see_history": "Ver o histórico, para anular",
     "web_select_all": "Selecionar tudo",
     "web_select_row": "Selecionar",
-    "web_show_processed": "Mostrá-los"
+    "web_show_processed": "Mostrá-los",
+    "web_file_mode_is": "Modo de ficheiro: {mode}"
 }

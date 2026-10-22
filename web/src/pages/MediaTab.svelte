@@ -134,7 +134,9 @@
     </div>
     <div class="flex items-center gap-3">
       {#if settings.data}
-        <span class="text-xs text-muted">{t("file_mode", "File mode")} : {modeName()}</span>
+        <span class="text-xs text-muted"
+          >{t("web_file_mode_is", "File mode: {mode}", { mode: modeName() })}</span
+        >
       {/if}
       <button
         type="button"
@@ -193,7 +195,7 @@
     0: filesOf(asked ?? ready.map((row) => row.id)),
   })}
   detail={[
-    `${t("file_mode", "File mode")} : ${modeName()}.`,
+    `${t("web_file_mode_is", "File mode: {mode}", { mode: modeName() })}.`,
     asked === null && count("ambiguous")
       ? t("rename_skips_to_pick", "{0} file(s) still to pick will be left as they are.", {
           0: filesOf((rows ?? []).filter((r) => r.status === "ambiguous").map((r) => r.id)),
