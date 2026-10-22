@@ -26,7 +26,16 @@ from fastapi import FastAPI
 from sok.__version__ import __version__
 from sok.config.config_manager import data_dir, get_config_manager, log_dir
 from sok.core.history import LINK
-from sok.server.api import auth, events, health, renames, rows, scans, settings
+from sok.server.api import (
+    auth,
+    events,
+    health,
+    renames,
+    rows,
+    scans,
+    settings,
+    web,
+)
 from sok.server.auth import Accounts, auth_disabled
 from sok.server.db import Database
 from sok.server.events import EventBus
@@ -102,6 +111,12 @@ def create_app(folder: Optional[Path] = None) -> FastAPI:
     app.include_router(rows.router)
     app.include_router(renames.router)
     app.include_router(events.router)
+    folder_web = web.web_dir()
+    if folder_web is not None:
+        # Last: every other path is a page of the interface.
+        app.include_router(web.router(folder_web))
+    else:
+        logger.info("No built interface (web/dist): the API only")
     return app
 
 

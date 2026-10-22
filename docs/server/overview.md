@@ -33,6 +33,10 @@ SOK_CONFIG_DIR=/tmp/sok-config uv run sok-server
 | `SOK_USERNAME`, `SOK_PASSWORD` | Create the account at startup, when none exists                        |
 | `SOK_AUTH=none`                | Turns the login off, behind a reverse proxy that asks for one          |
 | `SOK_LOG_LEVEL`                | Level of the log: `DEBUG`, `INFO` (default)…                           |
+| `SOK_WEB_DIR`                  | Folder of the built interface, `web/dist` of the repository by default |
+
+Without a built interface (no `index.html` in `SOK_WEB_DIR`), the server
+answers only the API.
 
 Only the `server` extra is needed to run it (`uv sync --extra server`): FastAPI,
 uvicorn and argon2-cffi. The desktop build leaves `sok.server` out
@@ -92,6 +96,7 @@ pull it without logging in.
 | `server/renames.py`                           | `Renamer`: the renames                                                               |
 | `server/history.py`                           | `History`: the rename history in the database                                        |
 | `server/api/renames.py`                       | The routes of the renames and of the history                                         |
+| `server/api/web.py`                           | Serves the built interface (`web/dist`)                                              |
 
 `create_app()` opens the database when the application starts (its lifespan),
 creates the account from `SOK_USERNAME` and `SOK_PASSWORD` if needed, and puts
@@ -111,6 +116,7 @@ JSON under `/api`. FastAPI's own `/docs` page is turned off.
 | `POST /api/setup`              | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)                          |
 | `POST /api/login`              | No    | Opens a session (`401` for a wrong login, `429` while waiting)                                       |
 | `POST /api/logout`             | Yes   | Closes the session                                                                                   |
+| `GET /api/i18n?lang=fr`        | No    | The texts of the interface (see [Interface](#interface))                                             |
 | `GET /api/settings`            | Yes   | The settings, the keys, the folders and the link checks (see below)                                  |
 | `PATCH /api/settings`          | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`                             |
 | `POST /api/settings/test-link` | Yes   | `{source, destination}`: whether a hard link works between them                                      |
@@ -138,6 +144,23 @@ without one, it answers `401` with `"not_logged_in"`. The errors give a code in
 `detail` (`account_exists`, `invalid_account`, `wrong_login`,
 `too_many_attempts`, `not_logged_in`) that the interface translates.
 
+## Interface
+
+The interface is built by Vite into `web/dist`; `api/web.py` serves it after
+the API routes. A path that is a file of the build answers that file
+(`assets/` with a hash in its name, kept a year by the browser); any other path
+not under `/api` answers `index.html` (asked again each time), and the
+interface shows the page of its address. An unknown `/api` path keeps its JSON
+`404`.
+
+There is one language, the `language` setting: it names the season folders and
+translates the interface. At the first visit, the setup sends the language of
+the browser (`POST /api/setup` with `language`), kept when S.O.K has it.
+`GET /api/i18n` answers `language`, `languages` and `texts`, the translation
+file of `src/sok/resources/i18n/` (the same as the desktop app): of `lang` when
+S.O.K has it, else of the settings. It needs no login, for the setup and login
+pages.
+
 ## Login
 
 - **The account**: one row of the `account` table. The user name is not empty,
@@ -159,13 +182,14 @@ without one, it answers `401` with `"not_logged_in"`. The errors give a code in
 
 `GET /api/settings` answers:
 
-| Field         | Contents                                                                                                                     |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `settings`    | `language`, `file_mode`, the behavior switches and the five name formats (`SETTINGS` in `settings.py`)                       |
-| `languages`   | The languages of the interface                                                                                               |
-| `keys`        | Each service (`service`, `name`, `media_type`, `url` to get a key) and its keys: `{"key", "set", "locked"}`, never the value |
-| `folders`     | `sources`, and the destination folders of `movies`, `tv`, `music`, `books`, `games`, in order                                |
-| `link_checks` | In `link` mode, one check per source and destination: `ok`, `problem`, `tested`                                              |
+| Field         | Contents                                                                                                                                                                                     |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `settings`    | `language`, `file_mode`, the behavior switches, the five name formats and the service of each media type (`preferred_api_video`, `_music`, `_books`, `_games`) (`SETTINGS` in `settings.py`) |
+| `languages`   | The languages of the interface                                                                                                                                                               |
+| `services`    | The services each `preferred_api_*` can pick, per media type (`video`, `music`, `books`, `games`): `{"id", "name"}`                                                                          |
+| `keys`        | Each service (`service`, `name`, `media_type`, `url` to get a key) and its keys: `{"key", "set", "locked"}`, never the value                                                                 |
+| `folders`     | `sources`, and the destination folders of `movies`, `tv`, `music`, `books`, `games`, in order                                                                                                |
+| `link_checks` | In `link` mode, one check per source and destination: `ok`, `problem`, `tested`                                                                                                              |
 
 - **Where they are kept.** The settings and the keys shared with the desktop
   app stay in `config.json`, through the `ConfigManager`: the core reads them
@@ -181,8 +205,8 @@ without one, it answers `401` with `"not_logged_in"`. The errors give a code in
   over it (`SOK_ENV_KEYS_WIN`, see
   [Where an API key comes from](/reference/settings/#where-an-api-key-comes-from)):
   a locked key cannot be changed. Only the keys that `config.json` can hold are
-  listed. After a change of keys, the media manager is built again for the next
-  search.
+  listed. After a change of keys or of a preferred service, the media manager
+  is built again for the next search.
 - **Folders.** Each role given replaces its list; paths are normalized and
   duplicates dropped.
 

@@ -536,14 +536,21 @@ class ConfigManager:
         """
         return self._get_i18n_dir() / f"{self.config.language}.json"
 
-    def load_language(self) -> Dict[str, str]:
+    def load_language(self, language: Optional[str] = None) -> Dict[str, str]:
         """
-        Load translations for current language.
+        Load translations for a language.
+
+        Args:
+            language: Language code; the one of the settings by default.
 
         Returns:
             Dictionary of translations
         """
-        lang_file = self.get_language_file()
+        lang_file = (
+            self._get_i18n_dir() / f"{language}.json"
+            if language
+            else self.get_language_file()
+        )
 
         if lang_file.exists():
             try:

@@ -21,7 +21,7 @@ import os
 from dataclasses import dataclass
 from typing import Any, Dict, Iterator, List, Optional
 
-from sok.config.api_registry import get_all_services
+from sok.config.api_registry import get_all_services, get_services_by_media_type
 from sok.config.config_manager import ConfigManager
 from sok.core.history import FILE_MODES
 from sok.file_operations.base_operations import can_hard_link
@@ -42,7 +42,19 @@ FORMAT_SETTINGS = (
     "book_format",
     "game_format",
 )
-SETTINGS = ("language", "file_mode") + BOOL_SETTINGS + FORMAT_SETTINGS
+# The service searched for each media type of the registry.
+PREFERRED_API_SETTINGS = {
+    "preferred_api_video": "video",
+    "preferred_api_music": "music",
+    "preferred_api_books": "books",
+    "preferred_api_games": "games",
+}
+SETTINGS = (
+    ("language", "file_mode")
+    + BOOL_SETTINGS
+    + FORMAT_SETTINGS
+    + tuple(PREFERRED_API_SETTINGS)
+)
 
 # The tabs of the interface, each with its destination folders.
 MEDIA_TYPES = ("movies", "tv", "music", "books", "games")
@@ -200,6 +212,14 @@ class Settings:
                 or (key in FORMAT_SETTINGS and isinstance(value, str) and value.strip())
                 or (key == "file_mode" and value in FILE_MODES)
                 or (key == "language" and value in languages)
+                or (
+                    key in PREFERRED_API_SETTINGS
+                    and value
+                    in [
+                        s.id
+                        for s in get_services_by_media_type(PREFERRED_API_SETTINGS[key])
+                    ]
+                )
             )
             if not valid:
                 raise InvalidSetting("invalid_value", key)
@@ -217,6 +237,17 @@ class Settings:
                 # Only the keys the settings can save.
                 if key and key in fields:
                     yield service, key
+
+    @staticmethod
+    def services() -> Dict[str, List[Dict[str, str]]]:
+        """The services a preferred_api_* setting can pick, per media type."""
+        return {
+            media_type: [
+                {"id": s.id, "name": s.name}
+                for s in get_services_by_media_type(media_type)
+            ]
+            for media_type in PREFERRED_API_SETTINGS.values()
+        }
 
     def keys(self) -> List[Dict[str, Any]]:
         """The services and their keys: set or not, locked or not; no value."""

@@ -80,6 +80,7 @@ def test_settings_are_changed_and_saved(client, config_folder):
         ({"skip_duplicates": "yes"}, "invalid_value"),
         ({"movie_format": "  "}, "invalid_value"),
         ({"language": "xx"}, "invalid_value"),
+        ({"preferred_api_books": "tmdb"}, "invalid_value"),
     ],
 )
 def test_a_wrong_setting_is_refused(client, change, code):
@@ -264,3 +265,19 @@ def test_the_key_test_needs_a_login(client):
         client.post("/api/settings/test-key", json={"service": "tmdb"}).status_code
         == 401
     )
+
+
+def test_the_preferred_service_of_a_media_type(client, monkeypatch):
+    resets = []
+    monkeypatch.setattr(
+        "sok.server.api.settings.reset_media_manager", lambda: resets.append(1)
+    )
+
+    answer = patch(client, settings={"preferred_api_books": "openlibrary"})
+
+    assert answer.json()["settings"]["preferred_api_books"] == "openlibrary"
+    assert {"id": "openlibrary", "name": "Open Library"} in answer.json()["services"][
+        "books"
+    ]
+    # The next search uses the new service.
+    assert resets == [1]

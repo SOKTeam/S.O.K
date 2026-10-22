@@ -60,6 +60,7 @@ def test_the_first_visit_creates_the_account_and_logs_in(client):
         "account": False,
         "logged_in": False,
         "username": None,
+        "language": "en",
     }
 
     answer = setup(client)
@@ -203,3 +204,34 @@ def test_the_database_keeps_its_data_when_it_opens_again(tmp_path):
 
     assert db.version == len(MIGRATIONS)
     assert Accounts(db).username() == "william"
+
+
+def test_the_setup_takes_the_language_of_the_browser(client):
+    client.post(
+        "/api/setup",
+        json={"username": "william", "password": PASSWORD, "language": "fr"},
+    )
+
+    assert client.get("/api/session").json()["language"] == "fr"
+
+
+def test_a_language_s_o_k_lacks_is_ignored(client):
+    client.post(
+        "/api/setup",
+        json={"username": "william", "password": PASSWORD, "language": "xx"},
+    )
+
+    assert client.get("/api/session").json()["language"] == "en"
+
+
+def test_the_texts_need_no_login(client):
+    answer = client.get("/api/i18n?lang=de").json()
+
+    assert answer["language"] == "de"
+    assert "fr" in answer["languages"]
+    assert answer["texts"]["season"] == "Staffel"
+
+
+def test_the_texts_follow_the_settings_without_a_language(client):
+    assert client.get("/api/i18n").json()["language"] == "en"
+    assert client.get("/api/i18n?lang=../../etc").json()["language"] == "en"

@@ -24,6 +24,8 @@ def config_folder(tmp_path, monkeypatch):
         monkeypatch.delenv(variable, raising=False)
     for name in ("SOK_AUTH", "SOK_USERNAME", "SOK_PASSWORD", "SOK_ENV_KEYS_WIN"):
         monkeypatch.delenv(name, raising=False)
+    # No interface, even when web/dist is built: a test gives its own.
+    monkeypatch.setenv("SOK_WEB_DIR", str(tmp_path / "no-web"))
     config_manager.reset_config_manager()
     yield folder
     config_manager.reset_config_manager()
