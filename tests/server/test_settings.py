@@ -281,3 +281,40 @@ def test_the_preferred_service_of_a_media_type(client, monkeypatch):
     ]
     # The next search uses the new service.
     assert resets == [1]
+
+
+def test_the_browser_lists_the_subfolders(client, tmp_path):
+    for name in ("Movies 10", "Movies 9", ".hidden", "tv"):
+        (tmp_path / "library" / name).mkdir(parents=True)
+    (tmp_path / "library" / "file.mkv").write_text("x")
+
+    answer = client.get(
+        "/api/settings/browse", params={"path": str(tmp_path / "library")}
+    ).json()
+
+    assert answer["path"] == str(tmp_path / "library")
+    assert answer["parent"] == str(tmp_path)
+    # Sorted by name, numbers by value; no hidden folder, no file.
+    assert [f["name"] for f in answer["folders"]] == ["Movies 9", "Movies 10", "tv"]
+    assert answer["folders"][0]["path"] == str(tmp_path / "library" / "Movies 9")
+
+
+def test_the_browser_starts_at_the_root(client):
+    answer = client.get("/api/settings/browse").json()
+
+    assert answer["parent"] is None
+    assert answer["path"] == os.path.abspath(os.sep)
+
+
+def test_the_browser_refuses_what_is_not_a_folder(client, tmp_path):
+    (tmp_path / "file.mkv").write_text("x")
+
+    for path in (str(tmp_path / "nope"), str(tmp_path / "file.mkv"), "relative"):
+        answer = client.get("/api/settings/browse", params={"path": path})
+        assert answer.status_code == 404
+        assert answer.json()["detail"] == "unreadable_folder"
+
+
+def test_the_browser_needs_a_login(tmp_path):
+    with TestClient(create_app(tmp_path)) as client:
+        assert client.get("/api/settings/browse").status_code == 401

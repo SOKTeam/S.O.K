@@ -8,11 +8,13 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-"""The settings: /api/settings, /api/settings/test-link and test-key.
+"""The settings: /api/settings, /api/settings/browse, /api/settings/test-link
+and test-key.
 
 An error gives {"code", "item"} in "detail": unknown_setting,
 invalid_value, unknown_key, key_locked, unknown_folder_role or
-invalid_folder, and what it is about.
+invalid_folder, and what it is about; the browser answers
+"unreadable_folder" for a folder it cannot list.
 """
 
 from typing import Any, Dict, List, Optional
@@ -29,7 +31,9 @@ from sok.server.settings import (
     PREFERRED_API_SETTINGS,
     InvalidSetting,
     Settings,
+    UnreadableFolder,
     as_dict,
+    browse,
     check_link,
 )
 
@@ -98,6 +102,15 @@ def change_settings(change: SettingsChange, request: Request) -> dict:
         # services.
         reset_media_manager()
     return _read(request)
+
+
+@router.get("/browse")
+def browse_folders(path: Optional[str] = None) -> dict:
+    """The subfolders of a folder of the server, for the folder browser."""
+    try:
+        return browse(path)
+    except UnreadableFolder:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "unreadable_folder")
 
 
 @router.post("/test-link")

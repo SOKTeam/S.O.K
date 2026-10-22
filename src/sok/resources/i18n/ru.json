@@ -391,5 +391,11 @@
     "web_select_all": "Выбрать все",
     "web_select_row": "Выбрать",
     "web_show_processed": "Показать",
-    "web_file_mode_is": "Режим файлов: {mode}"
+    "web_file_mode_is": "Режим файлов: {mode}",
+    "web_browse": "Обзор…",
+    "web_choose_folder": "Выберите папку на сервере",
+    "web_choose_this_folder": "Выбрать эту папку",
+    "web_parent_folder": "Родительская папка",
+    "web_no_subfolder": "Внутри нет папок.",
+    "web_error_unreadable_folder": "Сервер не может прочитать эту папку."
 }

@@ -110,32 +110,33 @@ the server (the desktop app moves).
 
 JSON under `/api`. FastAPI's own `/docs` page is turned off.
 
-| Route                          | Login | Does                                                                                                 |
-| ------------------------------ | ----- | ---------------------------------------------------------------------------------------------------- |
-| `GET /api/health`              | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker                                  |
-| `GET /api/session`             | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`                                       |
-| `POST /api/setup`              | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)                          |
-| `POST /api/login`              | No    | Opens a session (`401` for a wrong login, `429` while waiting)                                       |
-| `POST /api/logout`             | Yes   | Closes the session                                                                                   |
-| `GET /api/i18n?lang=fr`        | No    | The texts of the interface (see [Interface](#interface))                                             |
-| `GET /api/settings`            | Yes   | The settings, the keys, the folders and the link checks (see below)                                  |
-| `PATCH /api/settings`          | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`                             |
-| `POST /api/settings/test-link` | Yes   | `{source, destination}`: whether a hard link works between them                                      |
-| `POST /api/settings/test-key`  | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key))                |
-| `POST /api/scans`              | Yes   | Starts an analysis (`202`, `{"id"}`); `409` with `already_running`, `rename_running` or `no_sources` |
-| `GET /api/scans/current`       | Yes   | The last analysis, the counts of the rows and the files to check (see [Analyses](#analyses))         |
-| `POST /api/to-check`           | Yes   | `{path, kind}`: gives a file to check its type; answers the summary                                  |
-| `GET /api/events`              | Yes   | Server-sent events (see [Live events](#live-events))                                                 |
-| `GET /api/rows?type=movies`    | Yes   | The rows of a tab (see [Rows](#rows))                                                                |
-| `GET /api/rows/{id}`           | Yes   | One row                                                                                              |
-| `PATCH /api/rows/{id}`         | Yes   | `{selected?, destination?}`: picks a candidate (the row is then Ready) or a destination folder       |
-| `POST /api/rows/{id}/search`   | Yes   | `{query?}`: searches the row again, with the text typed; `409` when a key stops it                   |
-| `POST /api/renames`            | Yes   | `{type, rows?}`: renames the Ready rows of a tab (`202`, `{"id"}`); see [Renames](#renames)          |
-| `GET /api/renames/current`     | Yes   | The last rename: its progress, then its result                                                       |
-| `GET /api/history`             | Yes   | The operations of the history, newest first (see [History](#history))                                |
-| `POST /api/history/{id}/undo`  | Yes   | `{index?}`: undoes the operation, or one of its files; answers what was put back                     |
-| `GET /api/processed`           | Yes   | The files already processed (see [Files already processed](#files-already-processed))                |
-| `POST /api/processed/forget`   | Yes   | `{paths}`: the next analysis takes these files again; answers `{"forgotten"}`                        |
+| Route                            | Login | Does                                                                                                 |
+| -------------------------------- | ----- | ---------------------------------------------------------------------------------------------------- |
+| `GET /api/health`                | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker                                  |
+| `GET /api/session`               | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`                                       |
+| `POST /api/setup`                | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)                          |
+| `POST /api/login`                | No    | Opens a session (`401` for a wrong login, `429` while waiting)                                       |
+| `POST /api/logout`               | Yes   | Closes the session                                                                                   |
+| `GET /api/i18n?lang=fr`          | No    | The texts of the interface (see [Interface](#interface))                                             |
+| `GET /api/settings`              | Yes   | The settings, the keys, the folders and the link checks (see below)                                  |
+| `PATCH /api/settings`            | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`                             |
+| `POST /api/settings/test-link`   | Yes   | `{source, destination}`: whether a hard link works between them                                      |
+| `GET /api/settings/browse?path=` | Yes   | The subfolders of a folder of the server, for the folder browser (`404` `unreadable_folder`)         |
+| `POST /api/settings/test-key`    | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key))                |
+| `POST /api/scans`                | Yes   | Starts an analysis (`202`, `{"id"}`); `409` with `already_running`, `rename_running` or `no_sources` |
+| `GET /api/scans/current`         | Yes   | The last analysis, the counts of the rows and the files to check (see [Analyses](#analyses))         |
+| `POST /api/to-check`             | Yes   | `{path, kind}`: gives a file to check its type; answers the summary                                  |
+| `GET /api/events`                | Yes   | Server-sent events (see [Live events](#live-events))                                                 |
+| `GET /api/rows?type=movies`      | Yes   | The rows of a tab (see [Rows](#rows))                                                                |
+| `GET /api/rows/{id}`             | Yes   | One row                                                                                              |
+| `PATCH /api/rows/{id}`           | Yes   | `{selected?, destination?}`: picks a candidate (the row is then Ready) or a destination folder       |
+| `POST /api/rows/{id}/search`     | Yes   | `{query?}`: searches the row again, with the text typed; `409` when a key stops it                   |
+| `POST /api/renames`              | Yes   | `{type, rows?}`: renames the Ready rows of a tab (`202`, `{"id"}`); see [Renames](#renames)          |
+| `GET /api/renames/current`       | Yes   | The last rename: its progress, then its result                                                       |
+| `GET /api/history`               | Yes   | The operations of the history, newest first (see [History](#history))                                |
+| `POST /api/history/{id}/undo`    | Yes   | `{index?}`: undoes the operation, or one of its files; answers what was put back                     |
+| `GET /api/processed`             | Yes   | The files already processed (see [Files already processed](#files-already-processed))                |
+| `POST /api/processed/forget`     | Yes   | `{paths}`: the next analysis takes these files again; answers `{"forgotten"}`                        |
 
 The interface starts with `GET /api/session`: no account → the setup page; an
 account and no session → the login page; otherwise the app.
@@ -181,23 +182,23 @@ npm run build   # web/dist, served by sok-server
 During development, run `sok-server` next to `npm run dev`: Vite reloads the
 interface at each change and sends the `/api` requests to the server.
 
-| File                         | Contents                                                                                                                                                                                                                 |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/App.svelte`             | The first page: setup without an account, login without a session, else the app (directly with `SOK_AUTH=none`)                                                                                                          |
-| `src/pages/`                 | `Setup`, `Login`, `Shell` (the sidebar and the page of the address), `Analysis`, `MediaTab` (the tab of a media type), `History` (with `/history/processed`), `Settings`                                                 |
-| `src/components/`            | `Sidebar`, `AuthCard`, `Icon`, `Section` (a titled card), `Toggle`, `FolderList`, `KeyRow` (a service and its keys), `RowItem` (a row of a tab and its results), `Poster`, `StatusPill`, `RenameStatus`, `ConfirmDialog` |
-| `src/lib/api.ts`             | `api()`: calls `/api` with the session cookie; an error is an `ApiError` with the `code` of `detail`                                                                                                                     |
-| `src/lib/i18n.svelte.ts`     | `loadTexts()` and `t(key, english, values)`                                                                                                                                                                              |
-| `src/lib/router.svelte.ts`   | The page is the path of the address (`/movies`); `navigate()`, `follow` for the links                                                                                                                                    |
-| `src/lib/session.svelte.ts`  | `GET /api/session`, `logOut()`                                                                                                                                                                                           |
-| `src/lib/scan.svelte.ts`     | The summary of the analysis, kept live by `listen()` (`GET /api/events`); `startScan()`, `confirmType()`                                                                                                                 |
-| `src/lib/rows.ts`            | `loadRows()`, `changeRow()`, `searchRow()`, `posterUrl()`                                                                                                                                                                |
-| `src/lib/renames.svelte.ts`  | The last rename, kept live by the `rename` and `progress` events; `startRename()`                                                                                                                                        |
-| `src/lib/history.ts`         | `loadHistory()`, `undo()`, `loadProcessed()`, `forgetProcessed()`                                                                                                                                                        |
-| `src/lib/settings.svelte.ts` | `loadSettings()`, `saveSettings(change)`, `testKey(service)`                                                                                                                                                             |
-| `src/lib/pages.ts`           | The pages of the sidebar                                                                                                                                                                                                 |
-| `src/lib/icons.ts`           | The icons of the desktop app (`src/sok/resources/assets`), in the color of the text                                                                                                                                      |
-| `src/app.css`                | Tailwind and the colors of the desktop app: the macOS light theme and the dark theme, as Tailwind colors (`bg-card`, `text-muted`…)                                                                                      |
+| File                         | Contents                                                                                                                                                                                                                                                              |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/App.svelte`             | The first page: setup without an account, login without a session, else the app (directly with `SOK_AUTH=none`)                                                                                                                                                       |
+| `src/pages/`                 | `Setup`, `Login`, `Shell` (the sidebar and the page of the address), `Analysis`, `MediaTab` (the tab of a media type), `History` (with `/history/processed`), `Settings`                                                                                              |
+| `src/components/`            | `Sidebar`, `AuthCard`, `Icon`, `Section` (a titled card), `Toggle`, `FolderList`, `FolderBrowser` (the folders of the server), `KeyRow` (a service and its keys), `RowItem` (a row of a tab and its results), `Poster`, `StatusPill`, `RenameStatus`, `ConfirmDialog` |
+| `src/lib/api.ts`             | `api()`: calls `/api` with the session cookie; an error is an `ApiError` with the `code` of `detail`                                                                                                                                                                  |
+| `src/lib/i18n.svelte.ts`     | `loadTexts()` and `t(key, english, values)`                                                                                                                                                                                                                           |
+| `src/lib/router.svelte.ts`   | The page is the path of the address (`/movies`); `navigate()`, `follow` for the links                                                                                                                                                                                 |
+| `src/lib/session.svelte.ts`  | `GET /api/session`, `logOut()`                                                                                                                                                                                                                                        |
+| `src/lib/scan.svelte.ts`     | The summary of the analysis, kept live by `listen()` (`GET /api/events`); `startScan()`, `confirmType()`                                                                                                                                                              |
+| `src/lib/rows.ts`            | `loadRows()`, `changeRow()`, `searchRow()`, `posterUrl()`                                                                                                                                                                                                             |
+| `src/lib/renames.svelte.ts`  | The last rename, kept live by the `rename` and `progress` events; `startRename()`                                                                                                                                                                                     |
+| `src/lib/history.ts`         | `loadHistory()`, `undo()`, `loadProcessed()`, `forgetProcessed()`                                                                                                                                                                                                     |
+| `src/lib/settings.svelte.ts` | `loadSettings()`, `saveSettings(change)`, `testKey(service)`                                                                                                                                                                                                          |
+| `src/lib/pages.ts`           | The pages of the sidebar                                                                                                                                                                                                                                              |
+| `src/lib/icons.ts`           | The icons of the desktop app (`src/sok/resources/assets`), in the color of the text                                                                                                                                                                                   |
+| `src/app.css`                | Tailwind and the colors of the desktop app: the macOS light theme and the dark theme, as Tailwind colors (`bg-card`, `text-muted`…)                                                                                                                                   |
 
 - **Colors.** `app.css` declares the colors of `src/sok/ui/theme.py` in
   `@theme`; the dark theme only changes the variables, under
@@ -213,7 +214,8 @@ interface at each change and sends the `/api` requests to the server.
   its field is left, a folder or a key with its button (`PATCH /api/settings`;
   the answer replaces the settings shown). A refused change shows its error at
   the top of the page (a folder: under its list). The paths are typed as the
-  server sees them; the link checks show under the file modes in `link` mode.
+  server sees them, or picked with **Browse…** (`FolderBrowser`), which opens
+  next to the last folder of the list, or next to the sources; the link checks show under the file modes in `link` mode.
   A key is never shown: only whether it is set, or set by an environment
   variable (then it cannot be changed), with a test of the saved key. A new
   language loads its texts at once.
@@ -292,6 +294,12 @@ interface at each change and sends the `/api` requests to the server.
   is built again for the next search.
 - **Folders.** Each role given replaces its list; paths are normalized and
   duplicates dropped.
+- **Browsing.** The browser cannot see the disks of the server:
+  `GET /api/settings/browse?path=` (`browse()` in `settings.py`) lists the
+  subfolders of a folder, hidden ones left out, sorted by name, 1000 at most,
+  with its `parent` (`null` at the root); without `path`, the root. A path
+  that is not an absolute folder, or cannot be read, answers `404`
+  `unreadable_folder`.
 
 ### Link checks
 
