@@ -31,9 +31,69 @@ export function errorText(error: unknown): string {
       return t("web_error_too_many_attempts", "Too many attempts. Try again in {seconds} s.", {
         seconds: error.retryAfter ?? 30,
       });
+    case "already_running":
+      return t("web_error_already_running", "An analysis or a rename is already running.");
+    case "rename_running":
+      return t("web_error_rename_running", "A rename is running: wait for its end.");
+    case "scan_running":
+      return t("web_error_scan_running", "An analysis is running: wait for its end.");
+    case "no_sources":
+      return t("web_error_no_sources", "Add a source folder in the settings first.");
     default:
       return t("web_error_unknown", "Something went wrong. Try again.");
   }
+}
+
+// The names of the services, as the settings list them.
+const SERVICE_NAMES: Record<string, string> = {
+  tmdb: "TMDB",
+  tvdb: "TVDB",
+  omdb: "OMDb",
+  lastfm: "Last.fm",
+  spotify: "Spotify",
+  deezer: "Deezer",
+  musicbrainz: "MusicBrainz",
+  google_books: "Google Books",
+  openlibrary: "Open Library",
+  igdb: "IGDB",
+  rawg: "RAWG",
+  fanart: "Fanart.tv",
+};
+
+export function serviceName(id: string | undefined): string {
+  return (id && SERVICE_NAMES[id]) ?? id ?? "";
+}
+
+/** Why a search stopped: {"code", "service"} of an analysis or of a 409. */
+export function stopText(stop: { code: string; service?: string; message?: string }): string {
+  const service = serviceName(stop.service);
+  switch (stop.code) {
+    case "missing_key":
+      return t(
+        "web_stop_missing_key",
+        "{service}: the key is missing. Add it in the settings, then analyze again.",
+        { service },
+      );
+    case "key_refused":
+      return t("web_stop_key_refused", "{service} refused the key: check it in the settings.", {
+        service,
+      });
+    case "rate_limited":
+      return t(
+        "web_stop_rate_limited",
+        "{service}: too many requests, or the quota is used. Try again later.",
+        { service },
+      );
+    default:
+      return t("web_stop_failed", "The analysis failed: {message}", {
+        message: stop.message ?? stop.code,
+      });
+  }
+}
+
+/** The text of a search of a row stopped by a key (409). */
+export function searchErrorText(error: ApiError): string {
+  return stopText(error.detail as { code: string; service?: string });
 }
 
 /** What a refused setting is about: {"code", "item"} of "detail". */

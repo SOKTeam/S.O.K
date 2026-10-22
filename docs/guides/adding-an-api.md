@@ -75,7 +75,8 @@ manager and the workers handle `APIError` and its subclasses.
 The media manager passes `search()` and `get_details()` results through the
 adapter of the content type (`sok.core.adapters.media_adapters`). Look at the
 adapter for your content type and at an existing API of the same media type,
-then use the same keys (`id`, `title`, `release_date`…). If a field has another
+then use the same keys (`id`, `title`, `release_date`, `overview`…): the
+movie and TV adapters keep the overview for the results S.O.K Server shows. If a field has another
 name in your service, rename it in your class rather than in the adapter.
 
 ## 3. Register the service

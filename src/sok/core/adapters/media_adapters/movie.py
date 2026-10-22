@@ -48,6 +48,7 @@ class MovieAdapter(BaseAdapter):
                         item.get("original_title") or item.get("original_name")
                     ),
                     "release_date": _clean_str(item.get("release_date")),
+                    "overview": _clean_str(item.get("overview")),
                 }
             )
         return {"results": normalized}

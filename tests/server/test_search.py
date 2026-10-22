@@ -84,6 +84,8 @@ def test_the_analysis_searches_the_movies(client):
     # Two Dune without a year: the user picks one.
     assert movies["Dune.mkv"]["status"] == "ambiguous"
     assert movies["Unknown.Thing.2003.mkv"]["status"] == "missing"
+    # A movie has no artist nor author.
+    assert dune["candidates"][0]["by"] is None
     assert movies["Unknown.Thing.2003.mkv"]["files"][0]["new_name"] is None
 
 
@@ -262,6 +264,17 @@ def test_music_books_and_games_are_searched(client, library):
         ),
         "game": ("ok", ["Super Nintendo/Chrono Trigger (USA).smc"]),
     }
+
+
+def test_a_result_names_its_artist_or_its_authors(client, library):
+    client.patch("/api/settings", json={"folders": {"sources": [str(library)]}})
+    scan(client)
+
+    album = client.get("/api/rows?type=music").json()["rows"][0]
+    book = client.get("/api/rows?type=books").json()["rows"][0]
+
+    assert [c["by"] for c in album["candidates"]] == ["Daft Punk", "Data Punk"]
+    assert book["candidates"][0]["by"] == "Frank Herbert"
 
 
 def test_a_missing_key_names_the_service_of_each_type(client, library, media_manager):
