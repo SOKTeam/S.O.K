@@ -149,6 +149,10 @@ page).
 
 The new names go through `format_name` (`sok.core.utils`), which removes the
 characters that Windows does not accept in file names: `< > : " / \ | ? *`.
+It also removes the dots and spaces at the end of a name, and before its
+extension: an episode titled "Cat's in the Bag..." gives
+`… Cat's in the Bag.mkv`, and a folder never ends with a dot, which Windows
+refuses.
 
 The formats can be changed in the settings:
 
