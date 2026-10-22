@@ -180,21 +180,23 @@ npm run build   # web/dist, served by sok-server
 During development, run `sok-server` next to `npm run dev`: Vite reloads the
 interface at each change and sends the `/api` requests to the server.
 
-| File                         | Contents                                                                                                                                                                                |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/App.svelte`             | The first page: setup without an account, login without a session, else the app (directly with `SOK_AUTH=none`)                                                                         |
-| `src/pages/`                 | `Setup`, `Login`, `Shell` (the sidebar and the page of the address), `Analysis`, `MediaTab` (the tab of a media type), `Settings`                                                       |
-| `src/components/`            | `Sidebar`, `AuthCard`, `Icon`, `Section` (a titled card), `Toggle`, `FolderList`, `KeyRow` (a service and its keys), `RowItem` (a row of a tab and its results), `Poster`, `StatusPill` |
-| `src/lib/api.ts`             | `api()`: calls `/api` with the session cookie; an error is an `ApiError` with the `code` of `detail`                                                                                    |
-| `src/lib/i18n.svelte.ts`     | `loadTexts()` and `t(key, english, values)`                                                                                                                                             |
-| `src/lib/router.svelte.ts`   | The page is the path of the address (`/movies`); `navigate()`, `follow` for the links                                                                                                   |
-| `src/lib/session.svelte.ts`  | `GET /api/session`, `logOut()`                                                                                                                                                          |
-| `src/lib/scan.svelte.ts`     | The summary of the analysis, kept live by `listen()` (`GET /api/events`); `startScan()`, `confirmType()`                                                                                |
-| `src/lib/rows.ts`            | `loadRows()`, `changeRow()`, `searchRow()`, `posterUrl()`                                                                                                                               |
-| `src/lib/settings.svelte.ts` | `loadSettings()`, `saveSettings(change)`, `testKey(service)`                                                                                                                            |
-| `src/lib/pages.ts`           | The pages of the sidebar                                                                                                                                                                |
-| `src/lib/icons.ts`           | The icons of the desktop app (`src/sok/resources/assets`), in the color of the text                                                                                                     |
-| `src/app.css`                | Tailwind and the colors of the desktop app: the macOS light theme and the dark theme, as Tailwind colors (`bg-card`, `text-muted`…)                                                     |
+| File                         | Contents                                                                                                                                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/App.svelte`             | The first page: setup without an account, login without a session, else the app (directly with `SOK_AUTH=none`)                                                                                                          |
+| `src/pages/`                 | `Setup`, `Login`, `Shell` (the sidebar and the page of the address), `Analysis`, `MediaTab` (the tab of a media type), `History` (with `/history/processed`), `Settings`                                                 |
+| `src/components/`            | `Sidebar`, `AuthCard`, `Icon`, `Section` (a titled card), `Toggle`, `FolderList`, `KeyRow` (a service and its keys), `RowItem` (a row of a tab and its results), `Poster`, `StatusPill`, `RenameStatus`, `ConfirmDialog` |
+| `src/lib/api.ts`             | `api()`: calls `/api` with the session cookie; an error is an `ApiError` with the `code` of `detail`                                                                                                                     |
+| `src/lib/i18n.svelte.ts`     | `loadTexts()` and `t(key, english, values)`                                                                                                                                                                              |
+| `src/lib/router.svelte.ts`   | The page is the path of the address (`/movies`); `navigate()`, `follow` for the links                                                                                                                                    |
+| `src/lib/session.svelte.ts`  | `GET /api/session`, `logOut()`                                                                                                                                                                                           |
+| `src/lib/scan.svelte.ts`     | The summary of the analysis, kept live by `listen()` (`GET /api/events`); `startScan()`, `confirmType()`                                                                                                                 |
+| `src/lib/rows.ts`            | `loadRows()`, `changeRow()`, `searchRow()`, `posterUrl()`                                                                                                                                                                |
+| `src/lib/renames.svelte.ts`  | The last rename, kept live by the `rename` and `progress` events; `startRename()`                                                                                                                                        |
+| `src/lib/history.ts`         | `loadHistory()`, `undo()`, `loadProcessed()`, `forgetProcessed()`                                                                                                                                                        |
+| `src/lib/settings.svelte.ts` | `loadSettings()`, `saveSettings(change)`, `testKey(service)`                                                                                                                                                             |
+| `src/lib/pages.ts`           | The pages of the sidebar                                                                                                                                                                                                 |
+| `src/lib/icons.ts`           | The icons of the desktop app (`src/sok/resources/assets`), in the color of the text                                                                                                                                      |
+| `src/app.css`                | Tailwind and the colors of the desktop app: the macOS light theme and the dark theme, as Tailwind colors (`bg-card`, `text-muted`…)                                                                                      |
 
 - **Colors.** `app.css` declares the colors of `src/sok/ui/theme.py` in
   `@theme`; the dark theme only changes the variables, under
@@ -222,6 +224,15 @@ interface at each change and sends the `/api` requests to the server.
   to pick (poster, title, year, artist or authors, overview) and a search with
   another text; a series or an album unfolds its files with their new paths.
   The destination folder shows only when its media type has several.
+- **Renames and history.** A tab renames its Ready rows, or the rows ticked,
+  after a confirmation that gives the number of files, the file mode and the
+  rows still to pick left out (`POST /api/renames`). The progress and the
+  result (files renamed, subtitles, files left on their row and why) show above
+  the rows; the renamed rows leave the table at the `rename` event that ends
+  it. The History page lists the operations, undoes one or a file (with a
+  confirmation), and its "Already processed" tab
+  (`/history/processed`, linked from the analysis page) lists the files the
+  analyses leave out, with "Analyze again".
 - **Language at startup.** Without an account, the interface asks
   `GET /api/i18n` for the languages, then loads the first language of the
   browser that S.O.K has (`pickLanguage`); the setup sends it to the server.

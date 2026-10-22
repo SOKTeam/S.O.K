@@ -5,7 +5,7 @@
   import KeyRow from "../components/KeyRow.svelte";
   import Section from "../components/Section.svelte";
   import Toggle from "../components/Toggle.svelte";
-  import { errorText } from "../lib/errors";
+  import { errorText, linkProblemText } from "../lib/errors";
   import { loadTexts, t } from "../lib/i18n.svelte";
   import { MEDIA_PAGES } from "../lib/pages";
   import {
@@ -75,31 +75,17 @@
   }
 
   function linkText(check: LinkCheck): string {
-    const values = { source: check.source, destination: check.destination };
-    switch (check.problem) {
-      case "different_drives":
-        return t(
-          "web_link_different_drives",
-          "“{source}” and “{destination}” are on two drives, or two Docker mounts: mount their common parent folder once.",
-          values,
-        );
-      case "no_hard_links":
-        return t(
-          "web_link_no_hard_links",
-          "The disk of “{destination}” has no hard links (FAT, exFAT, most network shares).",
-          values,
-        );
-      case "missing_folder":
-        return t("web_link_missing_folder", "“{source}” or “{destination}” is missing.", values);
-      default:
-        return check.tested
-          ? t("web_link_ok", "Hard links work from “{source}” to “{destination}”.", values)
-          : t(
-              "web_link_untested",
-              "“{source}” and “{destination}” are on the same drive; the test link is made once “{source}” holds a file.",
-              values,
-            );
+    if (check.problem) {
+      return linkProblemText(check.problem, check.source, check.destination);
     }
+    const values = { source: check.source, destination: check.destination };
+    return check.tested
+      ? t("web_link_ok", "Hard links work from “{source}” to “{destination}”.", values)
+      : t(
+          "web_link_untested",
+          "“{source}” and “{destination}” are on the same drive; the test link is made once “{source}” holds a file.",
+          values,
+        );
   }
 
   const FILE_MODES: FileMode[] = ["link", "copy", "move"];

@@ -182,6 +182,9 @@
         {t("web_processed_hidden", "{n} files already processed are left out.", {
           n: scan.processed,
         })}
+        <a href="/history/processed" onclick={follow} class="text-accent hover:underline">
+          {t("web_show_processed", "Show them")}
+        </a>
       </p>
     {/if}
   {/if}

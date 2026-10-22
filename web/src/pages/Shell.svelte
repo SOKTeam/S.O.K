@@ -5,16 +5,21 @@
   import { t } from "../lib/i18n.svelte";
   import { pageOf } from "../lib/pages";
   import { router } from "../lib/router.svelte";
+  import { refreshRename } from "../lib/renames.svelte";
   import { listen } from "../lib/scan.svelte";
   import { session } from "../lib/session.svelte";
   import Analysis from "./Analysis.svelte";
+  import History from "./History.svelte";
   import MediaTab from "./MediaTab.svelte";
   import Settings from "./Settings.svelte";
 
   const page = $derived(pageOf(router.path));
 
   // The analysis and its progress, live, for every page.
-  onMount(listen);
+  onMount(() => {
+    refreshRename().catch(() => {});
+    return listen();
+  });
 </script>
 
 <div class="flex h-full">
@@ -33,6 +38,8 @@
         <Settings />
       {:else if page.path === "/"}
         <Analysis />
+      {:else if page.path === "/history"}
+        <History />
       {:else if page.mediaType}
         <MediaTab {page} />
       {:else}
