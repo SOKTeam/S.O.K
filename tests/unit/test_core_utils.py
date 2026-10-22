@@ -18,7 +18,23 @@ class TestCoreUtils:
         # Test replacing multiple spaces
         assert format_name("file  with   spaces") == "file with spaces"
         # Test mixed
-        assert format_name(" cool < file > name ") == " cool file name "
+        assert format_name(" cool < file > name ") == " cool file name"
+
+    def test_format_name_ends_without_dots(self):
+        # A title that ends with "..." before the extension.
+        assert (
+            format_name("S01E02 Cat's in the Bag....mkv")
+            == "S01E02 Cat's in the Bag.mkv"
+        )
+        # An empty episode title leaves a space before the extension.
+        assert format_name("Severance S01E01 .mkv") == "Severance S01E01.mkv"
+        # A folder: Windows refuses a dot at the end.
+        assert format_name("Season 1 - The Beginning...") == "Season 1 - The Beginning"
+        # The dots inside the name and of a language stay.
+        assert format_name("Dune (2021).fr.srt") == "Dune (2021).fr.srt"
+        assert format_name("Mr. Robot S01E01 eps1.0_hellofriend.mov") == (
+            "Mr. Robot S01E01 eps1.0_hellofriend.mov"
+        )
 
     def test_extract_episode_info(self):
         # Standard format S01E01
