@@ -390,5 +390,6 @@
     "web_see_history": "Vedi la cronologia, per annullarla",
     "web_select_all": "Seleziona tutto",
     "web_select_row": "Seleziona",
-    "web_show_processed": "Mostrali"
+    "web_show_processed": "Mostrali",
+    "web_file_mode_is": "Modalità file: {mode}"
 }

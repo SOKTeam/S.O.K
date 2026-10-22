@@ -390,5 +390,6 @@
     "web_see_history": "Zobacz historię, aby cofnąć",
     "web_select_all": "Zaznacz wszystko",
     "web_select_row": "Zaznacz",
-    "web_show_processed": "Pokaż je"
+    "web_show_processed": "Pokaż je",
+    "web_file_mode_is": "Tryb plików: {mode}"
 }

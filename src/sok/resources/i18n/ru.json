@@ -390,5 +390,6 @@
     "web_see_history": "Открыть историю, чтобы отменить",
     "web_select_all": "Выбрать все",
     "web_select_row": "Выбрать",
-    "web_show_processed": "Показать"
+    "web_show_processed": "Показать",
+    "web_file_mode_is": "Режим файлов: {mode}"
 }

@@ -390,5 +390,6 @@
     "web_see_history": "See the history, to undo it",
     "web_select_all": "Select all",
     "web_select_row": "Select",
-    "web_show_processed": "Show them"
+    "web_show_processed": "Show them",
+    "web_file_mode_is": "File mode: {mode}"
 }

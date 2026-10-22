@@ -390,5 +390,6 @@
     "web_see_history": "Ver el historial, para deshacerlo",
     "web_select_all": "Seleccionar todo",
     "web_select_row": "Seleccionar",
-    "web_show_processed": "Mostrarlos"
+    "web_show_processed": "Mostrarlos",
+    "web_file_mode_is": "Modo de archivo: {mode}"
 }
