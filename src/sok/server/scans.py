@@ -23,7 +23,8 @@ A new analysis keeps the rows it finds again, with the choices made on them
 (search text, match, destination): a series or an album keeps them when
 episodes or tracks are added. The rows whose files are gone are removed.
 The files whose type is a guess are "to check", until the user confirms a
-type, which the next analyses remember.
+type, which the next analyses remember. The files already processed (renamed
+before, with the same size and date) are left out and counted.
 
 Then the rows not searched yet are searched (Searcher): movies and TV shows
 for now. A missing key or a used quota stops the analysis, with the rows
@@ -37,7 +38,7 @@ import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from sok.core.batch import group_game_files
 from sok.core.interfaces import ContentType
@@ -49,6 +50,7 @@ from sok.file_operations.detection import (
 )
 from sok.server.db import Database
 from sok.server.events import EventBus
+from sok.server.history import unchanged
 from sok.server.jobs import SCAN, Busy, Jobs
 from sok.server.search import Searcher, SearchStopped, search_error
 from sok.server.settings import MEDIA_TYPES, Settings
@@ -213,10 +215,21 @@ class Scans:
                     row["path"]: row["kind"]
                     for row in conn.execute("SELECT path, kind FROM type_choices")
                 }
+                processed = {
+                    row["path"]: (row["size"], row["mtime_ns"])
+                    for row in conn.execute("SELECT * FROM processed")
+                }
             self._set_progress("detect", 0, 0)
-            report = await asyncio.to_thread(
-                self._detect, [s for s in sources if s not in missing], choices
+            report, skipped = await asyncio.to_thread(
+                self._detect,
+                [s for s in sources if s not in missing],
+                choices,
+                processed,
             )
+            with self._db.transaction() as conn:
+                conn.execute(
+                    "UPDATE scans SET processed = ? WHERE id = ?", (skipped, scan_id)
+                )
             self._save(report)
             self._set_progress("search", 0, 0)
             await self._searcher.search_pending(
@@ -238,11 +251,34 @@ class Scans:
         self._events.publish({"type": "progress", **self._progress})
 
     @staticmethod
-    def _detect(sources: List[str], choices: Dict[str, str]) -> DetectionReport:
+    def _detect(
+        sources: List[str],
+        choices: Dict[str, str],
+        processed: Dict[str, Tuple[int, int]],
+    ) -> Tuple[DetectionReport, int]:
+        """Sort the files of the sources, without those already processed.
+
+        Returns:
+            The report, and how many files were left out as processed.
+        """
         detector = MediaTypeDetector()
         report = detector.detect_sources([Path(s) for s in sources])
         _apply_choices(detector, report, choices)
-        return report
+
+        def done(path: Path) -> bool:
+            known = processed.get(str(path))
+            return known is not None and unchanged(str(path), *known)
+
+        skipped = 0
+        for group in report.groups:
+            kept = [f for f in group.files if not done(f)]
+            skipped += len(group.files) - len(kept)
+            group.files = kept
+        report.groups = [g for g in report.groups if g.files]
+        kept_items = [d for d in report.to_check if not done(d.path)]
+        skipped += len(report.to_check) - len(kept_items)
+        report.to_check = kept_items
+        return report, skipped
 
     def _save(self, report: DetectionReport) -> None:
         """Replace the rows and the files to check with those of a report.
@@ -351,6 +387,8 @@ class Scans:
                 "finished": scan["finished"],
                 "error": json.loads(scan["error"]) if scan["error"] else None,
                 "missing_sources": json.loads(scan["missing_sources"]),
+                # Files left out: renamed before, unchanged since.
+                "processed": scan["processed"],
                 "progress": self._progress if scan["status"] == RUNNING else None,
             },
             "counts": counts,

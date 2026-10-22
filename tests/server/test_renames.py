@@ -11,6 +11,7 @@
 import asyncio
 import os
 import time
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -252,3 +253,61 @@ def test_one_job_at_a_time():
         assert not jobs.running()
 
     asyncio.run(run())
+
+
+def scan(client):
+    client.post("/api/scans")
+    return wait(client, "/api/scans/current", "scan")
+
+
+def movie_names(client):
+    return sorted(r["files"][0]["name"] for r in rows(client, "movies"))
+
+
+def test_a_linked_file_is_left_out_of_the_next_analyses(client, downloads):
+    rename(client, "movies")
+
+    assert scan(client)["processed"] == 1
+    assert movie_names(client) == ["Dune.mkv"]
+    processed = client.get("/api/processed").json()["files"]
+    assert [(p["path"], Path(p["target"]).name) for p in processed] == [
+        (str(downloads / "Dune.2021.1080p.mkv"), "Dune (2021).mkv")
+    ]
+
+
+def test_an_undone_file_is_analyzed_again(client):
+    operation_id = rename(client, "movies")["result"]["operation"]
+    client.post(f"/api/history/{operation_id}/undo", json={})
+
+    assert client.get("/api/processed").json()["files"] == []
+    assert scan(client)["processed"] == 0
+    assert movie_names(client) == ["Dune.2021.1080p.mkv", "Dune.mkv"]
+
+
+def test_a_forgotten_file_is_analyzed_again(client, downloads):
+    rename(client, "movies")
+    path = str(downloads / "Dune.2021.1080p.mkv")
+
+    answer = client.post("/api/processed/forget", json={"paths": [path]})
+
+    assert answer.json() == {"forgotten": 1}
+    scan(client)
+    assert "Dune.2021.1080p.mkv" in movie_names(client)
+
+
+def test_a_changed_file_is_analyzed_again(client, downloads):
+    rename(client, "movies")
+    # Another download under the same name.
+    (downloads / "Dune.2021.1080p.mkv").unlink()
+    (downloads / "Dune.2021.1080p.mkv").write_text("a new file, longer")
+
+    scan(client)
+
+    assert "Dune.2021.1080p.mkv" in movie_names(client)
+
+
+def test_a_moved_file_is_not_kept_as_processed(client):
+    client.patch("/api/settings", json={"settings": {"file_mode": "move"}})
+    rename(client, "movies")
+
+    assert client.get("/api/processed").json()["files"] == []

@@ -8,19 +8,28 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-"""The rename history of S.O.K Server, in the database.
+"""The rename history of S.O.K Server, in the database, and the files
+already processed.
 
 The history of the desktop app (sok.core.history) records the renames and
 undoes them; only where it keeps them changes: the history table of sok.db
 instead of history.json. Each operation is one row, newest first
 (position 0), with the media type of its tab.
+
+A file renamed is also "processed": with a hard link or a copy it stays in
+the downloads, and the next analyses leave it out while it keeps its path,
+size and date. The processed table is not limited to the 100 operations of
+the history. It is written in the same transaction as the history: a
+rename adds its files, an undo removes them.
 """
 
 import json
+import os
+import sqlite3
 from dataclasses import asdict
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterable, List
 
-from sok.core.history import HistoryStore, Operation, UndoReport
+from sok.core.history import MAX_OPERATIONS, HistoryStore, Operation, UndoReport
 from sok.server.db import Database
 
 # The media type (tab) of the kind of an operation, a ContentType value.
@@ -55,22 +64,50 @@ class History(HistoryStore):
 
     def _save(self) -> None:
         with self._db.transaction() as conn:
-            conn.execute("DELETE FROM history")
-            conn.executemany(
-                "INSERT INTO history (id, position, date, kind, media_type, operation)"
-                " VALUES (?, ?, ?, ?, ?, ?)",
-                [
-                    (
-                        op.id,
-                        position,
-                        op.date,
-                        op.kind,
-                        MEDIA_TYPE_OF_KIND.get(op.kind, ""),
-                        json.dumps(asdict(op), ensure_ascii=False),
-                    )
-                    for position, op in enumerate(self._operations)
-                ],
-            )
+            self._write(conn)
+
+    def _write(self, conn: sqlite3.Connection) -> None:
+        """Save the operations; the files undone are no longer processed."""
+        conn.execute("DELETE FROM history")
+        conn.executemany(
+            "INSERT INTO history (id, position, date, kind, media_type, operation)"
+            " VALUES (?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    op.id,
+                    position,
+                    op.date,
+                    op.kind,
+                    MEDIA_TYPE_OF_KIND.get(op.kind, ""),
+                    json.dumps(asdict(op), ensure_ascii=False),
+                )
+                for position, op in enumerate(self._operations)
+            ],
+        )
+        conn.executemany(
+            "DELETE FROM processed WHERE path = ? AND operation_id = ?",
+            [
+                (move.source, op.id)
+                for op in self._operations
+                for move in op.moves
+                if move.undone
+            ],
+        )
+
+    def add(self, operation: Operation) -> None:
+        """Add an operation, and its files still at their old place (linked or
+        copied) to the files processed."""
+        with self._lock:
+            self._operations.insert(0, operation)
+            del self._operations[MAX_OPERATIONS:]
+            with self._db.transaction() as conn:
+                self._write(conn)
+                conn.executemany(
+                    "INSERT OR REPLACE INTO processed"
+                    " (path, size, mtime_ns, target, operation_id, date)"
+                    " VALUES (?, ?, ?, ?, ?, ?)",
+                    _processed(operation),
+                )
 
     def undo_checked(self, operation_id: str, index: Any = None) -> UndoReport:
         """undo(), for an operation and a file that exist.
@@ -84,6 +121,29 @@ class History(HistoryStore):
         if index is not None and not 0 <= index < len(operation.moves):
             raise UnknownOperation(index)
         return self.undo(operation_id, index)
+
+
+def _processed(operation: Operation) -> Iterable[tuple]:
+    """The rows of the processed table for the files of an operation.
+
+    The subtitles are left out: the analyses never list them.
+    """
+    for move in operation.moves:
+        if move.follows:
+            continue
+        try:
+            stat = os.stat(move.source)
+        except OSError:
+            # Moved: nothing left to hide.
+            continue
+        yield (
+            move.source,
+            stat.st_size,
+            stat.st_mtime_ns,
+            move.target,
+            operation.id,
+            operation.date,
+        )
 
 
 def describe(operation: Operation) -> Dict[str, Any]:
@@ -119,3 +179,42 @@ def undo_report(report: UndoReport) -> Dict[str, Any]:
             for move, reason in report.skipped
         ],
     }
+
+
+def processed_files(db: Database) -> List[Dict[str, Any]]:
+    """The files processed, newest first: the filter "already processed"."""
+    with db.transaction() as conn:
+        rows = conn.execute(
+            "SELECT * FROM processed ORDER BY date DESC, path"
+        ).fetchall()
+    return [
+        {
+            "path": row["path"],
+            "target": row["target"],
+            "size": row["size"],
+            "date": row["date"],
+            "operation": row["operation_id"],
+        }
+        for row in rows
+    ]
+
+
+def forget_processed(db: Database, paths: List[str]) -> int:
+    """Analyze these files again: they are no longer processed.
+
+    Returns:
+        How many were processed.
+    """
+    with db.transaction() as conn:
+        return conn.executemany(
+            "DELETE FROM processed WHERE path = ?", [(p,) for p in paths]
+        ).rowcount
+
+
+def unchanged(path: str, size: int, mtime_ns: int) -> bool:
+    """Whether a file still has the size and the date it was processed with."""
+    try:
+        stat = os.stat(path)
+    except OSError:
+        return False
+    return stat.st_size == size and stat.st_mtime_ns == mtime_ns

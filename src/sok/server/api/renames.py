@@ -9,7 +9,8 @@
 #
 # ===----------------------------------------------------------------------=== #
 """The renames and the history: /api/renames, /api/renames/current,
-/api/history and /api/history/{id}/undo.
+/api/history, /api/history/{id}/undo, and the files already processed:
+/api/processed and /api/processed/forget.
 
 An error gives a code in "detail": unknown_type, nothing_to_rename,
 no_destination, scan_running, already_running, unknown_operation; a hard link
@@ -24,7 +25,14 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 
 from sok.server.api.auth import require_login
-from sok.server.history import History, UnknownOperation, describe, undo_report
+from sok.server.history import (
+    History,
+    UnknownOperation,
+    describe,
+    forget_processed,
+    processed_files,
+    undo_report,
+)
 from sok.server.jobs import RENAME, Busy
 from sok.server.renames import Renamer, RenameError
 
@@ -95,3 +103,19 @@ async def undo(operation_id: str, undo: UndoRequest, request: Request) -> dict:
     operation = history(request).get(operation_id)
     assert operation is not None
     return {**undo_report(report), "operation": describe(operation)}
+
+
+class ProcessedFiles(BaseModel):
+    paths: List[str]
+
+
+@router.get("/processed")
+def list_processed(request: Request) -> dict:
+    """The files already processed, which the analyses leave out."""
+    return {"files": processed_files(request.app.state.db)}
+
+
+@router.post("/processed/forget")
+def forget(files: ProcessedFiles, request: Request) -> dict:
+    """Analyze these files again, at the next analysis."""
+    return {"forgotten": forget_processed(request.app.state.db, files.paths)}

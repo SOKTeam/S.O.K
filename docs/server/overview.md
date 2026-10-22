@@ -127,6 +127,8 @@ JSON under `/api`. FastAPI's own `/docs` page is turned off.
 | `GET /api/renames/current`     | Yes   | The last rename: its progress, then its result                                                       |
 | `GET /api/history`             | Yes   | The operations of the history, newest first (see [History](#history))                                |
 | `POST /api/history/{id}/undo`  | Yes   | `{index?}`: undoes the operation, or one of its files; answers what was put back                     |
+| `GET /api/processed`           | Yes   | The files already processed (see [Files already processed](#files-already-processed))                |
+| `POST /api/processed/forget`   | Yes   | `{paths}`: the next analysis takes these files again; answers `{"forgotten"}`                        |
 
 The interface starts with `GET /api/session`: no account → the setup page; an
 account and no session → the login page; otherwise the app.
@@ -245,13 +247,15 @@ are deleted. A new row is `pending` until it is searched.
 
 `GET /api/scans/current` answers:
 
-| Field      | Contents                                                                                                                                                   |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `scan`     | The last analysis: `id`, `status` (`running`, `done`, `failed`, `interrupted`), `started`, `finished`, `error`, `missing_sources`; `null` before the first |
-| `counts`   | For each media type (`movies`, `tv`, `music`, `books`, `games`): the rows per status, and `total`                                                          |
-| `to_check` | The files whose type is a guess: `path`, `kind` suggested, its `media_type`, `title`, `reason`                                                             |
+| Field      | Contents                                                                                                                                                                |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scan`     | The last analysis: `id`, `status` (`running`, `done`, `failed`, `interrupted`), `started`, `finished`, `error`, `missing_sources`, `processed`; `null` before the first |
+| `counts`   | For each media type (`movies`, `tv`, `music`, `books`, `games`): the rows per status, and `total`                                                                       |
+| `to_check` | The files whose type is a guess: `path`, `kind` suggested, its `media_type`, `title`, `reason`                                                                          |
 
 - A source folder that is gone is skipped and listed in `missing_sources`.
+- The files already processed are left out and counted in `scan.processed`
+  (see [Files already processed](#files-already-processed)).
 - An analysis cut by a restart of the server is `interrupted` at the next start.
 - `POST /api/to-check` gives a file to check its type (`kind`: `movie`,
   `episode`, `album`, `track`, `book`, `game`): it becomes a row, or joins its
@@ -386,6 +390,27 @@ and the `operation`. It waits while a rename runs (`409`
 `rename_running`); an unknown id or index answers `404` `unknown_operation`.
 An undone file is not a row again until the next analysis finds it.
 
+### Files already processed
+
+With a hard link or a copy, a renamed file stays in the downloads. `History.add`
+writes each file of the operation still at its old place into the `processed`
+table (`path`, `size`, `mtime_ns`, `target`, `operation_id`, `date`), in the
+same transaction as the operation: the history and the files processed never
+disagree. A moved file is not kept (nothing is left to hide), nor a subtitle
+(the analyses never list them). The table is not limited to the 100 operations
+of the history.
+
+An analysis reads the table and leaves out of its rows and of its files to
+check every file with the same path, size and date (`Scans._detect`); a file
+changed since (another download under the same name) is analyzed again. When
+an undo puts a file back, `History._write` deletes its entry in the same
+transaction as the operation.
+
+`GET /api/processed` lists them, newest first (`path`, `target`, `size`,
+`date`, `operation`): the filter "already processed" of the interface.
+`POST /api/processed/forget` with `{"paths"}` deletes entries: the next
+analysis takes those files again. Neither starts an analysis.
+
 ## Database
 
 `sok.db` is a SQLite file (the `sqlite3` module of Python) in `data_dir()`. Each
@@ -399,11 +424,12 @@ new entry.
 | `account`      | The account: `username`, `password_hash`, `created`                                                                                                                            |
 | `sessions`     | The open sessions: `token_hash`, `created`, `expires`                                                                                                                          |
 | `folders`      | The folders: `role` (`sources` or a media type), `position`, `path`                                                                                                            |
-| `scans`        | The analyses: `started`, `finished`, `status`, `error`, `missing_sources`                                                                                                      |
+| `scans`        | The analyses: `started`, `finished`, `status`, `error`, `missing_sources`, `processed`                                                                                         |
 | `rows`         | The rows of the tabs: `key`, `media_type`, `kind`, `title`, `files`, then the search (`query`, `year`, `candidates`, `selected`, `status`), `destination`, `details`, `errors` |
 | `to_check`     | The files to check of the last analysis                                                                                                                                        |
 | `type_choices` | The types the user gave to files to check                                                                                                                                      |
 | `renames`      | The renames: `media_type`, `started`, `finished`, `status`, `error`, `result`                                                                                                  |
+| `processed`    | The files already processed: `path`, `size`, `mtime_ns`, `target`, `operation_id`, `date`                                                                                      |
 | `history`      | The rename history: `id`, `position`, `date`, `kind`, `media_type`, and the `operation` as JSON                                                                                |
 
 `Database.transaction()` runs a block of statements together, under a lock: the

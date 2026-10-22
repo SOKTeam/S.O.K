@@ -137,7 +137,7 @@ interface.
   Ready status and the input patterns of the settings.
 - One analysis at a time. Its progress reaches the browser live (server-sent
   events). Closing the tab does not stop it.
-- **Files already processed are hidden** (planned). With hard links, a renamed file stays
+- **Files already processed are hidden.** With hard links, a renamed file stays
   in the downloads: S.O.K remembers every file it renamed (path, size, date) and
   leaves it out of the next analyses. A filter shows them again. An undone file
   is no longer "processed".
