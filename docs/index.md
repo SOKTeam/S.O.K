@@ -22,9 +22,8 @@ This documentation is for people who work on the code. To use the app, see the
 - **[Contributing](/contributing/)**: branches, commit messages, checks and pull
   requests.
 - **[S.O.K Server](/server/overview/)**: the Docker version with a web
-  interface: running it, its API, its database and its interface; and
-  [its specification](/specification/server/), the rules agreed before
-  writing it.
+  interface: running it, its API, its database, its interface, the automatic
+  sorting and the notifications.
 - **API reference** (at the bottom of the sidebar): every module, class and
   function, generated from the docstrings.
 - **[Changelog](https://github.com/SOKTeam/S.O.K/blob/main/CHANGELOG.md)**: what

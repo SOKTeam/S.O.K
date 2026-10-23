@@ -5,15 +5,8 @@ description: Running S.O.K Server from source, its JSON API, its database and it
 
 S.O.K Server is the web version of S.O.K, for a NAS or a home server: a FastAPI
 application in `sok/server/`, on the same core as the desktop app and without
-Qt. What it must do is in the [specification](/specification/server/); this
-part describes what is built.
-
-:::note
-The server is being built. In place today: the database, the account, the
-login, the health check, the settings, the test of a key, the Docker image and
-the analyses with the search of every media type. The renames and the web
-interface follow.
-:::
+Qt. The [user guide](https://sokfromsokteam.vercel.app/guide/server) explains
+how to use it; this part describes how it is built.
 
 ## Running it from source
 

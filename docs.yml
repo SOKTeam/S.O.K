@@ -47,9 +47,6 @@ sidebar:
   - label: Reference
     items:
       - reference/settings
-  - label: Specification
-    items:
-      - specification/server
   - contributing
 api:
   python: api.json
