@@ -391,5 +391,11 @@
     "web_select_all": "Seleccionar todo",
     "web_select_row": "Seleccionar",
     "web_show_processed": "Mostrarlos",
-    "web_file_mode_is": "Modo de archivo: {mode}"
+    "web_file_mode_is": "Modo de archivo: {mode}",
+    "web_browse": "Examinar…",
+    "web_choose_folder": "Elegir una carpeta del servidor",
+    "web_choose_this_folder": "Elegir esta carpeta",
+    "web_parent_folder": "Carpeta superior",
+    "web_no_subfolder": "No hay carpetas dentro.",
+    "web_error_unreadable_folder": "El servidor no puede leer esta carpeta."
 }

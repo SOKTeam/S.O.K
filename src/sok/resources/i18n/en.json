@@ -391,5 +391,11 @@
     "web_select_all": "Select all",
     "web_select_row": "Select",
     "web_show_processed": "Show them",
-    "web_file_mode_is": "File mode: {mode}"
+    "web_file_mode_is": "File mode: {mode}",
+    "web_browse": "Browse…",
+    "web_choose_folder": "Choose a folder of the server",
+    "web_choose_this_folder": "Choose this folder",
+    "web_parent_folder": "Parent folder",
+    "web_no_subfolder": "No folder inside.",
+    "web_error_unreadable_folder": "The server cannot read this folder."
 }

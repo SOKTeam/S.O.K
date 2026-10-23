@@ -6,6 +6,7 @@
   import Section from "../components/Section.svelte";
   import Toggle from "../components/Toggle.svelte";
   import { errorText, linkProblemText } from "../lib/errors";
+  import { parentFolder } from "../lib/format";
   import { loadTexts, t } from "../lib/i18n.svelte";
   import { MEDIA_PAGES } from "../lib/pages";
   import {
@@ -187,6 +188,7 @@
             label={t(page.key, page.english)}
             paths={data.folders[page.mediaType!]}
             example={`/data/${page.mediaType}`}
+            near={data.folders.sources.length ? parentFolder(data.folders.sources[0]) : undefined}
             error={folderErrors[page.mediaType!]}
             onchange={(paths) => saveFolders(page.mediaType!, paths)}
           />

@@ -391,5 +391,11 @@
     "web_select_all": "Alle auswählen",
     "web_select_row": "Auswählen",
     "web_show_processed": "Anzeigen",
-    "web_file_mode_is": "Dateimodus: {mode}"
+    "web_file_mode_is": "Dateimodus: {mode}",
+    "web_browse": "Durchsuchen…",
+    "web_choose_folder": "Einen Ordner des Servers wählen",
+    "web_choose_this_folder": "Diesen Ordner wählen",
+    "web_parent_folder": "Übergeordneter Ordner",
+    "web_no_subfolder": "Kein Ordner darin.",
+    "web_error_unreadable_folder": "Der Server kann diesen Ordner nicht lesen."
 }

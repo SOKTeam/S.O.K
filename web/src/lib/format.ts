@@ -20,3 +20,8 @@ export function pickLanguage(
   }
   return null;
 }
+
+/** The folder that holds a path: "/data/movies" → "/data", "/data" → "/". */
+export function parentFolder(path: string): string {
+  return path.replace(/\/[^/]+\/?$/, "") || "/";
+}

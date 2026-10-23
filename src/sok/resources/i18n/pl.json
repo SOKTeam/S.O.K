@@ -391,5 +391,11 @@
     "web_select_all": "Zaznacz wszystko",
     "web_select_row": "Zaznacz",
     "web_show_processed": "Pokaż je",
-    "web_file_mode_is": "Tryb plików: {mode}"
+    "web_file_mode_is": "Tryb plików: {mode}",
+    "web_browse": "Przeglądaj…",
+    "web_choose_folder": "Wybierz folder serwera",
+    "web_choose_this_folder": "Wybierz ten folder",
+    "web_parent_folder": "Folder nadrzędny",
+    "web_no_subfolder": "Brak folderów w środku.",
+    "web_error_unreadable_folder": "Serwer nie może odczytać tego folderu."
 }

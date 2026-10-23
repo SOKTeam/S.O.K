@@ -1,5 +1,7 @@
 <script lang="ts">
+  import FolderBrowser from "./FolderBrowser.svelte";
   import Icon from "./Icon.svelte";
+  import { parentFolder } from "../lib/format";
   import { t } from "../lib/i18n.svelte";
 
   // The folders of a role: a list, a field to add one, a button to remove one.
@@ -8,6 +10,7 @@
     label,
     paths,
     example,
+    near,
     error = "",
     onchange,
   }: {
@@ -15,11 +18,17 @@
     paths: string[];
     /** An example of path, in the empty field. */
     example: string;
+    /** Where the browser opens while the list is empty. */
+    near?: string;
     error?: string;
     onchange: (paths: string[]) => Promise<boolean>;
   } = $props();
 
   let typed = $state("");
+  let browsing = $state(false);
+
+  /** The browser opens next to the last folder of the list. */
+  const start = $derived(paths.length ? parentFolder(paths[paths.length - 1]) : near);
 
   async function add(event: SubmitEvent) {
     event.preventDefault();
@@ -56,8 +65,22 @@
       placeholder={example}
       aria-label={label}
     />
+    <button
+      type="button"
+      class="shrink-0 rounded-lg border border-line px-3 text-sm font-semibold hover:bg-hover"
+      onclick={() => (browsing = true)}
+    >
+      {t("web_browse", "Browse…")}
+    </button>
     <button class="button shrink-0" disabled={!typed.trim()}>{t("drop_add", "Add")}</button>
   </form>
+  <FolderBrowser
+    bind:open={browsing}
+    {start}
+    onpick={(path) => {
+      if (!paths.includes(path)) onchange([...paths, path]);
+    }}
+  />
   {#if error}
     <p class="text-sm text-error" role="alert">{error}</p>
   {/if}

@@ -391,5 +391,11 @@
     "web_select_all": "Selecionar tudo",
     "web_select_row": "Selecionar",
     "web_show_processed": "Mostrá-los",
-    "web_file_mode_is": "Modo de ficheiro: {mode}"
+    "web_file_mode_is": "Modo de ficheiro: {mode}",
+    "web_browse": "Procurar…",
+    "web_choose_folder": "Escolher uma pasta do servidor",
+    "web_choose_this_folder": "Escolher esta pasta",
+    "web_parent_folder": "Pasta superior",
+    "web_no_subfolder": "Nenhuma pasta lá dentro.",
+    "web_error_unreadable_folder": "O servidor não consegue ler esta pasta."
 }

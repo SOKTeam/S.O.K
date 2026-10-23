@@ -37,6 +37,8 @@ export function errorText(error: unknown): string {
       return t("web_error_rename_running", "A rename is running: wait for its end.");
     case "scan_running":
       return t("web_error_scan_running", "An analysis is running: wait for its end.");
+    case "unreadable_folder":
+      return t("web_error_unreadable_folder", "The server cannot read this folder.");
     case "nothing_to_rename":
       return t("web_error_nothing_to_rename", "No Ready row to rename.");
     case "no_destination":

@@ -19,11 +19,13 @@ is set, and whether an environment variable locks it.
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
 from sok.config.api_registry import get_all_services, get_services_by_media_type
 from sok.config.config_manager import ConfigManager
 from sok.core.history import FILE_MODES
+from sok.core.utils import natural_key
 from sok.file_operations.base_operations import can_hard_link
 from sok.server.db import Database
 
@@ -67,6 +69,9 @@ MISSING_FOLDER = "missing_folder"
 
 # Files looked at to find one to link, in a source with many folders.
 MAX_SCANNED = 1000
+
+# Folders listed at most by the folder browser, in one folder.
+MAX_LISTED = 1000
 
 
 class InvalidSetting(ValueError):
@@ -307,6 +312,51 @@ class Settings:
         for key, value in keys.items():
             self._config.set(key, value.strip())
         self._write_folders(cleaned)
+
+
+class UnreadableFolder(OSError):
+    """A folder that is missing, or that the server cannot read."""
+
+
+def browse(path: Optional[str] = None) -> Dict[str, Any]:
+    """The subfolders of a folder of the server, for the folder browser of
+    the settings: the browser cannot see the disks of the server.
+
+    Args:
+        path: An absolute path; the root of the file system when empty.
+
+    Returns:
+        {"path", "parent" (None at the root), "folders": [{"name", "path"}]},
+        hidden folders left out, sorted by name, at most MAX_LISTED.
+
+    Raises:
+        UnreadableFolder: The path is not an absolute folder, or cannot be
+            read.
+    """
+    folder = Path(path) if path else Path(Path.cwd().anchor)
+    if not folder.is_absolute() or not folder.is_dir():
+        raise UnreadableFolder(str(folder))
+    folder = Path(os.path.normpath(folder))
+    folders: List[Dict[str, str]] = []
+    try:
+        with os.scandir(folder) as entries:
+            for entry in entries:
+                if entry.name.startswith("."):
+                    continue
+                try:
+                    if entry.is_dir():
+                        folders.append({"name": entry.name, "path": entry.path})
+                except OSError:
+                    continue
+    except OSError as exc:
+        raise UnreadableFolder(str(folder)) from exc
+    folders.sort(key=lambda f: natural_key(Path(f["name"])))
+    parent = folder.parent
+    return {
+        "path": str(folder),
+        "parent": None if parent == folder else str(parent),
+        "folders": folders[:MAX_LISTED],
+    }
 
 
 def as_dict(check: LinkCheck) -> Dict[str, Any]:

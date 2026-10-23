@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fill, pickLanguage } from "./format";
+import { fill, parentFolder, pickLanguage } from "./format";
 
 describe("fill", () => {
   it("puts the values in the placeholders", () => {
@@ -21,5 +21,16 @@ describe("pickLanguage", () => {
 
   it("gives null when none fits", () => {
     expect(pickLanguage(["ja"], available)).toBeNull();
+  });
+});
+
+describe("parentFolder", () => {
+  it("gives the folder that holds a path", () => {
+    expect(parentFolder("/data/movies")).toBe("/data");
+    expect(parentFolder("/data/movies/")).toBe("/data");
+  });
+
+  it("stops at the root", () => {
+    expect(parentFolder("/data")).toBe("/");
   });
 });
