@@ -322,20 +322,22 @@ the session cookie on every call:
 | `POST /api/setup`, `POST /api/login`, `POST /api/logout`      | Account and session                                  |
 | `GET /api/settings`, `PATCH /api/settings`                    | Settings (keys only as "set" or "not set")           |
 | `POST /api/settings/test-key`, `POST /api/settings/test-link` | Test a key, test a hard link                         |
+| `GET /api/settings/browse`                                    | Folders of the server, for the folder browser        |
 | `POST /api/settings/test-notification`                        | Send a test notification                             |
 | `POST /api/scans`, `GET /api/scans/current`                   | Start an analysis, read its summary                  |
 | `POST /api/to-check`                                          | Give a file to check its type                        |
-| `GET /api/rows?type=movie`                                    | Rows of a tab                                        |
+| `GET /api/rows?type=movies`                                   | Rows of a tab                                        |
 | `PATCH /api/rows/{id}`                                        | Change the search text, the match or the destination |
 | `POST /api/rows/{id}/search`                                  | Search one row again                                 |
 | `POST /api/renames`                                           | Rename rows (all Ready, or a list)                   |
 | `GET /api/history`, `POST /api/history/{id}/undo`             | History and undo (whole or one file)                 |
+| `GET /api/processed`, `POST /api/processed/forget`            | Files already processed, analyze one again           |
 | `GET /api/watch`                                              | State of the automatic sorting                       |
 | `GET /api/events`                                             | Server-sent events: progress of analyses and renames |
 
 ### Delivery
 
-**In place since v1.5.0** for the image; the docs of the user guide are planned.
+**In place since v1.5.0.**
 
 - `release.yml` builds the image with Docker Buildx (amd64 and arm64) and pushes
   it to GHCR, as a fourth build next to the three desktop packages. `publish`
@@ -356,7 +358,9 @@ Everything ships in one release; the steps are pull requests to `develop`:
 4. **Music, books and games** in the tabs.
 5. **Renaming**: file modes, link test, already processed files, history and
    undo.
-6. **Languages, documentation, website**, then the release.
+6. **Languages, documentation, website**.
+7. **Automatic sorting and notifications**, moved into the first version
+   before the release.
 
 ## Open points
 
