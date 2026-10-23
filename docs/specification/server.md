@@ -163,8 +163,8 @@ tabs.
   the title and number of their tags (or file names).
 - **Files to check** (a type that is a guess, such as an `.iso`, a movie or a
   game) are listed in the summary with the type suggested. The user confirms or
-  changes it, and the file joins the tab of that type; the next analyses
-  remember the choice.
+  changes it, and the file joins the tab of that type and is searched at
+  once; the next analyses remember the choice.
 
 ### Renaming
 

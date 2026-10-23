@@ -9,6 +9,8 @@
   let error = $state("");
   // The type picked for each file to check, before it is confirmed.
   let kinds = $state<Record<string, string>>({});
+  // The file confirmed, while its row is searched.
+  let confirming = $state("");
 
   const summary = $derived(analysis.summary);
   const scan = $derived(summary?.scan ?? null);
@@ -24,10 +26,14 @@
 
   async function confirm(item: ToCheck) {
     error = "";
+    confirming = item.path;
     try {
-      await confirmType(item.path, kinds[item.path] ?? item.kind);
+      const stop = await confirmType(item.path, kinds[item.path] ?? item.kind);
+      if (stop) error = stopText(stop);
     } catch (exc) {
       error = errorText(exc);
+    } finally {
+      confirming = "";
     }
   }
 
@@ -212,10 +218,13 @@
               {/each}
             </select>
             <button
-              class="rounded-lg border border-line px-3 py-1 text-xs font-semibold hover:bg-hover"
+              class="rounded-lg border border-line px-3 py-1 text-xs font-semibold hover:bg-hover disabled:opacity-50"
+              disabled={confirming !== ""}
               onclick={() => confirm(item)}
             >
-              {t("web_confirm", "Confirm")}
+              {confirming === item.path
+                ? t("searching", "Searching...")
+                : t("web_confirm", "Confirm")}
             </button>
           </div>
         {/each}

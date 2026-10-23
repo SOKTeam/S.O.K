@@ -119,7 +119,13 @@ export async function startScan(): Promise<void> {
   await api("/api/scans", { method: "POST" });
 }
 
-/** Give a file to check its type; it joins the rows of that type. */
-export async function confirmType(path: string, kind: string): Promise<void> {
-  setSummary(await api<Summary>("/api/to-check", { method: "POST", body: { path, kind } }));
+/** Give a file to check its type; it joins the rows of that type and is
+ * searched. Returns why the search stopped, or null. */
+export async function confirmType(path: string, kind: string): Promise<ScanError | null> {
+  const { search_error, ...summary } = await api<Summary & { search_error?: ScanError }>(
+    "/api/to-check",
+    { method: "POST", body: { path, kind } },
+  );
+  setSummary(summary);
+  return search_error ?? null;
 }

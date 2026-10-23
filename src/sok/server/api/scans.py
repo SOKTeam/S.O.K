@@ -51,8 +51,9 @@ def current_scan(request: Request) -> dict:
 
 
 @router.post("/to-check")
-def confirm_type(choice: TypeChoice, request: Request) -> dict:
-    """Give a file to check its type; answers with the new summary."""
+async def confirm_type(choice: TypeChoice, request: Request) -> dict:
+    """Give a file to check its type and search its row; answers with the new
+    summary, and "search_error" when the search stopped."""
     try:
         kind = ContentType(choice.kind)
     except ValueError:
@@ -60,7 +61,10 @@ def confirm_type(choice: TypeChoice, request: Request) -> dict:
     if kind not in MEDIA_TYPE_OF:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "invalid_kind")
     try:
-        scans(request).confirm(choice.path, kind)
+        stop = await scans(request).confirm(choice.path, kind)
     except UnknownFile:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown_file")
-    return scans(request).summary()
+    summary = scans(request).summary()
+    if stop:
+        summary["search_error"] = stop
+    return summary
