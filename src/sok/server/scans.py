@@ -397,10 +397,14 @@ class Scans:
 
     # -------------------------------------------------------- To check
 
-    def confirm(self, path: str, kind: ContentType) -> None:
+    async def confirm(self, path: str, kind: ContentType) -> Optional[Dict[str, Any]]:
         """Give a file to check its type: it joins the rows of that type.
 
-        The choice is remembered for the next analyses.
+        The choice is remembered for the next analyses. A new row is searched
+        at once, as the rows of an analysis.
+
+        Returns:
+            Why the search stopped (search_error), or None.
 
         Raises:
             UnknownFile: The file is not to check.
@@ -450,4 +454,17 @@ class Scans:
                 "INSERT OR REPLACE INTO type_choices (path, kind) VALUES (?, ?)",
                 (path, kind.value),
             )
+            row = conn.execute(
+                "SELECT id, status FROM rows WHERE key = ?", (draft.key,)
+            ).fetchone()
         self._publish()
+        if row["status"] != PENDING:
+            return None
+        try:
+            await self._searcher.search_row(row["id"])
+        except SearchStopped as exc:
+            # The row stays "not searched": its search button tries again.
+            return search_error(exc)
+        finally:
+            self._publish()
+        return None

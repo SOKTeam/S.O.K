@@ -125,7 +125,7 @@ JSON under `/api`. FastAPI's own `/docs` page is turned off.
 | `POST /api/settings/test-key`    | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key))                |
 | `POST /api/scans`                | Yes   | Starts an analysis (`202`, `{"id"}`); `409` with `already_running`, `rename_running` or `no_sources` |
 | `GET /api/scans/current`         | Yes   | The last analysis, the counts of the rows and the files to check (see [Analyses](#analyses))         |
-| `POST /api/to-check`             | Yes   | `{path, kind}`: gives a file to check its type; answers the summary                                  |
+| `POST /api/to-check`             | Yes   | `{path, kind}`: gives a file to check its type and searches its row; answers the summary             |
 | `GET /api/events`                | Yes   | Server-sent events (see [Live events](#live-events))                                                 |
 | `GET /api/rows?type=movies`      | Yes   | The rows of a tab (see [Rows](#rows))                                                                |
 | `GET /api/rows/{id}`             | Yes   | One row                                                                                              |
@@ -379,7 +379,10 @@ are deleted. A new row is `pending` until it is searched.
 - `POST /api/to-check` gives a file to check its type (`kind`: `movie`,
   `episode`, `album`, `track`, `book`, `game`): it becomes a row, or joins its
   series or album. The choice goes into `type_choices`, which the next
-  analyses apply before making the rows.
+  analyses apply before making the rows. A new row is searched at once; when
+  that search stops (a key missing or refused, a quota used), the file keeps
+  its type, the row stays `pending` and the summary has a `search_error`
+  (`{code, service}`).
 
 ## Search
 

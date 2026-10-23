@@ -132,6 +132,37 @@ def test_a_file_to_check_gets_the_type_chosen(client, downloads):
     assert scan(client)["counts"]["movies"]["total"] == 3
 
 
+def test_a_confirmed_file_is_searched(client, downloads, tmp_path, media_manager):
+    scan(client)
+    media_manager.searches.clear()
+
+    client.post(
+        "/api/to-check", json={"path": str(downloads / "Mystery.iso"), "kind": "movie"}
+    )
+
+    mystery = next(r for r in rows(tmp_path).values() if "Mystery.iso" in r["files"])
+    assert media_manager.searches == ["Mystery"]
+    assert mystery["status"] == "missing"
+
+
+def test_a_confirmed_file_keeps_its_type_when_the_search_stops(
+    client, downloads, tmp_path, media_manager
+):
+    scan(client)
+    media_manager.apis = []
+
+    answer = client.post(
+        "/api/to-check", json={"path": str(downloads / "Mystery.iso"), "kind": "movie"}
+    )
+
+    assert answer.status_code == 200
+    summary = answer.json()
+    assert summary["search_error"] == {"code": "missing_key", "service": "tmdb"}
+    assert summary["to_check"] == []
+    mystery = next(r for r in rows(tmp_path).values() if "Mystery.iso" in r["files"])
+    assert mystery["status"] == "pending"
+
+
 def test_wrong_type_choices(client, downloads):
     scan(client)
 
