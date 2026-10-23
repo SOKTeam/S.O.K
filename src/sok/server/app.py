@@ -14,6 +14,8 @@ The database is sok.db in data_dir() (SOK_CONFIG_DIR, /config in the
 image). The server listens on SOK_HOST (0.0.0.0) and SOK_PORT (8080).
 """
 
+import asyncio
+import contextlib
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -34,6 +36,7 @@ from sok.server.api import (
     rows,
     scans,
     settings,
+    watch,
     web,
 )
 from sok.server.auth import Accounts, auth_disabled
@@ -45,6 +48,7 @@ from sok.server.renames import Renamer
 from sok.server.scans import Scans
 from sok.server.search import Searcher
 from sok.server.settings import Settings
+from sok.server.watcher import Watcher
 
 logger = logging.getLogger(__name__)
 
@@ -88,14 +92,26 @@ def create_app(folder: Optional[Path] = None) -> FastAPI:
             app.state.history,
             app.state.jobs,
         )
+        app.state.watcher = Watcher(
+            db,
+            app.state.settings,
+            app.state.scans,
+            app.state.renamer,
+            app.state.jobs,
+            app.state.events,
+        )
         if app.state.accounts.create_from_env():
             logger.info("Account created from SOK_USERNAME")
         app.state.accounts.reset_from_env()
         if auth_disabled():
             logger.warning("SOK_AUTH=none: the login is turned off")
+        watching = asyncio.create_task(app.state.watcher.run())
         try:
             yield
         finally:
+            watching.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await watching
             db.close()
 
     app = FastAPI(
@@ -112,6 +128,7 @@ def create_app(folder: Optional[Path] = None) -> FastAPI:
     app.include_router(rows.router)
     app.include_router(renames.router)
     app.include_router(events.router)
+    app.include_router(watch.router)
     folder_web = web.web_dir()
     if folder_web is not None:
         # Last: every other path is a page of the interface.

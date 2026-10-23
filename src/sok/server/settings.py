@@ -12,11 +12,12 @@
 
 The settings shared with the desktop app (formats, file mode, behavior,
 language, API keys) stay in config.json through the ConfigManager, where
-the core reads them. The folders, which only the server has, are in the
-database. A key never leaves the server: the settings only say whether it
+the core reads them. The folders and the settings only the server has
+(SERVER_SETTINGS) are in the database. A key never leaves the server: the settings only say whether it
 is set, and whether an environment variable locks it.
 """
 
+import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -51,11 +52,19 @@ PREFERRED_API_SETTINGS = {
     "preferred_api_books": "books",
     "preferred_api_games": "games",
 }
+# The settings of the server only, with their default value: the automatic
+# sorting of the source folders, and the minutes between two checks.
+SERVER_SETTINGS: Dict[str, Any] = {
+    "auto_sort": False,
+    "auto_sort_minutes": 5,
+}
+AUTO_SORT_MINUTES = (1, 1440)
 SETTINGS = (
     ("language", "file_mode")
     + BOOL_SETTINGS
     + FORMAT_SETTINGS
     + tuple(PREFERRED_API_SETTINGS)
+    + tuple(SERVER_SETTINGS)
 )
 
 # The tabs of the interface, each with its destination folders.
@@ -204,7 +213,21 @@ class Settings:
     # ---------------------------------------------------------- Settings
 
     def values(self) -> Dict[str, Any]:
-        return {key: self._config.get(key) for key in SETTINGS}
+        with self._db.transaction() as db:
+            stored = {
+                row["key"]: json.loads(row["value"])
+                for row in db.execute("SELECT key, value FROM options")
+            }
+        return {
+            key: stored.get(key, SERVER_SETTINGS[key])
+            if key in SERVER_SETTINGS
+            else self._config.get(key)
+            for key in SETTINGS
+        }
+
+    def value(self, key: str) -> Any:
+        """One setting, as values() gives it."""
+        return self.values()[key]
 
     def _check_values(self, values: Dict[str, Any]) -> None:
         """Raises InvalidSetting for an unknown setting or a wrong value."""
@@ -213,7 +236,13 @@ class Settings:
             if key not in SETTINGS:
                 raise InvalidSetting("unknown_setting", key)
             valid = (
-                (key in BOOL_SETTINGS and isinstance(value, bool))
+                (key in BOOL_SETTINGS + ("auto_sort",) and isinstance(value, bool))
+                or (
+                    key == "auto_sort_minutes"
+                    and isinstance(value, int)
+                    and not isinstance(value, bool)
+                    and AUTO_SORT_MINUTES[0] <= value <= AUTO_SORT_MINUTES[1]
+                )
                 or (key in FORMAT_SETTINGS and isinstance(value, str) and value.strip())
                 or (key == "file_mode" and value in FILE_MODES)
                 or (key == "language" and value in languages)
@@ -308,6 +337,13 @@ class Settings:
         self._check_keys(keys)
         cleaned = self._clean_folders(folders or {})
         for key, value in values.items():
+            if key in SERVER_SETTINGS:
+                with self._db.transaction() as db:
+                    db.execute(
+                        "INSERT OR REPLACE INTO options (key, value) VALUES (?, ?)",
+                        (key, json.dumps(value)),
+                    )
+                continue
             self._config.set(key, value.strip() if isinstance(value, str) else value)
         for key, value in keys.items():
             self._config.set(key, value.strip())

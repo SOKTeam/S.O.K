@@ -111,6 +111,14 @@ MIGRATIONS: List[str] = [
         date TEXT NOT NULL
     );
     """,
+    """
+    ALTER TABLE scans ADD COLUMN auto INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE renames ADD COLUMN auto INTEGER NOT NULL DEFAULT 0;
+    CREATE TABLE options (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    );
+    """,
 ]
 
 
