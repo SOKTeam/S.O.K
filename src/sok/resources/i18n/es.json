@@ -336,8 +336,6 @@
     "web_link_different_drives": "«{source}» y «{destination}» están en dos discos, o en dos montajes de Docker: monte una sola vez su carpeta padre común.",
     "web_link_missing_folder": "Falta «{source}» o «{destination}».",
     "web_link_no_hard_links": "El disco de «{destination}» no admite enlaces duros (FAT, exFAT, la mayoría de los recursos de red).",
-    "web_link_ok": "Los enlaces duros funcionan de «{source}» a «{destination}».",
-    "web_link_untested": "«{source}» y «{destination}» están en el mismo disco; el enlace de prueba se hará cuando «{source}» contenga un archivo.",
     "web_remove": "Quitar",
     "web_remove_folder": "Quitar {path}",
     "web_save": "Guardar",
@@ -397,5 +395,15 @@
     "web_choose_this_folder": "Elegir esta carpeta",
     "web_parent_folder": "Carpeta superior",
     "web_no_subfolder": "No hay carpetas dentro.",
-    "web_error_unreadable_folder": "El servidor no puede leer esta carpeta."
+    "web_error_unreadable_folder": "El servidor no puede leer esta carpeta.",
+    "web_link_problem_title": "Los enlaces duros no funcionarán",
+    "web_link_problem_text": "Los archivos no se pueden renombrar con un enlace duro entre estas carpetas: el renombrado se detendría antes de mover nada.",
+    "web_link_fix": "Para corregirlo:",
+    "web_link_fix_different_drives": "monte una sola vez en el contenedor la carpeta que contiene ambas (por ejemplo /mnt/storage:/data) y elíjalas bajo /data. Con dos discos reales, elija un destino en el disco de las descargas.",
+    "web_link_fix_no_hard_links": "elija un destino en un disco que admita enlaces duros (ext4, Btrfs, XFS, ZFS, NTFS, APFS), o el modo Copiar.",
+    "web_link_fix_missing_folder": "compruebe que la carpeta sigue existiendo y que está montada en el contenedor.",
+    "web_link_use_copy": "Usar Copiar en su lugar",
+    "web_understood": "Entendido",
+    "web_see_details": "Ver el detalle",
+    "web_link_problems": "Los enlaces duros no funcionarán entre algunas de sus carpetas."
 }

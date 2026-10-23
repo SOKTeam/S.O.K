@@ -3,9 +3,10 @@
 
   import FolderList from "../components/FolderList.svelte";
   import KeyRow from "../components/KeyRow.svelte";
+  import LinkProblems from "../components/LinkProblems.svelte";
   import Section from "../components/Section.svelte";
   import Toggle from "../components/Toggle.svelte";
-  import { errorText, linkProblemText } from "../lib/errors";
+  import { errorText } from "../lib/errors";
   import { parentFolder } from "../lib/format";
   import { loadTexts, t } from "../lib/i18n.svelte";
   import { MEDIA_PAGES } from "../lib/pages";
@@ -45,13 +46,17 @@
 
   async function saveFolders(role: string, paths: string[]): Promise<boolean> {
     folderErrors[role] = "";
+    const before = new Set(problems.map(key));
     try {
       await saveSettings({ folders: { [role]: paths } });
-      return true;
     } catch (exc) {
       folderErrors[role] = errorText(exc);
       return false;
     }
+    if (problems.some((check) => !before.has(key(check)))) {
+      showProblems = true;
+    }
+    return true;
   }
 
   async function changeLanguage(language: string) {
@@ -75,18 +80,25 @@
     return name.charAt(0).toLocaleUpperCase(code) + name.slice(1);
   }
 
-  function linkText(check: LinkCheck): string {
-    if (check.problem) {
-      return linkProblemText(check.problem, check.source, check.destination);
+  // The hard links that cannot be made: a change that adds one opens the
+  // window that explains it.
+  let showProblems = $state(false);
+  const problems = $derived(
+    data?.settings.file_mode === "link" ? data.link_checks.filter((check) => !check.ok) : [],
+  );
+
+  function key(check: LinkCheck): string {
+    return `${check.source}|${check.destination}|${check.problem}`;
+  }
+
+  /** Save a change, then open the window if it brought a new problem. */
+  async function saveAndCheck(change: Parameters<typeof saveSettings>[0]): Promise<boolean> {
+    const before = new Set(problems.map(key));
+    const saved = await save(change);
+    if (saved && problems.some((check) => !before.has(key(check)))) {
+      showProblems = true;
     }
-    const values = { source: check.source, destination: check.destination };
-    return check.tested
-      ? t("web_link_ok", "Hard links work from “{source}” to “{destination}”.", values)
-      : t(
-          "web_link_untested",
-          "“{source}” and “{destination}” are on the same drive; the test link is made once “{source}” holds a file.",
-          values,
-        );
+    return saved;
   }
 
   const FILE_MODES: FileMode[] = ["link", "copy", "move"];
@@ -208,22 +220,29 @@
               "flex flex-col gap-1 rounded-lg border p-3 text-left",
               current ? "border-accent bg-accent/10" : "border-line hover:bg-hover",
             ]}
-            onclick={() => save({ settings: { file_mode: mode } })}
+            onclick={() => saveAndCheck({ settings: { file_mode: mode } })}
           >
             <span class="text-sm font-semibold">{modeName(mode)}</span>
             <span class="text-xs text-muted">{modeText(mode)}</span>
           </button>
         {/each}
       </div>
-      {#if data.settings.file_mode === "link" && data.link_checks.length}
-        <ul class="flex flex-col gap-1.5 border-t border-line px-4 py-3">
-          {#each data.link_checks as check (check.source + check.destination)}
-            <li class={["text-xs", check.ok ? "text-muted" : "text-error"]}>
-              {check.ok ? "✓" : "✕"}
-              {linkText(check)}
-            </li>
-          {/each}
-        </ul>
+      {#if problems.length}
+        <div
+          class="flex items-center justify-between gap-4 border-t border-line px-4 py-3 text-sm text-error"
+          role="alert"
+        >
+          <span>
+            {t("web_link_problems", "Hard links will not work between some of your folders.")}
+          </span>
+          <button
+            type="button"
+            class="shrink-0 font-semibold underline"
+            onclick={() => (showProblems = true)}
+          >
+            {t("web_see_details", "See the details")}
+          </button>
+        </div>
       {/if}
     </Section>
 
@@ -312,3 +331,9 @@
     </Section>
   {/if}
 </div>
+
+<LinkProblems
+  bind:open={showProblems}
+  {problems}
+  oncopy={() => save({ settings: { file_mode: "copy" } })}
+/>

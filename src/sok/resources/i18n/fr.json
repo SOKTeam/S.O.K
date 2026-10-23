@@ -336,8 +336,6 @@
     "web_link_different_drives": "« {source} » et « {destination} » sont sur deux disques, ou deux montages Docker : montez une seule fois leur dossier parent commun.",
     "web_link_missing_folder": "« {source} » ou « {destination} » est introuvable.",
     "web_link_no_hard_links": "Le disque de « {destination} » ne gère pas les liens physiques (FAT, exFAT, la plupart des partages réseau).",
-    "web_link_ok": "Les liens physiques fonctionnent de « {source} » vers « {destination} ».",
-    "web_link_untested": "« {source} » et « {destination} » sont sur le même disque ; le lien de test sera fait quand « {source} » contiendra un fichier.",
     "web_remove": "Retirer",
     "web_remove_folder": "Retirer {path}",
     "web_save": "Enregistrer",
@@ -397,5 +395,15 @@
     "web_choose_this_folder": "Choisir ce dossier",
     "web_parent_folder": "Dossier parent",
     "web_no_subfolder": "Aucun dossier à l'intérieur.",
-    "web_error_unreadable_folder": "Le serveur ne peut pas lire ce dossier."
+    "web_error_unreadable_folder": "Le serveur ne peut pas lire ce dossier.",
+    "web_link_problem_title": "Les liens physiques ne fonctionneront pas",
+    "web_link_problem_text": "Les fichiers ne peuvent pas être renommés avec un lien physique entre ces dossiers : le renommage s'arrêterait avant de déplacer quoi que ce soit.",
+    "web_link_fix": "Pour corriger :",
+    "web_link_fix_different_drives": "montez une seule fois dans le conteneur le dossier qui contient les deux (par exemple /mnt/storage:/data), puis choisissez-les sous /data. Sur deux vrais disques, choisissez une destination sur le disque des téléchargements.",
+    "web_link_fix_no_hard_links": "choisissez une destination sur un disque qui gère les liens physiques (ext4, Btrfs, XFS, ZFS, NTFS, APFS), ou le mode Copier.",
+    "web_link_fix_missing_folder": "vérifiez que le dossier existe toujours, et qu'il est monté dans le conteneur.",
+    "web_link_use_copy": "Utiliser Copier à la place",
+    "web_understood": "Compris",
+    "web_see_details": "Voir le détail",
+    "web_link_problems": "Les liens physiques ne fonctionneront pas entre certains de vos dossiers."
 }

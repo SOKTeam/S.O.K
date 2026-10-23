@@ -336,8 +336,6 @@
     "web_link_different_drives": "“{source}” and “{destination}” are on two drives, or two Docker mounts: mount their common parent folder once.",
     "web_link_missing_folder": "“{source}” or “{destination}” is missing.",
     "web_link_no_hard_links": "The disk of “{destination}” has no hard links (FAT, exFAT, most network shares).",
-    "web_link_ok": "Hard links work from “{source}” to “{destination}”.",
-    "web_link_untested": "“{source}” and “{destination}” are on the same drive; the test link is made once “{source}” holds a file.",
     "web_remove": "Remove",
     "web_remove_folder": "Remove {path}",
     "web_save": "Save",
@@ -397,5 +395,15 @@
     "web_choose_this_folder": "Choose this folder",
     "web_parent_folder": "Parent folder",
     "web_no_subfolder": "No folder inside.",
-    "web_error_unreadable_folder": "The server cannot read this folder."
+    "web_error_unreadable_folder": "The server cannot read this folder.",
+    "web_link_problem_title": "Hard links will not work",
+    "web_link_problem_text": "Files cannot be renamed with a hard link between these folders: the rename would stop before moving anything.",
+    "web_link_fix": "To fix it:",
+    "web_link_fix_different_drives": "mount the folder that holds both of them once in the container (for example /mnt/storage:/data), then choose them under /data. On two real disks, choose a destination on the disk of the downloads.",
+    "web_link_fix_no_hard_links": "choose a destination on a disk that has hard links (ext4, Btrfs, XFS, ZFS, NTFS, APFS), or the Copy mode.",
+    "web_link_fix_missing_folder": "check that the folder still exists, and that it is mounted in the container.",
+    "web_link_use_copy": "Use Copy instead",
+    "web_understood": "Got it",
+    "web_see_details": "See the details",
+    "web_link_problems": "Hard links will not work between some of your folders."
 }

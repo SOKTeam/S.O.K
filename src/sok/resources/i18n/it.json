@@ -336,8 +336,6 @@
     "web_link_different_drives": "«{source}» e «{destination}» sono su due dischi, o due mount Docker: monta una sola volta la loro cartella padre comune.",
     "web_link_missing_folder": "«{source}» o «{destination}» non esiste.",
     "web_link_no_hard_links": "Il disco di «{destination}» non supporta gli hard link (FAT, exFAT, la maggior parte delle condivisioni di rete).",
-    "web_link_ok": "Gli hard link funzionano da «{source}» a «{destination}».",
-    "web_link_untested": "«{source}» e «{destination}» sono sullo stesso disco; il link di prova sarà fatto quando «{source}» conterrà un file.",
     "web_remove": "Rimuovi",
     "web_remove_folder": "Rimuovi {path}",
     "web_save": "Salva",
@@ -397,5 +395,15 @@
     "web_choose_this_folder": "Scegli questa cartella",
     "web_parent_folder": "Cartella superiore",
     "web_no_subfolder": "Nessuna cartella all'interno.",
-    "web_error_unreadable_folder": "Il server non può leggere questa cartella."
+    "web_error_unreadable_folder": "Il server non può leggere questa cartella.",
+    "web_link_problem_title": "Gli hard link non funzioneranno",
+    "web_link_problem_text": "I file non possono essere rinominati con un hard link tra queste cartelle: la rinomina si fermerebbe prima di spostare qualsiasi cosa.",
+    "web_link_fix": "Per correggere:",
+    "web_link_fix_different_drives": "monta una sola volta nel container la cartella che le contiene entrambe (per esempio /mnt/storage:/data), poi sceglile sotto /data. Con due dischi reali, scegli una destinazione sul disco dei download.",
+    "web_link_fix_no_hard_links": "scegli una destinazione su un disco che supporta gli hard link (ext4, Btrfs, XFS, ZFS, NTFS, APFS), o la modalità Copia.",
+    "web_link_fix_missing_folder": "verifica che la cartella esista ancora e che sia montata nel container.",
+    "web_link_use_copy": "Usa Copia al suo posto",
+    "web_understood": "Ho capito",
+    "web_see_details": "Vedi i dettagli",
+    "web_link_problems": "Gli hard link non funzioneranno tra alcune delle tue cartelle."
 }

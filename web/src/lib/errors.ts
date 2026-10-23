@@ -136,3 +136,24 @@ export function linkProblemText(problem: string, source: string, destination: st
       return t("web_link_missing_folder", "“{source}” or “{destination}” is missing.", values);
   }
 }
+
+/** What to change so that a hard link works. */
+export function linkFixText(problem: string): string {
+  switch (problem) {
+    case "different_drives":
+      return t(
+        "web_link_fix_different_drives",
+        "mount the folder that holds both of them once in the container (for example /mnt/storage:/data), then choose them under /data. On two real disks, choose a destination on the disk of the downloads.",
+      );
+    case "no_hard_links":
+      return t(
+        "web_link_fix_no_hard_links",
+        "choose a destination on a disk that has hard links (ext4, Btrfs, XFS, ZFS, NTFS, APFS), or the Copy mode.",
+      );
+    default:
+      return t(
+        "web_link_fix_missing_folder",
+        "check that the folder still exists, and that it is mounted in the container.",
+      );
+  }
+}
