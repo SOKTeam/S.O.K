@@ -17,14 +17,16 @@ requirement has a status: **planned**, **in place since vX.Y.Z**, or
 
 ## Scope of the first version
 
-| In the first version                                         | Later                                                     |
-| ------------------------------------------------------------ | --------------------------------------------------------- |
-| Movies, TV shows, music (albums and tracks), books and games | Watching the folders and sorting on arrival               |
-| An "Analyze" button that scans the source folders            | Webhook or script after sorting (Jellyfin, Plex, Discord) |
-| One table per media type, rename all or row by row           | Several user accounts                                     |
-| Hard link, copy or move                                      | Docker Hub (only GitHub Container Registry at first)      |
-| History with undo                                            |                                                           |
-| The 8 languages of the desktop app                           |                                                           |
+| In the first version                                         | Later                                                |
+| ------------------------------------------------------------ | ---------------------------------------------------- |
+| Movies, TV shows, music (albums and tracks), books and games | Several user accounts                                |
+| An "Analyze" button that scans the source folders            | Docker Hub (only GitHub Container Registry at first) |
+| Watching the folders and sorting on arrival                  |                                                      |
+| Webhook or script after sorting (Jellyfin, Plex, Discord)    |                                                      |
+| One table per media type, rename all or row by row           |                                                      |
+| Hard link, copy or move                                      |                                                      |
+| History with undo                                            |                                                      |
+| The 8 languages of the desktop app                           |                                                      |
 
 ## Deployment
 
@@ -191,6 +193,30 @@ tabs.
   duplicates, back up a replaced file, download posters.
 - **Subtitles follow their video** (also in the desktop app, see below).
 
+### Automatic sorting
+
+**In place since v1.5.0** ([Automatic sorting](/server/overview/#automatic-sorting)).
+
+- **Off at install**: a switch in the settings turns it on, once the folders
+  and the file mode are checked.
+- When it is on, the server **looks at the source folders every 5 minutes**
+  (a setting, from 1 to 1440). It reads the folders again rather than waiting
+  for events of the system, which NAS shares and Docker mounts often do not
+  send.
+- **A file is taken once finished**: the same size and date as at the check
+  before. Downloads in progress (`.part`, `.!qB`, `.crdownload`…) and hidden
+  files are left out.
+- When finished files are new or changed, **an analysis runs**, then **the
+  Ready rows are renamed**, tab by tab, when all their files are finished. The
+  rows to pick, the missing ones and the files to check wait in the tables.
+  Turning the switch on also renames the Ready rows already in the tables.
+- It never runs at the same time as an analysis or a rename by hand: it waits
+  for the next check.
+- The analyses and renames it starts are marked "automatic"; the history undoes
+  them like the others. The summary of the last automatic sorting (files
+  renamed, problems such as a missing destination or key) shows in the
+  interface.
+
 ### Subtitles
 
 **In place since v1.5.0, in the shared core: the desktop app has it too**
@@ -287,6 +313,7 @@ the session cookie on every call:
 | `POST /api/rows/{id}/search`                                  | Search one row again                                 |
 | `POST /api/renames`                                           | Rename rows (all Ready, or a list)                   |
 | `GET /api/history`, `POST /api/history/{id}/undo`             | History and undo (whole or one file)                 |
+| `GET /api/watch`                                              | State of the automatic sorting                       |
 | `GET /api/events`                                             | Server-sent events: progress of analyses and renames |
 
 ### Delivery

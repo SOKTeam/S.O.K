@@ -98,6 +98,7 @@ pull it without logging in.
 | `server/history.py`                           | `History`: the rename history in the database                                        |
 | `server/api/renames.py`                       | The routes of the renames and of the history                                         |
 | `server/api/web.py`                           | Serves the built interface (`web/dist`)                                              |
+| `server/watcher.py`, `server/api/watch.py`    | `Watcher`: the automatic sorting of the source folders; `GET /api/watch`             |
 
 `create_app()` opens the database when the application starts (its lifespan),
 creates the account from `SOK_USERNAME` and `SOK_PASSWORD` if needed, and puts
@@ -127,6 +128,7 @@ JSON under `/api`. FastAPI's own `/docs` page is turned off.
 | `GET /api/scans/current`         | Yes   | The last analysis, the counts of the rows and the files to check (see [Analyses](#analyses))         |
 | `POST /api/to-check`             | Yes   | `{path, kind}`: gives a file to check its type and searches its row; answers the summary             |
 | `GET /api/events`                | Yes   | Server-sent events (see [Live events](#live-events))                                                 |
+| `GET /api/watch`                 | Yes   | The automatic sorting: on or off, last check, last run (see [Automatic sorting](#automatic-sorting)) |
 | `GET /api/rows?type=movies`      | Yes   | The rows of a tab (see [Rows](#rows))                                                                |
 | `GET /api/rows/{id}`             | Yes   | One row                                                                                              |
 | `PATCH /api/rows/{id}`           | Yes   | `{selected?, destination?}`: picks a candidate (the row is then Ready) or a destination folder       |
@@ -271,18 +273,21 @@ interface at each change and sends the `/api` requests to the server.
 
 `GET /api/settings` answers:
 
-| Field         | Contents                                                                                                                                                                                     |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `settings`    | `language`, `file_mode`, the behavior switches, the five name formats and the service of each media type (`preferred_api_video`, `_music`, `_books`, `_games`) (`SETTINGS` in `settings.py`) |
-| `languages`   | The languages of the interface                                                                                                                                                               |
-| `services`    | The services each `preferred_api_*` can pick, per media type (`video`, `music`, `books`, `games`): `{"id", "name"}`                                                                          |
-| `keys`        | Each service (`service`, `name`, `media_type`, `url` to get a key) and its keys: `{"key", "set", "locked"}`, never the value                                                                 |
-| `folders`     | `sources`, and the destination folders of `movies`, `tv`, `music`, `books`, `games`, in order                                                                                                |
-| `link_checks` | In `link` mode, one check per source and destination: `ok`, `problem`, `tested`                                                                                                              |
+| Field         | Contents                                                                                                                                                                                                                       |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `settings`    | `language`, `file_mode`, the behavior switches, the five name formats, the service of each media type (`preferred_api_video`, `_music`, `_books`, `_games`), `auto_sort` and `auto_sort_minutes` (`SETTINGS` in `settings.py`) |
+| `languages`   | The languages of the interface                                                                                                                                                                                                 |
+| `services`    | The services each `preferred_api_*` can pick, per media type (`video`, `music`, `books`, `games`): `{"id", "name"}`                                                                                                            |
+| `keys`        | Each service (`service`, `name`, `media_type`, `url` to get a key) and its keys: `{"key", "set", "locked"}`, never the value                                                                                                   |
+| `folders`     | `sources`, and the destination folders of `movies`, `tv`, `music`, `books`, `games`, in order                                                                                                                                  |
+| `link_checks` | In `link` mode, one check per source and destination: `ok`, `problem`, `tested`                                                                                                                                                |
 
 - **Where they are kept.** The settings and the keys shared with the desktop
   app stay in `config.json`, through the `ConfigManager`: the core reads them
-  there. The folders, which only the server has, are in the `folders` table.
+  there. The folders, which only the server has, are in the `folders` table,
+  and the settings of the server only (`SERVER_SETTINGS`: `auto_sort`, off by
+  default, and `auto_sort_minutes`, 5 by default, from 1 to 1440) in the
+  `options` table.
 - **Changing them.** `PATCH /api/settings` takes any of `settings`, `keys` and
   `folders`. Everything is checked before anything is saved; the first problem
   answers `422` with `{"code", "item"}` in `detail`: `unknown_setting`,
@@ -447,7 +452,8 @@ does in the desktop app; for a series, it reads the episodes of the new choice.
 `scan` event holding the summary, then sends each event of the `EventBus` as
 it happens, and a comment every 15 seconds so that proxies keep it open. Every
 change of an analysis publishes a `scan` event with the new summary, every
-change of a rename a `rename` event with `GET /api/renames/current`. A listener
+change of a rename a `rename` event with `GET /api/renames/current`, and every
+check of the automatic sorting a `watch` event with `GET /api/watch`. A listener
 that reads too slowly loses its oldest events (100 are kept).
 
 ## Renames
@@ -490,6 +496,39 @@ deleted. A file skipped (`skip_duplicates`) or failed stays, with its reason in
 "total"}`, also sent as `progress` events with `"phase": "rename"`), and once
 done `result`: `renamed`, `subtitles`, `skipped`, `errors` and the id of the
 `operation` in the history.
+
+## Automatic sorting
+
+`Watcher` (`server/watcher.py`) runs as a task of the server from its start.
+Every 30 seconds (`TICK`) it looks at the clock; when `auto_sort` is on and
+`auto_sort_minutes` have passed since its last check, `check()`:
+
+1. does nothing while an analysis or a rename runs (the next tick tries
+   again);
+2. lists the files of the source folders with their size and `mtime_ns`
+   (`snapshot()`), without hidden files and downloads in progress
+   (`PARTIAL_SUFFIXES`: `.part`, `.partial`, `.!qb`, `.!ut`, `.crdownload`,
+   `.download`);
+3. keeps the **finished** files: those with the same size and date as at the
+   check before. The first check after a start, or after the switch is turned
+   on, only learns the files;
+4. if a finished file is new or changed since the last automatic sorting, and
+   not already processed, starts an analysis (`Scans.start(auto=True)`), waits
+   for it, then renames, tab by tab, the Ready rows whose files are all
+   finished (`Renamer.start(..., auto=True)`).
+
+The analyses and renames have `auto` set (columns of `scans` and `renames`, and
+in their summaries). The last run is kept in the `options` table
+(`auto_sort_last_run`): `date`, `scan` (its id), `renamed` (files), `errors`
+(the code of an analysis that could not start or stopped, such as
+`missing_key`, and per tab `{"media_type", "code", ...}` of a rename, such as
+`no_destination` or a hard link problem). `GET /api/watch` answers `enabled`,
+`minutes`, `last_check` (since the start of the server) and `last_run`; a
+`watch` event sends it after each check.
+
+The files seen by the last sorting are kept in memory only: after a restart,
+one analysis runs again once the files are finished; it finds the rows it
+knows and searches nothing again.
 
 ## History
 
@@ -546,11 +585,12 @@ new entry.
 | `account`      | The account: `username`, `password_hash`, `created`                                                                                                                            |
 | `sessions`     | The open sessions: `token_hash`, `created`, `expires`                                                                                                                          |
 | `folders`      | The folders: `role` (`sources` or a media type), `position`, `path`                                                                                                            |
-| `scans`        | The analyses: `started`, `finished`, `status`, `error`, `missing_sources`, `processed`                                                                                         |
+| `scans`        | The analyses: `started`, `finished`, `status`, `error`, `missing_sources`, `processed`, `auto`                                                                                 |
 | `rows`         | The rows of the tabs: `key`, `media_type`, `kind`, `title`, `files`, then the search (`query`, `year`, `candidates`, `selected`, `status`), `destination`, `details`, `errors` |
 | `to_check`     | The files to check of the last analysis                                                                                                                                        |
 | `type_choices` | The types the user gave to files to check                                                                                                                                      |
-| `renames`      | The renames: `media_type`, `started`, `finished`, `status`, `error`, `result`                                                                                                  |
+| `renames`      | The renames: `media_type`, `started`, `finished`, `status`, `error`, `result`, `auto`                                                                                          |
+| `options`      | The settings of the server only, and the last automatic sorting: `key`, `value` (JSON)                                                                                         |
 | `processed`    | The files already processed: `path`, `size`, `mtime_ns`, `target`, `operation_id`, `date`                                                                                      |
 | `history`      | The rename history: `id`, `position`, `date`, `kind`, `media_type`, and the `operation` as JSON                                                                                |
 

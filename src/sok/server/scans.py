@@ -180,8 +180,11 @@ class Scans:
                 (INTERRUPTED, _now(), RUNNING),
             )
 
-    def start(self) -> int:
+    def start(self, auto: bool = False) -> int:
         """Start an analysis of the source folders, in the background.
+
+        Args:
+            auto: Started by the automatic sorting (Watcher), not by a click.
 
         Returns:
             The id of the analysis.
@@ -199,8 +202,8 @@ class Scans:
             raise ScanError("no_sources")
         with self._db.transaction() as conn:
             scan_id = conn.execute(
-                "INSERT INTO scans (started, status) VALUES (?, ?)",
-                (_now(), RUNNING),
+                "INSERT INTO scans (started, status, auto) VALUES (?, ?, ?)",
+                (_now(), RUNNING, int(auto)),
             ).lastrowid
         assert scan_id is not None
         self._jobs.start(SCAN, self._run(scan_id, sources))
@@ -389,6 +392,7 @@ class Scans:
                 "missing_sources": json.loads(scan["missing_sources"]),
                 # Files left out: renamed before, unchanged since.
                 "processed": scan["processed"],
+                "auto": bool(scan["auto"]),
                 "progress": self._progress if scan["status"] == RUNNING else None,
             },
             "counts": counts,

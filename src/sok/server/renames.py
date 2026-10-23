@@ -119,13 +119,19 @@ class Renamer:
                 (INTERRUPTED, _now(), RUNNING),
             )
 
-    def start(self, media_type: str, row_ids: Optional[List[int]] = None) -> int:
+    def start(
+        self,
+        media_type: str,
+        row_ids: Optional[List[int]] = None,
+        auto: bool = False,
+    ) -> int:
         """Start renaming the Ready rows of a tab, in the background.
 
         Args:
             media_type: The tab: movies, tv, music, books or games.
             row_ids: Only these rows; all the Ready rows of the tab when None.
                 The rows not Ready are left out.
+            auto: Started by the automatic sorting (Watcher), not by a click.
 
         Returns:
             The id of the rename.
@@ -148,8 +154,9 @@ class Renamer:
             self._check_links(rows)
         with self._db.transaction() as conn:
             rename_id = conn.execute(
-                "INSERT INTO renames (media_type, started, status) VALUES (?, ?, ?)",
-                (media_type, _now(), RUNNING),
+                "INSERT INTO renames (media_type, started, status, auto)"
+                " VALUES (?, ?, ?, ?)",
+                (media_type, _now(), RUNNING, int(auto)),
             ).lastrowid
         assert rename_id is not None
         self._loop = asyncio.get_running_loop()
@@ -369,6 +376,7 @@ class Renamer:
                 "status": rename["status"],
                 "started": rename["started"],
                 "finished": rename["finished"],
+                "auto": bool(rename["auto"]),
                 "error": json.loads(rename["error"]) if rename["error"] else None,
                 "result": json.loads(rename["result"]) if rename["result"] else None,
                 "progress": self._progress if rename["status"] == RUNNING else None,
