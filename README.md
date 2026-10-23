@@ -191,6 +191,12 @@ server: point it at your download folders, review the proposed names in a
 table, and rename everything at once or row by row. It uses **hard links** by
 default, so torrents keep seeding.
 
+Turn on the **automatic sorting** and it does it alone: every few minutes it
+looks at your download folders, waits for each download to finish, and
+renames what is Ready; the rest waits for you in the tables. After each
+rename it can post to **Discord**, refresh **Jellyfin** or **Plex**, call a
+**webhook**, or run a **script**.
+
 ```yaml
 services:
   sok-server:
@@ -217,7 +223,8 @@ and API keys in the settings. The image runs on Intel/AMD and ARM (`amd64`,
 > its own.
 
 The [user guide](https://sokfromsokteam.vercel.app/guide/server) explains the
-installation, the folders, the keys and the renaming.
+installation, the folders, the keys, the renaming, the automatic sorting and
+the notifications.
 
 ---
 
@@ -290,14 +297,11 @@ database, translations and building the Windows, macOS and Linux packages.
 - **S.O.K Server**: a Docker image with a web interface, hard links by default,
   several destination folders per media type, files already processed left
   out
+- S.O.K Server sorts new files automatically once downloaded, then notifies
+  Discord, Jellyfin, Plex, a webhook or a script
 
 **➡️ Next**
 
-- S.O.K Server sorts new files automatically as soon as they arrive
-
-**💡 Later**
-
-- Run a webhook or a script after sorting (Jellyfin, Plex, Discord…)
 - Several user accounts on S.O.K Server
 
 ---
