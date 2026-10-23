@@ -422,5 +422,22 @@
     "notify_test": "S.O.K Server : les notifications fonctionnent.",
     "notify_renamed": "Fichiers renommés : {n}",
     "notify_auto_renamed": "Fichiers triés automatiquement : {n}",
-    "notify_more": "…et {n} de plus"
+    "notify_more": "…et {n} de plus",
+    "web_notifications": "Notifications",
+    "web_notifications_text": "Après chaque renommage, à la main ou automatique, S.O.K Server peut prévenir vos autres applications.",
+    "web_notify_discord_text": "Un message dans un salon. Adresse du webhook : paramètres du salon → Intégrations → Webhooks.",
+    "web_notify_jellyfin_text": "Actualise les bibliothèques. Clé d'API : Tableau de bord → Clés API.",
+    "web_notify_plex_text": "Actualise les bibliothèques, avec votre jeton Plex.",
+    "web_notify_webhook": "Webhook",
+    "web_notify_webhook_text": "Le renommage en JSON, pour Home Assistant, n8n et d'autres outils.",
+    "web_notify_script": "Script",
+    "web_notify_script_set": "Défini par la variable SOK_AFTER_RENAME : il se lance après chaque renommage, avec le renommage en JSON sur son entrée.",
+    "web_notify_script_text": "Une commande lancée après chaque renommage, avec le renommage en JSON sur son entrée. Par sécurité, seule la variable SOK_AFTER_RENAME du conteneur la définit.",
+    "web_notify_set": "Activé",
+    "web_notify_off": "Désactivé",
+    "web_notify_replace": "Enregistré : tapez-en un nouveau pour le remplacer…",
+    "web_notify_ok": "Envoyé",
+    "web_notify_not_set": "Remplissez-le d'abord.",
+    "web_notify_failed": "Échec : {error}",
+    "web_error_invalid_url": "Donnez une adresse qui commence par http:// ou https://."
 }
