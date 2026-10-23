@@ -44,6 +44,7 @@ from sok.server.db import Database
 from sok.server.events import EventBus
 from sok.server.history import History
 from sok.server.jobs import Jobs
+from sok.server.notify import Notifier
 from sok.server.renames import Renamer
 from sok.server.scans import Scans
 from sok.server.search import Searcher
@@ -77,6 +78,7 @@ def create_app(folder: Optional[Path] = None) -> FastAPI:
         app.state.searcher = Searcher(db, config, app.state.settings)
         app.state.jobs = Jobs()
         app.state.history = History(db)
+        app.state.notifier = Notifier(app.state.settings, config)
         app.state.scans = Scans(
             db,
             app.state.settings,
@@ -91,6 +93,7 @@ def create_app(folder: Optional[Path] = None) -> FastAPI:
             app.state.searcher,
             app.state.history,
             app.state.jobs,
+            app.state.notifier,
         )
         app.state.watcher = Watcher(
             db,

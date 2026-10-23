@@ -418,5 +418,9 @@
     "web_last_check": "Last check: {date}",
     "web_last_auto_sort": "Last automatic sorting: {date}. Files renamed: {n}",
     "web_auto_sort_off": "Automatic sorting is off.",
-    "web_watch_problem": "{tab}: {text}"
+    "web_watch_problem": "{tab}: {text}",
+    "notify_test": "S.O.K Server: the notifications work.",
+    "notify_renamed": "Files renamed: {n}",
+    "notify_auto_renamed": "Files sorted automatically: {n}",
+    "notify_more": "…and {n} more"
 }

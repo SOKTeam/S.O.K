@@ -418,5 +418,9 @@
     "web_last_check": "Última revisión: {date}",
     "web_last_auto_sort": "Última clasificación automática: {date}. Archivos renombrados: {n}",
     "web_auto_sort_off": "La clasificación automática está desactivada.",
-    "web_watch_problem": "{tab}: {text}"
+    "web_watch_problem": "{tab}: {text}",
+    "notify_test": "S.O.K Server: las notificaciones funcionan.",
+    "notify_renamed": "Archivos renombrados: {n}",
+    "notify_auto_renamed": "Archivos clasificados automáticamente: {n}",
+    "notify_more": "…y {n} más"
 }

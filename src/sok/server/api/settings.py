@@ -44,11 +44,17 @@ class SettingsChange(BaseModel):
     settings: Optional[Dict[str, Any]] = None
     keys: Optional[Dict[str, str]] = None
     folders: Optional[Dict[str, List[str]]] = None
+    notifications: Optional[Dict[str, str]] = None
 
 
 class LinkTest(BaseModel):
     source: str
     destination: str
+
+
+class NotificationTest(BaseModel):
+    # discord, jellyfin, plex, webhook or script.
+    target: str
 
 
 class KeyTest(BaseModel):
@@ -72,6 +78,8 @@ def _read(request: Request) -> dict:
         "services": current.services(),
         "keys": current.keys(),
         "folders": current.folders(),
+        # The addresses, and whether the secrets and the script are set.
+        "notifications": current.notifications(),
         # Only the hard link mode needs them.
         "link_checks": (
             [as_dict(check) for check in current.link_checks()]
@@ -91,7 +99,9 @@ def read_settings(request: Request) -> dict:
 def change_settings(change: SettingsChange, request: Request) -> dict:
     """Change some settings; answers with all of them, as GET does."""
     try:
-        settings(request).update(change.settings, change.keys, change.folders)
+        settings(request).update(
+            change.settings, change.keys, change.folders, change.notifications
+        )
     except InvalidSetting as exc:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -117,6 +127,17 @@ def browse_folders(path: Optional[str] = None) -> dict:
 def test_link(test: LinkTest) -> dict:
     """Whether a hard link works from a folder to another."""
     return as_dict(check_link(test.source, test.destination))
+
+
+@router.post("/test-notification")
+async def test_notification(test: NotificationTest, request: Request) -> dict:
+    """Send a test to a target of the notifications: {"ok", "error"}, the
+    error being not_set or why the target refused it."""
+    try:
+        error = await request.app.state.notifier.test(test.target)
+    except ValueError:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "unknown_target")
+    return {"ok": error is None, "error": error}
 
 
 @router.post("/test-key")

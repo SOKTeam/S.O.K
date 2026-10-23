@@ -418,5 +418,9 @@
     "web_last_check": "Ultimo controllo: {date}",
     "web_last_auto_sort": "Ultimo ordinamento automatico: {date}. File rinominati: {n}",
     "web_auto_sort_off": "L'ordinamento automatico è disattivato.",
-    "web_watch_problem": "{tab}: {text}"
+    "web_watch_problem": "{tab}: {text}",
+    "notify_test": "S.O.K Server: le notifiche funzionano.",
+    "notify_renamed": "File rinominati: {n}",
+    "notify_auto_renamed": "File ordinati automaticamente: {n}",
+    "notify_more": "…e altri {n}"
 }
