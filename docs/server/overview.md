@@ -5,15 +5,8 @@ description: Running S.O.K Server from source, its JSON API, its database and it
 
 S.O.K Server is the web version of S.O.K, for a NAS or a home server: a FastAPI
 application in `sok/server/`, on the same core as the desktop app and without
-Qt. What it must do is in the [specification](/specification/server/); this
-part describes what is built.
-
-:::note
-The server is being built. In place today: the database, the account, the
-login, the health check, the settings, the test of a key, the Docker image and
-the analyses with the search of every media type. The renames and the web
-interface follow.
-:::
+Qt. The [user guide](https://sokfromsokteam.vercel.app/guide/server) explains
+how to use it; this part describes how it is built.
 
 ## Running it from source
 
@@ -88,7 +81,7 @@ pull it without logging in.
 | `server/auth.py`                              | `Accounts`: the account, the password check, the sessions; `auth_disabled()`         |
 | `server/api/auth.py`                          | The routes of the account and the session, and `require_login`                       |
 | `server/api/health.py`                        | `GET /api/health`                                                                    |
-| `server/settings.py`                          | `Settings`: the settings, the keys and the folders; `check_link()`                   |
+| `server/settings.py`                          | `Settings`: the settings, the keys, the folders, the notifications; `check_link()`   |
 | `server/api/settings.py`                      | The routes of the settings                                                           |
 | `server/scans.py`                             | `Scans`: the analyses, the rows, the files to check                                  |
 | `server/events.py`                            | `EventBus`: the events sent to the browsers                                          |
@@ -193,6 +186,8 @@ interface at each change and sends the `/api` requests to the server.
 | `src/pages/`                 | `Setup`, `Login`, `Shell` (the sidebar and the page of the address), `Analysis`, `MediaTab` (the tab of a media type), `History` (with `/history/processed`), `Settings`                                                                                                                                                           |
 | `src/components/`            | `Sidebar`, `AuthCard`, `Icon`, `Section` (a titled card), `Toggle`, `FolderList`, `FolderBrowser` (the folders of the server), `LinkProblems`, `KeyRow` (a service and its keys), `NotifyRow` (a target of the notifications), `RowItem` (a row of a tab and its results), `Poster`, `StatusPill`, `RenameStatus`, `ConfirmDialog` |
 | `src/lib/api.ts`             | `api()`: calls `/api` with the session cookie; an error is an `ApiError` with the `code` of `detail`                                                                                                                                                                                                                               |
+| `src/lib/errors.ts`          | The texts of the errors of the API, of a stopped analysis, of a hard link problem and of an automatic sorting                                                                                                                                                                                                                      |
+| `src/lib/format.ts`          | `fill()`, `pickLanguage()`, `parentFolder()`                                                                                                                                                                                                                                                                                       |
 | `src/lib/i18n.svelte.ts`     | `loadTexts()` and `t(key, english, values)`                                                                                                                                                                                                                                                                                        |
 | `src/lib/router.svelte.ts`   | The page is the path of the address (`/movies`); `navigate()`, `follow` for the links                                                                                                                                                                                                                                              |
 | `src/lib/session.svelte.ts`  | `GET /api/session`, `logOut()`                                                                                                                                                                                                                                                                                                     |
@@ -641,7 +636,7 @@ new entry.
 | `to_check`     | The files to check of the last analysis                                                                                                                                        |
 | `type_choices` | The types the user gave to files to check                                                                                                                                      |
 | `renames`      | The renames: `media_type`, `started`, `finished`, `status`, `error`, `result`, `auto`                                                                                          |
-| `options`      | The settings of the server only, and the last automatic sorting: `key`, `value` (JSON)                                                                                         |
+| `options`      | The settings of the server only, the notification fields and the last automatic sorting: `key`, `value` (JSON)                                                                 |
 | `processed`    | The files already processed: `path`, `size`, `mtime_ns`, `target`, `operation_id`, `date`                                                                                      |
 | `history`      | The rename history: `id`, `position`, `date`, `kind`, `media_type`, and the `operation` as JSON                                                                                |
 
