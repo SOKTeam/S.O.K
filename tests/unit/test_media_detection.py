@@ -111,6 +111,36 @@ def test_a_video_among_episodes_is_to_check(tmp_path):
     ]
 
 
+def test_a_movie_among_the_episodes_of_several_series_stays_a_movie(tmp_path):
+    # A downloads folder: the files of each torrent side by side.
+    make(
+        tmp_path,
+        "Severance.S01E01.mkv",
+        "Severance.S01E02.mkv",
+        "The.Office.S02E01.mkv",
+        "Dune.mkv",
+    )
+
+    report = detect_sources([tmp_path])
+
+    assert (ContentType.MOVIE, None, ["Dune.mkv"]) in summary(report)
+    assert report.to_check == []
+
+
+def test_a_movie_with_its_year_among_episodes_stays_a_movie(tmp_path):
+    make(
+        tmp_path,
+        "Severance/Severance S01E01.mkv",
+        "Severance/Severance S01E02.mkv",
+        "Severance/The Matrix (1999).mkv",
+    )
+
+    report = detect_sources([tmp_path])
+
+    assert (ContentType.MOVIE, None, ["The Matrix (1999).mkv"]) in summary(report)
+    assert report.to_check == []
+
+
 def test_one_episode_among_movies_leaves_the_movies_sure(tmp_path):
     make(tmp_path, "Dune (2021).mkv", "Heat (1995).mkv", "Andor S01E01.mkv")
 

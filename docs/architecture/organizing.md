@@ -140,7 +140,9 @@ Files dropped on the home page are sorted by `MediaTypeDetector`
 (`sok/file_operations/detection.py`), run by `DetectionWorker`. It gives one
 group per batch page (movies, tracks, books, games) and one group per series and
 per album. Files whose type is a guess (an `.iso` can be a movie or a game) are
-listed for the user to confirm. A video read by an episode pattern of the
+listed for the user to confirm, as is a video without a year among the episodes
+of one series (a bonus?); next to the episodes of several series, as in a
+downloads folder, a video stays a movie. A video read by an episode pattern of the
 settings is an episode, one read by a movie pattern is a movie. Opening a group calls `MainWindow._open_group`,
 which shows the page of its type and gives it the files (`load_files` on a batch
 page).
