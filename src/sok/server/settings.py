@@ -59,6 +59,22 @@ SERVER_SETTINGS: Dict[str, Any] = {
     "auto_sort_minutes": 5,
 }
 AUTO_SORT_MINUTES = (1, 1440)
+
+# Where the server tells that files were renamed (see notify.py), kept in
+# the options table as notify_<field>. The secret ones are never sent back:
+# the settings only say whether they are set. An empty value removes one.
+NOTIFY_FIELDS = {
+    "discord_url": True,
+    "webhook_url": True,
+    "jellyfin_url": False,
+    "jellyfin_key": True,
+    "plex_url": False,
+    "plex_token": True,
+}
+NOTIFY_URLS = ("discord_url", "webhook_url", "jellyfin_url", "plex_url")
+# The command run after each rename; only an environment variable sets it:
+# a command typed in a web page would run anything on the server.
+SCRIPT_VARIABLE = "SOK_AFTER_RENAME"
 SETTINGS = (
     ("language", "file_mode")
     + BOOL_SETTINGS
@@ -229,6 +245,50 @@ class Settings:
         """One setting, as values() gives it."""
         return self.values()[key]
 
+    # ------------------------------------------------------ Notifications
+
+    def notify_values(self) -> Dict[str, str]:
+        """The notification fields that are set, secrets included (for the
+        server only)."""
+        with self._db.transaction() as db:
+            return {
+                row["key"][len("notify_") :]: json.loads(row["value"])
+                for row in db.execute(
+                    "SELECT key, value FROM options WHERE substr(key, 1, 7) = 'notify_'"
+                )
+            }
+
+    def notifications(self) -> Dict[str, Any]:
+        """What the settings show of the notifications: the addresses, and
+        whether each secret and the script are set."""
+        values = self.notify_values()
+        return {
+            "discord": {"set": "discord_url" in values},
+            "webhook": {"set": "webhook_url" in values},
+            "jellyfin": {
+                "url": values.get("jellyfin_url", ""),
+                "set": "jellyfin_key" in values,
+            },
+            "plex": {"url": values.get("plex_url", ""), "set": "plex_token" in values},
+            "script": bool(os.environ.get(SCRIPT_VARIABLE, "").strip()),
+        }
+
+    @staticmethod
+    def _check_notifications(fields: Dict[str, str]) -> None:
+        """Raises InvalidSetting for an unknown field or a wrong address."""
+        for key, value in fields.items():
+            if key not in NOTIFY_FIELDS:
+                raise InvalidSetting("unknown_setting", key)
+            if not isinstance(value, str):
+                raise InvalidSetting("invalid_value", key)
+            value = value.strip()
+            if (
+                value
+                and key in NOTIFY_URLS
+                and not value.lower().startswith(("http://", "https://"))
+            ):
+                raise InvalidSetting("invalid_url", key)
+
     def _check_values(self, values: Dict[str, Any]) -> None:
         """Raises InvalidSetting for an unknown setting or a wrong value."""
         languages = self._config.get_available_languages()
@@ -324,17 +384,20 @@ class Settings:
         values: Optional[Dict[str, Any]] = None,
         keys: Optional[Dict[str, str]] = None,
         folders: Optional[Dict[str, List[str]]] = None,
+        notifications: Optional[Dict[str, str]] = None,
     ) -> None:
-        """Change settings, keys (an empty value removes one) and folders.
+        """Change settings, keys (an empty value removes one), folders and
+        notification fields (an empty value removes one).
 
         Everything is checked first: all of it is saved, or nothing.
 
         Raises:
             InvalidSetting: The first thing that cannot be saved.
         """
-        values, keys = values or {}, keys or {}
+        values, keys, notifications = values or {}, keys or {}, notifications or {}
         self._check_values(values)
         self._check_keys(keys)
+        self._check_notifications(notifications)
         cleaned = self._clean_folders(folders or {})
         for key, value in values.items():
             if key in SERVER_SETTINGS:
@@ -348,6 +411,18 @@ class Settings:
         for key, value in keys.items():
             self._config.set(key, value.strip())
         self._write_folders(cleaned)
+        with self._db.transaction() as db:
+            for key, value in notifications.items():
+                value = (
+                    value.strip().rstrip("/") if key in NOTIFY_URLS else value.strip()
+                )
+                if value:
+                    db.execute(
+                        "INSERT OR REPLACE INTO options (key, value) VALUES (?, ?)",
+                        (f"notify_{key}", json.dumps(value)),
+                    )
+                else:
+                    db.execute("DELETE FROM options WHERE key = ?", (f"notify_{key}",))
 
 
 class UnreadableFolder(OSError):

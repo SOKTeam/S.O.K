@@ -217,6 +217,22 @@ tabs.
   renamed, problems such as a missing destination or key) shows in the
   interface.
 
+### Notifications
+
+**In place since v1.5.0** ([Notifications](/server/overview/#notifications)).
+
+- After **each rename that moved files**, by hand or automatic, the server
+  can tell: a **Discord** message (a webhook of a channel), a refresh of the
+  libraries of **Jellyfin** (address + API key) and **Plex** (address +
+  token), a **webhook** that gets the rename as JSON (Home Assistant, n8n…).
+- A **script** runs after each rename, with the rename as JSON on its input,
+  but **only from an environment variable** (`SOK_AFTER_RENAME`): a command
+  typed in the web page would let anyone with the password run anything on
+  the server.
+- The URLs with a secret, the key and the token are never shown again: the
+  settings say "set". Each target has a test button.
+- A target that fails is logged; it never stops the rename nor the others.
+
 ### Subtitles
 
 **In place since v1.5.0, in the shared core: the desktop app has it too**
@@ -306,6 +322,7 @@ the session cookie on every call:
 | `POST /api/setup`, `POST /api/login`, `POST /api/logout`      | Account and session                                  |
 | `GET /api/settings`, `PATCH /api/settings`                    | Settings (keys only as "set" or "not set")           |
 | `POST /api/settings/test-key`, `POST /api/settings/test-link` | Test a key, test a hard link                         |
+| `POST /api/settings/test-notification`                        | Send a test notification                             |
 | `POST /api/scans`, `GET /api/scans/current`                   | Start an analysis, read its summary                  |
 | `POST /api/to-check`                                          | Give a file to check its type                        |
 | `GET /api/rows?type=movie`                                    | Rows of a tab                                        |

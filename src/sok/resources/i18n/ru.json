@@ -418,5 +418,9 @@
     "web_last_check": "Последняя проверка: {date}",
     "web_last_auto_sort": "Последняя автоматическая сортировка: {date}. Переименовано файлов: {n}",
     "web_auto_sort_off": "Автоматическая сортировка выключена.",
-    "web_watch_problem": "{tab}: {text}"
+    "web_watch_problem": "{tab}: {text}",
+    "notify_test": "S.O.K Server: уведомления работают.",
+    "notify_renamed": "Переименовано файлов: {n}",
+    "notify_auto_renamed": "Автоматически отсортировано файлов: {n}",
+    "notify_more": "…и ещё {n}"
 }

@@ -32,6 +32,7 @@ SOK_CONFIG_DIR=/tmp/sok-config uv run sok-server
 | `SOK_CONFIG_DIR`               | Folder of the database, the settings and the log (`/config` in Docker) |
 | `SOK_USERNAME`, `SOK_PASSWORD` | Create the account at startup, when none exists                        |
 | `SOK_RESET_PASSWORD=1`         | With `SOK_PASSWORD`: replaces the password of the account at startup   |
+| `SOK_AFTER_RENAME`             | A command run after each rename (see [Notifications](#notifications))  |
 | `SOK_AUTH=none`                | Turns the login off, behind a reverse proxy that asks for one          |
 | `SOK_LOG_LEVEL`                | Level of the log: `DEBUG`, `INFO` (default)…                           |
 | `SOK_WEB_DIR`                  | Folder of the built interface, `web/dist` of the repository by default |
@@ -99,6 +100,7 @@ pull it without logging in.
 | `server/api/renames.py`                       | The routes of the renames and of the history                                         |
 | `server/api/web.py`                           | Serves the built interface (`web/dist`)                                              |
 | `server/watcher.py`, `server/api/watch.py`    | `Watcher`: the automatic sorting of the source folders; `GET /api/watch`             |
+| `server/notify.py`                            | `Notifier`: Discord, Jellyfin, Plex, a webhook and a script after each rename        |
 
 `create_app()` opens the database when the application starts (its lifespan),
 creates the account from `SOK_USERNAME` and `SOK_PASSWORD` if needed, and puts
@@ -111,34 +113,35 @@ the server (the desktop app moves).
 
 JSON under `/api`. FastAPI's own `/docs` page is turned off.
 
-| Route                            | Login | Does                                                                                                 |
-| -------------------------------- | ----- | ---------------------------------------------------------------------------------------------------- |
-| `GET /api/health`                | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker                                  |
-| `GET /api/session`               | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`                                       |
-| `POST /api/setup`                | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)                          |
-| `POST /api/login`                | No    | Opens a session (`401` for a wrong login, `429` while waiting)                                       |
-| `POST /api/logout`               | Yes   | Closes the session                                                                                   |
-| `GET /api/i18n?lang=fr`          | No    | The texts of the interface (see [Interface](#interface))                                             |
-| `GET /api/settings`              | Yes   | The settings, the keys, the folders and the link checks (see below)                                  |
-| `PATCH /api/settings`            | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`                             |
-| `POST /api/settings/test-link`   | Yes   | `{source, destination}`: whether a hard link works between them                                      |
-| `GET /api/settings/browse?path=` | Yes   | The subfolders of a folder of the server, for the folder browser (`404` `unreadable_folder`)         |
-| `POST /api/settings/test-key`    | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key))                |
-| `POST /api/scans`                | Yes   | Starts an analysis (`202`, `{"id"}`); `409` with `already_running`, `rename_running` or `no_sources` |
-| `GET /api/scans/current`         | Yes   | The last analysis, the counts of the rows and the files to check (see [Analyses](#analyses))         |
-| `POST /api/to-check`             | Yes   | `{path, kind}`: gives a file to check its type and searches its row; answers the summary             |
-| `GET /api/events`                | Yes   | Server-sent events (see [Live events](#live-events))                                                 |
-| `GET /api/watch`                 | Yes   | The automatic sorting: on or off, last check, last run (see [Automatic sorting](#automatic-sorting)) |
-| `GET /api/rows?type=movies`      | Yes   | The rows of a tab (see [Rows](#rows))                                                                |
-| `GET /api/rows/{id}`             | Yes   | One row                                                                                              |
-| `PATCH /api/rows/{id}`           | Yes   | `{selected?, destination?}`: picks a candidate (the row is then Ready) or a destination folder       |
-| `POST /api/rows/{id}/search`     | Yes   | `{query?}`: searches the row again, with the text typed; `409` when a key stops it                   |
-| `POST /api/renames`              | Yes   | `{type, rows?}`: renames the Ready rows of a tab (`202`, `{"id"}`); see [Renames](#renames)          |
-| `GET /api/renames/current`       | Yes   | The last rename: its progress, then its result                                                       |
-| `GET /api/history`               | Yes   | The operations of the history, newest first (see [History](#history))                                |
-| `POST /api/history/{id}/undo`    | Yes   | `{index?}`: undoes the operation, or one of its files; answers what was put back                     |
-| `GET /api/processed`             | Yes   | The files already processed (see [Files already processed](#files-already-processed))                |
-| `POST /api/processed/forget`     | Yes   | `{paths}`: the next analysis takes these files again; answers `{"forgotten"}`                        |
+| Route                                  | Login | Does                                                                                                 |
+| -------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------- |
+| `GET /api/health`                      | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker                                  |
+| `GET /api/session`                     | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`                                       |
+| `POST /api/setup`                      | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)                          |
+| `POST /api/login`                      | No    | Opens a session (`401` for a wrong login, `429` while waiting)                                       |
+| `POST /api/logout`                     | Yes   | Closes the session                                                                                   |
+| `GET /api/i18n?lang=fr`                | No    | The texts of the interface (see [Interface](#interface))                                             |
+| `GET /api/settings`                    | Yes   | The settings, the keys, the folders and the link checks (see below)                                  |
+| `PATCH /api/settings`                  | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`                             |
+| `POST /api/settings/test-link`         | Yes   | `{source, destination}`: whether a hard link works between them                                      |
+| `GET /api/settings/browse?path=`       | Yes   | The subfolders of a folder of the server, for the folder browser (`404` `unreadable_folder`)         |
+| `POST /api/settings/test-key`          | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key))                |
+| `POST /api/settings/test-notification` | Yes   | `{target}`: sends a test (see [Notifications](#notifications)); answers `{"ok", "error"}`            |
+| `POST /api/scans`                      | Yes   | Starts an analysis (`202`, `{"id"}`); `409` with `already_running`, `rename_running` or `no_sources` |
+| `GET /api/scans/current`               | Yes   | The last analysis, the counts of the rows and the files to check (see [Analyses](#analyses))         |
+| `POST /api/to-check`                   | Yes   | `{path, kind}`: gives a file to check its type and searches its row; answers the summary             |
+| `GET /api/events`                      | Yes   | Server-sent events (see [Live events](#live-events))                                                 |
+| `GET /api/watch`                       | Yes   | The automatic sorting: on or off, last check, last run (see [Automatic sorting](#automatic-sorting)) |
+| `GET /api/rows?type=movies`            | Yes   | The rows of a tab (see [Rows](#rows))                                                                |
+| `GET /api/rows/{id}`                   | Yes   | One row                                                                                              |
+| `PATCH /api/rows/{id}`                 | Yes   | `{selected?, destination?}`: picks a candidate (the row is then Ready) or a destination folder       |
+| `POST /api/rows/{id}/search`           | Yes   | `{query?}`: searches the row again, with the text typed; `409` when a key stops it                   |
+| `POST /api/renames`                    | Yes   | `{type, rows?}`: renames the Ready rows of a tab (`202`, `{"id"}`); see [Renames](#renames)          |
+| `GET /api/renames/current`             | Yes   | The last rename: its progress, then its result                                                       |
+| `GET /api/history`                     | Yes   | The operations of the history, newest first (see [History](#history))                                |
+| `POST /api/history/{id}/undo`          | Yes   | `{index?}`: undoes the operation, or one of its files; answers what was put back                     |
+| `GET /api/processed`                   | Yes   | The files already processed (see [Files already processed](#files-already-processed))                |
+| `POST /api/processed/forget`           | Yes   | `{paths}`: the next analysis takes these files again; answers `{"forgotten"}`                        |
 
 The interface starts with `GET /api/session`: no account → the setup page; an
 account and no session → the login page; otherwise the app.
@@ -280,14 +283,15 @@ interface at each change and sends the `/api` requests to the server.
 
 `GET /api/settings` answers:
 
-| Field         | Contents                                                                                                                                                                                                                       |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `settings`    | `language`, `file_mode`, the behavior switches, the five name formats, the service of each media type (`preferred_api_video`, `_music`, `_books`, `_games`), `auto_sort` and `auto_sort_minutes` (`SETTINGS` in `settings.py`) |
-| `languages`   | The languages of the interface                                                                                                                                                                                                 |
-| `services`    | The services each `preferred_api_*` can pick, per media type (`video`, `music`, `books`, `games`): `{"id", "name"}`                                                                                                            |
-| `keys`        | Each service (`service`, `name`, `media_type`, `url` to get a key) and its keys: `{"key", "set", "locked"}`, never the value                                                                                                   |
-| `folders`     | `sources`, and the destination folders of `movies`, `tv`, `music`, `books`, `games`, in order                                                                                                                                  |
-| `link_checks` | In `link` mode, one check per source and destination: `ok`, `problem`, `tested`                                                                                                                                                |
+| Field           | Contents                                                                                                                                                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `settings`      | `language`, `file_mode`, the behavior switches, the five name formats, the service of each media type (`preferred_api_video`, `_music`, `_books`, `_games`), `auto_sort` and `auto_sort_minutes` (`SETTINGS` in `settings.py`) |
+| `languages`     | The languages of the interface                                                                                                                                                                                                 |
+| `services`      | The services each `preferred_api_*` can pick, per media type (`video`, `music`, `books`, `games`): `{"id", "name"}`                                                                                                            |
+| `keys`          | Each service (`service`, `name`, `media_type`, `url` to get a key) and its keys: `{"key", "set", "locked"}`, never the value                                                                                                   |
+| `folders`       | `sources`, and the destination folders of `movies`, `tv`, `music`, `books`, `games`, in order                                                                                                                                  |
+| `link_checks`   | In `link` mode, one check per source and destination: `ok`, `problem`, `tested`                                                                                                                                                |
+| `notifications` | `discord`, `webhook`: `{"set"}`; `jellyfin`, `plex`: `{"url", "set"}`; `script`: whether `SOK_AFTER_RENAME` is set (see [Notifications](#notifications))                                                                       |
 
 - **Where they are kept.** The settings and the keys shared with the desktop
   app stay in `config.json`, through the `ConfigManager`: the core reads them
@@ -295,12 +299,13 @@ interface at each change and sends the `/api` requests to the server.
   and the settings of the server only (`SERVER_SETTINGS`: `auto_sort`, off by
   default, and `auto_sort_minutes`, 5 by default, from 1 to 1440) in the
   `options` table.
-- **Changing them.** `PATCH /api/settings` takes any of `settings`, `keys` and
-  `folders`. Everything is checked before anything is saved; the first problem
+- **Changing them.** `PATCH /api/settings` takes any of `settings`, `keys`,
+  `folders` and `notifications`. Everything is checked before anything is saved; the first problem
   answers `422` with `{"code", "item"}` in `detail`: `unknown_setting`,
   `invalid_value`, `unknown_key`, `key_locked`, `unknown_folder_role`,
   `invalid_folder` (not an absolute path to an existing folder, as the server
-  sees it).
+  sees it), `invalid_url` (a notification address without `http://` or
+  `https://`).
 - **Keys.** An empty value removes a key. A key is `set` when the settings or an
   environment variable give it, and `locked` when an environment variable wins
   over it (`SOK_ENV_KEYS_WIN`, see
@@ -536,6 +541,41 @@ in their summaries). The last run is kept in the `options` table
 The files seen by the last sorting are kept in memory only: after a restart,
 one analysis runs again once the files are finished; it finds the rows it
 knows and searches nothing again.
+
+## Notifications
+
+After each rename that moved files, by hand or automatic, the `Renamer` hands
+it to the `Notifier` (`server/notify.py`), which sends it in the background to
+every target set. A target that fails is logged and leaves the others, and
+the rename, as they are.
+
+| Target   | Settings (`notifications` of `PATCH /api/settings`) | Sends                                                                           |
+| -------- | --------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Discord  | `discord_url` (a webhook of a channel)              | A message in the language of the settings: the tab, the count, 10 names at most |
+| Jellyfin | `jellyfin_url`, `jellyfin_key` (an API key)         | `POST /Library/Refresh` with `X-Emby-Token`                                     |
+| Plex     | `plex_url`, `plex_token`                            | `GET /library/sections/all/refresh` with `X-Plex-Token`                         |
+| Webhook  | `webhook_url`                                       | `POST` of the event as JSON                                                     |
+| Script   | `SOK_AFTER_RENAME` only (environment)               | Runs the command, the event as JSON on its standard input                       |
+
+- **The event**: `{"event": "renamed", "date", "media_type", "auto",
+"renamed", "files": [{"from", "to"}]}`; a test sends `"event": "test"` with
+  no file.
+- **Where they are kept**: the `options` table (`notify_<field>`). The URL of
+  Discord and of the webhook, the key of Jellyfin and the token of Plex are
+  secrets: `GET /api/settings` only says whether they are set. An empty value
+  removes a field; an address loses its last `/`.
+- **The script** is never set from the interface: a command typed in a web page
+  would run anything on the server. `SOK_AFTER_RENAME` is split like a shell
+  command line (`shlex`) but run without a shell, with `SOK_EVENT`,
+  `SOK_MEDIA_TYPE`, `SOK_RENAMED` and `SOK_AUTO` (`1` or `0`) in its
+  environment. It has 300 seconds; a non-zero exit is an error with the last
+  line it wrote on its error output. In Docker, the script is a file of a
+  mounted volume, run by the user of `PUID`.
+- **Testing**: `POST /api/settings/test-notification` with a `target`
+  (`discord`, `jellyfin`, `plex`, `webhook`, `script`) answers `{"ok": true,
+"error": null}`, or the error: `not_set`, `HTTP 401`, a network error, the
+  exit code of the script. An unknown target is `422` `unknown_target`.
+- The requests have 15 seconds (`aiohttp`).
 
 ## History
 

@@ -418,5 +418,9 @@
     "web_last_check": "Ostatnie sprawdzenie: {date}",
     "web_last_auto_sort": "Ostatnie automatyczne sortowanie: {date}. Zmienione pliki: {n}",
     "web_auto_sort_off": "Automatyczne sortowanie jest wyłączone.",
-    "web_watch_problem": "{tab}: {text}"
+    "web_watch_problem": "{tab}: {text}",
+    "notify_test": "S.O.K Server: powiadomienia działają.",
+    "notify_renamed": "Zmienione pliki: {n}",
+    "notify_auto_renamed": "Automatycznie posortowane pliki: {n}",
+    "notify_more": "…i {n} więcej"
 }

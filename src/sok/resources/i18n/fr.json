@@ -418,5 +418,9 @@
     "web_last_check": "Dernière vérification : {date}",
     "web_last_auto_sort": "Dernier tri automatique : {date}. Fichiers renommés : {n}",
     "web_auto_sort_off": "Le tri automatique est désactivé.",
-    "web_watch_problem": "{tab} : {text}"
+    "web_watch_problem": "{tab} : {text}",
+    "notify_test": "S.O.K Server : les notifications fonctionnent.",
+    "notify_renamed": "Fichiers renommés : {n}",
+    "notify_auto_renamed": "Fichiers triés automatiquement : {n}",
+    "notify_more": "…et {n} de plus"
 }

@@ -418,5 +418,9 @@
     "web_last_check": "Letzte Prüfung: {date}",
     "web_last_auto_sort": "Letzte automatische Sortierung: {date}. Umbenannte Dateien: {n}",
     "web_auto_sort_off": "Die automatische Sortierung ist aus.",
-    "web_watch_problem": "{tab}: {text}"
+    "web_watch_problem": "{tab}: {text}",
+    "notify_test": "S.O.K Server: Die Benachrichtigungen funktionieren.",
+    "notify_renamed": "Umbenannte Dateien: {n}",
+    "notify_auto_renamed": "Automatisch sortierte Dateien: {n}",
+    "notify_more": "…und {n} weitere"
 }

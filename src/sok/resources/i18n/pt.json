@@ -418,5 +418,9 @@
     "web_last_check": "Última verificação: {date}",
     "web_last_auto_sort": "Última organização automática: {date}. Ficheiros renomeados: {n}",
     "web_auto_sort_off": "A organização automática está desativada.",
-    "web_watch_problem": "{tab}: {text}"
+    "web_watch_problem": "{tab}: {text}",
+    "notify_test": "S.O.K Server: as notificações funcionam.",
+    "notify_renamed": "Ficheiros renomeados: {n}",
+    "notify_auto_renamed": "Ficheiros organizados automaticamente: {n}",
+    "notify_more": "…e mais {n}"
 }

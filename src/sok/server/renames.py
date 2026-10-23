@@ -40,6 +40,7 @@ from sok.server.db import Database
 from sok.server.events import EventBus
 from sok.server.history import History
 from sok.server.jobs import RENAME, Busy, Jobs
+from sok.server.notify import Notifier
 from sok.server.search import Searcher
 from sok.server.settings import (
     DIFFERENT_DRIVES,
@@ -103,6 +104,7 @@ class Renamer:
         searcher: Searcher,
         history: History,
         jobs: Jobs,
+        notifier: Optional[Notifier] = None,
     ) -> None:
         self._db = db
         self._config = config
@@ -110,6 +112,7 @@ class Renamer:
         self._searcher = searcher
         self._history = history
         self._jobs = jobs
+        self._notifier = notifier
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._progress: Optional[Dict[str, int]] = None
         with db.transaction() as conn:
@@ -230,6 +233,22 @@ class Renamer:
             )
             return
         self._finish(rename_id, DONE, None, result)
+        if self._notifier is not None and result["moved"]:
+            with self._db.transaction() as conn:
+                auto = conn.execute(
+                    "SELECT auto FROM renames WHERE id = ?", (rename_id,)
+                ).fetchone()["auto"]
+            self._notifier.renamed_later(
+                {
+                    "media_type": media_type,
+                    "auto": bool(auto),
+                    "renamed": len(result["moved"]),
+                    "files": [
+                        {"from": str(m["from"]), "to": str(m["to"])}
+                        for m in result["moved"]
+                    ],
+                }
+            )
 
     def _plan(self, row: Any) -> Tuple[Any, Any, str, List[Path]]:
         """(row, media item, destination, files) of a row to rename."""
