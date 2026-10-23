@@ -18,6 +18,8 @@ export interface Rename {
   status: "running" | "done" | "failed" | "interrupted";
   started: string;
   finished: string | null;
+  /** Started by the automatic sorting. */
+  auto: boolean;
   error: { code: string; message?: string } | null;
   result: RenameResult | null;
   progress: { done: number; total: number } | null;

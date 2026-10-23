@@ -405,5 +405,18 @@
     "web_link_use_copy": "Use Copy instead",
     "web_understood": "Got it",
     "web_see_details": "See the details",
-    "web_link_problems": "Hard links will not work between some of your folders."
+    "web_link_problems": "Hard links will not work between some of your folders.",
+    "web_auto_sort": "Automatic sorting",
+    "web_auto_sort_text": "The server looks at the source folders on its own. Once downloaded, the new files are analyzed and the Ready ones renamed; the others wait in the tabs.",
+    "web_auto_sort_switch": "Sort the new files automatically",
+    "web_auto_sort_minutes": "Check the folders every (minutes)",
+    "web_auto_sort_confirm": "Turn on the automatic sorting?",
+    "web_auto_sort_confirm_detail": "Every Ready row will be renamed on its own, those already in the tabs too, with the file mode “{mode}”. The history can undo it.",
+    "web_turn_on": "Turn on",
+    "web_last_analysis_auto": "Last analysis: {date}, automatic",
+    "web_auto_sort_on": "Automatic sorting on, every {minutes} min",
+    "web_last_check": "Last check: {date}",
+    "web_last_auto_sort": "Last automatic sorting: {date}. Files renamed: {n}",
+    "web_auto_sort_off": "Automatic sorting is off.",
+    "web_watch_problem": "{tab}: {text}"
 }

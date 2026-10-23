@@ -405,5 +405,18 @@
     "web_link_use_copy": "Usa Copia al suo posto",
     "web_understood": "Ho capito",
     "web_see_details": "Vedi i dettagli",
-    "web_link_problems": "Gli hard link non funzioneranno tra alcune delle tue cartelle."
+    "web_link_problems": "Gli hard link non funzioneranno tra alcune delle tue cartelle.",
+    "web_auto_sort": "Ordinamento automatico",
+    "web_auto_sort_text": "Il server controlla da solo le cartelle di origine. Una volta scaricati, i nuovi file vengono analizzati e quelli Pronti rinominati; gli altri aspettano nelle schede.",
+    "web_auto_sort_switch": "Ordina automaticamente i nuovi file",
+    "web_auto_sort_minutes": "Controlla le cartelle ogni (minuti)",
+    "web_auto_sort_confirm": "Attivare l'ordinamento automatico?",
+    "web_auto_sort_confirm_detail": "Ogni riga Pronta verrà rinominata da sola, anche quelle già nelle schede, con la modalità file «{mode}». La cronologia permette di annullare.",
+    "web_turn_on": "Attiva",
+    "web_last_analysis_auto": "Ultima analisi: {date}, automatica",
+    "web_auto_sort_on": "Ordinamento automatico attivo, ogni {minutes} min",
+    "web_last_check": "Ultimo controllo: {date}",
+    "web_last_auto_sort": "Ultimo ordinamento automatico: {date}. File rinominati: {n}",
+    "web_auto_sort_off": "L'ordinamento automatico è disattivato.",
+    "web_watch_problem": "{tab}: {text}"
 }
