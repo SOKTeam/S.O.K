@@ -1,10 +1,13 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+
   import Icon from "../components/Icon.svelte";
-  import { errorText, stopText } from "../lib/errors";
+  import { errorText, stopText, watchProblemText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n.svelte";
   import { MEDIA_PAGES } from "../lib/pages";
   import { follow } from "../lib/router.svelte";
   import { analysis, confirmType, startScan, type ToCheck } from "../lib/scan.svelte";
+  import { loadWatch, watch } from "../lib/watch.svelte";
 
   let error = $state("");
   // The type picked for each file to check, before it is confirmed.
@@ -12,8 +15,19 @@
   // The file confirmed, while its row is searched.
   let confirming = $state("");
 
+  onMount(() => {
+    loadWatch().catch(() => {});
+  });
+
   const summary = $derived(analysis.summary);
+  const auto = $derived(watch.status);
   const scan = $derived(summary?.scan ?? null);
+  // The stop of its analysis shows below when it is the analysis shown.
+  const autoProblems = $derived(
+    (auto?.last_run?.errors ?? []).filter(
+      (problem) => problem.media_type || auto?.last_run?.scan !== scan?.id,
+    ),
+  );
 
   async function analyze() {
     error = "";
@@ -79,7 +93,11 @@
       <h1 class="text-2xl font-bold">{t("web_analysis", "Analysis")}</h1>
       {#if scan && scan.status !== "running"}
         <p class="mt-1 text-sm text-muted">
-          {t("web_last_analysis", "Last analysis: {date}", { date: date(scan.started) })}
+          {scan.auto
+            ? t("web_last_analysis_auto", "Last analysis: {date}, automatic", {
+                date: date(scan.started),
+              })
+            : t("web_last_analysis", "Last analysis: {date}", { date: date(scan.started) })}
         </p>
       {/if}
     </div>
@@ -90,6 +108,42 @@
 
   {#if error}
     <p class="text-sm text-error" role="alert">{error}</p>
+  {/if}
+
+  {#if auto?.enabled}
+    <div class="rounded-xl border border-line bg-card px-4 py-3 text-sm" role="status">
+      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <p class="flex items-center gap-2 font-semibold">
+          <span class="size-2 rounded-full bg-ok"></span>
+          {t("web_auto_sort_on", "Automatic sorting on, every {minutes} min", {
+            minutes: auto.minutes,
+          })}
+        </p>
+        {#if auto.last_check}
+          <p class="text-xs text-muted">
+            {t("web_last_check", "Last check: {date}", { date: date(auto.last_check) })}
+          </p>
+        {/if}
+      </div>
+      {#if auto.last_run}
+        <p class="mt-1 text-muted">
+          {t("web_last_auto_sort", "Last automatic sorting: {date}. Files renamed: {n}", {
+            date: date(auto.last_run.date),
+            n: auto.last_run.renamed,
+          })}
+        </p>
+        {#each autoProblems as problem, i (i)}
+          <p class="mt-1 text-warn">{watchProblemText(problem)}</p>
+        {/each}
+      {/if}
+    </div>
+  {:else if auto}
+    <p class="text-sm text-muted">
+      {t("web_auto_sort_off", "Automatic sorting is off.")}
+      <a href="/settings" onclick={follow} class="text-accent hover:underline">
+        {t("web_turn_on", "Turn on")}
+      </a>
+    </p>
   {/if}
 
   {#if summary && !scan}

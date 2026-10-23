@@ -405,5 +405,18 @@
     "web_link_use_copy": "Utiliser Copier à la place",
     "web_understood": "Compris",
     "web_see_details": "Voir le détail",
-    "web_link_problems": "Les liens physiques ne fonctionneront pas entre certains de vos dossiers."
+    "web_link_problems": "Les liens physiques ne fonctionneront pas entre certains de vos dossiers.",
+    "web_auto_sort": "Tri automatique",
+    "web_auto_sort_text": "Le serveur surveille lui-même les dossiers sources. Une fois téléchargés, les nouveaux fichiers sont analysés et ceux qui sont Prêts renommés ; les autres attendent dans les onglets.",
+    "web_auto_sort_switch": "Trier automatiquement les nouveaux fichiers",
+    "web_auto_sort_minutes": "Vérifier les dossiers toutes les (minutes)",
+    "web_auto_sort_confirm": "Activer le tri automatique ?",
+    "web_auto_sort_confirm_detail": "Chaque ligne Prête sera renommée toute seule, y compris celles déjà dans les onglets, avec le mode de fichier « {mode} ». L'historique permet d'annuler.",
+    "web_turn_on": "Activer",
+    "web_last_analysis_auto": "Dernière analyse : {date}, automatique",
+    "web_auto_sort_on": "Tri automatique activé, toutes les {minutes} min",
+    "web_last_check": "Dernière vérification : {date}",
+    "web_last_auto_sort": "Dernier tri automatique : {date}. Fichiers renommés : {n}",
+    "web_auto_sort_off": "Le tri automatique est désactivé.",
+    "web_watch_problem": "{tab} : {text}"
 }

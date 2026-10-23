@@ -2,6 +2,8 @@
 
 import { ApiError } from "./api";
 import { t } from "./i18n.svelte";
+import { MEDIA_PAGES } from "./pages";
+import type { WatchProblem } from "./watch.svelte";
 
 export function errorText(error: unknown): string {
   if (!(error instanceof ApiError)) {
@@ -156,4 +158,25 @@ export function linkFixText(problem: string): string {
         "check that the folder still exists, and that it is mounted in the container.",
       );
   }
+}
+
+/** The text of a problem of an automatic sorting: the stop of its analysis,
+ * or the refused rename of a tab, named first. */
+export function watchProblemText(problem: WatchProblem): string {
+  if (!problem.media_type) {
+    return problem.code === "already_running" ||
+      problem.code === "rename_running" ||
+      problem.code === "no_sources"
+      ? errorText(new ApiError(409, problem.code))
+      : stopText(problem);
+  }
+  const page = MEDIA_PAGES.find((p) => p.mediaType === problem.media_type);
+  const tab = page ? t(page.key, page.english) : problem.media_type;
+  const text =
+    problem.code === "failed"
+      ? t("web_rename_failed", "The rename failed: {message}", {
+          message: problem.message ?? problem.code,
+        })
+      : errorText(new ApiError(409, problem));
+  return t("web_watch_problem", "{tab}: {text}", { tab, text });
 }

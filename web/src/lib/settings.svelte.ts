@@ -29,7 +29,7 @@ export interface LinkCheck {
 }
 
 export interface SettingsData {
-  settings: Record<string, string | boolean>;
+  settings: Record<string, string | boolean | number>;
   languages: string[];
   services: Record<string, { id: string; name: string }[]>;
   keys: ServiceKeys[];
@@ -38,7 +38,7 @@ export interface SettingsData {
 }
 
 export interface SettingsChange {
-  settings?: Record<string, string | boolean>;
+  settings?: Record<string, string | boolean | number>;
   keys?: Record<string, string>;
   folders?: Record<string, string[]>;
 }

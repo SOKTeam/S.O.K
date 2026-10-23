@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
 
+  import ConfirmDialog from "../components/ConfirmDialog.svelte";
   import FolderList from "../components/FolderList.svelte";
   import KeyRow from "../components/KeyRow.svelte";
   import LinkProblems from "../components/LinkProblems.svelte";
@@ -17,6 +18,7 @@
     type FileMode,
     type LinkCheck,
   } from "../lib/settings.svelte";
+  import { loadWatch } from "../lib/watch.svelte";
 
   let error = $state("");
   let folderErrors = $state<Record<string, string>>({});
@@ -72,6 +74,28 @@
       await save({ settings: { [key]: value } });
       delete formats[key];
     }
+  }
+
+  // Turning the automatic sorting on asks first: it renames on its own.
+  let confirmAuto = $state(false);
+  // The minutes being typed, saved when the field is left.
+  let minutes = $state<string | null>(null);
+
+  async function saveAuto(on: boolean) {
+    if (await save({ settings: { auto_sort: on } })) {
+      loadWatch().catch(() => {});
+    }
+  }
+
+  async function saveMinutes() {
+    const value = Number(minutes);
+    if (minutes !== null && Number.isInteger(value) && value !== data?.settings.auto_sort_minutes) {
+      if (await save({ settings: { auto_sort_minutes: value } })) {
+        loadWatch().catch(() => {});
+      }
+    }
+    // A refused value gives the field back its saved one.
+    minutes = null;
   }
 
   /** The name of a language in that language: "fr" → "Français". */
@@ -246,6 +270,34 @@
       {/if}
     </Section>
 
+    <Section
+      title={t("web_auto_sort", "Automatic sorting")}
+      text={t(
+        "web_auto_sort_text",
+        "The server looks at the source folders on its own. Once downloaded, the new files are analyzed and the Ready ones renamed; the others wait in the tabs.",
+      )}
+    >
+      <div class="divide-y divide-line">
+        <Toggle
+          label={t("web_auto_sort_switch", "Sort the new files automatically")}
+          checked={Boolean(data.settings.auto_sort)}
+          onchange={(checked) => (checked ? (confirmAuto = true) : saveAuto(false))}
+        />
+        <label class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+          <span>{t("web_auto_sort_minutes", "Check the folders every (minutes)")}</span>
+          <input
+            type="number"
+            min="1"
+            max="1440"
+            class="field w-24"
+            value={minutes ?? data.settings.auto_sort_minutes}
+            oninput={(event) => (minutes = event.currentTarget.value)}
+            onchange={saveMinutes}
+          />
+        </label>
+      </div>
+    </Section>
+
     <Section title={t("behavior", "Behavior")}>
       <div class="divide-y divide-line">
         {#each BEHAVIOR as [key, label] (key)}
@@ -331,6 +383,18 @@
     </Section>
   {/if}
 </div>
+
+<ConfirmDialog
+  bind:open={confirmAuto}
+  text={t("web_auto_sort_confirm", "Turn on the automatic sorting?")}
+  detail={t(
+    "web_auto_sort_confirm_detail",
+    "Every Ready row will be renamed on its own, those already in the tabs too, with the file mode “{mode}”. The history can undo it.",
+    { mode: data ? modeName(data.settings.file_mode as FileMode) : "" },
+  )}
+  action={t("web_turn_on", "Turn on")}
+  onconfirm={() => saveAuto(true)}
+/>
 
 <LinkProblems
   bind:open={showProblems}

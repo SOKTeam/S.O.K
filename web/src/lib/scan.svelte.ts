@@ -3,6 +3,7 @@
 
 import { api } from "./api";
 import { setRename, setRenameProgress, type Rename } from "./renames.svelte";
+import { setWatch, type WatchStatus } from "./watch.svelte";
 
 export type RowStatus = "pending" | "ok" | "ambiguous" | "missing";
 
@@ -31,6 +32,8 @@ export interface Scan {
   missing_sources: string[];
   /** Files left out: renamed before, unchanged since. */
   processed: number;
+  /** Started by the automatic sorting. */
+  auto: boolean;
   progress: Progress | null;
 }
 
@@ -92,6 +95,10 @@ export function listen(): () => void {
         .then(() => (state.changes += 1))
         .catch(() => {});
     }
+  });
+  source.addEventListener("watch", (event) => {
+    const { type: _type, ...status } = JSON.parse((event as MessageEvent).data);
+    setWatch(status as WatchStatus);
   });
   source.addEventListener("progress", (event) => {
     const { type: _type, ...progress } = JSON.parse((event as MessageEvent).data);

@@ -405,5 +405,18 @@
     "web_link_use_copy": "Użyj kopiowania",
     "web_understood": "Rozumiem",
     "web_see_details": "Zobacz szczegóły",
-    "web_link_problems": "Twarde dowiązania nie zadziałają między niektórymi folderami."
+    "web_link_problems": "Twarde dowiązania nie zadziałają między niektórymi folderami.",
+    "web_auto_sort": "Automatyczne sortowanie",
+    "web_auto_sort_text": "Serwer sam obserwuje foldery źródłowe. Po pobraniu nowe pliki są analizowane, a gotowe — zmieniane; pozostałe czekają w kartach.",
+    "web_auto_sort_switch": "Automatycznie sortuj nowe pliki",
+    "web_auto_sort_minutes": "Sprawdzaj foldery co (minuty)",
+    "web_auto_sort_confirm": "Włączyć automatyczne sortowanie?",
+    "web_auto_sort_confirm_detail": "Każdy gotowy wiersz zostanie zmieniony samodzielnie, także te już w kartach, w trybie plików „{mode}”. Historia pozwala to cofnąć.",
+    "web_turn_on": "Włącz",
+    "web_last_analysis_auto": "Ostatnia analiza: {date}, automatyczna",
+    "web_auto_sort_on": "Automatyczne sortowanie włączone, co {minutes} min",
+    "web_last_check": "Ostatnie sprawdzenie: {date}",
+    "web_last_auto_sort": "Ostatnie automatyczne sortowanie: {date}. Zmienione pliki: {n}",
+    "web_auto_sort_off": "Automatyczne sortowanie jest wyłączone.",
+    "web_watch_problem": "{tab}: {text}"
 }

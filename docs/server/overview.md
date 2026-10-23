@@ -198,6 +198,7 @@ interface at each change and sends the `/api` requests to the server.
 | `src/lib/renames.svelte.ts`  | The last rename, kept live by the `rename` and `progress` events; `startRename()`                                                                                                                                                                                                     |
 | `src/lib/history.ts`         | `loadHistory()`, `undo()`, `loadProcessed()`, `forgetProcessed()`                                                                                                                                                                                                                     |
 | `src/lib/settings.svelte.ts` | `loadSettings()`, `saveSettings(change)`, `testKey(service)`                                                                                                                                                                                                                          |
+| `src/lib/watch.svelte.ts`    | The state of the automatic sorting (`GET /api/watch`), kept live by the `watch` events; `loadWatch()`                                                                                                                                                                                 |
 | `src/lib/pages.ts`           | The pages of the sidebar                                                                                                                                                                                                                                                              |
 | `src/lib/icons.ts`           | The icons of the desktop app (`src/sok/resources/assets`), in the color of the text                                                                                                                                                                                                   |
 | `src/app.css`                | Tailwind and the colors of the desktop app: the macOS light theme and the dark theme, as Tailwind colors (`bg-card`, `text-muted`…)                                                                                                                                                   |
@@ -242,6 +243,12 @@ interface at each change and sends the `/api` requests to the server.
   confirmation), and its "Already processed" tab
   (`/history/processed`, linked from the analysis page) lists the files the
   analyses leave out, with "Analyze again".
+- **Automatic sorting.** The settings turn it on after a confirmation (the
+  Ready rows will be renamed on their own, with the file mode named) and set
+  the minutes between two checks. The analysis page shows whether it is on,
+  its last check and its last run: files renamed, and each problem
+  (`watchProblemText` in `errors.ts`: the stop of the analysis, or the tab and
+  why its rename was refused). An automatic analysis says so under the title.
 - **Language at startup.** Without an account, the interface asks
   `GET /api/i18n` for the languages, then loads the first language of the
   browser that S.O.K has (`pickLanguage`); the setup sends it to the server.

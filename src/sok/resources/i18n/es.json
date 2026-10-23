@@ -405,5 +405,18 @@
     "web_link_use_copy": "Usar Copiar en su lugar",
     "web_understood": "Entendido",
     "web_see_details": "Ver el detalle",
-    "web_link_problems": "Los enlaces duros no funcionarán entre algunas de sus carpetas."
+    "web_link_problems": "Los enlaces duros no funcionarán entre algunas de sus carpetas.",
+    "web_auto_sort": "Clasificación automática",
+    "web_auto_sort_text": "El servidor vigila por sí mismo las carpetas de origen. Una vez descargados, los archivos nuevos se analizan y los que están Listos se renombran; los demás esperan en las pestañas.",
+    "web_auto_sort_switch": "Clasificar automáticamente los archivos nuevos",
+    "web_auto_sort_minutes": "Revisar las carpetas cada (minutos)",
+    "web_auto_sort_confirm": "¿Activar la clasificación automática?",
+    "web_auto_sort_confirm_detail": "Cada fila Lista se renombrará sola, también las que ya están en las pestañas, con el modo de archivo «{mode}». El historial permite deshacerlo.",
+    "web_turn_on": "Activar",
+    "web_last_analysis_auto": "Último análisis: {date}, automático",
+    "web_auto_sort_on": "Clasificación automática activada, cada {minutes} min",
+    "web_last_check": "Última revisión: {date}",
+    "web_last_auto_sort": "Última clasificación automática: {date}. Archivos renombrados: {n}",
+    "web_auto_sort_off": "La clasificación automática está desactivada.",
+    "web_watch_problem": "{tab}: {text}"
 }

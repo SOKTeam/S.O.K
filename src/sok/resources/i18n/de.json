@@ -405,5 +405,18 @@
     "web_link_use_copy": "Stattdessen Kopieren verwenden",
     "web_understood": "Verstanden",
     "web_see_details": "Details anzeigen",
-    "web_link_problems": "Hardlinks funktionieren zwischen einigen Ihrer Ordner nicht."
+    "web_link_problems": "Hardlinks funktionieren zwischen einigen Ihrer Ordner nicht.",
+    "web_auto_sort": "Automatische Sortierung",
+    "web_auto_sort_text": "Der Server überwacht die Quellordner selbst. Neue Dateien werden nach dem Download analysiert und die bereiten umbenannt; die anderen warten in den Tabs.",
+    "web_auto_sort_switch": "Neue Dateien automatisch sortieren",
+    "web_auto_sort_minutes": "Ordner prüfen alle (Minuten)",
+    "web_auto_sort_confirm": "Automatische Sortierung einschalten?",
+    "web_auto_sort_confirm_detail": "Jede bereite Zeile wird selbstständig umbenannt, auch die bereits in den Tabs, mit dem Dateimodus „{mode}“. Der Verlauf kann es rückgängig machen.",
+    "web_turn_on": "Einschalten",
+    "web_last_analysis_auto": "Letzte Analyse: {date}, automatisch",
+    "web_auto_sort_on": "Automatische Sortierung an, alle {minutes} Min.",
+    "web_last_check": "Letzte Prüfung: {date}",
+    "web_last_auto_sort": "Letzte automatische Sortierung: {date}. Umbenannte Dateien: {n}",
+    "web_auto_sort_off": "Die automatische Sortierung ist aus.",
+    "web_watch_problem": "{tab}: {text}"
 }
