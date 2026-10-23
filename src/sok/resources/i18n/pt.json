@@ -422,5 +422,22 @@
     "notify_test": "S.O.K Server: as notificações funcionam.",
     "notify_renamed": "Ficheiros renomeados: {n}",
     "notify_auto_renamed": "Ficheiros organizados automaticamente: {n}",
-    "notify_more": "…e mais {n}"
+    "notify_more": "…e mais {n}",
+    "web_notifications": "Notificações",
+    "web_notifications_text": "Depois de cada renomeação, manual ou automática, o S.O.K Server pode avisar as suas outras aplicações.",
+    "web_notify_discord_text": "Uma mensagem num canal. Endereço do webhook: definições do canal → Integrações → Webhooks.",
+    "web_notify_jellyfin_text": "Atualiza as bibliotecas. Chave de API: Painel → Chaves de API.",
+    "web_notify_plex_text": "Atualiza as bibliotecas, com o seu token Plex.",
+    "web_notify_webhook": "Webhook",
+    "web_notify_webhook_text": "A renomeação em JSON, para Home Assistant, n8n e outras ferramentas.",
+    "web_notify_script": "Script",
+    "web_notify_script_set": "Definido pela variável SOK_AFTER_RENAME: corre depois de cada renomeação, com a renomeação em JSON na sua entrada.",
+    "web_notify_script_text": "Um comando executado depois de cada renomeação, com a renomeação em JSON na sua entrada. Por segurança, só a variável SOK_AFTER_RENAME do contentor o define.",
+    "web_notify_set": "Ativado",
+    "web_notify_off": "Desativado",
+    "web_notify_replace": "Guardado: escreva um novo para o substituir…",
+    "web_notify_ok": "Enviado",
+    "web_notify_not_set": "Preencha-o primeiro.",
+    "web_notify_failed": "Falhou: {error}",
+    "web_error_invalid_url": "Indique um endereço que comece por http:// ou https://."
 }

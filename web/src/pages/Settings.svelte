@@ -5,6 +5,7 @@
   import FolderList from "../components/FolderList.svelte";
   import KeyRow from "../components/KeyRow.svelte";
   import LinkProblems from "../components/LinkProblems.svelte";
+  import NotifyRow from "../components/NotifyRow.svelte";
   import Section from "../components/Section.svelte";
   import Toggle from "../components/Toggle.svelte";
   import { errorText } from "../lib/errors";
@@ -295,6 +296,117 @@
             onchange={saveMinutes}
           />
         </label>
+      </div>
+    </Section>
+
+    <Section
+      title={t("web_notifications", "Notifications")}
+      text={t(
+        "web_notifications_text",
+        "After each rename, by hand or automatic, S.O.K Server can tell your other apps.",
+      )}
+    >
+      {@const notify = data.notifications}
+      <div class="divide-y divide-line">
+        <NotifyRow
+          target="discord"
+          name="Discord"
+          text={t(
+            "web_notify_discord_text",
+            "A message in a channel. Webhook address: settings of the channel → Integrations → Webhooks.",
+          )}
+          set={notify.discord.set}
+          fields={[
+            {
+              key: "discord_url",
+              secret: true,
+              set: notify.discord.set,
+              example: "https://discord.com/api/webhooks/…",
+            },
+          ]}
+          onerror={(exc) => (error = errorText(exc))}
+        />
+        <NotifyRow
+          target="jellyfin"
+          name="Jellyfin"
+          text={t(
+            "web_notify_jellyfin_text",
+            "Refreshes the libraries. API key: Dashboard → API Keys.",
+          )}
+          set={Boolean(notify.jellyfin.url) && notify.jellyfin.set}
+          fields={[
+            {
+              key: "jellyfin_url",
+              secret: false,
+              value: notify.jellyfin.url,
+              set: Boolean(notify.jellyfin.url),
+              example: "http://jellyfin:8096",
+            },
+            {
+              key: "jellyfin_key",
+              secret: true,
+              set: notify.jellyfin.set,
+              example: t("your_api_key", "Your API key..."),
+            },
+          ]}
+          onerror={(exc) => (error = errorText(exc))}
+        />
+        <NotifyRow
+          target="plex"
+          name="Plex"
+          text={t("web_notify_plex_text", "Refreshes the libraries, with your Plex token.")}
+          set={Boolean(notify.plex.url) && notify.plex.set}
+          fields={[
+            {
+              key: "plex_url",
+              secret: false,
+              value: notify.plex.url,
+              set: Boolean(notify.plex.url),
+              example: "http://plex:32400",
+            },
+            {
+              key: "plex_token",
+              secret: true,
+              set: notify.plex.set,
+              example: "X-Plex-Token",
+            },
+          ]}
+          onerror={(exc) => (error = errorText(exc))}
+        />
+        <NotifyRow
+          target="webhook"
+          name={t("web_notify_webhook", "Webhook")}
+          text={t(
+            "web_notify_webhook_text",
+            "The rename as JSON, for Home Assistant, n8n and other tools.",
+          )}
+          set={notify.webhook.set}
+          fields={[
+            {
+              key: "webhook_url",
+              secret: true,
+              set: notify.webhook.set,
+              example: "https://…",
+            },
+          ]}
+          onerror={(exc) => (error = errorText(exc))}
+        />
+        <NotifyRow
+          target="script"
+          name={t("web_notify_script", "Script")}
+          text={notify.script
+            ? t(
+                "web_notify_script_set",
+                "Set by the SOK_AFTER_RENAME variable: it runs after each rename, with the rename as JSON on its input.",
+              )
+            : t(
+                "web_notify_script_text",
+                "A command run after each rename, with the rename as JSON on its input. For safety, only the SOK_AFTER_RENAME variable of the container sets it.",
+              )}
+          set={notify.script}
+          fields={[]}
+          onerror={(exc) => (error = errorText(exc))}
+        />
       </div>
     </Section>
 

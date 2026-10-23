@@ -422,5 +422,22 @@
     "notify_test": "S.O.K Server: уведомления работают.",
     "notify_renamed": "Переименовано файлов: {n}",
     "notify_auto_renamed": "Автоматически отсортировано файлов: {n}",
-    "notify_more": "…и ещё {n}"
+    "notify_more": "…и ещё {n}",
+    "web_notifications": "Уведомления",
+    "web_notifications_text": "После каждого переименования, вручную или автоматически, S.O.K Server может сообщить другим приложениям.",
+    "web_notify_discord_text": "Сообщение в канале. Адрес вебхука: настройки канала → Интеграция → Вебхуки.",
+    "web_notify_jellyfin_text": "Обновляет медиатеки. Ключ API: Панель управления → Ключи API.",
+    "web_notify_plex_text": "Обновляет медиатеки с вашим токеном Plex.",
+    "web_notify_webhook": "Вебхук",
+    "web_notify_webhook_text": "Переименование в JSON для Home Assistant, n8n и других инструментов.",
+    "web_notify_script": "Скрипт",
+    "web_notify_script_set": "Задан переменной SOK_AFTER_RENAME: запускается после каждого переименования, получая его в JSON на вход.",
+    "web_notify_script_text": "Команда, запускаемая после каждого переименования, получающая его в JSON на вход. В целях безопасности её задаёт только переменная SOK_AFTER_RENAME контейнера.",
+    "web_notify_set": "Включено",
+    "web_notify_off": "Выключено",
+    "web_notify_replace": "Сохранено: введите новое значение для замены…",
+    "web_notify_ok": "Отправлено",
+    "web_notify_not_set": "Сначала заполните.",
+    "web_notify_failed": "Ошибка: {error}",
+    "web_error_invalid_url": "Укажите адрес, начинающийся с http:// или https://."
 }

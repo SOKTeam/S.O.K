@@ -25,6 +25,8 @@ export function errorText(error: unknown): string {
         "“{item}” is not a folder the server can see. Give its full path, as mounted in the container.",
         { item: item(error) },
       );
+    case "invalid_url":
+      return t("web_error_invalid_url", "Give an address that starts with http:// or https://.");
     case "invalid_value":
       return t("web_error_invalid_value", "This value cannot be saved.");
     case "key_locked":

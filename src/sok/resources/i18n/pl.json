@@ -422,5 +422,22 @@
     "notify_test": "S.O.K Server: powiadomienia działają.",
     "notify_renamed": "Zmienione pliki: {n}",
     "notify_auto_renamed": "Automatycznie posortowane pliki: {n}",
-    "notify_more": "…i {n} więcej"
+    "notify_more": "…i {n} więcej",
+    "web_notifications": "Powiadomienia",
+    "web_notifications_text": "Po każdej zmianie nazw, ręcznej lub automatycznej, S.O.K Server może powiadomić inne aplikacje.",
+    "web_notify_discord_text": "Wiadomość na kanale. Adres webhooka: ustawienia kanału → Integracje → Webhooki.",
+    "web_notify_jellyfin_text": "Odświeża biblioteki. Klucz API: Panel sterowania → Klucze API.",
+    "web_notify_plex_text": "Odświeża biblioteki, z Twoim tokenem Plex.",
+    "web_notify_webhook": "Webhook",
+    "web_notify_webhook_text": "Zmiana nazw jako JSON, dla Home Assistant, n8n i innych narzędzi.",
+    "web_notify_script": "Skrypt",
+    "web_notify_script_set": "Ustawiony przez zmienną SOK_AFTER_RENAME: uruchamia się po każdej zmianie nazw, z jej opisem w JSON na wejściu.",
+    "web_notify_script_text": "Polecenie uruchamiane po każdej zmianie nazw, z jej opisem w JSON na wejściu. Ze względów bezpieczeństwa ustawia je tylko zmienna SOK_AFTER_RENAME kontenera.",
+    "web_notify_set": "Włączone",
+    "web_notify_off": "Wyłączone",
+    "web_notify_replace": "Zapisano: wpisz nowy, aby go zastąpić…",
+    "web_notify_ok": "Wysłano",
+    "web_notify_not_set": "Najpierw go uzupełnij.",
+    "web_notify_failed": "Niepowodzenie: {error}",
+    "web_error_invalid_url": "Podaj adres zaczynający się od http:// lub https://."
 }
