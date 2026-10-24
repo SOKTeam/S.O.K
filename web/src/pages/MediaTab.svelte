@@ -2,6 +2,8 @@
   import ConfirmDialog from "../components/ConfirmDialog.svelte";
   import RenameStatus from "../components/RenameStatus.svelte";
   import RowItem from "../components/RowItem.svelte";
+  import Tabs from "../components/Tabs.svelte";
+  import { ROW_COLUMNS } from "../lib/columns";
   import { errorText } from "../lib/errors";
   import { t } from "../lib/i18n.svelte";
   import type { Page } from "../lib/pages";
@@ -103,58 +105,67 @@
   }
 
   const FILTERS = $derived([
-    ["all", t("web_all", "All"), rows?.length ?? 0],
-    ["ok", t("status_ready", "Ready"), count("ok")],
-    ["ambiguous", t("status_ambiguous", "Pick one"), count("ambiguous")],
-    ["missing", t("status_missing", "Missing"), count("missing")],
-  ] as const);
+    { value: "all", label: t("web_all", "All"), count: rows?.length ?? 0 },
+    { value: "ok", label: t("web_ready_plural", "Ready"), count: count("ok") },
+    { value: "ambiguous", label: t("web_to_pick", "To pick"), count: count("ambiguous") },
+    { value: "missing", label: t("web_missing_plural", "Missing"), count: count("missing") },
+  ]);
+
+  const destinations = $derived(settings.data?.folders[mediaType] ?? []);
+
+  /** The last folder of a path, with the whole path on hover. */
+  function folderName(path: string): string {
+    return path.split("/").filter(Boolean).pop() ?? path;
+  }
+  // The box of the header: every Ready row shown, or none.
+  const readyShown = $derived(shown.filter((row) => row.status === "ok").map((row) => row.id));
+  const allTicked = $derived(
+    readyShown.length > 0 && readyShown.every((id) => selection.includes(id)),
+  );
+  const someTicked = $derived(!allTicked && readyShown.some((id) => selection.includes(id)));
+
+  function tickAll(on: boolean) {
+    ticked = on
+      ? [...new Set([...ticked, ...readyShown])]
+      : ticked.filter((id) => !readyShown.includes(id));
+  }
 </script>
 
 <div class="mx-auto max-w-6xl pb-16">
-  <div class="flex flex-wrap items-end justify-between gap-4">
-    <div>
-      <h1 class="text-2xl font-bold">{t(page.key, page.english)}</h1>
-      <div class="mt-3 flex flex-wrap gap-1" role="tablist">
-        {#each FILTERS as [value, label, n] (value)}
-          <button
-            type="button"
-            role="tab"
-            aria-selected={filter === value}
-            class={[
-              "rounded-full px-3 py-1 text-xs font-semibold",
-              filter === value ? "bg-fg text-bg" : "text-muted hover:bg-hover",
-            ]}
-            onclick={() => (filter = value)}
-          >
-            {label}
-            <span class="tabular-nums">{n}</span>
-          </button>
-        {/each}
-      </div>
-    </div>
-    <div class="flex items-center gap-3">
+  <div class="flex items-start justify-between gap-6">
+    <div class="min-w-0 flex-1">
+      <h1 class="text-3xl font-bold">{t(page.key, page.english)}</h1>
       {#if settings.data}
-        <span class="text-xs text-muted"
-          >{t("web_file_mode_is", "File mode: {mode}", { mode: modeName() })}</span
-        >
+        <p class="mt-1.5 truncate text-[13px] text-muted">
+          {modeName()}
+          {#if destinations.length}
+            · {t("web_to_folder", "to")}
+            <span class="font-mono" title={destinations.join("\n")}>
+              {folderName(destinations[0])}
+            </span>
+            {#if destinations.length > 1}
+              <span>+{destinations.length - 1}</span>
+            {/if}
+          {/if}
+        </p>
       {/if}
-      <button
-        type="button"
-        class="rounded-lg border border-line px-3 py-2 text-sm font-semibold hover:bg-hover disabled:opacity-50"
-        disabled={!selection.length || renames.running}
-        onclick={() => ask(selection)}
-      >
-        {t("web_rename_selection", "Rename the selection ({n})", { n: selection.length })}
-      </button>
-      <button
-        type="button"
-        class="button"
-        disabled={!ready.length || renames.running}
-        onclick={() => ask(null)}
-      >
-        {t("web_rename_ready", "Rename the Ready ones ({n})", { n: ready.length })}
-      </button>
     </div>
+    <button
+      type="button"
+      class="button px-5 py-2"
+      disabled={!ready.length || renames.running}
+      onclick={() => ask(null)}
+    >
+      {t("web_rename_ready", "Rename the Ready ones ({n})", { n: ready.length })}
+    </button>
+  </div>
+
+  <div class="mt-5">
+    <Tabs
+      tabs={FILTERS}
+      current={filter}
+      onselect={(value) => (filter = value as RowStatus | "all")}
+    />
   </div>
 
   {#if rename}
@@ -167,17 +178,43 @@
 
   {#if rows !== null}
     {#if shown.length}
-      <div class="mt-6 overflow-hidden rounded-xl border border-line bg-card">
+      <div class="mt-5 overflow-hidden rounded-xl border border-line bg-card">
+        <div class={[ROW_COLUMNS, "label h-10 border-b border-line"]}>
+          <input
+            type="checkbox"
+            class="check"
+            checked={allTicked}
+            indeterminate={someTicked}
+            disabled={!readyShown.length}
+            aria-label={t("web_select_all", "Select all")}
+            onchange={(event) => tickAll(event.currentTarget.checked)}
+          />
+          <span class="col-span-2">{t("web_title", "Title")}</span>
+          <span>{t("web_new_name", "New name")}</span>
+          <span>{t("web_state", "Status")}</span>
+          <span></span>
+        </div>
         {#each shown as row (row.id)}
           <RowItem
             {row}
-            destinations={settings.data?.folders[mediaType] ?? []}
+            {destinations}
             selected={selection.includes(row.id)}
             onselect={(on) =>
               (ticked = on ? [...ticked, row.id] : ticked.filter((id) => id !== row.id))}
             onchange={replace}
           />
         {/each}
+      </div>
+      <div class="mt-3.5 flex items-center justify-end gap-3.5 text-[13px] text-muted">
+        <span>{t("web_selected_count", "{n} selected", { n: selection.length })}</span>
+        <button
+          type="button"
+          class="button-outline"
+          disabled={!selection.length || renames.running}
+          onclick={() => ask(selection)}
+        >
+          {t("web_rename_the_selection", "Rename the selection")}
+        </button>
       </div>
     {:else}
       <p class="mt-10 text-center text-sm text-muted">

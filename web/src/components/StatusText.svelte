@@ -2,6 +2,7 @@
   import { t } from "../lib/i18n.svelte";
   import type { RowStatus } from "../lib/scan.svelte";
 
+  // The status of a row, as text: in color only when it asks for something.
   let { status }: { status: RowStatus } = $props();
 
   function text(status: RowStatus): string {
@@ -20,11 +21,10 @@
 
 <span
   class={[
-    "w-24 shrink-0 rounded-full px-2 py-0.5 text-center text-xs font-semibold",
-    status === "ok" && "bg-ok/15 text-ok",
-    status === "ambiguous" && "bg-warn/15 text-warn",
-    status === "missing" && "bg-error/15 text-error",
-    status === "pending" && "bg-hover text-muted",
+    "text-[13px] font-medium",
+    status === "ambiguous" && "text-warn",
+    status === "missing" && "text-error",
+    status === "pending" && "text-muted",
   ]}
 >
   {text(status)}

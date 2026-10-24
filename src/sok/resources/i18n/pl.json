@@ -379,7 +379,6 @@
     "web_rename_failed": "Zmiana nazw nie powiodła się: {message}",
     "web_rename_left": "Pliki, które zostają w swoim wierszu: {n}:",
     "web_rename_ready": "Zmień nazwy gotowych ({n})",
-    "web_rename_selection": "Zmień nazwy zaznaczonych ({n})",
     "web_renamed_count": "Zmieniono nazwy plików: {n}.",
     "web_renames": "Zmiany nazw",
     "web_renaming": "Zmiana nazw",
@@ -464,5 +463,10 @@
     "web_address": "Adres",
     "web_state": "Stan",
     "web_key": "Klucz",
-    "web_format": "Format"
+    "web_format": "Format",
+    "web_to_folder": "do",
+    "web_title": "Tytuł",
+    "web_new_name": "Nowa nazwa",
+    "web_selected_count": "Zaznaczono: {n}",
+    "web_rename_the_selection": "Zmień nazwy zaznaczonych"
 }

@@ -379,7 +379,6 @@
     "web_rename_failed": "Переименование не удалось: {message}",
     "web_rename_left": "Остались в своей строке файлов: {n}:",
     "web_rename_ready": "Переименовать готовые ({n})",
-    "web_rename_selection": "Переименовать выбранные ({n})",
     "web_renamed_count": "Переименовано файлов: {n}.",
     "web_renames": "Переименования",
     "web_renaming": "Переименование",
@@ -464,5 +463,10 @@
     "web_address": "Адрес",
     "web_state": "Состояние",
     "web_key": "Ключ",
-    "web_format": "Формат"
+    "web_format": "Формат",
+    "web_to_folder": "в",
+    "web_title": "Название",
+    "web_new_name": "Новое имя",
+    "web_selected_count": "Выбрано: {n}",
+    "web_rename_the_selection": "Переименовать выбранное"
 }
