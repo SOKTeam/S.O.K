@@ -135,7 +135,7 @@
             </p>
           {/each}
         {:else if settings.data}
-          <a href="/settings" onclick={follow} class="link mt-1 inline-block">
+          <a href="/settings/folders" onclick={follow} class="link mt-1 inline-block">
             {t("web_add_source", "Add a source folder")}
           </a>
         {/if}
@@ -183,7 +183,7 @@
         {:else if auto}
           <p class="mt-1 text-sm">
             {t("web_auto_sort_disabled", "Off")} ·
-            <a href="/settings" onclick={follow} class="link">{t("web_turn_on", "Turn on")}</a>
+            <a href="/settings/auto" onclick={follow} class="link">{t("web_turn_on", "Turn on")}</a>
           </p>
         {/if}
       </div>
@@ -221,7 +221,7 @@
             {/each}
           </div>
           {#if scan.error.code === "missing_key" || scan.error.code === "key_refused"}
-            <a href="/settings" onclick={follow} class="link shrink-0">
+            <a href="/settings/keys" onclick={follow} class="link shrink-0">
               {t("settings", "Settings")}
             </a>
           {/if}

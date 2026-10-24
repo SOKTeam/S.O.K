@@ -382,7 +382,7 @@
     "web_rename_selection": "Переименовать выбранные ({n})",
     "web_renamed_count": "Переименовано файлов: {n}.",
     "web_renames": "Переименования",
-    "web_renaming": "Переименование…",
+    "web_renaming": "Переименование",
     "web_renaming_progress": "Переименование… {done} / {total}",
     "web_see_history": "Открыть историю, чтобы отменить",
     "web_select_all": "Выбрать все",
@@ -455,5 +455,14 @@
     "web_missing_plural": "Не найдено",
     "web_not_searched_count": "Ещё не искали: {n}",
     "web_open": "Открыть",
-    "web_total": "Всего"
+    "web_total": "Всего",
+    "web_add_folder": "Добавить папку…",
+    "web_no_folder": "Нет папки",
+    "web_links_ok": "Жёсткие ссылки работают между вашими папками.",
+    "web_automation": "Автоматизация",
+    "web_service": "Сервис",
+    "web_address": "Адрес",
+    "web_state": "Состояние",
+    "web_key": "Ключ",
+    "web_format": "Формат"
 }

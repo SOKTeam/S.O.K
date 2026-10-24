@@ -382,7 +382,7 @@
     "web_rename_selection": "Auswahl umbenennen ({n})",
     "web_renamed_count": "{n} Dateien umbenannt.",
     "web_renames": "Umbenennungen",
-    "web_renaming": "Umbenennung…",
+    "web_renaming": "Umbenennung",
     "web_renaming_progress": "Umbenennung… {done} / {total}",
     "web_see_history": "Verlauf ansehen, um sie rückgängig zu machen",
     "web_select_all": "Alle auswählen",
@@ -455,5 +455,14 @@
     "web_missing_plural": "Fehlend",
     "web_not_searched_count": "{n} noch nicht gesucht",
     "web_open": "Öffnen",
-    "web_total": "Gesamt"
+    "web_total": "Gesamt",
+    "web_add_folder": "Ordner hinzufügen…",
+    "web_no_folder": "Kein Ordner",
+    "web_links_ok": "Harte Links funktionieren zwischen Ihren Ordnern.",
+    "web_automation": "Automatisierung",
+    "web_service": "Dienst",
+    "web_address": "Adresse",
+    "web_state": "Status",
+    "web_key": "Schlüssel",
+    "web_format": "Format"
 }

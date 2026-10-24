@@ -128,11 +128,7 @@
       {listing?.path ?? ""}
     </span>
     <div class="flex shrink-0 gap-2">
-      <button
-        type="button"
-        class="rounded-lg border border-line px-4 py-2 text-sm font-semibold hover:bg-hover"
-        onclick={() => (open = false)}
-      >
+      <button type="button" class="button-outline" onclick={() => (open = false)}>
         {t("web_cancel", "Cancel")}
       </button>
       <button type="button" class="button" disabled={!listing} onclick={pick}>
