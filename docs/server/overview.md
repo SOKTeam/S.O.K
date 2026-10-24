@@ -240,8 +240,12 @@ interface at each change and sends the `/api` requests to the server.
   a `scan` event replaces the summary (the counts of the sidebar, the
   analysis page) and makes the open tab read its rows again; `progress`
   events move the progress bar, and the counts are read again once the files
-  are sorted. A tab shows its rows, filtered by status; a row opens its results
-  to pick (poster, title, year, artist or authors, overview) and a search with
+  are sorted. The analysis page has one strip for the source folders, the last
+  analysis (its progress while it runs) and the automatic sorting, the
+  problems below it, a table of the counts of each tab (zeros as a dash, the
+  counts to act on in color) with a total, and the files to check. A tab
+  shows its rows, filtered by status; a row opens its results to pick
+  (poster, title, year, artist or authors, overview) and a search with
   another text; a series or an album unfolds its files with their new paths.
   The destination folder shows only when its media type has several.
 - **Renames and history.** A tab renames its Ready rows, or the rows ticked,
@@ -255,10 +259,11 @@ interface at each change and sends the `/api` requests to the server.
   analyses leave out, with "Analyze again".
 - **Automatic sorting.** The settings turn it on after a confirmation (the
   Ready rows will be renamed on their own, with the file mode named) and set
-  the minutes between two checks. The analysis page shows whether it is on,
-  its last check and its last run: files renamed, and each problem
-  (`watchProblemText` in `errors.ts`: the stop of the analysis, or the tab and
-  why its rename was refused). An automatic analysis says so under the title.
+  the minutes between two checks. The strip of the analysis page shows
+  whether it is on, its last run (files renamed) and its last check (on hover);
+  each problem shows with the others (`watchProblemText` in `errors.ts`: the
+  stop of the analysis, or the tab and why its rename was refused). An
+  automatic analysis says so after its date.
 - **Notifications.** One row per target: its fields (an address is shown
   again, a secret only as saved), a Remove button, and a test once it is set
   (`POST /api/settings/test-notification`). The script row only says whether
