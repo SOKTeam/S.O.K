@@ -439,5 +439,11 @@
     "web_notify_ok": "Отправлено",
     "web_notify_not_set": "Сначала заполните.",
     "web_notify_failed": "Ошибка: {error}",
-    "web_error_invalid_url": "Укажите адрес, начинающийся с http:// или https://."
+    "web_error_invalid_url": "Укажите адрес, начинающийся с http:// или https://.",
+    "web_theme": "Тема",
+    "web_theme_system": "Системная",
+    "web_theme_light": "Светлая",
+    "web_theme_orange": "Оранжевая",
+    "web_theme_dark": "Тёмная",
+    "web_theme_text": "В этом браузере. Системная: тёмная или светлая, как на устройстве; светлая тема белая на Mac и оранжевая на других системах."
 }

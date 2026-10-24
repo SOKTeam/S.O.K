@@ -5,6 +5,8 @@
   import { follow, router } from "../lib/router.svelte";
   import { analysis } from "../lib/scan.svelte";
   import { logOut, session } from "../lib/session.svelte";
+
+  // The sidebar of the desktop app: the library, then the general pages.
 </script>
 
 {#snippet link(page: Page)}
@@ -15,46 +17,51 @@
     onclick={follow}
     aria-current={current ? "page" : undefined}
     class={[
-      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium",
-      current ? "bg-selected text-fg" : "text-muted hover:bg-hover hover:text-fg",
+      "flex items-center gap-3 rounded-lg px-3 py-2 text-[15px]",
+      current ? "bg-selected font-medium text-selected-fg" : "text-fg hover:bg-hover",
     ]}
   >
-    <Icon name={page.icon} class={["size-4.5", current && "text-accent"].join(" ")} />
+    <Icon
+      name={page.icon}
+      class={["size-4.5 shrink-0", current ? "text-selected-icon" : "text-icon"].join(" ")}
+    />
     <span class="flex-1 truncate">{t(page.key, page.english)}</span>
-    {#if counts?.ambiguous}
-      <span
-        class="rounded-full bg-warn/15 px-1.5 text-xs font-semibold text-warn tabular-nums"
-        title={t("status_ambiguous", "Pick one")}>{counts.ambiguous}</span
-      >
-    {/if}
     {#if counts?.total}
-      <span class="text-xs text-muted tabular-nums">{counts.total}</span>
+      <span class={["text-xs tabular-nums", !current && "text-muted"]}>
+        {#if counts.ambiguous}
+          <span
+            class={["font-semibold", !current && "text-warn"]}
+            title={t("status_ambiguous", "Pick one")}>{counts.ambiguous}</span
+          >
+          ·
+        {/if}
+        {counts.total}
+      </span>
     {/if}
   </a>
 {/snippet}
 
-<nav class="flex h-full w-60 shrink-0 flex-col gap-6 border-r border-line bg-sidebar p-4">
-  <div class="flex items-center gap-2.5 px-2 pt-1">
+<nav class="flex h-full w-60 shrink-0 flex-col border-r border-line bg-sidebar px-3 pt-5 pb-3.5">
+  <div class="flex items-center gap-2.5 px-2 pb-5">
     <img src="/favicon.svg" alt="" class="size-7" />
     <span class="font-bold">S.O.K Server</span>
   </div>
 
-  <div class="flex flex-col gap-1">
+  <p class="label px-3 pb-1.5">{t("library", "Library")}</p>
+  <div class="flex flex-col gap-0.5">
     {@render link(ANALYSIS)}
-  </div>
-
-  <div class="flex flex-col gap-1">
     {#each MEDIA_PAGES as page (page.path)}
       {@render link(page)}
     {/each}
   </div>
 
-  <div class="mt-auto flex flex-col gap-1">
+  <div class="mt-auto flex flex-col gap-0.5">
+    <p class="label px-3 pb-1.5">{t("general", "General")}</p>
     {#each OTHER_PAGES as page (page.path)}
       {@render link(page)}
     {/each}
     {#if session.current?.auth === "login"}
-      <div class="mt-3 flex items-center justify-between border-t border-line px-3 pt-3 text-sm">
+      <div class="mt-2 flex items-center justify-between border-t border-line px-3 pt-3 text-sm">
         <span class="truncate text-muted">{session.current.username}</span>
         <button class="font-medium text-accent hover:underline" onclick={logOut}>
           {t("web_log_out", "Log out")}

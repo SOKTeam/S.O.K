@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
-/* The colors of the desktop app (src/sok/ui/theme.py): the macOS light
-   theme, white and gray with orange accents, and the dark theme. The
-   utilities (bg-card, text-muted…) read these variables, so the dark theme
-   only changes the variables. */
+/* The themes of the desktop app (src/sok/ui/theme.py), set on <html> by
+   lib/theme.svelte.ts: data-theme="light" (macOS: white and gray with
+   orange accents), "orange" (Windows and Linux) or "dark". The utilities
+   (bg-card, text-muted…) read these variables, so a theme only changes the
+   variables. */
 @theme {
   --font-sans:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI Variable", "Segoe UI",
@@ -12,36 +13,68 @@
   --color-bg: #ffffff;
   --color-card: #f5f5f7;
   --color-sidebar: #ededf0;
+  /* The page of the sidebar shown, its text and its icon. */
   --color-selected: rgb(0 0 0 / 0.1);
+  --color-selected-fg: #1d1d1f;
+  --color-selected-icon: #fb6048;
   --color-fg: #1d1d1f;
   --color-muted: #6e6e73;
   --color-faint: #c7c7cc;
+  --color-icon: #6e6e73;
   --color-accent: #fb6048;
   --color-accent-fg: #ffffff;
   --color-line: #e3e3e8;
   --color-hover: rgb(0 0 0 / 0.06);
   --color-input: #ffffff;
+  /* A switch that is off. */
+  --color-track: #c7c7cc;
   --color-ok: #248a3d;
   --color-warn: #b25000;
   --color-error: #d70015;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #121212;
-    --color-card: #1e1e1e;
-    --color-sidebar: #181818;
-    --color-selected: rgb(255 255 255 / 0.1);
-    --color-fg: #ffffff;
-    --color-muted: #b3b3b3;
-    --color-faint: #404040;
-    --color-line: #333333;
-    --color-hover: rgb(255 255 255 / 0.1);
-    --color-input: #2c2c2e;
-    --color-ok: #30d158;
-    --color-warn: #ffb86c;
-    --color-error: #ff6b6b;
-  }
+/* Orange: the panels and the fields are darker than the page, so the white
+   text stays readable; the statuses, the errors too, are light tints. */
+:root[data-theme="orange"] {
+  --color-bg: #fb6048;
+  --color-card: #ec5942;
+  --color-sidebar: #fb6048;
+  --color-selected: #ffffff;
+  --color-selected-fg: #fb6048;
+  --color-selected-icon: #fb6048;
+  --color-fg: #ffffff;
+  --color-muted: rgb(255 255 255 / 0.85);
+  --color-faint: rgb(255 255 255 / 0.55);
+  --color-icon: #ffffff;
+  --color-accent: #ffffff;
+  --color-accent-fg: #fb6048;
+  --color-line: rgb(255 255 255 / 0.22);
+  --color-hover: rgb(0 0 0 / 0.07);
+  --color-input: #dd513f;
+  --color-track: rgb(0 0 0 / 0.2);
+  --color-ok: #d9ffe2;
+  --color-warn: #ffe9c7;
+  --color-error: #ffd3cb;
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #121212;
+  --color-card: #1e1e1e;
+  --color-sidebar: #181818;
+  --color-selected: #fb6048;
+  --color-selected-fg: #ffffff;
+  --color-selected-icon: #ffffff;
+  --color-fg: #ffffff;
+  --color-muted: #b3b3b3;
+  --color-faint: #404040;
+  --color-icon: #b3b3b3;
+  --color-line: #333333;
+  --color-hover: rgb(255 255 255 / 0.08);
+  --color-input: #2c2c2e;
+  --color-track: #48484a;
+  --color-ok: #30d158;
+  --color-warn: #ffb86c;
+  --color-error: #ff6b6b;
 }
 
 /* Inter, where the system font is not SF Pro or Segoe UI (Linux). */
@@ -65,6 +98,13 @@
 }
 
 @layer base {
+  /* The native controls (lists, scroll bars) follow the theme chosen. */
+  :root {
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
   html,
   body {
     @apply bg-bg font-sans text-fg antialiased;
@@ -73,15 +113,55 @@
   #app {
     height: 100%;
   }
+  ::placeholder {
+    @apply text-muted opacity-70;
+  }
 }
 
 @layer components {
   .field {
-    @apply w-full rounded-lg border border-line bg-input px-3 py-2 text-sm outline-none;
+    @apply w-full rounded-lg border border-line bg-input px-3 py-2 text-sm text-fg outline-none;
     @apply focus:border-accent focus:ring-2 focus:ring-accent/30;
   }
+  /* The buttons of the desktop app: pills. One filled button per page, for
+     its main action; the others are outlined. */
   .button {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold;
-    @apply bg-accent text-accent-fg hover:brightness-110 disabled:opacity-50;
+    @apply inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-4 py-1.5;
+    @apply bg-accent text-sm font-semibold text-accent-fg hover:brightness-105;
+    @apply disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100;
+  }
+  .button-outline {
+    @apply inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-4 py-1.5;
+    @apply text-sm font-semibold text-accent ring-[1.5px] ring-accent ring-inset hover:bg-hover;
+    @apply disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent;
+  }
+  /* A link-like action in a row: "Get a key", "Put back". */
+  .link {
+    @apply text-sm font-semibold text-accent hover:underline disabled:opacity-50;
+  }
+  /* The title of a section, in small capitals, as in the desktop app. */
+  .label {
+    @apply text-[11px] font-semibold tracking-[0.06em] text-muted uppercase;
+  }
+  /* A rounded checkbox, with the check of the desktop icons (check.svg). */
+  .check {
+    @apply relative size-4.5 shrink-0 cursor-pointer appearance-none rounded-[5px] border-[1.5px];
+    @apply border-faint bg-input transition-colors hover:border-accent;
+    @apply checked:border-accent checked:bg-accent indeterminate:border-accent indeterminate:bg-accent;
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+    @apply disabled:cursor-not-allowed disabled:border-dashed disabled:bg-transparent;
+    @apply disabled:opacity-70 disabled:hover:border-faint;
+  }
+  .check:checked::after,
+  .check:indeterminate::after {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    background: var(--color-accent-fg);
+    mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M2.75 8.75L6 12L13.25 4.75' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>")
+      center / 12px no-repeat;
+  }
+  .check:indeterminate::after {
+    mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M4 8H12' stroke='black' stroke-width='2.2' stroke-linecap='round'/></svg>");
   }
 }
