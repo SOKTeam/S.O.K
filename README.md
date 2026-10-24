@@ -189,7 +189,8 @@ first organization.
 The same engine, in a Docker image with a web interface, for a NAS or a home
 server: point it at your download folders, review the proposed names in a
 table, and rename everything at once or row by row. It uses **hard links** by
-default, so torrents keep seeding.
+default, so torrents keep seeding. The interface looks like the app, with its
+light, orange and dark themes.
 
 Turn on the **automatic sorting** and it does it alone: every few minutes it
 looks at your download folders, waits for each download to finish, and
@@ -294,9 +295,9 @@ database, translations and building the Windows, macOS and Linux packages.
 - A more reliable "Ready" status: the title and year must match
 - History of renamed files, with undo
 - Move, hard link or copy; subtitles follow their video
-- **S.O.K Server**: a Docker image with a web interface, hard links by default,
-  several destination folders per media type, files already processed left
-  out
+- **S.O.K Server**: a Docker image with a web interface in the look of the
+  app (light, orange and dark themes), hard links by default, several
+  destination folders per media type, files already processed left out
 - S.O.K Server sorts new files automatically once downloaded, then notifies
   Discord, Jellyfin, Plex, a webhook or a script
 
