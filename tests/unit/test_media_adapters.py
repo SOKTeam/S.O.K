@@ -20,6 +20,7 @@ def test_adapt_search_results_movie_fields_preserved():
             "title": "Inception",
             "poster_path": "/poster.jpg",
             "release_date": "2010-07-16",
+            "overview": "A thief who steals secrets through dreams.",
         }
     ]
 
@@ -30,6 +31,8 @@ def test_adapt_search_results_movie_fields_preserved():
     assert out["results"][0]["poster_path"] == "/poster.jpg"
     assert out["results"][0]["release_date"] == "2010-07-16"
     assert out["results"][0]["media_type"] == "movie"
+    # S.O.K Server shows it with the results to pick.
+    assert out["results"][0]["overview"] == "A thief who steals secrets through dreams."
 
 
 def test_adapt_search_results_series_defaults():
@@ -44,6 +47,7 @@ def test_adapt_search_results_series_defaults():
 
     assert out["results"][0]["name"] == "Dark"
     assert out["results"][0]["media_type"] == "tv"
+    assert out["results"][0]["overview"] is None
 
 
 def test_adapt_details_adds_defaults_for_series():

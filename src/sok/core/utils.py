@@ -42,8 +42,15 @@ def natural_key(path: Path) -> list:
 
 
 def format_name(name: str) -> str:
-    """Formats a filename by removing forbidden characters"""
-    return re.sub(" +", " ", re.sub(r'[<>:"/\\|?*]', "", name))
+    """Formats a file or folder name: no forbidden character, single spaces,
+    and no dot or space at the end of the name or before its extension.
+
+    A title that ends with "..." no longer gives "Bag....mkv", and a folder
+    no longer ends with a dot, which Windows refuses.
+    """
+    name = re.sub(" +", " ", re.sub(r'[<>:"/\\|?*]', "", name))
+    name = re.sub(r"[ .]+(\.[A-Za-z0-9]{1,5})$", r"\1", name)
+    return name.rstrip(" .")
 
 
 class _Missing(dict):

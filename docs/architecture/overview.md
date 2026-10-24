@@ -10,6 +10,7 @@ layers below it.
 
 ```text
 ui               PySide6 interface: window, pages, components, workers
+server           S.O.K Server: FastAPI application, database, login (no Qt)
  │
 core             media manager, interfaces, adapters, exceptions, updater
  │
@@ -18,6 +19,11 @@ core             media manager, interfaces, adapters, exceptions, updater
  ├── file_operations  scanning, renaming and moving files
  └── config           settings, API keys and sessions, service registry
 ```
+
+Only `sok.ui` and `sok.main` import Qt. PySide6 and pypresence are in the
+`desktop` extra, so the layers below run without them, as S.O.K Server does;
+`tests/unit/test_core_without_qt.py` imports them with the desktop dependencies
+blocked.
 
 ## Layers
 
@@ -38,8 +44,6 @@ Built in code with PySide6; no Qt Designer file is loaded at run time.
   batch search and rename, detection of dropped files, undo of a rename).
 - `dialogs/`: the update dialog.
 - `errors.py`: the messages shown for API errors.
-- `factories/`: builds `sok.media` objects from API responses, so the pages do
-  not create them themselves.
 - `theme.py`, `platform.py`, `i18n.py`: colors and fonts, per-system behavior,
   translations.
 - `message_box.py`: message boxes, shown as sheets on macOS.
@@ -82,6 +86,8 @@ the HTTP session and the error handling:
 
 - `sok.media`: data classes for each kind of item (`Movie`, `Episode`, `Album`,
   `Track`, `Book`, `Game`…), all derived from `BaseMedia`.
+  `sok.media.factory.create_media_item` builds them from a search result, for
+  the pages and for S.O.K Server.
 - `sok.file_operations`: reads names (season and episode numbers, years), builds
   the new names from the user's formats and moves the files. One module per
   media type, with shared mixins, `organize.py` for the batches and
@@ -89,6 +95,14 @@ the HTTP session and the error handling:
 - `sok.config`: `config_manager.py` (settings and folders), `session_manager.py`
   (keys and tokens), `api_registry.py` (the list of services, their media type
   and how they authenticate).
+
+### S.O.K Server (`sok.server`)
+
+A FastAPI application over the same layers as the desktop app: it scans and
+sorts the files with `detection.py`, searches them with the batch engine,
+renames them with `file_operations` and records them in the rename history,
+kept in its SQLite database. Its web interface (`web/`, Svelte) is built to
+static files that it serves. See [S.O.K Server](/server/overview/).
 
 ## The path of a search
 

@@ -26,6 +26,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from sok.file_operations import MusicFileOperations, VideoFileOperations
 from sok.ui.components.organize import SearchPanel, OptionsPanel
+from sok.core.series import season_folders
+from sok.ui.controllers.file_mode import hard_link_blocked
 from sok.ui.controllers.organize_preview import OrganizePreviewController
 from sok.ui.controllers.source_scanner import scan_sources
 from sok.ui.controllers.ui_helpers import make_section_label
@@ -36,7 +38,7 @@ from sok.ui.workers import (
     DetailsWorker,
     CreateFoldersWorker,
 )
-from sok.ui.factories.media_factory import create_media_item
+from sok.media.factory import create_media_item
 from sok.core.media_manager import get_media_manager
 from sok.config import get_config_manager
 from sok.ui.i18n import tr
@@ -568,27 +570,7 @@ class OrganizePage(QScrollArea):
         try:
             self._search_panel.update_selected_media(details)
 
-            season_word = tr("season", "Season")
-            seasons_data = details.get("seasons", [])
-            seasons = {}
-
-            for i in range(1, num_seasons + 1):
-                season_name = None
-                for s in seasons_data:
-                    if s.get("season_number") == i:
-                        season_name = s.get("name", "")
-                        break
-
-                if season_name and season_name.lower() not in [
-                    f"season {i}",
-                    f"saison {i}",
-                    "",
-                ]:
-                    folder_name = f"{season_word} {i} - {season_name}"
-                else:
-                    folder_name = f"{season_word} {i}"
-
-                seasons[folder_name] = i
+            seasons = season_folders(details, tr("season", "Season"))
 
             self._set_progress(True, tr("creating_folders", "Creating folders..."), 0)
 
@@ -714,6 +696,8 @@ class OrganizePage(QScrollArea):
                 tr("select_media_warning", "Please select a media."),
             )
             return
+        if hard_link_blocked(self, self._files, str(dest_path)):
+            return
 
         msg = QMessageBox()
         msg.setWindowTitle(tr("confirmation", "Confirmation"))
@@ -771,30 +755,10 @@ class OrganizePage(QScrollArea):
 
         if content_type == "tv" and media_item and selected_media:
             if isinstance(media_item, Series):
-                num_seasons = selected_media.get("number_of_seasons", 0)
-                if num_seasons:
-                    season_word = tr("season", "Season")
-                    seasons_data = selected_media.get("seasons", [])
-                    media_item.seasons = {}
-
-                    for i in range(1, num_seasons + 1):
-                        season_name = None
-                        for s in seasons_data:
-                            if s.get("season_number") == i:
-                                season_name = s.get("name", "")
-                                break
-
-                        i_padded = str(i)
-                        if season_name and season_name.lower() not in [
-                            f"season {i}",
-                            f"saison {i}",
-                            "",
-                        ]:
-                            folder_name = f"{season_word} {i_padded} - {season_name}"
-                        else:
-                            folder_name = f"{season_word} {i_padded}"
-
-                        media_item.seasons[folder_name] = i
+                if selected_media.get("number_of_seasons"):
+                    media_item.seasons = season_folders(
+                        selected_media, tr("season", "Season")
+                    )
 
                 episodes = selected_media.get("episodes", {})
                 if episodes:
@@ -845,6 +809,10 @@ class OrganizePage(QScrollArea):
             title = tr("success", "Success")
             text = tr("files_organized", "✓ {0} file(s) organized!").format(
                 report["success"]
+            )
+        if report.get("subtitles"):
+            text += "\n" + tr("with_subtitles", "With {0} subtitle(s).").format(
+                report["subtitles"]
             )
         operation = report.get("operation")
         undo = message_box.rename_done(

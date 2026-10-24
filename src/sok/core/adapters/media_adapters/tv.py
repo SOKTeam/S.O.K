@@ -48,6 +48,7 @@ class TvAdapter(BaseAdapter):
                         item.get("original_name") or item.get("original_title")
                     ),
                     "first_air_date": _clean_str(item.get("first_air_date")),
+                    "overview": _clean_str(item.get("overview")),
                 }
             )
         return {"results": normalized}

@@ -1,11 +1,11 @@
 ---
 title: Translations
-description:
-  Translate interface text with tr() and keep the eight language files in sync.
+description: Translate interface text with tr() and keep the eight language files in sync.
 ---
 
 S.O.K is translated into English, French, German, Spanish, Italian, Portuguese,
-Russian and Polish. Every text shown to the user goes through `tr()`.
+Russian and Polish. Every text shown to the user goes through `tr()`, or `t()`
+in the web interface of S.O.K Server, which reads the same files.
 
 ## Translate a text
 
@@ -21,6 +21,23 @@ shows a raw key.
 
 The language also sets the words used in folder names (`Season`, `Saison`,
 `Staffel`…), so check the organize preview after adding such a key.
+
+In the web interface (`web/src`), the function is `t()`, with the same
+arguments and the values of the `{placeholders}`:
+
+```ts
+import { t } from "../lib/i18n.svelte";
+
+t(
+  "web_error_too_many_attempts",
+  "Too many attempts. Try again in {seconds} s.",
+  {
+    seconds: 30,
+  },
+);
+```
+
+Its new keys start with `web_`.
 
 ## Add a key
 
@@ -40,7 +57,8 @@ Then run the check:
 uv run python tools/verify_i18n.py
 ```
 
-It finds every `tr("key", …)` call in `src/` and reports, for each language, the
+It finds every `tr("key", …)` call in `src/`, and every `t("key", …)` call
+and page key of `web/src`, and reports, for each language, the
 keys missing from the file and the keys no longer used. It fails when a key is
 missing, and the CI runs it on every pull request.
 

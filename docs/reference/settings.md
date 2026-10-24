@@ -11,7 +11,9 @@ The settings are saved in `config.json`: `data/config.json` in the repository
 when S.O.K runs from source, and the folders given in
 [Set up](/getting-started/setup/#run-the-app) for the installed app. The file is
 written each time a setting changes (`ConfigManager.set()`), and created with
-the default values when it is missing.
+the default values when it is missing. With `SOK_CONFIG_DIR` set, it is in that
+folder, with its key, the rename history and the log (`data_dir()` and
+`log_dir()` in `sok.config.config_manager`).
 
 | Key                                                                                        | Default                                       | In the settings    | Effect                                                                                                                                                           |
 | ------------------------------------------------------------------------------------------ | --------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -28,6 +30,8 @@ the default values when it is missing.
 | `create_folders`                                                                           | `true`                                        | Behavior           | Creates the missing folders; when off, a file whose folder is missing is an error                                                                                |
 | `backup_before_rename`                                                                     | `true`                                        | Behavior           | Keeps a replaced file as `<name>.backup`                                                                                                                         |
 | `skip_duplicates`                                                                          | `true`                                        | Behavior           | Leaves a file in place when its new name already exists                                                                                                          |
+| `file_mode`                                                                                | `move`                                        | Behavior           | `move`, `link` (hard link, the source stays) or `copy` ([File modes](/architecture/organizing/#file-modes))                                                      |
+| `subtitles_follow_video`                                                                   | `true`                                        | Behavior           | Moves the subtitles of a video with it ([Subtitles](/architecture/organizing/#subtitles))                                                                        |
 | `log_operations`                                                                           | `true`                                        | Behavior           | Writes each move to the log                                                                                                                                      |
 | `download_posters`                                                                         | `false`                                       | Behavior           | Saves the poster or cover of each item after a rename ([Posters and covers](/architecture/organizing/#posters-and-covers))                                       |
 | `preferred_api_video`, `preferred_api_music`, `preferred_api_books`, `preferred_api_games` | `tmdb`, `deezer`, `google_books`, `igdb`      | Preferred API      | Service searched for that type, when its key is available ([Choosing the API](/architecture/overview/#choosing-the-api))                                         |
@@ -53,14 +57,23 @@ For each service, `get()` returns the first key it finds:
 3. **The environment**: the variables of `.env` at the repository root, or of
    the shell.
 
+With `SOK_ENV_KEYS_WIN` set to `1`, `true`, `yes` or `on` (the S.O.K Server
+image sets it), a key of the environment comes first: the key given to the
+container is the one used. The user's key stays saved, and the build keys never
+come before it. `env_locked(key)` says whether a key is taken from the
+environment that way, for the settings to show it locked.
+
 The API Keys section only shows the user's keys (`get_user_value()`), never
-those of the build or of `.env`.
+those of the build or of `.env`. A key typed in its field is saved on Enter or
+when the field loses the focus (`ApiSection._save_key`), without the spaces
+around it; an emptied field removes the key. The media manager is then built
+again, so the next search uses the new key.
 
 ### Protection
 
 - **In `config.json`**, the user's keys are encrypted with
   [Fernet](https://cryptography.io/en/latest/fernet/) and saved as `ENC:…`. The
-  encryption key is `data/.local.key`, next to `config.json`, created at the
+  encryption key is `.local.key`, next to `config.json`, created at the
   first start (hidden on Windows). A `config.json` copied to another computer
   without its `.local.key` loses its keys: S.O.K logs the failure and leaves
   them empty.
@@ -78,15 +91,17 @@ Code and PyCharm, are not native debuggers and are not detected.
 
 ## Environment variables
 
-| Variable                                                       | Effect                                                  |
-| -------------------------------------------------------------- | ------------------------------------------------------- |
-| `API_KEY_TMDB_V4`, `API_KEY_TVDB`, `API_KEY_OMDB`              | Keys of the video services (TMDB: the v4 read token)    |
-| `API_KEY_LASTFM`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | Keys of the music services                              |
-| `GOOGLE_BOOKS_API_KEY`                                         | Key of Google Books                                     |
-| `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `API_KEY_RAWG`         | Keys of the game services                               |
-| `API_KEY_FANART`                                               | Key of Fanart.tv                                        |
-| `CLIENT_ID_DISCORD`                                            | Application of the Discord activity                     |
-| `SOK_LOG_LEVEL`                                                | Level of the log: `DEBUG`, `INFO` (default), `WARNING`… |
+| Variable                                                       | Effect                                                                                                                        |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `API_KEY_TMDB_V4`, `API_KEY_TVDB`, `API_KEY_OMDB`              | Keys of the video services (TMDB: the v4 read token)                                                                          |
+| `API_KEY_LASTFM`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | Keys of the music services                                                                                                    |
+| `GOOGLE_BOOKS_API_KEY`                                         | Key of Google Books                                                                                                           |
+| `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `API_KEY_RAWG`         | Keys of the game services                                                                                                     |
+| `API_KEY_FANART`                                               | Key of Fanart.tv                                                                                                              |
+| `CLIENT_ID_DISCORD`                                            | Application of the Discord activity                                                                                           |
+| `SOK_LOG_LEVEL`                                                | Level of the log: `DEBUG`, `INFO` (default), `WARNING`…                                                                       |
+| `SOK_ENV_KEYS_WIN`                                             | `1`: the keys of the environment win over those of the settings ([Where an API key comes from](#where-an-api-key-comes-from)) |
+| `SOK_CONFIG_DIR`                                               | Folder of `config.json`, `.local.key`, `history.json` and `logs/` (`/config` in the Docker image)                             |
 
 `.env.example` lists the keys with the page where each one is created. Deezer,
 MusicBrainz and Open Library need none.

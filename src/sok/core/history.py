@@ -17,7 +17,7 @@ the HistoryStore, saved in history.json next to the settings.
 
 Undoing puts the files back where they were, but never replaces a file: a
 file moved or deleted since, or an old place taken by another file, is
-skipped. The .backup kept for a replaced file is put back, the posters the
+skipped. A hard link or a copy is deleted when its source is still there. The .backup kept for a replaced file is put back, the posters the
 rename saved are deleted once all their files are back, and the folders it
 created are removed when they are empty.
 """
@@ -40,6 +40,13 @@ logger = logging.getLogger(__name__)
 # Operations kept; older ones are dropped.
 MAX_OPERATIONS = 100
 
+# How a file reached its new place (Move.mode).
+MOVE = "move"
+# A hard link: the source stays where it was.
+LINK = "link"
+COPY = "copy"
+FILE_MODES = (MOVE, LINK, COPY)
+
 # Why a file was not put back (UndoReport.skipped).
 MISSING = "missing"
 OCCUPIED = "occupied"
@@ -55,6 +62,9 @@ class Move:
     # The file it replaced, kept as "<target>.backup".
     backup: Optional[str] = None
     undone: bool = False
+    # New path of the file it goes with (the video of a subtitle).
+    follows: Optional[str] = None
+    mode: str = MOVE
 
 
 @dataclass
@@ -118,8 +128,23 @@ class Journal:
         # Id of the Operation saved at the end of record(), if any.
         self.operation_id: Optional[str] = None
 
-    def moved(self, source: str, target: str, backup: Optional[str]) -> None:
-        self.moves.append(Move(str(source), str(target), backup))
+    def moved(
+        self,
+        source: str,
+        target: str,
+        backup: Optional[str],
+        follows: Optional[str] = None,
+        mode: str = MOVE,
+    ) -> None:
+        self.moves.append(
+            Move(
+                str(source),
+                str(target),
+                backup,
+                follows=follows and str(follows),
+                mode=mode,
+            )
+        )
 
     def created_folders(self, folders: List[str]) -> None:
         self.folders.extend(str(folder) for folder in folders)
@@ -229,6 +254,7 @@ class HistoryStore:
         Args:
             operation_id: The operation.
             index: One file of it (its position in moves), or None for all.
+                The files that follow it, such as its subtitles, go back too.
 
         Returns:
             The files put back and the ones left in place, with why.
@@ -238,7 +264,15 @@ class HistoryStore:
             operation = self.get(operation_id)
             if operation is None:
                 return report
-            moves = operation.moves if index is None else [operation.moves[index]]
+            if index is None:
+                moves = operation.moves
+            else:
+                target = operation.moves[index].target
+                moves = [
+                    move
+                    for i, move in enumerate(operation.moves)
+                    if i == index or move.follows == target
+                ]
             # Last moved, first put back: a later file may have taken the
             # place of an earlier one.
             for move in reversed(moves):
@@ -256,18 +290,39 @@ class HistoryStore:
         return report
 
 
+def _is_original(move: Move) -> bool:
+    """Whether the file at the source is still the one linked or copied."""
+    try:
+        if move.mode == LINK:
+            return os.path.samefile(move.source, move.target)
+        return os.path.getsize(move.source) == os.path.getsize(move.target)
+    except OSError:
+        return False
+
+
 def _put_back(move: Move) -> Optional[str]:
-    """Move a file back to its source; return why it could not be, if so."""
+    """Put a file back as it was; return why it could not be, if so.
+
+    A moved file goes back to its source. A link or a copy is deleted when
+    the source is still the original; with the source gone, it goes back
+    in its place.
+    """
     if not os.path.exists(move.target):
         return MISSING
+    remove = False
     if os.path.exists(move.source):
-        return OCCUPIED
+        if move.mode == MOVE or not _is_original(move):
+            return OCCUPIED
+        remove = True
     try:
-        os.makedirs(os.path.dirname(move.source) or ".", exist_ok=True)
-        try:
-            os.replace(move.target, move.source)
-        except OSError:
-            shutil.move(move.target, move.source)
+        if remove:
+            os.remove(move.target)
+        else:
+            os.makedirs(os.path.dirname(move.source) or ".", exist_ok=True)
+            try:
+                os.replace(move.target, move.source)
+            except OSError:
+                shutil.move(move.target, move.source)
         if move.backup and os.path.exists(move.backup):
             os.replace(move.backup, move.target)
     except OSError as exc:

@@ -22,7 +22,7 @@ from sok.core.batch import (
 )
 from sok.file_operations import MusicFileOperations
 from sok.media.music.track import Track
-from sok.ui.factories.media_factory import create_media_item
+from sok.media.factory import create_media_item
 from sok.ui.pages.tracks_page import describe_track
 
 

@@ -1,7 +1,6 @@
 ---
 title: Set up a development environment
-description:
-  Clone the repository, install the dependencies and run S.O.K from source.
+description: Clone the repository, install the dependencies and run S.O.K from source.
 ---
 
 ## Requirements
@@ -21,15 +20,22 @@ uv sync --extra dev
 ```
 
 `uv sync` creates `.venv/` and installs the exact versions from `uv.lock`. The
-extras add tools on top of the app dependencies:
+dependencies of the core need no Qt; the extras add the rest:
 
-| Extra   | Contents                                                         |
-| ------- | ---------------------------------------------------------------- |
-| `dev`   | pytest, pytest-qt, pytest-asyncio, ruff, mypy, ty, python-dotenv |
-| `docs`  | griffe, which describes the package for the API reference        |
-| `build` | Nuitka and the packaging tools                                   |
+| Extra     | Contents                                                                                      |
+| --------- | --------------------------------------------------------------------------------------------- |
+| `desktop` | PySide6 and pypresence, for the desktop app                                                   |
+| `server`  | FastAPI, uvicorn and argon2-cffi, for S.O.K Server                                            |
+| `dev`     | `desktop`, `server`, pytest, pytest-qt, pytest-asyncio, httpx2, ruff, mypy, ty, python-dotenv |
+| `docs`    | griffe, which describes the package for the API reference                                     |
+| `build`   | `desktop`, Nuitka and the packaging tools                                                     |
 
 Combine them as needed, for example `uv sync --extra dev --extra docs`.
+
+The web interface of S.O.K Server (`web/`) also needs
+[Node](https://nodejs.org) 24 and `npm ci` in `web/` (see
+[The web project](/server/overview/#the-web-project)). The desktop app does
+not.
 
 ## API keys
 
@@ -64,7 +70,8 @@ log. Every setting and variable is listed in
 The installed app stores them elsewhere: next to the executable on Windows, in
 `~/Library/Application Support/S.O.K` and `~/Library/Logs/S.O.K` on macOS, and
 in the XDG folders (`~/.local/share/S.O.K`, `~/.local/state/S.O.K/logs`) on
-Linux.
+Linux. `SOK_CONFIG_DIR` puts the settings, the history and the log in one folder
+instead, such as a test folder.
 :::
 
 ## Check your setup

@@ -45,6 +45,7 @@ from sok.config.api_registry import (
 from sok.config.api_registry import get_service
 from PySide6.QtWidgets import QInputDialog
 from sok.config.api_registry import get_all_services
+from sok.core.media_manager import reset_media_manager
 
 
 class ApiSection(QWidget):
@@ -267,6 +268,10 @@ class ApiSection(QWidget):
             input_field.setMinimumWidth(220)
             input_field.setObjectName("SettingsInput")
             input_field.setEchoMode(QLineEdit.EchoMode.Password)
+            # Saved on Enter or when the field loses the focus.
+            input_field.editingFinished.connect(
+                lambda key=config_key, field=input_field: self._save_key(key, field)
+            )
             setattr(self, f"_{service}_input", input_field)
             layout.addWidget(input_field)
 
@@ -286,6 +291,17 @@ class ApiSection(QWidget):
             set_tone(info_lbl, "info")
             layout.addWidget(info_lbl)
         return row
+
+    def _save_key(self, config_key: str, input_field: QLineEdit) -> None:
+        """Save the key typed in a field; an empty field removes the key."""
+        value = input_field.text().strip()
+        input_field.setText(value)
+        if value == self._config.get_user_value(config_key, ""):
+            return
+        self._config.set(config_key, value)
+        # The next search builds its API clients with the new key.
+        reset_media_manager()
+        self.load()
 
     def _connect_service(self, service: str):
         """Initiate connection to a service.

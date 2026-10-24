@@ -18,6 +18,7 @@ from sok.ui.workers.base import BaseWorker
 from sok.core.interfaces import ContentType, MediaType
 from sok.core.media_manager import get_media_manager
 from sok.core.exceptions import APIError
+from sok.core.series import fetch_episode_titles
 
 logger = logging.getLogger(__name__)
 
@@ -119,31 +120,9 @@ class DetailsWorker(BaseWorker):
         Returns:
             Dict mapping episode codes (S01E01) to titles.
         """
-        num_seasons = details.get("number_of_seasons", 0)
-        episodes: dict[str, str] = {}
-        api = self._manager.get_current_api(MediaType.VIDEO)
-
-        if not hasattr(api, "get_tv_episodes"):
-            logger.warning(
-                "API %s does not support get_tv_episodes", type(api).__name__
-            )
-            return episodes
-
-        for season_num in range(1, num_seasons + 1):
-            try:
-                season_episodes = await api.get_tv_episodes(
-                    self._media_id, season_num, language
-                )  # type: ignore[attr-defined]
-                for ep in season_episodes:
-                    s_str = str(ep.get("season_number", season_num)).zfill(2)
-                    e_str = str(ep.get("episode_number", 0)).zfill(2)
-                    episodes[f"S{s_str}E{e_str}"] = ep.get("name", "")
-            except (APIError, ValueError, KeyError, TypeError) as exc:
-                logger.warning(
-                    "Episode fetch failed for %s season %s",
-                    self._media_id,
-                    season_num,
-                    exc_info=exc,
-                )
-                continue
-        return episodes
+        return await fetch_episode_titles(
+            self._manager.get_current_api(MediaType.VIDEO),
+            self._media_id,
+            details.get("number_of_seasons", 0),
+            language,
+        )

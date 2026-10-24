@@ -81,6 +81,50 @@ def get_base_path() -> Path:
 BASE_PATH = get_base_path()
 
 
+def config_dir_override() -> Optional[Path]:
+    """The folder given by SOK_CONFIG_DIR (/config in the Docker image), if set."""
+    value = os.environ.get("SOK_CONFIG_DIR", "").strip()
+    return Path(value).expanduser().absolute() if value else None
+
+
+def env_keys_win() -> bool:
+    """Whether the keys of the environment win over those of the settings.
+
+    SOK_ENV_KEYS_WIN set to 1, true, yes or on (the Docker image sets it):
+    a key given to the container is the one used. Without it, a key typed
+    in the settings wins, as in the desktop app.
+    """
+    value = os.environ.get("SOK_ENV_KEYS_WIN", "").strip().lower()
+    return value in ("1", "true", "yes", "on")
+
+
+def data_dir() -> Path:
+    """Return the folder of the settings, their key and the rename history.
+
+    SOK_CONFIG_DIR when it is set, the data folder of the installation
+    otherwise.
+    """
+    return config_dir_override() or BASE_PATH / "data"
+
+
+def log_dir() -> Path:
+    """Return the folder of the log.
+
+    "logs" in SOK_CONFIG_DIR when it is set; otherwise ~/Library/Logs/S.O.K
+    for the macOS app (its bundle is read-only), the XDG state folder for
+    the Linux AppImage (read-only too), and "logs" next to the executable or
+    in the repository.
+    """
+    override = config_dir_override()
+    if override:
+        return override / "logs"
+    if IS_COMPILED and sys.platform == "darwin":
+        return Path.home() / "Library" / "Logs" / "S.O.K"
+    if IS_COMPILED and sys.platform.startswith("linux"):
+        return xdg_dir("XDG_STATE_HOME", ".local/state") / "logs"
+    return BASE_PATH / "logs"
+
+
 def resources_dir() -> Path:
     """Return the folder of the bundled resources (assets, translations).
 
@@ -145,13 +189,14 @@ if not HAS_SECURE_CONSTANTS:
 def get_local_key() -> bytes:
     """Retrieve or generate an encryption key specific to this installation.
 
-    The key is stored in data/.local.key and is hidden on Windows.
+    The key is stored in .local.key next to config.json (data_dir()) and is
+    hidden on Windows.
     If no key exists, a new one is generated using Fernet.
 
     Returns:
         The local encryption key as bytes.
     """
-    key_file = BASE_PATH / "data" / ".local.key"
+    key_file = data_dir() / ".local.key"
     if key_file.exists():
         return key_file.read_bytes()
 
@@ -218,6 +263,9 @@ class AppConfig:
 
     backup_before_rename: bool = True
     skip_duplicates: bool = True
+    subtitles_follow_video: bool = True
+    # move, link (hard link) or copy
+    file_mode: str = "move"
     log_operations: bool = True
 
     preferred_api_video: str = SERVICE_TMDB
@@ -264,6 +312,8 @@ class ConfigManager:
         "spotify_client_secret",
         "igdb_client_id",
         "igdb_client_secret",
+        "google_books_api_key",
+        "api_key_fanart",
     ]
 
     def __init__(self, config_path: Optional[Path] = None):
@@ -274,11 +324,13 @@ class ConfigManager:
             config_path: Path to configuration file
         """
         if config_path is None:
-            config_path = BASE_PATH / "data" / "config.json"
+            config_path = data_dir() / "config.json"
 
         self.config_path = Path(config_path)
         self.config = AppConfig()
         self._runtime_values: Dict[str, Any] = {}
+        # The keys given by environment variables (not the build constants).
+        self._env_values: Dict[str, Any] = {}
         self.fernet = Fernet(get_local_key())
         self.load()
 
@@ -289,6 +341,8 @@ class ConfigManager:
         1. User configuration file (config.json)
         2. Compile-time constants (in production builds)
         3. Environment variables (.env file)
+
+        With SOK_ENV_KEYS_WIN set, the environment variables come first.
 
         Sensitive fields are automatically decrypted if prefixed with 'ENC:'.
         """
@@ -356,6 +410,11 @@ class ConfigManager:
                 if val:
                     self._runtime_values[config_key] = val
 
+        for config_key, env_key in env_mapping.items():
+            val = os.getenv(env_key)
+            if val:
+                self._env_values[config_key] = val
+
     def save(self) -> None:
         """Save configuration to file.
 
@@ -380,7 +439,8 @@ class ConfigManager:
     def get(self, key: str, default: Any = None) -> Any:
         """
         Get configuration value (Effective value).
-        Priority: User Config > Runtime Overrides (Env/Constants)
+        Priority: User Config > Runtime Overrides (Env/Constants), or
+        Env > User Config > Constants when SOK_ENV_KEYS_WIN is set.
 
         Args:
             key: Configuration key
@@ -389,6 +449,9 @@ class ConfigManager:
         Returns:
             Configuration value
         """
+        if self.env_locked(key):
+            return self._env_values[key]
+
         val = getattr(self.config, key, None)
         if val not in (None, ""):
             return val
@@ -397,6 +460,17 @@ class ConfigManager:
             return self._runtime_values[key]
 
         return default
+
+    def from_env(self, key: str) -> bool:
+        """Whether an environment variable gives this key (not a build key)."""
+        return key in self._env_values
+
+    def env_locked(self, key: str) -> bool:
+        """Whether a key comes from the environment and wins over the settings.
+
+        The settings of the server show such a key as locked.
+        """
+        return env_keys_win() and self.from_env(key)
 
     def get_user_value(self, key: str, default: Any = None) -> Any:
         """
@@ -462,14 +536,21 @@ class ConfigManager:
         """
         return self._get_i18n_dir() / f"{self.config.language}.json"
 
-    def load_language(self) -> Dict[str, str]:
+    def load_language(self, language: Optional[str] = None) -> Dict[str, str]:
         """
-        Load translations for current language.
+        Load translations for a language.
+
+        Args:
+            language: Language code; the one of the settings by default.
 
         Returns:
             Dictionary of translations
         """
-        lang_file = self.get_language_file()
+        lang_file = (
+            self._get_i18n_dir() / f"{language}.json"
+            if language
+            else self.get_language_file()
+        )
 
         if lang_file.exists():
             try:

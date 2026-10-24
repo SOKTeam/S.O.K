@@ -85,6 +85,17 @@ def test_the_title_counts_the_files():
     assert "2" in operation_title(operation()).split(" · ")[1]
 
 
+def test_the_title_counts_the_subtitles_apart():
+    op = operation()
+    op.moves.append(Move("/in/0.srt", "/out/Movie 0.srt", follows="/out/Movie 0.mkv"))
+
+    parts = operation_title(op).split(" · ")
+
+    assert len(parts) == 3
+    assert "2" in parts[1]
+    assert "1" in parts[2]
+
+
 def test_the_undo_message_lists_the_files_left_in_place():
     move = Move("/in/a.mkv", "/out/A.mkv")
     report = UndoReport(restored=[Move("/in/b.mkv", "/out/B.mkv")])

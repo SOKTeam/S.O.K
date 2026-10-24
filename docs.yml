@@ -41,6 +41,9 @@ sidebar:
       - guides/translations
       - guides/building
       - guides/documentation
+  - label: S.O.K Server
+    items:
+      - server/overview
   - label: Reference
     items:
       - reference/settings

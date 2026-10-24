@@ -266,7 +266,9 @@ class MediaTypeDetector:
         """Sort dropped files and folders into groups.
 
         Folders are scanned recursively. A movie found in a folder that holds
-        mostly episodes is kept apart: it is often a bonus of the series.
+        mostly episodes of one series is kept apart: without a year in its
+        name, it is often a bonus of the series. Next to the episodes of
+        several series (a downloads folder), it stays a movie.
         Audio files are an album when their folder holds one album (see
         _is_album), tracks on their own otherwise.
 
@@ -289,13 +291,21 @@ class MediaTypeDetector:
                 detected.append(item)
 
         videos: Dict[Path, List[int]] = {}
+        series: Dict[Path, set] = {}
         for d in detected:
             if d.kind in (ContentType.MOVIE, ContentType.EPISODE):
                 counts = videos.setdefault(d.path.parent, [0, 0])
                 counts[d.kind == ContentType.EPISODE] += 1
+            if d.kind == ContentType.EPISODE:
+                series.setdefault(d.path.parent, set()).add(_group_key(d))
         for d in detected:
             movies, episodes = videos.get(d.path.parent, [0, 0])
-            if d.kind == ContentType.MOVIE and episodes > movies:
+            if (
+                d.kind == ContentType.MOVIE
+                and episodes > movies
+                and len(series[d.path.parent]) == 1
+                and not self._video.extract_info_from_filename(d.path.name)["year"]
+            ):
                 d.kind = ContentType.EPISODE
                 d.title = _series_folder_title(d.path)
                 d.certain = False

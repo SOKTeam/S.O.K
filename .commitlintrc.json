@@ -41,7 +41,10 @@
         "organize",
         "tools",
         "release",
-        "merge"
+        "merge",
+        "server",
+        "web",
+        "docker"
       ]
     ]
   }

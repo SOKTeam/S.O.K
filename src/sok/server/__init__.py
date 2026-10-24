@@ -8,8 +8,4 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-"""Factory functions for creating media items and UI components."""
-
-from sok.ui.factories.media_factory import create_media_item
-
-__all__ = ["create_media_item"]
+"""S.O.K Server: the web API of the Docker image, on the shared core (no Qt)."""
