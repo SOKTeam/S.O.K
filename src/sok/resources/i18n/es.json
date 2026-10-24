@@ -367,7 +367,6 @@
     "web_stop_rate_limited": "{service}: demasiadas solicitudes o cuota agotada. Inténtelo más tarde.",
     "web_to_check": "Archivos por revisar",
     "web_to_check_text": "Su tipo es una suposición: confírmelo o elija otro.",
-    "web_analyze_again": "Analizar de nuevo ({n})",
     "web_cancel": "Cancelar",
     "web_close": "Cerrar",
     "web_error_no_destination": "Primero añada una carpeta de destino para este tipo en los ajustes.",
@@ -468,5 +467,13 @@
     "web_title": "Título",
     "web_new_name": "Nuevo nombre",
     "web_selected_count": "{n} seleccionado(s)",
-    "web_rename_the_selection": "Renombrar la selección"
+    "web_rename_the_selection": "Renombrar la selección",
+    "web_time": "Hora",
+    "web_subtitle_follows": "subtítulo, sigue a su vídeo",
+    "web_put_back": "Devolver",
+    "web_put_back_done": "Devuelto",
+    "web_file": "Archivo",
+    "web_renamed_to": "Renombrado como",
+    "web_date": "Fecha",
+    "web_analyze_selection": "Volver a analizar la selección"
 }

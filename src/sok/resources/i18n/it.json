@@ -367,7 +367,6 @@
     "web_stop_rate_limited": "{service}: troppe richieste o quota esaurita. Riprova più tardi.",
     "web_to_check": "File da verificare",
     "web_to_check_text": "Il loro tipo è un'ipotesi: confermalo o scegline un altro.",
-    "web_analyze_again": "Analizza di nuovo ({n})",
     "web_cancel": "Annulla",
     "web_close": "Chiudi",
     "web_error_no_destination": "Aggiungi prima una cartella di destinazione per questo tipo nelle impostazioni.",
@@ -468,5 +467,13 @@
     "web_title": "Titolo",
     "web_new_name": "Nuovo nome",
     "web_selected_count": "{n} selezionati",
-    "web_rename_the_selection": "Rinomina la selezione"
+    "web_rename_the_selection": "Rinomina la selezione",
+    "web_time": "Ora",
+    "web_subtitle_follows": "sottotitolo, segue il suo video",
+    "web_put_back": "Rimetti",
+    "web_put_back_done": "Rimesso a posto",
+    "web_file": "File",
+    "web_renamed_to": "Rinominato in",
+    "web_date": "Data",
+    "web_analyze_selection": "Rianalizza la selezione"
 }

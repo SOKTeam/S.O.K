@@ -83,7 +83,12 @@ def current_rename(request: Request) -> dict:
 @router.get("/history")
 def list_history(request: Request) -> dict:
     """The operations of the history, newest first."""
-    return {"operations": [describe(op) for op in history(request).operations()]}
+    automatic = history(request).automatic()
+    return {
+        "operations": [
+            describe(op, op.id in automatic) for op in history(request).operations()
+        ]
+    }
 
 
 @router.post("/history/{operation_id}/undo")
@@ -102,7 +107,8 @@ async def undo(operation_id: str, undo: UndoRequest, request: Request) -> dict:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown_operation")
     operation = history(request).get(operation_id)
     assert operation is not None
-    return {**undo_report(report), "operation": describe(operation)}
+    auto = operation.id in history(request).automatic()
+    return {**undo_report(report), "operation": describe(operation, auto)}
 
 
 class ProcessedFiles(BaseModel):

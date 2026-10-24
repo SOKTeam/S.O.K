@@ -34,3 +34,15 @@ export function splitName(path: string): { folder: string; name: string } {
     ? { folder: "", name: path }
     : { folder: path.slice(0, cut), name: path.slice(cut + 1) };
 }
+
+/** The day of a date, as a key to group by: "2026-10-24". */
+export function dayKey(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** Whole days from a day to today: 0 today, 1 yesterday. */
+export function daysAgo(date: Date, today: Date): number {
+  const start = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  return Math.round((start(today) - start(date)) / 86_400_000);
+}

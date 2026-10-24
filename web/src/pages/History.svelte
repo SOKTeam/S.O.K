@@ -1,7 +1,9 @@
 <script lang="ts">
   import ConfirmDialog from "../components/ConfirmDialog.svelte";
   import Icon from "../components/Icon.svelte";
+  import Tabs from "../components/Tabs.svelte";
   import { errorText } from "../lib/errors";
+  import { dayKey, daysAgo } from "../lib/format";
   import {
     forgetProcessed,
     loadHistory,
@@ -13,6 +15,7 @@
   } from "../lib/history";
   import { i18n, t } from "../lib/i18n.svelte";
   import { MEDIA_PAGES } from "../lib/pages";
+  import { OPERATION_COLUMNS, PROCESSED_COLUMNS } from "../lib/columns";
   import { navigate, router } from "../lib/router.svelte";
   import { renames } from "../lib/renames.svelte";
 
@@ -29,25 +32,70 @@
 
   const tab = $derived(router.path === "/history/processed" ? "processed" : "operations");
 
-  // Read again after each rename.
+  // Both lists, for the counts of the tabs; read again after each rename.
   $effect(() => {
     void renames.current?.status;
-    if (tab === "operations") {
-      loadHistory()
-        .then((found) => (operations = found))
-        .catch((exc) => (error = errorText(exc)));
-    } else {
-      loadProcessed()
-        .then((found) => (processed = found))
-        .catch((exc) => (error = errorText(exc)));
-    }
+    loadHistory()
+      .then((found) => (operations = found))
+      .catch((exc) => (error = errorText(exc)));
+    loadProcessed()
+      .then((found) => (processed = found))
+      .catch((exc) => (error = errorText(exc)));
   });
 
-  function date(value: string): string {
+  const TABS = $derived([
+    { value: "operations", label: t("web_renames", "Renames"), count: operations?.length },
+    {
+      value: "processed",
+      label: t("web_processed", "Already processed"),
+      count: processed?.length,
+    },
+  ]);
+
+  // The operations by day, newest first: "Today", "Yesterday", then dates.
+  const days = $derived.by(() => {
+    const groups: { key: string; label: string; operations: Operation[] }[] = [];
+    const today = new Date();
+    for (const operation of operations ?? []) {
+      const when = new Date(operation.date);
+      const key = dayKey(when);
+      let group = groups.find((g) => g.key === key);
+      if (!group) {
+        const ago = daysAgo(when, today);
+        const label =
+          ago < 2
+            ? new Intl.RelativeTimeFormat(i18n.language, { numeric: "auto" }).format(-ago, "day")
+            : new Intl.DateTimeFormat(i18n.language, { dateStyle: "full" }).format(when);
+        group = { key, label, operations: [] };
+        groups.push(group);
+      }
+      group.operations.push(operation);
+    }
+    return groups;
+  });
+
+  const allPicked = $derived(
+    Boolean(processed?.length) && processed!.every((f) => picked.includes(f.path)),
+  );
+  const somePicked = $derived(!allPicked && picked.length > 0);
+
+  function time(value: string): string {
+    return new Intl.DateTimeFormat(i18n.language, { timeStyle: "short" }).format(new Date(value));
+  }
+
+  function shortDate(value: string): string {
     return new Intl.DateTimeFormat(i18n.language, {
-      dateStyle: "medium",
-      timeStyle: "short",
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
     }).format(new Date(value));
+  }
+
+  /** The folder a file went to: its last folder, the whole path on hover. */
+  function folderOf(path: string): string {
+    const parts = path.split("/").filter(Boolean);
+    return parts.length > 1 ? parts[parts.length - 2] : "";
   }
 
   function fileName(path: string): string {
@@ -128,34 +176,23 @@
   }
 </script>
 
-<div class="mx-auto flex max-w-5xl flex-col gap-6 pb-16">
-  <div>
-    <h1 class="text-2xl font-bold">{t("history", "History")}</h1>
-    <div class="mt-3 flex gap-1" role="tablist">
-      {#each [["operations", "/history", t("web_renames", "Renames")], ["processed", "/history/processed", t("web_processed", "Already processed")]] as [value, path, label] (value)}
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === value}
-          class={[
-            "rounded-full px-3 py-1 text-xs font-semibold",
-            tab === value ? "bg-fg text-bg" : "text-muted hover:bg-hover",
-          ]}
-          onclick={() => navigate(path)}
-        >
-          {label}
-        </button>
-      {/each}
-    </div>
+<div class="mx-auto flex max-w-5xl flex-col pb-16">
+  <h1 class="text-3xl font-bold">{t("history", "History")}</h1>
+  <div class="mt-5">
+    <Tabs
+      tabs={TABS}
+      current={tab}
+      onselect={(value) => navigate(value === "processed" ? "/history/processed" : "/history")}
+    />
   </div>
 
   {#if error}
-    <p class="text-sm text-error" role="alert">{error}</p>
+    <p class="mt-4 text-sm text-error" role="alert">{error}</p>
   {/if}
 
   {#if tab === "operations"}
     {#if report}
-      <div class="rounded-xl border border-line bg-card p-4 text-sm" role="status">
+      <div class="mt-5 rounded-xl border border-line bg-card px-4 py-3 text-sm" role="status">
         <p class="font-semibold">
           {t("undo_restored", "✓ {0} file(s) put back.", { 0: report.restored.length })}
         </p>
@@ -176,141 +213,194 @@
     {/if}
 
     {#if operations?.length === 0}
-      <p class="mt-6 text-center text-sm text-muted">
+      <p class="mt-10 text-center text-sm text-muted">
         {t("history_empty", "No rename yet.")}
       </p>
     {/if}
 
-    <div class="flex flex-col gap-3">
-      {#each operations ?? [] as operation (operation.id)}
-        {@const page = pageOf(operation)}
-        {@const open = unfolded.includes(operation.id)}
-        <div class="rounded-xl border border-line bg-card">
-          <div class="flex items-center gap-3 px-4 py-3">
-            <Icon name={page?.icon ?? "file"} class="size-4.5 shrink-0 text-accent" />
-            <button
-              type="button"
-              class="min-w-0 flex-1 text-left"
+    {#each days as day (day.key)}
+      <p class="label mt-7 mb-2.5 px-1">{day.label}</p>
+      <div class="overflow-hidden rounded-xl border border-line bg-card">
+        <div class={[OPERATION_COLUMNS, "label h-10 border-b border-line"]}>
+          <span></span>
+          <span>{t("web_time", "Time")}</span>
+          <span>{t("web_type", "Type")}</span>
+          <span>{t("files", "Files")}</span>
+          <span>{t("file_mode", "File mode")}</span>
+          <span>{t("web_state", "Status")}</span>
+          <span></span>
+        </div>
+        {#each day.operations as operation (operation.id)}
+          {@const page = pageOf(operation)}
+          {@const open = unfolded.includes(operation.id)}
+          {@const toggle = () =>
+            (unfolded = open
+              ? unfolded.filter((id) => id !== operation.id)
+              : [...unfolded, operation.id])}
+          <div class="border-b border-line last:border-0">
+            <div
+              class={[OPERATION_COLUMNS, "min-h-13 cursor-pointer text-sm hover:bg-hover"]}
+              role="button"
+              tabindex="0"
               aria-expanded={open}
-              onclick={() =>
-                (unfolded = open
-                  ? unfolded.filter((id) => id !== operation.id)
-                  : [...unfolded, operation.id])}
+              onclick={toggle}
+              onkeydown={(event) => (event.key === "Enter" || event.key === " ") && toggle()}
             >
-              <span class="block text-sm font-semibold">
-                {page ? t(page.key, page.english) : operation.kind}
-                <span class="font-normal text-muted">· {date(operation.date)}</span>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                class={["size-4 text-muted transition-transform", !open && "-rotate-90"]}
+                ><path d="m6 9 6 6 6-6" /></svg
+              >
+              <span class="tabular-nums">{time(operation.date)}</span>
+              <span class="flex items-center gap-2.5 font-medium">
+                <Icon name={page?.icon ?? "file"} class="size-4.5 shrink-0 text-icon" />
+                <span class="truncate">{page ? t(page.key, page.english) : operation.kind}</span>
               </span>
-              <span class="block text-xs text-muted">
+              <span class="truncate">
                 {t("history_files", "{0} file(s)", { 0: videos(operation) })}
                 {#if subtitles(operation)}
                   · {t("history_subtitles", "{0} subtitle(s)", { 0: subtitles(operation) })}
                 {/if}
-                · {modeName(operation.files[0]?.mode ?? "move")}
               </span>
-            </button>
-            {#if operation.undone}
-              <span class="rounded-full bg-hover px-2 py-0.5 text-xs text-muted">
-                {t("history_undone", "Undone")}
+              <span class="truncate text-muted">
+                {modeName(operation.files[0]?.mode ?? "move")}
+                {#if operation.auto}· {t("web_automatic", "automatic")}{/if}
               </span>
-            {:else}
-              {#if operation.partly_undone}
-                <span class="rounded-full bg-warn/15 px-2 py-0.5 text-xs text-warn">
+              <span class="truncate text-muted">
+                {#if operation.undone}
+                  {t("history_undone", "Undone")}
+                {:else if operation.partly_undone}
                   {t("history_partly_undone", "Partly undone")}
-                </span>
-              {/if}
-              <button
-                type="button"
-                class="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold hover:bg-hover"
-                onclick={() => ask(operation)}
-              >
-                {t("undo_rename", "Undo the rename")}
-              </button>
+                {/if}
+              </span>
+              <span class="text-right">
+                {#if !operation.undone}
+                  <button
+                    type="button"
+                    class="button-outline px-3.5 py-1"
+                    onclick={(event) => {
+                      event.stopPropagation();
+                      ask(operation);
+                    }}
+                  >
+                    {t("undo", "Undo")}
+                  </button>
+                {/if}
+              </span>
+            </div>
+            {#if open}
+              <div class="px-4 pb-2.5">
+                {#each operation.files as file (file.index)}
+                  <div
+                    class="grid grid-cols-[1rem_minmax(0,1fr)_minmax(0,1.2fr)_8rem] items-center gap-x-3.5 border-t border-line py-1.5 text-[13px] first:border-0"
+                  >
+                    <span></span>
+                    <span
+                      class={[
+                        "truncate font-mono text-xs text-muted",
+                        file.undone && "line-through opacity-60",
+                      ]}
+                      title={file.source}
+                    >
+                      {fileName(file.source)}
+                    </span>
+                    <span class="min-w-0" title={file.target}>
+                      <span
+                        class={[
+                          "block truncate font-mono",
+                          file.undone
+                            ? "line-through opacity-60"
+                            : file.follows
+                              ? "text-muted"
+                              : "font-semibold text-ok",
+                        ]}
+                      >
+                        {fileName(file.target)}
+                      </span>
+                      <span class="block truncate text-xs text-muted">
+                        {file.follows
+                          ? t("web_subtitle_follows", "subtitle, follows its video")
+                          : folderOf(file.target)}
+                      </span>
+                    </span>
+                    <span class="text-right">
+                      {#if file.undone}
+                        <span class="text-muted">{t("web_put_back_done", "Put back")}</span>
+                      {:else if !file.follows}
+                        <button
+                          type="button"
+                          class="link"
+                          onclick={() => ask(operation, file.index)}
+                        >
+                          {t("web_put_back", "Put back")}
+                        </button>
+                      {/if}
+                    </span>
+                  </div>
+                {/each}
+              </div>
             {/if}
           </div>
-          {#if open}
-            <div class="border-t border-line py-2">
-              {#each operation.files as file (file.index)}
-                <div
-                  class={[
-                    "flex items-center gap-2 py-1 pr-4 font-mono text-xs",
-                    file.follows ? "pl-14" : "pl-11",
-                    file.undone && "opacity-50",
-                  ]}
-                >
-                  <span class="min-w-0 flex-1 truncate" title={`${file.source} → ${file.target}`}>
-                    <span class="text-muted">{fileName(file.source)}</span>
-                    <span class="text-faint">→</span>
-                    {fileName(file.target)}
-                  </span>
-                  {#if file.undone}
-                    <span class="font-sans text-muted">{t("history_undone", "Undone")}</span>
-                  {:else if !file.follows}
-                    <button
-                      type="button"
-                      class="font-sans font-semibold text-accent hover:underline"
-                      onclick={() => ask(operation, file.index)}
-                    >
-                      {t("history_undo_file", "Put this file back")}
-                    </button>
-                  {/if}
-                </div>
-              {/each}
-            </div>
-          {/if}
-        </div>
-      {/each}
-    </div>
+        {/each}
+      </div>
+    {/each}
   {:else}
-    <p class="text-sm text-muted">
+    <p class="mt-6 px-1 text-sm text-muted">
       {t(
         "web_processed_text",
         "Renamed with a hard link or a copy, these files stay in the downloads: the analyses leave them out while they do not change. Analyze one again to rename it once more.",
       )}
     </p>
     {#if processed?.length === 0}
-      <p class="mt-6 text-center text-sm text-muted">
+      <p class="mt-10 text-center text-sm text-muted">
         {t("web_processed_empty", "No file processed yet.")}
       </p>
     {:else if processed}
-      <div class="flex items-center justify-between">
-        <label class="flex items-center gap-2 text-sm">
+      <div class="mt-4 overflow-hidden rounded-xl border border-line bg-card">
+        <div class={[PROCESSED_COLUMNS, "label h-10 border-b border-line"]}>
           <input
             type="checkbox"
-            class="size-4 accent-(--color-accent)"
-            checked={picked.length === processed.length}
+            class="check"
+            checked={allPicked}
+            indeterminate={somePicked}
+            aria-label={t("web_select_all", "Select all")}
             onchange={(event) =>
               (picked = event.currentTarget.checked ? processed!.map((f) => f.path) : [])}
           />
-          {t("web_select_all", "Select all")}
-        </label>
-        <button type="button" class="button" disabled={!picked.length} onclick={forget}>
-          {t("web_analyze_again", "Analyze again ({n})", { n: picked.length })}
-        </button>
-      </div>
-      <div class="divide-y divide-line rounded-xl border border-line bg-card">
+          <span>{t("web_file", "File")}</span>
+          <span>{t("web_renamed_to", "Renamed to")}</span>
+          <span>{t("web_date", "Date")}</span>
+        </div>
         {#each processed as file (file.path)}
-          <label class="flex items-center gap-3 px-4 py-2.5">
+          <label
+            class={[
+              PROCESSED_COLUMNS,
+              "min-h-11 cursor-pointer border-b border-line text-[13px] last:border-0 hover:bg-hover",
+            ]}
+          >
             <input
               type="checkbox"
-              class="size-4 shrink-0 accent-(--color-accent)"
+              class="check"
               checked={picked.includes(file.path)}
               onchange={(event) =>
                 (picked = event.currentTarget.checked
                   ? [...picked, file.path]
                   : picked.filter((p) => p !== file.path))}
             />
-            <span class="min-w-0 flex-1">
-              <span class="block truncate font-mono text-xs" title={file.path}>
-                {fileName(file.path)}
-              </span>
-              <span class="block truncate font-mono text-xs text-muted" title={file.target}>
-                → {fileName(file.target)}
-              </span>
-            </span>
-            <span class="shrink-0 text-xs text-muted">{date(file.date)}</span>
+            <span class="truncate font-mono" title={file.path}>{fileName(file.path)}</span>
+            <span class="truncate font-mono" title={file.target}>{fileName(file.target)}</span>
+            <span class="text-muted">{shortDate(file.date)}</span>
           </label>
         {/each}
+      </div>
+      <div class="mt-3.5 flex items-center justify-end gap-3.5 text-[13px] text-muted">
+        <span>{t("web_selected_count", "{n} selected", { n: picked.length })}</span>
+        <button type="button" class="button-outline" disabled={!picked.length} onclick={forget}>
+          {t("web_analyze_selection", "Analyze the selection again")}
+        </button>
       </div>
     {/if}
   {/if}

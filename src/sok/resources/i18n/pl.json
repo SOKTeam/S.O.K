@@ -367,7 +367,6 @@
     "web_stop_rate_limited": "{service}: za dużo żądań lub wyczerpany limit. Spróbuj później.",
     "web_to_check": "Pliki do sprawdzenia",
     "web_to_check_text": "Ich typ jest zgadnięty: potwierdź go lub wybierz inny.",
-    "web_analyze_again": "Analizuj ponownie ({n})",
     "web_cancel": "Anuluj",
     "web_close": "Zamknij",
     "web_error_no_destination": "Najpierw dodaj folder docelowy dla tego typu w ustawieniach.",
@@ -468,5 +467,13 @@
     "web_title": "Tytuł",
     "web_new_name": "Nowa nazwa",
     "web_selected_count": "Zaznaczono: {n}",
-    "web_rename_the_selection": "Zmień nazwy zaznaczonych"
+    "web_rename_the_selection": "Zmień nazwy zaznaczonych",
+    "web_time": "Godzina",
+    "web_subtitle_follows": "napisy, idą za swoim wideo",
+    "web_put_back": "Przywróć",
+    "web_put_back_done": "Przywrócono",
+    "web_file": "Plik",
+    "web_renamed_to": "Nowa nazwa",
+    "web_date": "Data",
+    "web_analyze_selection": "Przeanalizuj zaznaczone ponownie"
 }

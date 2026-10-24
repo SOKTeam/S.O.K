@@ -367,7 +367,6 @@
     "web_stop_rate_limited": "{service}: too many requests, or the quota is used. Try again later.",
     "web_to_check": "Files to check",
     "web_to_check_text": "Their type is a guess: confirm it, or pick another one.",
-    "web_analyze_again": "Analyze again ({n})",
     "web_cancel": "Cancel",
     "web_close": "Close",
     "web_error_no_destination": "Add a destination folder for this type in the settings first.",
@@ -468,5 +467,13 @@
     "web_title": "Title",
     "web_new_name": "New name",
     "web_selected_count": "{n} selected",
-    "web_rename_the_selection": "Rename the selection"
+    "web_rename_the_selection": "Rename the selection",
+    "web_time": "Time",
+    "web_subtitle_follows": "subtitle, follows its video",
+    "web_put_back": "Put back",
+    "web_put_back_done": "Put back",
+    "web_file": "File",
+    "web_renamed_to": "Renamed to",
+    "web_date": "Date",
+    "web_analyze_selection": "Analyze the selection again"
 }

@@ -367,7 +367,6 @@
     "web_stop_rate_limited": "{service} : trop de requêtes, ou le quota est épuisé. Réessayez plus tard.",
     "web_to_check": "Fichiers à vérifier",
     "web_to_check_text": "Leur type est une supposition : confirmez-le, ou choisissez-en un autre.",
-    "web_analyze_again": "Réanalyser ({n})",
     "web_cancel": "Annuler",
     "web_close": "Fermer",
     "web_error_no_destination": "Ajoutez d'abord un dossier de destination pour ce type dans les réglages.",
@@ -468,5 +467,13 @@
     "web_title": "Titre",
     "web_new_name": "Nouveau nom",
     "web_selected_count": "{n} sélectionné(s)",
-    "web_rename_the_selection": "Renommer la sélection"
+    "web_rename_the_selection": "Renommer la sélection",
+    "web_time": "Heure",
+    "web_subtitle_follows": "sous-titre, suit sa vidéo",
+    "web_put_back": "Remettre",
+    "web_put_back_done": "Remis en place",
+    "web_file": "Fichier",
+    "web_renamed_to": "Renommé en",
+    "web_date": "Date",
+    "web_analyze_selection": "Réanalyser la sélection"
 }
