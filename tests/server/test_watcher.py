@@ -84,6 +84,15 @@ def test_the_new_files_are_sorted_once_finished(client, downloads, folders):
     assert (run["renamed"], run["errors"]) == (3, [])
 
 
+def test_the_history_tells_an_automatic_rename(client, downloads, folders):
+    check(client)
+    check(client)
+
+    operations = client.get("/api/history").json()["operations"]
+
+    assert operations and all(op["auto"] for op in operations)
+
+
 def test_nothing_new_starts_no_analysis(client):
     check(client)
     check(client)

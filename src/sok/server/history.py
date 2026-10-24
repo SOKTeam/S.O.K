@@ -16,6 +16,10 @@ undoes them; only where it keeps them changes: the history table of sok.db
 instead of history.json. Each operation is one row, newest first
 (position 0), with the media type of its tab.
 
+An operation made by the automatic sorting is told apart by its rename: the
+renames table keeps whether it was automatic, and the result names the
+operation.
+
 A file renamed is also "processed": with a hard link or a copy it stays in
 the downloads, and the next analyses leave it out while it keeps its path,
 size and date. The processed table is not limited to the 100 operations of
@@ -27,7 +31,7 @@ import json
 import os
 import sqlite3
 from dataclasses import asdict
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Set
 
 from sok.core.history import MAX_OPERATIONS, HistoryStore, Operation, UndoReport
 from sok.server.db import Database
@@ -109,6 +113,18 @@ class History(HistoryStore):
                     _processed(operation),
                 )
 
+    def automatic(self) -> Set[str]:
+        """The ids of the operations made by the automatic sorting."""
+        with self._db.transaction() as conn:
+            rows = conn.execute(
+                "SELECT result FROM renames WHERE auto = 1 AND result IS NOT NULL"
+            ).fetchall()
+        return {
+            operation
+            for row in rows
+            if (operation := json.loads(row["result"]).get("operation"))
+        }
+
     def undo_checked(self, operation_id: str, index: Any = None) -> UndoReport:
         """undo(), for an operation and a file that exist.
 
@@ -146,13 +162,19 @@ def _processed(operation: Operation) -> Iterable[tuple]:
         )
 
 
-def describe(operation: Operation) -> Dict[str, Any]:
-    """An operation as the History page shows it."""
+def describe(operation: Operation, auto: bool = False) -> Dict[str, Any]:
+    """An operation as the History page shows it.
+
+    Args:
+        operation: The operation.
+        auto: Made by the automatic sorting.
+    """
     return {
         "id": operation.id,
         "date": operation.date,
         "kind": operation.kind,
         "media_type": MEDIA_TYPE_OF_KIND.get(operation.kind, ""),
+        "auto": auto,
         "undone": operation.undone,
         "partly_undone": operation.partly_undone,
         "files": [
