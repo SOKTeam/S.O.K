@@ -382,7 +382,7 @@
     "web_rename_selection": "Rinomina la selezione ({n})",
     "web_renamed_count": "{n} file rinominati.",
     "web_renames": "Rinomine",
-    "web_renaming": "Rinomina in corso…",
+    "web_renaming": "Rinomina",
     "web_renaming_progress": "Rinomina… {done} / {total}",
     "web_see_history": "Vedi la cronologia, per annullarla",
     "web_select_all": "Seleziona tutto",
@@ -455,5 +455,14 @@
     "web_missing_plural": "Mancanti",
     "web_not_searched_count": "{n} non ancora cercati",
     "web_open": "Apri",
-    "web_total": "Totale"
+    "web_total": "Totale",
+    "web_add_folder": "Aggiungi una cartella…",
+    "web_no_folder": "Nessuna cartella",
+    "web_links_ok": "I collegamenti fisici funzionano tra le tue cartelle.",
+    "web_automation": "Automazione",
+    "web_service": "Servizio",
+    "web_address": "Indirizzo",
+    "web_state": "Stato",
+    "web_key": "Chiave",
+    "web_format": "Formato"
 }

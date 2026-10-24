@@ -58,7 +58,7 @@
   <div class="flex justify-end gap-2 border-t border-line px-6 py-3">
     <button
       type="button"
-      class="rounded-lg border border-line px-4 py-2 text-sm font-semibold hover:bg-hover"
+      class="button-outline"
       onclick={() => {
         open = false;
         oncopy();

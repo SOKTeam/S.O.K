@@ -382,7 +382,7 @@
     "web_rename_selection": "Rename the selection ({n})",
     "web_renamed_count": "{n} files renamed.",
     "web_renames": "Renames",
-    "web_renaming": "Renaming…",
+    "web_renaming": "Renaming",
     "web_renaming_progress": "Renaming… {done} / {total}",
     "web_see_history": "See the history, to undo it",
     "web_select_all": "Select all",
@@ -455,5 +455,14 @@
     "web_missing_plural": "Missing",
     "web_not_searched_count": "{n} not searched yet",
     "web_open": "Open",
-    "web_total": "Total"
+    "web_total": "Total",
+    "web_add_folder": "Add a folder…",
+    "web_no_folder": "No folder",
+    "web_links_ok": "Hard links work between your folders.",
+    "web_automation": "Automation",
+    "web_service": "Service",
+    "web_address": "Address",
+    "web_state": "Status",
+    "web_key": "Key",
+    "web_format": "Format"
 }

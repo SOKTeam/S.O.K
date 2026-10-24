@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { SERVICE_COLUMNS } from "../lib/columns";
   import { t } from "../lib/i18n.svelte";
   import { saveSettings, testKey, type KeyTest, type ServiceKeys } from "../lib/settings.svelte";
 
-  // A service and its keys: whether they are set, a field to change them,
-  // and a test. A key never comes back from the server.
+  // A service and its keys, as a row of the keys table: whether they are
+  // set, fields to change them, and a test. A key never comes back from the
+  // server.
   let { service, onerror }: { service: ServiceKeys; onerror: (error: unknown) => void } = $props();
 
   let typed = $state<Record<string, string>>({});
@@ -52,88 +54,74 @@
   }
 </script>
 
-<div class="flex flex-col gap-2 px-4 py-3">
-  <div class="flex items-start justify-between gap-4">
-    <div class="min-w-0">
-      <p class="text-sm font-semibold">{service.name}</p>
-      <p class="text-xs text-muted">
-        {t(`api_desc_${service.service}`, "")}
-        {#if service.url && !locked}
-          · <a
-            class="text-accent hover:underline"
-            href={service.url}
-            target="_blank"
-            rel="noreferrer">{t("web_get_key", "Get a key")}</a
-          >
-        {/if}
-      </p>
-    </div>
-    <span
-      class={[
-        "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
-        locked ? "bg-hover text-muted" : set ? "bg-ok/15 text-ok" : "bg-hover text-muted",
-      ]}
-    >
-      {#if locked}
-        {t("web_key_locked", "Set by an environment variable")}
-      {:else if set}
-        {t("key_configured", "Key configured")}
-      {:else}
-        {t("no_key_configured", "No key configured")}
-      {/if}
-    </span>
+<div class={[SERVICE_COLUMNS, "border-b border-line py-3 text-sm last:border-0"]}>
+  <div class="min-w-0">
+    <p class="font-medium">{service.name}</p>
+    {#if t(`api_desc_${service.service}`, "")}
+      <p class="mt-0.5 text-xs text-muted">{t(`api_desc_${service.service}`, "")}</p>
+    {/if}
   </div>
-
-  {#if !locked}
-    {#each service.keys as field (field.key)}
-      <form
-        class="flex gap-2"
-        onsubmit={(event) => {
-          event.preventDefault();
-          if (typed[field.key]?.trim()) save(field.key, typed[field.key]);
-        }}
-      >
-        <input
-          class="field font-mono text-xs"
-          type="password"
-          autocomplete="off"
-          bind:value={typed[field.key]}
-          aria-label={`${service.name} ${field.key}`}
-          placeholder={field.key.includes("secret")
-            ? t("web_secret_placeholder", "Secret…")
-            : field.set
-              ? t("web_key_replace", "New key, to replace the current one…")
-              : t("your_api_key", "Your API key...")}
-        />
-        <button class="button shrink-0" disabled={!typed[field.key]?.trim()}>
-          {t("web_save", "Save")}
-        </button>
-        {#if field.set}
-          <button
-            type="button"
-            class="shrink-0 rounded-lg px-3 text-sm font-medium text-muted hover:bg-hover hover:text-error"
-            onclick={() => save(field.key, "")}
-          >
-            {t("web_remove", "Remove")}
-          </button>
-        {/if}
-      </form>
-    {/each}
-  {/if}
-
-  <div class="flex items-center gap-3">
+  <div class="flex min-w-0 flex-col gap-1.5">
+    {#if locked}
+      <p class="text-muted">{t("web_key_locked", "Set by an environment variable")}</p>
+    {:else}
+      {#each service.keys as field (field.key)}
+        <form
+          class="flex items-center gap-3"
+          onsubmit={(event) => {
+            event.preventDefault();
+            if (typed[field.key]?.trim()) save(field.key, typed[field.key]);
+          }}
+        >
+          <input
+            class="field max-w-xs py-1.5 font-mono text-xs"
+            type="password"
+            autocomplete="off"
+            bind:value={typed[field.key]}
+            aria-label={`${service.name} ${field.key}`}
+            placeholder={field.key.includes("secret")
+              ? t("web_secret_placeholder", "Secret…")
+              : field.set
+                ? t("web_key_replace", "New key, to replace the current one…")
+                : t("your_api_key", "Your API key...")}
+          />
+          {#if typed[field.key]?.trim()}
+            <button class="link">{t("web_save", "Save")}</button>
+          {:else if field.set}
+            <button
+              type="button"
+              class="text-sm text-muted hover:text-error"
+              onclick={() => save(field.key, "")}
+            >
+              {t("web_remove", "Remove")}
+            </button>
+          {/if}
+        </form>
+      {/each}
+    {/if}
+  </div>
+  <div class="min-w-0">
+    {#if test && test !== "testing"}
+      <p class={test === "ok" ? "" : "text-error"} role="status">{testText(test)}</p>
+    {:else}
+      <p class={set ? "" : "text-muted"}>
+        {set ? t("key_configured", "Key configured") : t("no_key_configured", "No key configured")}
+      </p>
+    {/if}
+  </div>
+  <div class="flex flex-col items-end gap-1">
     <button
       type="button"
-      class="rounded-lg border border-line px-3 py-1 text-xs font-semibold hover:bg-hover disabled:opacity-50"
+      class="button-outline px-3 py-1"
       disabled={test === "testing"}
       onclick={runTest}
     >
       {test === "testing" ? t("testing", "Testing...") : t("test", "Test")}
     </button>
-    {#if test && test !== "testing"}
-      <span class={["text-xs", test === "ok" ? "text-ok" : "text-error"]} role="status">
-        {testText(test)}
-      </span>
+    {#if service.url && !locked}
+      <a class="link text-xs" href={service.url} target="_blank" rel="noreferrer">
+        {t("web_get_key", "Get a key")}
+      </a>
     {/if}
   </div>
 </div>

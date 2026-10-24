@@ -1,14 +1,25 @@
 <script lang="ts">
-  // A switch on a row of a card.
+  // A switch on a row of a card, with an optional text under its label.
   let {
     label,
+    text,
     checked,
     onchange,
-  }: { label: string; checked: boolean; onchange: (checked: boolean) => void } = $props();
+  }: {
+    label: string;
+    text?: string;
+    checked: boolean;
+    onchange: (checked: boolean) => void;
+  } = $props();
 </script>
 
-<label class="flex cursor-pointer items-center justify-between gap-4 px-4 py-3 text-sm">
-  <span>{label}</span>
+<label class="flex min-h-12 cursor-pointer items-center justify-between gap-4 px-4 py-2.5 text-sm">
+  <span>
+    <span class="font-medium">{label}</span>
+    {#if text}
+      <span class="mt-0.5 block text-[13px] text-muted">{text}</span>
+    {/if}
+  </span>
   <button
     type="button"
     role="switch"

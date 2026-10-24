@@ -7,11 +7,14 @@
   import LinkProblems from "../components/LinkProblems.svelte";
   import NotifyRow from "../components/NotifyRow.svelte";
   import Section from "../components/Section.svelte";
+  import Tabs from "../components/Tabs.svelte";
   import Toggle from "../components/Toggle.svelte";
+  import { SERVICE_COLUMNS } from "../lib/columns";
   import { errorText } from "../lib/errors";
   import { parentFolder } from "../lib/format";
   import { loadTexts, t } from "../lib/i18n.svelte";
   import { MEDIA_PAGES } from "../lib/pages";
+  import { navigate, router } from "../lib/router.svelte";
   import {
     loadSettings,
     saveSettings,
@@ -36,6 +39,18 @@
   });
 
   const data = $derived(settings.data);
+
+  // The parts of the settings, each at its address: /settings/auto…
+  const TABS = $derived([
+    { value: "folders", label: t("web_folders", "Folders") },
+    { value: "auto", label: t("web_automation", "Automation") },
+    { value: "rename", label: t("web_renaming", "Renaming") },
+    { value: "keys", label: t("api_keys", "API Keys") },
+    { value: "look", label: t("appearance", "Appearance") },
+  ]);
+  const tab = $derived(
+    TABS.find((item) => router.path === `/settings/${item.value}`)?.value ?? "folders",
+  );
 
   async function save(change: Parameters<typeof saveSettings>[0]): Promise<boolean> {
     error = "";
@@ -206,12 +221,15 @@
   ] as const;
 </script>
 
-<div class="mx-auto flex max-w-3xl flex-col gap-8 pb-16">
-  <h1 class="text-2xl font-bold">{t("settings", "Settings")}</h1>
+<div class="mx-auto flex max-w-5xl flex-col pb-16">
+  <h1 class="text-3xl font-bold">{t("settings", "Settings")}</h1>
+  <div class="mt-5">
+    <Tabs tabs={TABS} current={tab} onselect={(value) => navigate(`/settings/${value}`)} />
+  </div>
 
   {#if error}
     <p
-      class="sticky top-0 z-10 rounded-lg border border-error/30 bg-bg px-4 py-2 text-sm text-error shadow-sm"
+      class="sticky top-0 z-10 mt-4 rounded-lg border border-line bg-card px-4 py-2 text-sm text-error shadow-sm"
       role="alert"
     >
       {error}
@@ -219,252 +237,290 @@
   {/if}
 
   {#if data}
-    <Section
-      title={t("web_folders", "Folders")}
-      text={t(
-        "web_folders_text",
-        "The paths as the server sees them: in Docker, the folders mounted in the container.",
-      )}
-    >
-      <div class="divide-y divide-line">
-        <FolderList
-          label={t("source_folders", "Source Folders")}
-          paths={data.folders.sources}
-          example="/data/downloads"
-          error={folderErrors.sources}
-          onchange={(paths) => saveFolders("sources", paths)}
-        />
-        {#each MEDIA_PAGES as page (page.path)}
-          <FolderList
-            label={t(page.key, page.english)}
-            paths={data.folders[page.mediaType!]}
-            example={`/data/${page.mediaType}`}
-            near={data.folders.sources.length ? parentFolder(data.folders.sources[0]) : undefined}
-            error={folderErrors[page.mediaType!]}
-            onchange={(paths) => saveFolders(page.mediaType!, paths)}
-          />
-        {/each}
-      </div>
-    </Section>
-
-    <Section title={t("file_mode", "File mode")}>
-      <div class="grid gap-2 p-3 sm:grid-cols-3" role="radiogroup">
-        {#each FILE_MODES as mode (mode)}
-          {@const current = data.settings.file_mode === mode}
-          <button
-            type="button"
-            role="radio"
-            aria-checked={current}
-            class={[
-              "flex flex-col gap-1 rounded-lg border p-3 text-left",
-              current ? "border-accent bg-accent/10" : "border-line hover:bg-hover",
-            ]}
-            onclick={() => saveAndCheck({ settings: { file_mode: mode } })}
-          >
-            <span class="text-sm font-semibold">{modeName(mode)}</span>
-            <span class="text-xs text-muted">{modeText(mode)}</span>
-          </button>
-        {/each}
-      </div>
-      {#if problems.length}
-        <div
-          class="flex items-center justify-between gap-4 border-t border-line px-4 py-3 text-sm text-error"
-          role="alert"
+    <div class="mt-7 flex flex-col gap-8">
+      {#if tab === "folders"}
+        <Section
+          title={t("web_folders", "Folders")}
+          text={t(
+            "web_folders_text",
+            "The paths as the server sees them: in Docker, the folders mounted in the container.",
+          )}
         >
-          <span>
-            {t("web_link_problems", "Hard links will not work between some of your folders.")}
-          </span>
-          <button
-            type="button"
-            class="shrink-0 font-semibold underline"
-            onclick={() => (showProblems = true)}
-          >
-            {t("web_see_details", "See the details")}
-          </button>
-        </div>
-      {/if}
-    </Section>
-
-    <Section
-      title={t("web_auto_sort", "Automatic sorting")}
-      text={t(
-        "web_auto_sort_text",
-        "The server looks at the source folders on its own. Once downloaded, the new files are analyzed and the Ready ones renamed; the others wait in the tabs.",
-      )}
-    >
-      <div class="divide-y divide-line">
-        <Toggle
-          label={t("web_auto_sort_switch", "Sort the new files automatically")}
-          checked={Boolean(data.settings.auto_sort)}
-          onchange={(checked) => (checked ? (confirmAuto = true) : saveAuto(false))}
-        />
-        <label class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
-          <span>{t("web_auto_sort_minutes", "Check the folders every (minutes)")}</span>
-          <input
-            type="number"
-            min="1"
-            max="1440"
-            class="field w-24"
-            value={minutes ?? data.settings.auto_sort_minutes}
-            oninput={(event) => (minutes = event.currentTarget.value)}
-            onchange={saveMinutes}
+          <FolderList
+            label={t("source_folders", "Source Folders")}
+            icon="folder"
+            paths={data.folders.sources}
+            example="/data/downloads"
+            error={folderErrors.sources}
+            onchange={(paths) => saveFolders("sources", paths)}
           />
-        </label>
-      </div>
-    </Section>
-
-    <Section
-      title={t("web_notifications", "Notifications")}
-      text={t(
-        "web_notifications_text",
-        "After each rename, by hand or automatic, S.O.K Server can tell your other apps.",
-      )}
-    >
-      {@const notify = data.notifications}
-      <div class="divide-y divide-line">
-        <NotifyRow
-          target="discord"
-          name="Discord"
-          text={t(
-            "web_notify_discord_text",
-            "A message in a channel. Webhook address: settings of the channel → Integrations → Webhooks.",
-          )}
-          set={notify.discord.set}
-          fields={[
-            {
-              key: "discord_url",
-              secret: true,
-              set: notify.discord.set,
-              example: "https://discord.com/api/webhooks/…",
-            },
-          ]}
-          onerror={(exc) => (error = errorText(exc))}
-        />
-        <NotifyRow
-          target="jellyfin"
-          name="Jellyfin"
-          text={t(
-            "web_notify_jellyfin_text",
-            "Refreshes the libraries. API key: Dashboard → API Keys.",
-          )}
-          set={Boolean(notify.jellyfin.url) && notify.jellyfin.set}
-          fields={[
-            {
-              key: "jellyfin_url",
-              secret: false,
-              value: notify.jellyfin.url,
-              set: Boolean(notify.jellyfin.url),
-              example: "http://jellyfin:8096",
-            },
-            {
-              key: "jellyfin_key",
-              secret: true,
-              set: notify.jellyfin.set,
-              example: t("your_api_key", "Your API key..."),
-            },
-          ]}
-          onerror={(exc) => (error = errorText(exc))}
-        />
-        <NotifyRow
-          target="plex"
-          name="Plex"
-          text={t("web_notify_plex_text", "Refreshes the libraries, with your Plex token.")}
-          set={Boolean(notify.plex.url) && notify.plex.set}
-          fields={[
-            {
-              key: "plex_url",
-              secret: false,
-              value: notify.plex.url,
-              set: Boolean(notify.plex.url),
-              example: "http://plex:32400",
-            },
-            {
-              key: "plex_token",
-              secret: true,
-              set: notify.plex.set,
-              example: "X-Plex-Token",
-            },
-          ]}
-          onerror={(exc) => (error = errorText(exc))}
-        />
-        <NotifyRow
-          target="webhook"
-          name={t("web_notify_webhook", "Webhook")}
-          text={t(
-            "web_notify_webhook_text",
-            "The rename as JSON, for Home Assistant, n8n and other tools.",
-          )}
-          set={notify.webhook.set}
-          fields={[
-            {
-              key: "webhook_url",
-              secret: true,
-              set: notify.webhook.set,
-              example: "https://…",
-            },
-          ]}
-          onerror={(exc) => (error = errorText(exc))}
-        />
-        <NotifyRow
-          target="script"
-          name={t("web_notify_script", "Script")}
-          text={notify.script
-            ? t(
-                "web_notify_script_set",
-                "Set by the SOK_AFTER_RENAME variable: it runs after each rename, with the rename as JSON on its input.",
-              )
-            : t(
-                "web_notify_script_text",
-                "A command run after each rename, with the rename as JSON on its input. For safety, only the SOK_AFTER_RENAME variable of the container sets it.",
-              )}
-          set={notify.script}
-          fields={[]}
-          onerror={(exc) => (error = errorText(exc))}
-        />
-      </div>
-    </Section>
-
-    <Section title={t("behavior", "Behavior")}>
-      <div class="divide-y divide-line">
-        {#each BEHAVIOR as [key, label] (key)}
-          <Toggle
-            label={label()}
-            checked={Boolean(data.settings[key])}
-            onchange={(checked) => save({ settings: { [key]: checked } })}
-          />
-        {/each}
-      </div>
-    </Section>
-
-    <Section title={t("file_formats", "Output Formats")}>
-      <div class="divide-y divide-line">
-        {#each FORMATS as [key, label, variables] (key)}
-          <label class="flex flex-col gap-1.5 px-4 py-3 text-sm">
-            <span class="font-semibold">{label()}</span>
-            <input
-              class="field font-mono text-xs"
-              value={formats[key] ?? data.settings[key]}
-              oninput={(event) => (formats[key] = event.currentTarget.value)}
-              onchange={() => saveFormat(key)}
+          {#each MEDIA_PAGES as page (page.path)}
+            <FolderList
+              label={t(page.key, page.english)}
+              icon={page.icon}
+              paths={data.folders[page.mediaType!]}
+              example={`/data/${page.mediaType}`}
+              near={data.folders.sources.length ? parentFolder(data.folders.sources[0]) : undefined}
+              error={folderErrors[page.mediaType!]}
+              onchange={(paths) => saveFolders(page.mediaType!, paths)}
             />
-            <span class="font-mono text-xs text-muted">{variables}</span>
-          </label>
-        {/each}
-      </div>
-    </Section>
+          {/each}
+        </Section>
 
-    <Section
-      title={t("api_keys", "API Keys")}
-      text={t(
-        "web_keys_text",
-        "The free services work without a key. A key typed here is kept encrypted on the server, and never sent back.",
-      )}
-    >
-      <div class="divide-y divide-line">
-        {#each CATEGORIES as [mediaType, setting, label] (mediaType)}
-          <div class="flex flex-col">
-            <div class="flex items-center justify-between gap-4 bg-bg/50 px-4 py-2.5">
-              <span class="text-sm font-semibold">{label()}</span>
+        <Section title={t("file_mode", "File mode")}>
+          <div class="divide-y divide-line" role="radiogroup">
+            {#each FILE_MODES as mode (mode)}
+              {@const current = data.settings.file_mode === mode}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={current}
+                class="flex w-full items-start gap-3.5 px-4 py-3 text-left text-sm hover:bg-hover"
+                onclick={() => saveAndCheck({ settings: { file_mode: mode } })}
+              >
+                <span
+                  class={[
+                    "relative mt-0.5 size-5 shrink-0 rounded-full border-2",
+                    current ? "border-accent" : "border-faint",
+                  ]}
+                >
+                  {#if current}
+                    <span class="absolute inset-[3px] rounded-full bg-accent"></span>
+                  {/if}
+                </span>
+                <span>
+                  <span class="font-medium">{modeName(mode)}</span>
+                  <span class="mt-0.5 block text-[13px] text-muted">{modeText(mode)}</span>
+                  {#if mode === "link" && current && !problems.length && data.link_checks.length}
+                    <span class="mt-0.5 block text-[13px] text-muted">
+                      {t("web_links_ok", "Hard links work between your folders.")}
+                    </span>
+                  {/if}
+                </span>
+              </button>
+            {/each}
+          </div>
+          {#if problems.length}
+            <div
+              class="flex items-center justify-between gap-4 border-t border-line px-4 py-3 text-sm text-error"
+              role="alert"
+            >
+              <span>
+                {t("web_link_problems", "Hard links will not work between some of your folders.")}
+              </span>
+              <button type="button" class="link shrink-0" onclick={() => (showProblems = true)}>
+                {t("web_see_details", "See the details")}
+              </button>
+            </div>
+          {/if}
+        </Section>
+      {:else if tab === "auto"}
+        <Section
+          title={t("web_auto_sort", "Automatic sorting")}
+          text={t(
+            "web_auto_sort_text",
+            "The server looks at the source folders on its own. Once downloaded, the new files are analyzed and the Ready ones renamed; the others wait in the tabs.",
+          )}
+        >
+          <div class="divide-y divide-line">
+            <Toggle
+              label={t("web_auto_sort_switch", "Sort the new files automatically")}
+              text={data.settings.auto_sort
+                ? t("web_notify_set", "On")
+                : t("web_auto_sort_disabled", "Off")}
+              checked={Boolean(data.settings.auto_sort)}
+              onchange={(checked) => (checked ? (confirmAuto = true) : saveAuto(false))}
+            />
+            <label class="flex min-h-12 items-center justify-between gap-4 px-4 py-2.5 text-sm">
+              <span class="font-medium">
+                {t("web_auto_sort_minutes", "Check the folders every (minutes)")}
+              </span>
+              <input
+                type="number"
+                min="1"
+                max="1440"
+                class="field w-20 py-1.5 text-center"
+                value={minutes ?? data.settings.auto_sort_minutes}
+                oninput={(event) => (minutes = event.currentTarget.value)}
+                onchange={saveMinutes}
+              />
+            </label>
+          </div>
+        </Section>
+
+        <Section
+          title={t("web_notifications", "Notifications")}
+          text={t(
+            "web_notifications_text",
+            "After each rename, by hand or automatic, S.O.K Server can tell your other apps.",
+          )}
+        >
+          {@const notify = data.notifications}
+          <div class={[SERVICE_COLUMNS, "label border-b border-line py-2.5"]}>
+            <span>{t("web_service", "Service")}</span>
+            <span>{t("web_address", "Address")}</span>
+            <span>{t("web_state", "Status")}</span>
+            <span></span>
+          </div>
+          <NotifyRow
+            target="discord"
+            name="Discord"
+            text={t(
+              "web_notify_discord_text",
+              "A message in a channel. Webhook address: settings of the channel → Integrations → Webhooks.",
+            )}
+            set={notify.discord.set}
+            fields={[
+              {
+                key: "discord_url",
+                secret: true,
+                set: notify.discord.set,
+                example: "https://discord.com/api/webhooks/…",
+              },
+            ]}
+            onerror={(exc) => (error = errorText(exc))}
+          />
+          <NotifyRow
+            target="jellyfin"
+            name="Jellyfin"
+            text={t(
+              "web_notify_jellyfin_text",
+              "Refreshes the libraries. API key: Dashboard → API Keys.",
+            )}
+            set={Boolean(notify.jellyfin.url) && notify.jellyfin.set}
+            fields={[
+              {
+                key: "jellyfin_url",
+                secret: false,
+                value: notify.jellyfin.url,
+                set: Boolean(notify.jellyfin.url),
+                example: "http://jellyfin:8096",
+              },
+              {
+                key: "jellyfin_key",
+                secret: true,
+                set: notify.jellyfin.set,
+                example: t("your_api_key", "Your API key..."),
+              },
+            ]}
+            onerror={(exc) => (error = errorText(exc))}
+          />
+          <NotifyRow
+            target="plex"
+            name="Plex"
+            text={t("web_notify_plex_text", "Refreshes the libraries, with your Plex token.")}
+            set={Boolean(notify.plex.url) && notify.plex.set}
+            fields={[
+              {
+                key: "plex_url",
+                secret: false,
+                value: notify.plex.url,
+                set: Boolean(notify.plex.url),
+                example: "http://plex:32400",
+              },
+              {
+                key: "plex_token",
+                secret: true,
+                set: notify.plex.set,
+                example: "X-Plex-Token",
+              },
+            ]}
+            onerror={(exc) => (error = errorText(exc))}
+          />
+          <NotifyRow
+            target="webhook"
+            name={t("web_notify_webhook", "Webhook")}
+            text={t(
+              "web_notify_webhook_text",
+              "The rename as JSON, for Home Assistant, n8n and other tools.",
+            )}
+            set={notify.webhook.set}
+            fields={[
+              {
+                key: "webhook_url",
+                secret: true,
+                set: notify.webhook.set,
+                example: "https://…",
+              },
+            ]}
+            onerror={(exc) => (error = errorText(exc))}
+          />
+          <NotifyRow
+            target="script"
+            name={t("web_notify_script", "Script")}
+            text={notify.script
+              ? t(
+                  "web_notify_script_set",
+                  "Set by the SOK_AFTER_RENAME variable: it runs after each rename, with the rename as JSON on its input.",
+                )
+              : t(
+                  "web_notify_script_text",
+                  "A command run after each rename, with the rename as JSON on its input. For safety, only the SOK_AFTER_RENAME variable of the container sets it.",
+                )}
+            set={notify.script}
+            fields={[]}
+            onerror={(exc) => (error = errorText(exc))}
+          />
+        </Section>
+      {:else if tab === "rename"}
+        <Section title={t("behavior", "Behavior")}>
+          <div class="divide-y divide-line">
+            {#each BEHAVIOR as [key, label] (key)}
+              <Toggle
+                label={label()}
+                checked={Boolean(data.settings[key])}
+                onchange={(checked) => save({ settings: { [key]: checked } })}
+              />
+            {/each}
+          </div>
+        </Section>
+
+        <Section title={t("file_formats", "Output Formats")}>
+          <div
+            class="label grid grid-cols-[11rem_minmax(0,1fr)] gap-x-4 border-b border-line px-4 py-2.5"
+          >
+            <span>{t("web_type", "Type")}</span>
+            <span>{t("web_format", "Format")}</span>
+          </div>
+          <div class="divide-y divide-line">
+            {#each FORMATS as [key, label, variables] (key)}
+              <label
+                class="grid grid-cols-[11rem_minmax(0,1fr)] items-center gap-x-4 px-4 py-3 text-sm"
+              >
+                <span class="font-medium">{label()}</span>
+                <span class="flex min-w-0 flex-col gap-1">
+                  <input
+                    class="field py-1.5 font-mono text-xs"
+                    value={formats[key] ?? data.settings[key]}
+                    oninput={(event) => (formats[key] = event.currentTarget.value)}
+                    onchange={() => saveFormat(key)}
+                  />
+                  <span class="font-mono text-xs text-muted">{variables}</span>
+                </span>
+              </label>
+            {/each}
+          </div>
+        </Section>
+      {:else if tab === "keys"}
+        <Section
+          title={t("api_keys", "API Keys")}
+          text={t(
+            "web_keys_text",
+            "The free services work without a key. A key typed here is kept encrypted on the server, and never sent back.",
+          )}
+        >
+          <div class={[SERVICE_COLUMNS, "label border-b border-line py-2.5"]}>
+            <span>{t("web_service", "Service")}</span>
+            <span>{t("web_key", "Key")}</span>
+            <span>{t("web_state", "Status")}</span>
+            <span></span>
+          </div>
+          {#each CATEGORIES as [mediaType, setting, label] (mediaType)}
+            {@const keys = data.keys.filter((s) => s.media_type === mediaType)}
+            <div
+              class="flex items-center justify-between gap-4 border-b border-line px-4 pt-3.5 pb-2"
+            >
+              <span class="label">{label()}</span>
               {#if setting && data.services[mediaType]}
                 <label class="flex items-center gap-2 text-xs text-muted">
                   {t("preferred_api", "Preferred API")}
@@ -481,62 +537,68 @@
                 </label>
               {/if}
             </div>
-            <div class="divide-y divide-line">
-              {#each data.keys.filter((s) => s.media_type === mediaType) as service (service.service)}
-                <KeyRow {service} onerror={(exc) => (error = errorText(exc))} />
-              {/each}
+            {#each keys as service (service.service)}
+              <KeyRow {service} onerror={(exc) => (error = errorText(exc))} />
+            {/each}
+          {/each}
+        </Section>
+      {:else}
+        <Section title={t("appearance", "Appearance")}>
+          <div class="divide-y divide-line">
+            <div class="flex min-h-12 items-center justify-between gap-4 px-4 py-2.5 text-sm">
+              <span>
+                <span class="font-medium">{t("language", "Language")}</span>
+                <span class="mt-0.5 block text-[13px] text-muted">
+                  {t("web_language_text", "The interface and the names of the folders (“Season”).")}
+                </span>
+              </span>
+              <select
+                class="field w-auto py-1.5"
+                value={data.settings.language}
+                onchange={(event) => changeLanguage(event.currentTarget.value)}
+              >
+                {#each data.languages as code (code)}
+                  <option value={code}>{languageName(code)}</option>
+                {/each}
+              </select>
+            </div>
+            <div class="flex min-h-12 items-center justify-between gap-4 px-4 py-2.5 text-sm">
+              <span>
+                <span class="font-medium">{t("web_theme", "Theme")}</span>
+                <span class="mt-0.5 block text-[13px] text-muted">
+                  {t(
+                    "web_theme_text",
+                    "In this browser. System: dark or light like the device; the light theme is white on a Mac, orange elsewhere.",
+                  )}
+                </span>
+              </span>
+              <div
+                class="inline-flex shrink-0 rounded-full border border-line bg-input p-0.5"
+                role="radiogroup"
+                aria-label={t("web_theme", "Theme")}
+              >
+                {#each THEME_CHOICES as choice (choice)}
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={theme.choice === choice}
+                    class={[
+                      "rounded-full px-3 py-1 text-sm",
+                      theme.choice === choice
+                        ? "bg-accent font-semibold text-accent-fg"
+                        : "text-muted hover:text-fg",
+                    ]}
+                    onclick={() => chooseTheme(choice)}
+                  >
+                    {themeName(choice)}
+                  </button>
+                {/each}
+              </div>
             </div>
           </div>
-        {/each}
-      </div>
-    </Section>
-
-    <Section title={t("language", "Language")}>
-      <div class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
-        <span class="text-muted">
-          {t("web_language_text", "The interface and the names of the folders (“Season”).")}
-        </span>
-        <select
-          class="field w-auto"
-          value={data.settings.language}
-          onchange={(event) => changeLanguage(event.currentTarget.value)}
-        >
-          {#each data.languages as code (code)}
-            <option value={code}>{languageName(code)}</option>
-          {/each}
-        </select>
-      </div>
-      <div class="flex items-center justify-between gap-4 border-t border-line px-4 py-3 text-sm">
-        <span class="text-muted">
-          {t(
-            "web_theme_text",
-            "In this browser. System: dark or light like the device; the light theme is white on a Mac, orange elsewhere.",
-          )}
-        </span>
-        <div
-          class="inline-flex shrink-0 rounded-full border border-line bg-input p-0.5"
-          role="radiogroup"
-          aria-label={t("web_theme", "Theme")}
-        >
-          {#each THEME_CHOICES as choice (choice)}
-            <button
-              type="button"
-              role="radio"
-              aria-checked={theme.choice === choice}
-              class={[
-                "rounded-full px-3 py-1 text-sm",
-                theme.choice === choice
-                  ? "bg-accent font-semibold text-accent-fg"
-                  : "text-muted hover:text-fg",
-              ]}
-              onclick={() => chooseTheme(choice)}
-            >
-              {themeName(choice)}
-            </button>
-          {/each}
-        </div>
-      </div>
-    </Section>
+        </Section>
+      {/if}
+    </div>
   {/if}
 </div>
 

@@ -382,7 +382,7 @@
     "web_rename_selection": "Zmień nazwy zaznaczonych ({n})",
     "web_renamed_count": "Zmieniono nazwy plików: {n}.",
     "web_renames": "Zmiany nazw",
-    "web_renaming": "Zmiana nazw…",
+    "web_renaming": "Zmiana nazw",
     "web_renaming_progress": "Zmiana nazw… {done} / {total}",
     "web_see_history": "Zobacz historię, aby cofnąć",
     "web_select_all": "Zaznacz wszystko",
@@ -455,5 +455,14 @@
     "web_missing_plural": "Brakujące",
     "web_not_searched_count": "Jeszcze nie wyszukano: {n}",
     "web_open": "Otwórz",
-    "web_total": "Razem"
+    "web_total": "Razem",
+    "web_add_folder": "Dodaj folder…",
+    "web_no_folder": "Brak folderu",
+    "web_links_ok": "Twarde dowiązania działają między Twoimi folderami.",
+    "web_automation": "Automatyzacja",
+    "web_service": "Usługa",
+    "web_address": "Adres",
+    "web_state": "Stan",
+    "web_key": "Klucz",
+    "web_format": "Format"
 }
