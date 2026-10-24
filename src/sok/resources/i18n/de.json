@@ -367,7 +367,6 @@
     "web_stop_rate_limited": "{service}: zu viele Anfragen oder das Kontingent ist aufgebraucht. Versuchen Sie es später erneut.",
     "web_to_check": "Zu prüfende Dateien",
     "web_to_check_text": "Ihr Typ ist geraten: Bestätigen Sie ihn oder wählen Sie einen anderen.",
-    "web_analyze_again": "Erneut analysieren ({n})",
     "web_cancel": "Abbrechen",
     "web_close": "Schließen",
     "web_error_no_destination": "Fügen Sie zuerst in den Einstellungen einen Zielordner für diesen Typ hinzu.",
@@ -468,5 +467,13 @@
     "web_title": "Titel",
     "web_new_name": "Neuer Name",
     "web_selected_count": "{n} ausgewählt",
-    "web_rename_the_selection": "Auswahl umbenennen"
+    "web_rename_the_selection": "Auswahl umbenennen",
+    "web_time": "Uhrzeit",
+    "web_subtitle_follows": "Untertitel, folgt seinem Video",
+    "web_put_back": "Zurücklegen",
+    "web_put_back_done": "Zurückgelegt",
+    "web_file": "Datei",
+    "web_renamed_to": "Umbenannt in",
+    "web_date": "Datum",
+    "web_analyze_selection": "Auswahl erneut analysieren"
 }

@@ -19,6 +19,8 @@ export interface Operation {
   media_type: string;
   undone: boolean;
   partly_undone: boolean;
+  /** Made by the automatic sorting. */
+  auto: boolean;
   files: HistoryFile[];
 }
 

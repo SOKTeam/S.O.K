@@ -367,7 +367,6 @@
     "web_stop_rate_limited": "{service}: demasiados pedidos ou quota esgotada. Tente mais tarde.",
     "web_to_check": "Ficheiros a verificar",
     "web_to_check_text": "O tipo é um palpite: confirme-o ou escolha outro.",
-    "web_analyze_again": "Analisar de novo ({n})",
     "web_cancel": "Cancelar",
     "web_close": "Fechar",
     "web_error_no_destination": "Adicione primeiro uma pasta de destino para este tipo nas definições.",
@@ -468,5 +467,13 @@
     "web_title": "Título",
     "web_new_name": "Novo nome",
     "web_selected_count": "{n} selecionado(s)",
-    "web_rename_the_selection": "Renomear a seleção"
+    "web_rename_the_selection": "Renomear a seleção",
+    "web_time": "Hora",
+    "web_subtitle_follows": "legenda, acompanha o seu vídeo",
+    "web_put_back": "Repor",
+    "web_put_back_done": "Reposto",
+    "web_file": "Ficheiro",
+    "web_renamed_to": "Renomeado para",
+    "web_date": "Data",
+    "web_analyze_selection": "Analisar a seleção de novo"
 }

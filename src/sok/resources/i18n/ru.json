@@ -367,7 +367,6 @@
     "web_stop_rate_limited": "{service}: слишком много запросов или квота исчерпана. Попробуйте позже.",
     "web_to_check": "Файлы для проверки",
     "web_to_check_text": "Их тип угадан: подтвердите его или выберите другой.",
-    "web_analyze_again": "Проанализировать снова ({n})",
     "web_cancel": "Отмена",
     "web_close": "Закрыть",
     "web_error_no_destination": "Сначала добавьте папку назначения для этого типа в настройках.",
@@ -468,5 +467,13 @@
     "web_title": "Название",
     "web_new_name": "Новое имя",
     "web_selected_count": "Выбрано: {n}",
-    "web_rename_the_selection": "Переименовать выбранное"
+    "web_rename_the_selection": "Переименовать выбранное",
+    "web_time": "Время",
+    "web_subtitle_follows": "субтитры, следуют за видео",
+    "web_put_back": "Вернуть",
+    "web_put_back_done": "Возвращено",
+    "web_file": "Файл",
+    "web_renamed_to": "Новое имя",
+    "web_date": "Дата",
+    "web_analyze_selection": "Проанализировать выбранное снова"
 }

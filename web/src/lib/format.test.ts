@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fill, parentFolder, pickLanguage, splitName } from "./format";
+import { daysAgo, dayKey, fill, parentFolder, pickLanguage, splitName } from "./format";
 
 describe("fill", () => {
   it("puts the values in the placeholders", () => {
@@ -45,5 +45,19 @@ describe("splitName", () => {
 
   it("has no folder for a file alone", () => {
     expect(splitName("Dune (2021).mkv")).toEqual({ folder: "", name: "Dune (2021).mkv" });
+  });
+});
+
+describe("days", () => {
+  const today = new Date(2026, 9, 24, 9, 0);
+
+  it("counts the days from midnight to midnight", () => {
+    expect(daysAgo(new Date(2026, 9, 24, 23, 59), today)).toBe(0);
+    expect(daysAgo(new Date(2026, 9, 23, 23, 59), today)).toBe(1);
+    expect(daysAgo(new Date(2026, 8, 30), today)).toBe(24);
+  });
+
+  it("keys a date by its day", () => {
+    expect(dayKey(new Date(2026, 0, 5, 18))).toBe("2026-01-05");
   });
 });

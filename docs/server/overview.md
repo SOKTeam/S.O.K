@@ -187,7 +187,7 @@ interface at each change and sends the `/api` requests to the server.
 | `src/components/`            | `Sidebar`, `AuthCard`, `Icon`, `Section` (a titled card), `Tabs` (underlined tabs), `Toggle` (a switch row), `FolderList`, `FolderBrowser` (the folders of the server), `LinkProblems`, `KeyRow` (a service and its keys), `NotifyRow` (a target of the notifications), `RowItem` (a row of a tab and its results), `Poster`, `StatusText` (the status of a row, in color only when it asks for something), `RenameStatus`, `ConfirmDialog` |
 | `src/lib/api.ts`             | `api()`: calls `/api` with the session cookie; an error is an `ApiError` with the `code` of `detail`                                                                                                                                                                                                                                                                                                                                        |
 | `src/lib/errors.ts`          | The texts of the errors of the API, of a stopped analysis, of a hard link problem and of an automatic sorting                                                                                                                                                                                                                                                                                                                               |
-| `src/lib/format.ts`          | `fill()`, `pickLanguage()`, `parentFolder()`, `splitName()`                                                                                                                                                                                                                                                                                                                                                                                 |
+| `src/lib/format.ts`          | `fill()`, `pickLanguage()`, `parentFolder()`, `splitName()`, `dayKey()`, `daysAgo()`                                                                                                                                                                                                                                                                                                                                                        |
 | `src/lib/i18n.svelte.ts`     | `loadTexts()` and `t(key, english, values)`                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `src/lib/router.svelte.ts`   | The page is the path of the address (`/movies`); `navigate()`, `follow` for the links                                                                                                                                                                                                                                                                                                                                                       |
 | `src/lib/session.svelte.ts`  | `GET /api/session`, `logOut()`                                                                                                                                                                                                                                                                                                                                                                                                              |
@@ -198,7 +198,7 @@ interface at each change and sends the `/api` requests to the server.
 | `src/lib/settings.svelte.ts` | `loadSettings()`, `saveSettings(change)`, `testKey(service)`                                                                                                                                                                                                                                                                                                                                                                                |
 | `src/lib/theme.svelte.ts`    | The theme of the browser (`light`, `orange`, `dark` or `system`, in `localStorage`), set as `data-theme` on `<html>`; `startTheme()`, `chooseTheme()`                                                                                                                                                                                                                                                                                       |
 | `src/lib/watch.svelte.ts`    | The state of the automatic sorting (`GET /api/watch`), kept live by the `watch` events; `loadWatch()`                                                                                                                                                                                                                                                                                                                                       |
-| `src/lib/columns.ts`         | The columns shared by the header and the rows of a table: the keys and notifications of the settings, the rows of a tab                                                                                                                                                                                                                                                                                                                     |
+| `src/lib/columns.ts`         | The columns shared by the header and the rows of a table: the keys and notifications of the settings, the rows of a tab, the history                                                                                                                                                                                                                                                                                                        |
 | `src/lib/pages.ts`           | The pages of the sidebar                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `src/lib/icons.ts`           | The icons of the desktop app (`src/sok/resources/assets`), in the color of the text                                                                                                                                                                                                                                                                                                                                                         |
 | `src/app.css`                | Tailwind, the three themes of the desktop app as Tailwind colors (`bg-card`, `text-muted`…), and the shared classes (`button`, `button-outline`, `link`, `label`, `field`, `check`)                                                                                                                                                                                                                                                         |
@@ -267,10 +267,13 @@ interface at each change and sends the `/api` requests to the server.
   rows still to pick left out (`POST /api/renames`). The progress and the
   result (files renamed, subtitles, files left on their row and why) show above
   the rows; the renamed rows leave the table at the `rename` event that ends
-  it. The History page lists the operations, undoes one or a file (with a
-  confirmation), and its "Already processed" tab
-  (`/history/processed`, linked from the analysis page) lists the files the
-  analyses leave out, with "Analyze again".
+  it. The History page lists the operations by day ("Today", "Yesterday",
+  then the date), one table per day: time, tab, files, file mode (and
+  "automatic"), status, and Undo. A row unfolds its files, old name and new
+  name with its folder, each with "Put back" (a subtitle follows its video);
+  every undo asks first. Its "Already processed" tab (`/history/processed`,
+  linked from the analysis page) lists the files the analyses leave out, with
+  boxes and "Analyze the selection again". Both tabs show their count.
 - **Automatic sorting.** The settings turn it on after a confirmation (the
   Ready rows will be renamed on their own, with the file mode named) and set
   the minutes between two checks. The strip of the analysis page shows
@@ -618,8 +621,10 @@ a file, a link or a copy deleted only if it is still the original, the last
 newest), with its `media_type`.
 
 `GET /api/history` lists the operations: `id`, `date`, `kind`, `media_type`,
-`undone`, `partly_undone`, and `files`: `index`, `source`, `target`, `mode`,
-`undone`, `follows` (the new path of the video of a subtitle).
+`undone`, `partly_undone`, `auto` (made by the automatic sorting: the
+`renames` row whose result names the operation is automatic), and `files`:
+`index`, `source`, `target`, `mode`, `undone`, `follows` (the new path of the
+video of a subtitle).
 
 `POST /api/history/{id}/undo` undoes the whole operation, or with `{"index"}`
 one file and its subtitles. It answers `restored` (the paths put back),
