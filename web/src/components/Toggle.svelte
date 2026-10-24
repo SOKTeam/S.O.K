@@ -17,13 +17,13 @@
     onclick={() => onchange(!checked)}
     class={[
       "relative h-6 w-10 shrink-0 rounded-full transition-colors",
-      checked ? "bg-accent" : "bg-faint",
+      checked ? "bg-accent" : "bg-track",
     ]}
   >
     <span
       class={[
-        "absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition-transform",
-        checked && "translate-x-4",
+        "absolute top-0.5 left-0.5 size-5 rounded-full shadow transition-transform",
+        checked ? "translate-x-4 bg-accent-fg" : "bg-white",
       ]}
     ></span>
   </button>

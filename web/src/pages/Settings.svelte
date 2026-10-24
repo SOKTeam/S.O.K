@@ -19,6 +19,7 @@
     type FileMode,
     type LinkCheck,
   } from "../lib/settings.svelte";
+  import { chooseTheme, theme, THEME_CHOICES, type ThemeChoice } from "../lib/theme.svelte";
   import { loadWatch } from "../lib/watch.svelte";
 
   let error = $state("");
@@ -124,6 +125,19 @@
       showProblems = true;
     }
     return saved;
+  }
+
+  function themeName(choice: ThemeChoice): string {
+    switch (choice) {
+      case "system":
+        return t("web_theme_system", "System");
+      case "light":
+        return t("web_theme_light", "Light");
+      case "orange":
+        return t("web_theme_orange", "Orange");
+      case "dark":
+        return t("web_theme_dark", "Dark");
+    }
   }
 
   const FILE_MODES: FileMode[] = ["link", "copy", "move"];
@@ -491,6 +505,36 @@
             <option value={code}>{languageName(code)}</option>
           {/each}
         </select>
+      </div>
+      <div class="flex items-center justify-between gap-4 border-t border-line px-4 py-3 text-sm">
+        <span class="text-muted">
+          {t(
+            "web_theme_text",
+            "In this browser. System: dark or light like the device; the light theme is white on a Mac, orange elsewhere.",
+          )}
+        </span>
+        <div
+          class="inline-flex shrink-0 rounded-full border border-line bg-input p-0.5"
+          role="radiogroup"
+          aria-label={t("web_theme", "Theme")}
+        >
+          {#each THEME_CHOICES as choice (choice)}
+            <button
+              type="button"
+              role="radio"
+              aria-checked={theme.choice === choice}
+              class={[
+                "rounded-full px-3 py-1 text-sm",
+                theme.choice === choice
+                  ? "bg-accent font-semibold text-accent-fg"
+                  : "text-muted hover:text-fg",
+              ]}
+              onclick={() => chooseTheme(choice)}
+            >
+              {themeName(choice)}
+            </button>
+          {/each}
+        </div>
       </div>
     </Section>
   {/if}

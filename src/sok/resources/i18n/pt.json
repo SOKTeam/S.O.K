@@ -439,5 +439,11 @@
     "web_notify_ok": "Enviado",
     "web_notify_not_set": "Preencha-o primeiro.",
     "web_notify_failed": "Falhou: {error}",
-    "web_error_invalid_url": "Indique um endereço que comece por http:// ou https://."
+    "web_error_invalid_url": "Indique um endereço que comece por http:// ou https://.",
+    "web_theme": "Tema",
+    "web_theme_system": "Sistema",
+    "web_theme_light": "Claro",
+    "web_theme_orange": "Laranja",
+    "web_theme_dark": "Escuro",
+    "web_theme_text": "Neste navegador. Sistema: escuro ou claro como o dispositivo; o tema claro é branco no Mac e laranja nos outros."
 }
