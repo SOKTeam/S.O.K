@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fill, parentFolder, pickLanguage } from "./format";
+import { fill, parentFolder, pickLanguage, splitName } from "./format";
 
 describe("fill", () => {
   it("puts the values in the placeholders", () => {
@@ -32,5 +32,18 @@ describe("parentFolder", () => {
 
   it("stops at the root", () => {
     expect(parentFolder("/data")).toBe("/");
+  });
+});
+
+describe("splitName", () => {
+  it("splits the folders from the file", () => {
+    expect(splitName("Severance/Season 1/Severance S01E01.mkv")).toEqual({
+      folder: "Severance/Season 1",
+      name: "Severance S01E01.mkv",
+    });
+  });
+
+  it("has no folder for a file alone", () => {
+    expect(splitName("Dune (2021).mkv")).toEqual({ folder: "", name: "Dune (2021).mkv" });
   });
 });

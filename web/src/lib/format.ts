@@ -25,3 +25,12 @@ export function pickLanguage(
 export function parentFolder(path: string): string {
   return path.replace(/\/[^/]+\/?$/, "") || "/";
 }
+
+/** A new name split into its folders and its file: "Show/Season 1/x.mkv" →
+ * { folder: "Show/Season 1", name: "x.mkv" }. */
+export function splitName(path: string): { folder: string; name: string } {
+  const cut = path.lastIndexOf("/");
+  return cut < 0
+    ? { folder: "", name: path }
+    : { folder: path.slice(0, cut), name: path.slice(cut + 1) };
+}

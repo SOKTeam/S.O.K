@@ -379,7 +379,6 @@
     "web_rename_failed": "A renomeação falhou: {message}",
     "web_rename_left": "{n} ficheiros ficam na sua linha:",
     "web_rename_ready": "Renomear os prontos ({n})",
-    "web_rename_selection": "Renomear a seleção ({n})",
     "web_renamed_count": "{n} ficheiros renomeados.",
     "web_renames": "Renomeações",
     "web_renaming": "Renomeação",
@@ -464,5 +463,10 @@
     "web_address": "Endereço",
     "web_state": "Estado",
     "web_key": "Chave",
-    "web_format": "Formato"
+    "web_format": "Formato",
+    "web_to_folder": "para",
+    "web_title": "Título",
+    "web_new_name": "Novo nome",
+    "web_selected_count": "{n} selecionado(s)",
+    "web_rename_the_selection": "Renomear a seleção"
 }

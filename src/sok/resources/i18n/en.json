@@ -379,7 +379,6 @@
     "web_rename_failed": "The rename failed: {message}",
     "web_rename_left": "{n} files stay on their row:",
     "web_rename_ready": "Rename the Ready ones ({n})",
-    "web_rename_selection": "Rename the selection ({n})",
     "web_renamed_count": "{n} files renamed.",
     "web_renames": "Renames",
     "web_renaming": "Renaming",
@@ -464,5 +463,10 @@
     "web_address": "Address",
     "web_state": "Status",
     "web_key": "Key",
-    "web_format": "Format"
+    "web_format": "Format",
+    "web_to_folder": "to",
+    "web_title": "Title",
+    "web_new_name": "New name",
+    "web_selected_count": "{n} selected",
+    "web_rename_the_selection": "Rename the selection"
 }

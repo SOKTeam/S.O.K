@@ -379,7 +379,6 @@
     "web_rename_failed": "Die Umbenennung ist fehlgeschlagen: {message}",
     "web_rename_left": "{n} Dateien bleiben in ihrer Zeile:",
     "web_rename_ready": "Fertige umbenennen ({n})",
-    "web_rename_selection": "Auswahl umbenennen ({n})",
     "web_renamed_count": "{n} Dateien umbenannt.",
     "web_renames": "Umbenennungen",
     "web_renaming": "Umbenennung",
@@ -464,5 +463,10 @@
     "web_address": "Adresse",
     "web_state": "Status",
     "web_key": "Schlüssel",
-    "web_format": "Format"
+    "web_format": "Format",
+    "web_to_folder": "nach",
+    "web_title": "Titel",
+    "web_new_name": "Neuer Name",
+    "web_selected_count": "{n} ausgewählt",
+    "web_rename_the_selection": "Auswahl umbenennen"
 }
