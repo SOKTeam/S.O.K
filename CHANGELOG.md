@@ -1,3 +1,54 @@
+# [1.5.0](https://github.com/SOKTeam/S.O.K/compare/v1.4.0...v1.5.0) (2026-10-25)
+
+
+### Bug Fixes
+
+* **apis:** ask only for the Last.fm key ([a3c53d7](https://github.com/SOKTeam/S.O.K/commit/a3c53d77db07872e14d84d01197c4e3799114685))
+* **config:** encrypt the Google Books and Fanart.tv keys ([a605722](https://github.com/SOKTeam/S.O.K/commit/a605722c4435ef9cad1c1c989194e8411d971190))
+* **core:** end the new names without dots or spaces ([f127df4](https://github.com/SOKTeam/S.O.K/commit/f127df46f0d97fbb2a714a7bc1c9a02217a89636))
+* **file-ops:** keep a movie among the episodes of several series a movie ([304004c](https://github.com/SOKTeam/S.O.K/commit/304004cdd8802d35fb790b7c5e055619043393a2))
+* **music:** read album folders that end with release tags ([ae4281d](https://github.com/SOKTeam/S.O.K/commit/ae4281d9fa7d41ba9b0d6594b351303137d03595))
+* **server:** search a file to check once its type is confirmed ([e96511e](https://github.com/SOKTeam/S.O.K/commit/e96511e89a63a8c26bd16c22b5bff95c09a78597))
+* **ui:** save the API keys typed in the settings ([13ed88a](https://github.com/SOKTeam/S.O.K/commit/13ed88a1f7abcf8bb07e7a8d3342e9b8444cb0e3))
+* **web:** write the file mode in each language, and the title of a group once ([ca8d04b](https://github.com/SOKTeam/S.O.K/commit/ca8d04bd0832ba9491caa889d54fa36c7e0f6f18))
+
+
+### Features
+
+* **config:** choose the folder of the settings with SOK_CONFIG_DIR ([eb4182b](https://github.com/SOKTeam/S.O.K/commit/eb4182b21bd6506a5c2a6db3399dc41dd3a78d66))
+* **config:** let the environment keys win with SOK_ENV_KEYS_WIN ([ea52c81](https://github.com/SOKTeam/S.O.K/commit/ea52c8137fe12cb89cfad4678ceb2c730da4d4ee))
+* **docker:** build and publish the S.O.K Server image ([45472fa](https://github.com/SOKTeam/S.O.K/commit/45472fa84ff621e3e97ec45403f5c170c529403f))
+* **file-ops:** add the hard link and copy file modes ([8204f48](https://github.com/SOKTeam/S.O.K/commit/8204f48730e720b549e0c549847777a9f0a4a61f))
+* **music:** read an album for the batch engine ([092333e](https://github.com/SOKTeam/S.O.K/commit/092333e7c4e70476c44619ebf4d27e3c9a794994))
+* **server:** add the FastAPI application with its account and login ([27ce105](https://github.com/SOKTeam/S.O.K/commit/27ce1059a3b0e9813cfc2e6d7c9afc49639bc3d6))
+* **server:** add the settings API ([de4bacd](https://github.com/SOKTeam/S.O.K/commit/de4bacd74d299aea37adb504900f1557fe4ec9fe))
+* **server:** leave the files already processed out of the analyses ([6598d0a](https://github.com/SOKTeam/S.O.K/commit/6598d0a32a89a788318bbb97af0399e392a3e8b0))
+* **server:** notify Discord, Jellyfin, Plex, a webhook or a script after a rename ([79f4c5b](https://github.com/SOKTeam/S.O.K/commit/79f4c5baf1f4680f53e8877778594370676103cd))
+* **server:** pick the folders of the settings in a folder browser ([c42a6c0](https://github.com/SOKTeam/S.O.K/commit/c42a6c04c06a03d8f378ed7fd57caafb181e622f))
+* **server:** prepare the server for its web interface ([c6eed5f](https://github.com/SOKTeam/S.O.K/commit/c6eed5fb06b49cc21398918749b30a6a9e1bc06a))
+* **server:** rename the ready rows and undo them ([ff8d3df](https://github.com/SOKTeam/S.O.K/commit/ff8d3dfad335915310439d56329f65e1b1c30f3b))
+* **server:** reset a forgotten password with SOK_RESET_PASSWORD ([8712cac](https://github.com/SOKTeam/S.O.K/commit/8712cac4faf0905200f5f7220aa0ca15ea5eb24f))
+* **server:** scan the source folders and sort the files into rows ([1a70b8a](https://github.com/SOKTeam/S.O.K/commit/1a70b8a3bc96cd089e3ad73095f01b4e81eede86))
+* **server:** search the movies and TV shows of an analysis ([f7e28a6](https://github.com/SOKTeam/S.O.K/commit/f7e28a6535f2cb0eb17a4ffa94ec2603e54e2d67))
+* **server:** search the music, books and games of an analysis ([efd8063](https://github.com/SOKTeam/S.O.K/commit/efd806375686f92f77f14e5296c29cbc53bb2184))
+* **server:** sort the new files of the source folders on their own ([6e43ae1](https://github.com/SOKTeam/S.O.K/commit/6e43ae1a8b34d352c2ee0a458104a4d713363ad6))
+* **server:** tell the automatic renames in the history ([8a501c1](https://github.com/SOKTeam/S.O.K/commit/8a501c16df6bdc8d31157a9be43cc6df9ec6ae75))
+* **server:** test the API key of a service ([e63113e](https://github.com/SOKTeam/S.O.K/commit/e63113ea4960282e147504096273a63565049586))
+* **video:** move the subtitles of a video with it ([bbeac9a](https://github.com/SOKTeam/S.O.K/commit/bbeac9ae4f25a35e74515dfceac86ac2522e9fc7))
+* **web:** add a demo of S.O.K Server for the website ([e54cd88](https://github.com/SOKTeam/S.O.K/commit/e54cd889ee694176c651a883e02c8fb37c0d1895))
+* **web:** add the analysis page and the tabs of the media types ([5cb60a9](https://github.com/SOKTeam/S.O.K/commit/5cb60a9014cb41f01f5901a42323fbd04fc99dbd))
+* **web:** add the light, orange and dark themes of the desktop app ([8b1b021](https://github.com/SOKTeam/S.O.K/commit/8b1b02120cf620c7079ead6947dcd64d5e008002))
+* **web:** add the settings page ([dca5c21](https://github.com/SOKTeam/S.O.K/commit/dca5c219f71d42caa5c77fd95d02d9bce0284110))
+* **web:** add the web interface with its setup and login pages ([f3b1eb6](https://github.com/SOKTeam/S.O.K/commit/f3b1eb69006d95c08ff96f44c2675866949f38d5))
+* **web:** explain a hard link problem in a window ([8d10f2b](https://github.com/SOKTeam/S.O.K/commit/8d10f2b28e51890b0419a8f803b19be10ba66698))
+* **web:** rename the rows, undo them, and list the processed files ([ac7053a](https://github.com/SOKTeam/S.O.K/commit/ac7053ab0e7a7a5653549b4e1d112b6aa052fae6))
+* **web:** set the notifications in the settings ([726fea0](https://github.com/SOKTeam/S.O.K/commit/726fea08f93f04e992db9a2c6fd07190686330e5))
+* **web:** show the analysis as a strip and a table of counts ([2f659c6](https://github.com/SOKTeam/S.O.K/commit/2f659c6d9fa451fe9d75ad50d3ddb391ec082006))
+* **web:** show the history as one table per day ([a311c1e](https://github.com/SOKTeam/S.O.K/commit/a311c1e05d20132390c73abfb54f1f528c286f3c))
+* **web:** show the rows of a tab as a table ([1c858b3](https://github.com/SOKTeam/S.O.K/commit/1c858b396304efedf577367bde2ee1c1d489348b))
+* **web:** split the settings into tabs ([fcf03ba](https://github.com/SOKTeam/S.O.K/commit/fcf03ba8896a5e77d61974db7fde7af19e34bd09))
+* **web:** turn on the automatic sorting and follow it ([81e2558](https://github.com/SOKTeam/S.O.K/commit/81e25585277d64db965098750b449754a8ef997f))
+
 # [1.4.0](https://github.com/SOKTeam/S.O.K/compare/v1.3.1...v1.4.0) (2026-10-21)
 
 
