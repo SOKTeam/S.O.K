@@ -301,7 +301,7 @@ interface at each change and sends the `/api` requests to the server.
   the rows, the new names of each candidate, two searches, the file to
   check, the history, the settings, and a file that arrives 40 seconds after
   the opening for the automatic sorting to rename. The other searches find
-  nothing. The language is the browser's; the banner of `Shell` says that
+  nothing. The language is the one of `?lang=` (the links of the website give it), else the browser's; the banner of `Shell` says that
   nothing is renamed and credits TMDB. Below 768 pixels,
   `demo/MobileNotice.svelte` first fills the screen: S.O.K Server is not
   made for a phone, "Continue anyway" (once per tab) or back to the site. The
