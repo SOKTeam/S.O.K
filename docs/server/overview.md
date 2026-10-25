@@ -176,7 +176,7 @@ npm run check   # svelte-check (types)
 npm test        # Vitest
 npm run build   # web/dist, served by sok-server
 npm run dev:demo    # the demo of the website, http://localhost:5173/demo/
-npm run build:demo  # web/dist-demo, copied to the website at each release
+npm run build:demo  # web/dist-demo; release.yml puts it on the website
 ```
 
 During development, run `sok-server` next to `npm run dev`: Vite reloads the
@@ -304,10 +304,14 @@ interface at each change and sends the `/api` requests to the server.
   nothing. The language is the browser's; the banner of `Shell` says that
   nothing is renamed and credits TMDB. Below 768 pixels,
   `demo/MobileNotice.svelte` first fills the screen: S.O.K Server is not
-  made for a phone, "Continue anyway" (once per tab) or back to the site. The normal build holds
-  none of it: `import.meta.env.MODE` is fixed at build time and the demo is
-  loaded with `import()`. Record the data again when the API or the interface changes
-  what it reads.
+  made for a phone, "Continue anyway" (once per tab) or back to the site. The
+  normal build holds none of it: `import.meta.env.MODE` is fixed at build time
+  and the demo is loaded with `import()`. At each release, the `demo` job of `release.yml`
+  builds it and puts it on the website (see
+  [Releases](/guides/building/#releases)). **The data are not recorded
+  again by the release**: when a change of the API or of the interface
+  changes what the demo reads (a field, a route, an event), run
+  `scripts/record_demo.py` by hand and commit `data.json` with the change.
 - **CI.** The `Web interface` job of `ci.yml` runs `npm ci`, `format:check`,
   `check`, `test` and `build` on every pull request.
 

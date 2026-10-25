@@ -113,6 +113,13 @@ release when it is built:
   downloads.
 - If `master` moved since the branch was made, the branch is left for a merge by
   hand (a warning in the run) and the deploy hook is called.
+- Before `publish`, the `demo` job builds the demo of S.O.K Server from the
+  version (`npm run build:demo`) and puts it in `public/demo` on that branch,
+  which it makes from `master` when there is none (see
+  [Demo](/server/overview/#the-web-project)). It needs `SITE_TOKEN` too; if it
+  fails, the release goes on with the demo of before. Its data are **not**
+  recorded by the release: run `scripts/record_demo.py` by hand when the API
+  or the interface changes what the demo reads.
 
 Without the secrets, this step does nothing.
 
