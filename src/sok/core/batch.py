@@ -347,6 +347,14 @@ _ALBUM_FOLDER = re.compile(
     r"^(?P<artist>.+?)\s+-\s+(?:(?P<year1>\d{4})\s+-\s+)?(?P<album>.+?)"
     r"(?:\s*[(\[](?P<year2>\d{4})[)\]])?$"
 )
+# The tags of a release after the name: "[FLAC]", "{Vinyl}", "(320 kbps)",
+# "[24bit-96kHz]". A year in brackets ("[1997]") is kept for _ALBUM_FOLDER.
+_RELEASE_TAGS = re.compile(
+    r"(?:\s*(?:[\[{](?!\d{4}[\]}])[^\[\]{}]*[\]}]"
+    r"|\((?=[^()]*\b(?:flac|mp3|aac|alac|ogg|opus|wav|web|cd|vinyl|kbps|\d+\s*bit|\d+\s*khz)\b)"
+    r"[^()]*\)))+$",
+    re.IGNORECASE,
+)
 
 
 def _most_common(values: List[Any]) -> Any:
@@ -377,14 +385,15 @@ def parse_album(files: Sequence[Path]) -> ParsedName:
         folder = files[0].parent
         if DISC_FOLDER_PATTERN.match(folder.name):
             folder = folder.parent
-        match = _ALBUM_FOLDER.match(folder.name)
+        name = _RELEASE_TAGS.sub("", folder.name).strip() or folder.name
+        match = _ALBUM_FOLDER.match(name)
         if match:
             album = match.group("album").strip()
             artist = artist or match.group("artist").strip()
             found = match.group("year1") or match.group("year2")
             year = year or (int(found) if found else None)
         else:
-            album = folder.name
+            album = name
     query = f"{album} {artist}" if artist else album
     return ParsedName(query, year, album, artist)
 
