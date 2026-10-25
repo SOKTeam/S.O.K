@@ -56,10 +56,11 @@ from sok.ui.components.organize.media_batch_table import (
     one_item_per_file,
 )
 from sok.ui.controllers.default_paths import apply_default_destination
+from sok.ui.controllers.file_mode import hard_link_blocked
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.controllers.ui_state import set_progress
 from sok.ui.controllers.worker_runner import WorkerRunner
-from sok.ui.factories.media_factory import create_media_item
+from sok.media.factory import create_media_item
 from sok.ui.i18n import tr
 from sok.ui.theme import card_shadow
 from sok.ui.workers import (
@@ -432,6 +433,8 @@ class BatchPage(QScrollArea):
                 self.nothing_ready_text(),
             )
             return
+        if hard_link_blocked(self, [file for file, _ in mappings], str(dest)):
+            return
 
         msg = QMessageBox(self)
         msg.setWindowTitle(tr("confirmation", "Confirmation"))
@@ -484,6 +487,10 @@ class BatchPage(QScrollArea):
         else:
             title = tr("success", "Success")
             text = tr("files_organized", "✓ {0} file(s) organized!").format(success)
+        if report.get("subtitles"):
+            text += "\n" + tr("with_subtitles", "With {0} subtitle(s).").format(
+                report["subtitles"]
+            )
         operation = report.get("operation")
         undo = message_box.rename_done(
             self, title, text, bool(errors), reveal, undo=bool(operation)

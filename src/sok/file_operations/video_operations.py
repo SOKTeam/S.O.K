@@ -28,6 +28,8 @@ from sok.file_operations.base_operations import (
     make_folders,
     move_file,
 )
+from sok.core.history import MOVE
+from sok.file_operations.subtitles import move_subtitles
 
 import os
 import re
@@ -264,6 +266,41 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         season_word = translations.get("season", "Season")
         return f"{season_word} {season_num}"
 
+    def episode_folder(
+        self,
+        media_item: MediaItem,
+        filename: str,
+        base_path: str,
+        on_disk: bool = True,
+    ) -> str:
+        """The folder of a file of a series: its season folder, an existing
+        one first ("Saison 01"), or the base folder without a season.
+
+        Args:
+            media_item: The media item; only a Series has season folders.
+            filename: The name of the file, which gives its season.
+            base_path: The folder of the series (or of the movie).
+            on_disk: Look for an existing season folder in base_path.
+        """
+        if not isinstance(media_item, Series):
+            return base_path
+        season_num = self.extract_info_from_filename(filename)["season"]
+        if season_num is None:
+            return base_path
+        existing = (
+            self._find_existing_season_folder(base_path, season_num)
+            if on_disk
+            else None
+        )
+        if existing:
+            return existing
+        return os.path.join(
+            base_path,
+            self._find_season_in_structure(
+                media_item.get_folder_structure(), season_num
+            ),
+        )
+
     def generate_new_filename(
         self, media_item: MediaItem, original_filename: str
     ) -> str:
@@ -341,6 +378,34 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
 
         return original_filename
 
+    def _move_subtitles(
+        self,
+        source_file: str,
+        dest_file: str,
+        report: Dict[str, Any],
+        dry_run: bool = False,
+    ) -> None:
+        """Move the subtitles of a moved video, if the setting is on.
+
+        They are listed in report["subtitles"]; those skipped or failed join
+        report["skipped"] and report["errors"].
+        """
+        config = get_config_manager()
+        if not config.get("subtitles_follow_video", True):
+            return
+        result = move_subtitles(
+            Path(source_file),
+            dest_file,
+            self.supported_extensions,
+            skip_duplicates=config.get("skip_duplicates", False),
+            backup=config.get("backup_before_rename", False),
+            mode=config.get("file_mode", MOVE),
+            dry_run=dry_run,
+        )
+        report.setdefault("subtitles", []).extend(result["moved"])
+        report.setdefault("skipped", []).extend(result["skipped"])
+        report["errors"].extend(result["errors"])
+
     def organize_files(
         self,
         source_path: str,
@@ -400,24 +465,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             if progress_callback:
                 progress_callback(idx + 1, total_files, file)
 
-            info = self.extract_info_from_filename(file)
-
-            if isinstance(media_item, Series) and info["season"] is not None:
-                season_num = info["season"]
-
-                existing_season_folder = self._find_existing_season_folder(
-                    base_path, season_num
-                )
-
-                if existing_season_folder:
-                    dest_folder = existing_season_folder
-                else:
-                    season_folder_name = self._find_season_in_structure(
-                        folder_structure, season_num
-                    )
-                    dest_folder = os.path.join(base_path, season_folder_name)
-            else:
-                dest_folder = base_path
+            dest_folder = self.episode_folder(media_item, file, base_path)
 
             new_filename = self.generate_new_filename(media_item, file)
             dest_file = os.path.join(dest_folder, new_filename)
@@ -435,9 +483,11 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                         "Video organize move failed for %s", source_file, exc_info=e
                     )
                     report["errors"].append({"file": source_file, "error": str(e)})
+                    continue
             else:
                 report["moved"].append({"from": source_file, "to": dest_file})
                 report["total_moved"] += 1
+            self._move_subtitles(source_file, dest_file, report, dry_run)
 
         return report
 
@@ -469,6 +519,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         create_folders = config.get("create_folders", True)
         skip_duplicates = config.get("skip_duplicates", False)
         backup_before_rename = config.get("backup_before_rename", False)
+        file_mode = config.get("file_mode", MOVE)
         log_operations = config.get("log_operations", True)
 
         report: Dict[str, Any] = {
@@ -516,24 +567,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             if progress_callback:
                 progress_callback(idx + 1, len(files), file)
 
-            info = self.extract_info_from_filename(file)
-
-            if isinstance(media_item, Series) and info["season"] is not None:
-                season_num = info["season"]
-
-                existing_season_folder = self._find_existing_season_folder(
-                    base_path, season_num
-                )
-
-                if existing_season_folder:
-                    dest_folder = existing_season_folder
-                else:
-                    season_folder_name = self._find_season_in_structure(
-                        folder_structure, season_num
-                    )
-                    dest_folder = os.path.join(base_path, season_folder_name)
-            else:
-                dest_folder = base_path
+            dest_folder = self.episode_folder(media_item, file, base_path)
 
             new_filename = self.generate_new_filename(media_item, file)
             dest_file = os.path.join(dest_folder, new_filename)
@@ -561,7 +595,10 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                             continue
 
                     backup_path = move_file(
-                        source_file, dest_file, backup=backup_before_rename
+                        source_file,
+                        dest_file,
+                        backup=backup_before_rename,
+                        mode=file_mode,
                     )
                     if backup_path and log_operations:
                         logger.info("Backup created: %s", backup_path)
@@ -576,9 +613,11 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                         exc_info=e,
                     )
                     report["errors"].append({"file": source_file, "error": str(e)})
+                    continue
             else:
                 report["moved"].append({"from": source_file, "to": dest_file})
                 report["total_moved"] += 1
+            self._move_subtitles(source_file, dest_file, report, dry_run)
 
         return report
 
@@ -607,6 +646,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         config = get_config_manager()
         skip_duplicates = config.get("skip_duplicates", False)
         backup_before_rename = config.get("backup_before_rename", False)
+        file_mode = config.get("file_mode", MOVE)
         log_operations = config.get("log_operations", True)
 
         report: Dict[str, Any] = {
@@ -650,11 +690,15 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             if dry_run:
                 report["moved"].append({"from": source_file, "to": dest_file})
                 report["total_moved"] += 1
+                self._move_subtitles(source_file, dest_file, report, dry_run)
                 continue
 
             try:
                 backup_path = move_file(
-                    source_file, dest_file, backup=backup_before_rename
+                    source_file,
+                    dest_file,
+                    backup=backup_before_rename,
+                    mode=file_mode,
                 )
                 if backup_path and log_operations:
                     logger.info("Backup created: %s", backup_path)
@@ -668,6 +712,8 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                     "Movie batch move failed for %s", source_file, exc_info=e
                 )
                 report["errors"].append({"file": source_file, "error": str(e)})
+                continue
+            self._move_subtitles(source_file, dest_file, report)
 
         return report
 

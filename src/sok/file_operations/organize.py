@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from sok.config.config_manager import get_config_manager
+from sok.core.history import MOVE
 from sok.core.interfaces import MediaItem
 from sok.file_operations.base_operations import make_folders, move_file
 
@@ -93,6 +94,7 @@ class FileListOrganizerMixin:
         create_folders = config.get("create_folders", True)
         skip_duplicates = config.get("skip_duplicates", False)
         backup_before_rename = config.get("backup_before_rename", False)
+        file_mode = config.get("file_mode", MOVE)
         log_operations = config.get("log_operations", True)
 
         report: Dict[str, Any] = {
@@ -141,7 +143,10 @@ class FileListOrganizerMixin:
                         continue
                     make_folders(dest_folder)
                 backup_path = move_file(
-                    source_file, dest_file, backup=backup_before_rename
+                    source_file,
+                    dest_file,
+                    backup=backup_before_rename,
+                    mode=file_mode,
                 )
                 if backup_path and log_operations:
                     logger.info("Backup created: %s", backup_path)
@@ -190,6 +195,7 @@ class FileListOrganizerMixin:
         create_folders = config.get("create_folders", True)
         skip_duplicates = config.get("skip_duplicates", False)
         backup_before_rename = config.get("backup_before_rename", False)
+        file_mode = config.get("file_mode", MOVE)
         log_operations = config.get("log_operations", True)
 
         report: Dict[str, Any] = {
@@ -238,7 +244,10 @@ class FileListOrganizerMixin:
 
             try:
                 backup_path = move_file(
-                    source_file, dest_file, backup=backup_before_rename
+                    source_file,
+                    dest_file,
+                    backup=backup_before_rename,
+                    mode=file_mode,
                 )
                 if backup_path and log_operations:
                     logger.info("Backup created: %s", backup_path)

@@ -1,7 +1,6 @@
 ---
 title: S.O.K developer documentation
-description:
-  How S.O.K is built, how to run it from source and how to contribute.
+description: How S.O.K is built, how to run it from source and how to contribute.
 ---
 
 S.O.K (Storage Organisation Kit) is a desktop app that identifies media files
@@ -22,6 +21,9 @@ This documentation is for people who work on the code. To use the app, see the
   search reaches an online database.
 - **[Contributing](/contributing/)**: branches, commit messages, checks and pull
   requests.
+- **[S.O.K Server](/server/overview/)**: the Docker version with a web
+  interface: running it, its API, its database, its interface, the automatic
+  sorting and the notifications.
 - **API reference** (at the bottom of the sidebar): every module, class and
   function, generated from the docstrings.
 - **[Changelog](https://github.com/SOKTeam/S.O.K/blob/main/CHANGELOG.md)**: what

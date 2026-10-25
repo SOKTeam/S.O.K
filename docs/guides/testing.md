@@ -28,6 +28,7 @@ on Linux and macOS for each pull request to `develop` or `main`.
 | `integration/`               | Several modules together, on real files in a temporary folder             |
 | `functional/`, `acceptance/` | A complete scenario, from the files to the organized library              |
 | `ui/`                        | Widgets, pages and workers, with pytest-qt                                |
+| `server/`                    | The API of S.O.K Server, with FastAPI's `TestClient`                      |
 | `mock/`                      | An API class against a recorded response                                  |
 | `performance/`               | Timing of file operations                                                 |
 
@@ -37,6 +38,24 @@ so a test reads on its own. The only shared fixture is in `tests/conftest.py`:
 `rename_history` gives every test a rename history of its own in `tmp_path`, so
 no test ever writes to yours. Take it as an argument to read what a rename
 recorded.
+
+## Tests of the web interface
+
+The web interface of S.O.K Server has its own tests, with
+[Vitest](https://vitest.dev), next to the code they test
+(`web/src/lib/*.test.ts`): the helpers that need no browser. The server of
+the demo has its own (`web/src/demo/server.test.ts`): renames, undo, searches
+and the automatic sorting, with fake timers. `svelte-check` checks the types
+of the pages.
+
+```sh
+cd web
+npm test        # Vitest
+npm run check   # svelte-check
+```
+
+The pages are checked in a real browser before each pull request (see
+[The web project](/server/overview/#the-web-project)).
 
 ## Never call a real service
 

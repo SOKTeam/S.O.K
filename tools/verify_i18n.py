@@ -11,7 +11,8 @@
 # ===----------------------------------------------------------------------=== #
 """
 Verify i18n keys consistency.
-Scans source code for tr("key", ...) calls and compares with JSON translation files.
+Scans source code for tr("key", ...) calls, and the web interface for
+t("key", ...) calls, and compares with JSON translation files.
 """
 
 import re
@@ -34,6 +35,26 @@ def scan_code_for_keys(src_dir: Path) -> Set[str]:
                 keys.add(match[1])
         except Exception as e:
             print(f"Error reading {path}: {e}")
+
+    return keys
+
+
+def scan_web_for_keys(web_dir: Path) -> Set[str]:
+    """Scans the web interface for t("key", ...) patterns, and the key and
+    English text pairs of its page list ({ key: "movies", english: … })."""
+    keys = set()
+    patterns = [
+        re.compile(r'\bt\(\s*([\'"])(.+?)\1\s*,'),
+        re.compile(r'\bkey:\s*([\'"])(.+?)\1\s*,\s*english:'),
+    ]
+
+    for path in web_dir.rglob("*"):
+        if path.suffix not in (".svelte", ".ts") or "node_modules" in path.parts:
+            continue
+        content = path.read_text(encoding="utf-8")
+        for pattern in patterns:
+            for match in pattern.findall(content):
+                keys.add(match[1])
 
     return keys
 
@@ -61,7 +82,9 @@ def main():
     print(f"Scanning source: {src_dir}")
     print(f"Scanning translations: {i18n_dir}\n")
 
-    code_keys = scan_code_for_keys(src_dir)
+    code_keys = scan_code_for_keys(src_dir) | scan_web_for_keys(
+        root_dir / "web" / "src"
+    )
     lang_keys = load_translation_files(i18n_dir)
 
     if not lang_keys:

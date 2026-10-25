@@ -95,6 +95,7 @@ class OrganizeWorker(BaseWorker):
             {
                 "total": report.get("total_files", 0),
                 "success": report.get("total_moved", 0),
+                "subtitles": len(report.get("subtitles", [])),
                 "errors": report.get("errors", []),
                 "operation": journal.operation_id,
             }

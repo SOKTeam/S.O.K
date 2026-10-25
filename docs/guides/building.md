@@ -92,9 +92,10 @@ messages, updates
 the version files, and creates the GitHub release as a **draft**. `release.yml`
 then calls `build-windows.yml`, `build-macos.yml` and `build-linux.yml`, which
 build the Windows installer, the macOS disk image and both AppImages on GitHub
-runners and attach them to the draft.
+runners and attach them to the draft, and `build-docker.yml`, which pushes the
+S.O.K Server image (see [Docker image](/server/overview/#docker-image)).
 
-When the three builds succeed, the `publish` job publishes the release: only
+When the four builds succeed, the `publish` job publishes the release: only
 then do the apps offer the update and the website show the downloads. If a
 build fails, the release stays a draft: fix the build, re-run the failed job,
 and `publish` runs. The notes of the draft can be edited meanwhile.
@@ -112,10 +113,18 @@ release when it is built:
   downloads.
 - If `master` moved since the branch was made, the branch is left for a merge by
   hand (a warning in the run) and the deploy hook is called.
+- Before `publish`, the `demo` job builds the demo of S.O.K Server from the
+  version (`npm run build:demo`) and puts it in `public/demo` on that branch,
+  which it makes from `master` when there is none (see
+  [Demo](/server/overview/#the-web-project)). It needs `SITE_TOKEN` too; if it
+  fails, the release goes on with the demo of before. Its data are **not**
+  recorded by the release: run `scripts/record_demo.py` by hand when the API
+  or the interface changes what the demo reads.
 
 Without the secrets, this step does nothing.
 
-The workflows write `.env` from the `SOK_ENV` repository secret, which holds the
-contents of that file: without it the builds stop. Each workflow can also be run
+The desktop workflows write `.env` from the `SOK_ENV` repository secret, which
+holds the contents of that file: without it the builds stop. The image never
+gets it. Each workflow can also be run
 by hand from the Actions tab, on any branch: the package is then kept as an
 artifact of the run instead of being attached to a release.

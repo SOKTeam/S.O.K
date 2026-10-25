@@ -13,6 +13,7 @@
 ![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)
 
 [Features](#-features) • [Download](#-download) •
+[S.O.K Server](#-sok-server) •
 [User guide](https://sokfromsokteam.vercel.app/guide) •
 [Contribute](#-contribution)
 
@@ -31,7 +32,9 @@ games with specialized online databases, then renames and moves them into a
 clean library that Plex, Jellyfin and Kodi understand.
 
 It doesn't just move files: it understands what they are, and shows you a
-preview of every new name before anything moves.
+preview of every new name before anything moves. Use it as an app on your
+computer, or as **S.O.K Server**, a Docker image with a web interface for a NAS
+or a home server.
 
 ---
 
@@ -63,6 +66,16 @@ preview of every new name before anything moves.
   </tr>
   <tr>
     <td colspan="2" align="center"><sub>Movies: one match per file</sub></td>
+  </tr>
+  <tr>
+    <th colspan="2">S.O.K Server, in the browser</th>
+  </tr>
+  <tr>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/server-movies-dark.png"><img src="docs/assets/screenshots/server-movies-light.png" alt="S.O.K Server: the Movies tab, with the results of a file to pick"></picture></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/server-tv-dark.png"><img src="docs/assets/screenshots/server-tv-light.png" alt="S.O.K Server: the TV Shows tab, with the episodes of a series and their new names"></picture></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><sub>S.O.K Server: pick a result in the row, unfold a series</sub></td>
   </tr>
 </table>
 <!-- markdownlint-enable MD013 -->
@@ -129,6 +142,10 @@ For ROM and ISO collectors.
   artist) must match. The others wait for you to pick.
 - **Undo**: every rename can be undone from the History page, all at once or
   file by file.
+- **Move, hard link or copy**: a hard link leaves the original in place, so
+  torrents keep seeding, without using more space.
+- **Subtitles follow their video**: `Movie.fr.srt` becomes
+  `Dune (2021).fr.srt` next to its movie.
 - **Your naming rules**: change the name of every type in the settings, and
   describe how your own files are named so S.O.K reads them right.
 - **Posters and covers** (optional): saved where Plex, Jellyfin and Kodi look
@@ -140,9 +157,10 @@ For ROM and ISO collectors.
   Linux, light and dark themes.
 
 > [!IMPORTANT]
-> S.O.K **moves** your files: they leave the source folder. Check the preview
-> before you confirm. A rename can be undone from the History page, as long as
-> the files were not moved since.
+> By default the app **moves** your files: they leave the source folder. Pick
+> *Hard link* or *Copy* in the settings to keep them where they are. Check the
+> preview before you confirm. A rename can be undone from the History page, as
+> long as the files were not moved since.
 
 ---
 
@@ -163,6 +181,54 @@ No account or API key is needed for TV shows and movies: S.O.K works out of
 the box, and tells you when a new version is available. New to it? The
 [user guide](https://sokfromsokteam.vercel.app/guide) walks you through your
 first organization.
+
+---
+
+## 🐳 S.O.K Server
+
+The same engine, in a Docker image with a web interface, for a NAS or a home
+server: point it at your download folders, review the proposed names in a
+table, and rename everything at once or row by row. It uses **hard links** by
+default, so torrents keep seeding. The interface looks like the app, with its
+light, orange and dark themes.
+
+Turn on the **automatic sorting** and it does it alone: every few minutes it
+looks at your download folders, waits for each download to finish, and
+renames what is Ready; the rest waits for you in the tables. After each
+rename it can post to **Discord**, refresh **Jellyfin** or **Plex**, call a
+**webhook**, or run a **script**.
+
+Try it first in the [live demo](https://sokfromsokteam.vercel.app/demo): the
+real interface with an example library, in your browser, nothing to install.
+
+```yaml
+services:
+  sok-server:
+    image: ghcr.io/sokteam/sok-server:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+    volumes:
+      - /srv/sok/config:/config
+      - /mnt/storage:/data # one parent folder: hard links work inside it
+    ports:
+      - 8080:8080
+    restart: unless-stopped
+```
+
+Open `http://<your-server>:8080`, create your account, then add your folders
+and API keys in the settings. The image runs on Intel/AMD and ARM (`amd64`,
+`arm64`).
+
+> [!TIP]
+> A hard link only works inside one mount: mount the common parent of your
+> downloads and your library once (`/mnt/storage:/data`), not each folder on
+> its own.
+
+The [user guide](https://sokfromsokteam.vercel.app/guide/server) explains the
+installation, the folders, the keys, the renaming, the automatic sorting and
+the notifications.
 
 ---
 
@@ -196,6 +262,8 @@ S.O.K is built in layers you can reuse in your own scripts:
 - `src/sok/core`: the media manager that picks the right API for each search.
 - `src/sok/file_operations`: name parsing, renaming and moving.
 - `src/sok/ui`: the PySide6 interface.
+- `src/sok/server` and `web/`: S.O.K Server, a FastAPI application and its
+  Svelte interface.
 
 ```python
 import asyncio
@@ -229,21 +297,16 @@ database, translations and building the Windows, macOS and Linux packages.
 - Automatic detection of the media type
 - A more reliable "Ready" status: the title and year must match
 - History of renamed files, with undo
+- Move, hard link or copy; subtitles follow their video
+- **S.O.K Server**: a Docker image with a web interface in the look of the
+  app (light, orange and dark themes), hard links by default, several
+  destination folders per media type, files already processed left out
+- S.O.K Server sorts new files automatically once downloaded, then notifies
+  Discord, Jellyfin, Plex, a webhook or a script
 
-**➡️ Next: S.O.K Server**
+**➡️ Next**
 
-A Docker image with a web interface, for a NAS or a home server:
-
-- Point it at one or more download folders
-- Review the proposed names in a table, like the Movies tab of the app
-- Several destination folders per media type, picked file by file
-- Rename everything at once, or approve file by file
-- Hard links, so torrents keep seeding
-
-**💡 Later**
-
-- Sort new files automatically as soon as they arrive
-- Run a webhook or a script after sorting (Jellyfin, Plex, Discord…)
+- Several user accounts on S.O.K Server
 
 ---
 

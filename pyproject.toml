@@ -14,8 +14,6 @@ dependencies = [
     "cryptography>=46.0.3",
     "mutagen>=1.47.0",
     "pypdf2>=3.0.1",
-    "pypresence>=4.6.1",
-    "pyside6>=6.10.0",
     "requests>=2.32.5",
     "zstandard>=0.25.0",
     "packaging>=23.0",
@@ -23,7 +21,19 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The desktop app (Qt). The core runs without it, as S.O.K Server does.
+desktop = [
+    "pypresence>=4.6.1",
+    "pyside6>=6.10.0",
+]
+# S.O.K Server: the web API that the Docker image runs.
+server = [
+    "argon2-cffi>=23.1.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.34.0",
+]
 build = [
+    "sok[desktop]",
     "pip>=25.3",
     "setuptools>=80.9.0",
     "uv>=0.9.9",
@@ -35,6 +45,8 @@ docs = [
     "griffe>=1.14,<2",
 ]
 dev = [
+    "sok[desktop,server]",
+    "httpx2>=2.16.0",
     "python-dotenv>=1.2.1",
     "pytest>=7.4.0",
     "pytest-qt>=4.5.0",
@@ -46,6 +58,7 @@ dev = [
 
 [project.scripts]
 sok = "sok.main:main"
+sok-server = "sok.server.app:main"
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
@@ -53,7 +66,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = ["sok", "sok.apis", "sok.apis.video", "sok.apis.music", "sok.apis.books", "sok.apis.games", "sok.core", "sok.media", "sok.media.video", "sok.media.music", "sok.media.books", "sok.media.games", "sok.file_operations", "sok.ui", "sok.ui.components", "sok.config"]
+packages = ["sok", "sok.apis", "sok.apis.video", "sok.apis.music", "sok.apis.books", "sok.apis.games", "sok.core", "sok.media", "sok.media.video", "sok.media.music", "sok.media.books", "sok.media.games", "sok.file_operations", "sok.server", "sok.server.api", "sok.ui", "sok.ui.components", "sok.config"]
 include-package-data = true
 
 [tool.setuptools.package-data]

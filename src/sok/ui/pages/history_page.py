@@ -50,10 +50,14 @@ KIND_LABELS = {
 
 
 def operation_title(operation: Operation) -> str:
-    """ "Movies · 12 file(s)"."""
+    """ "Movies · 12 file(s)", and " · 5 subtitle(s)" when some followed."""
     key, default = KIND_LABELS.get(operation.kind, ("files", "Files"))
-    count = tr("history_files", "{0} file(s)").format(len(operation.moves))
-    return f"{tr(key, default)} · {count}"
+    followers = sum(move.follows is not None for move in operation.moves)
+    count = tr("history_files", "{0} file(s)").format(len(operation.moves) - followers)
+    title = f"{tr(key, default)} · {count}"
+    if followers:
+        title += " · " + tr("history_subtitles", "{0} subtitle(s)").format(followers)
+    return title
 
 
 def operation_date(operation: Operation) -> str:
@@ -125,6 +129,9 @@ class OperationCard(Card):
         layout.setSpacing(2)
         for index, move in enumerate(self._operation.moves):
             line = QHBoxLayout()
+            if move.follows:
+                # A subtitle, under its video.
+                line.addSpacing(20)
             label = QLabel(f"{Path(move.source).name}  →  {Path(move.target).name}")
             label.setToolTip(f"{move.source}\n→ {move.target}")
             label.setObjectName("RowSubtitle")

@@ -170,6 +170,7 @@ class BatchOrganizeWorker(BaseWorker):
                 "total": report.get("total_files", 0),
                 "success": report.get("total_moved", 0),
                 "moved": report.get("moved", []),
+                "subtitles": len(report.get("subtitles", [])),
                 "errors": report.get("errors", []),
                 "skipped": report.get("skipped", []),
                 "operation": journal.operation_id,
