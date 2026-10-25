@@ -68,7 +68,16 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // ------------------------------------------------------------- State
 
 const LANGUAGES = data.settings.languages;
-let language = pickLanguage(navigator.languages, LANGUAGES) ?? "en";
+/** The language of the site that links to the demo (/demo?lang=fr), else
+ * the browser's. */
+function startLanguage(): string {
+  const asked =
+    typeof location === "undefined" ? null : new URLSearchParams(location.search).get("lang");
+  if (asked && LANGUAGES.includes(asked)) return asked;
+  return pickLanguage(navigator.languages, LANGUAGES) ?? "en";
+}
+
+let language = startLanguage();
 let loggedIn = true;
 
 const settings = clone(data.settings) as unknown as SettingsData;
