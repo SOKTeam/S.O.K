@@ -79,6 +79,25 @@ uv run --extra docs python scripts/build_docs.py [build|serve|api|clean]
 
 ---
 
+### `record_demo.py`
+
+Records the data of the demo of S.O.K Server on the website
+(`web/src/demo/data.json`). It creates a downloads folder of empty files in a
+temporary folder, starts `sok-server` on it with the API keys of `.env`, lets
+the automatic sorting rename a first part, renames a second part by hand,
+analyzes the rest, then picks every candidate of every row to record its new
+names. It takes about three minutes and needs the TMDB, Last.fm or Deezer, and
+IGDB keys.
+
+```bash
+uv run --extra server python scripts/record_demo.py
+cd web && npm run build:demo   # the demo, in web/dist-demo
+```
+
+Run it again when the API or the web interface changes what it reads.
+
+---
+
 ### `build_ui.py`
 
 Automatically converts `.ui` files (Qt Designer) into PySide6-compatible Python

@@ -1,7 +1,7 @@
 // The analysis: its summary (GET /api/scans/current), kept up to date by the
 // events of the server (GET /api/events).
 
-import { api } from "./api";
+import { api, openEvents, type Events } from "./api";
 import { setRename, setRenameProgress, type Rename } from "./renames.svelte";
 import { setWatch, type WatchStatus } from "./watch.svelte";
 
@@ -81,7 +81,24 @@ export async function refreshSummary(): Promise<void> {
 /** Listen to the events of the server; returns how to stop. The browser
  * reconnects by itself after a cut, and the first event is the summary. */
 export function listen(): () => void {
-  const source = new EventSource("/api/events");
+  let closed = false;
+  let source: Events | null = null;
+  openEvents().then((opened) => {
+    source = opened;
+    if (closed) {
+      source.close();
+    } else {
+      handle(source);
+    }
+  });
+  return () => {
+    closed = true;
+    source?.close();
+  };
+}
+
+/** Keep the state of the interface up to date with the events. */
+function handle(source: Events): void {
   source.addEventListener("scan", (event) => {
     const { type: _type, ...summary } = JSON.parse((event as MessageEvent).data);
     setSummary(summary as Summary);
@@ -118,7 +135,6 @@ export function listen(): () => void {
       }
     }
   });
-  return () => source.close();
 }
 
 /** Start an analysis; throws ApiError already_running, rename_running or no_sources. */

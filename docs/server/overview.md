@@ -175,6 +175,8 @@ npm run format  # Prettier, with the Svelte plugin and the Tailwind class order
 npm run check   # svelte-check (types)
 npm test        # Vitest
 npm run build   # web/dist, served by sok-server
+npm run dev:demo    # the demo of the website, http://localhost:5173/demo/
+npm run build:demo  # web/dist-demo, copied to the website at each release
 ```
 
 During development, run `sok-server` next to `npm run dev`: Vite reloads the
@@ -185,11 +187,11 @@ interface at each change and sends the `/api` requests to the server.
 | `src/App.svelte`             | The first page: setup without an account, login without a session, else the app (directly with `SOK_AUTH=none`)                                                                                                                                                                                                                                                                                                                             |
 | `src/pages/`                 | `Setup`, `Login`, `Shell` (the sidebar and the page of the address), `Analysis`, `MediaTab` (the tab of a media type), `History` (with `/history/processed`), `Settings`                                                                                                                                                                                                                                                                    |
 | `src/components/`            | `Sidebar`, `AuthCard`, `Icon`, `Section` (a titled card), `Tabs` (underlined tabs), `Toggle` (a switch row), `FolderList`, `FolderBrowser` (the folders of the server), `LinkProblems`, `KeyRow` (a service and its keys), `NotifyRow` (a target of the notifications), `RowItem` (a row of a tab and its results), `Poster`, `StatusText` (the status of a row, in color only when it asks for something), `RenameStatus`, `ConfirmDialog` |
-| `src/lib/api.ts`             | `api()`: calls `/api` with the session cookie; an error is an `ApiError` with the `code` of `detail`                                                                                                                                                                                                                                                                                                                                        |
+| `src/lib/api.ts`             | `api()`: calls `/api` with the session cookie; an error is an `ApiError` with the `code` of `detail`; `openEvents()`: `GET /api/events`; in the demo build, both go to `src/demo/server.ts`                                                                                                                                                                                                                                                 |
 | `src/lib/errors.ts`          | The texts of the errors of the API, of a stopped analysis, of a hard link problem and of an automatic sorting                                                                                                                                                                                                                                                                                                                               |
 | `src/lib/format.ts`          | `fill()`, `pickLanguage()`, `parentFolder()`, `splitName()`, `dayKey()`, `daysAgo()`                                                                                                                                                                                                                                                                                                                                                        |
 | `src/lib/i18n.svelte.ts`     | `loadTexts()` and `t(key, english, values)`                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `src/lib/router.svelte.ts`   | The page is the path of the address (`/movies`); `navigate()`, `follow` for the links                                                                                                                                                                                                                                                                                                                                                       |
+| `src/lib/router.svelte.ts`   | The page is the path of the address (`/movies`), under the base of the build (`/demo/` for the demo); `navigate()`, `follow` and `href()` for the links                                                                                                                                                                                                                                                                                     |
 | `src/lib/session.svelte.ts`  | `GET /api/session`, `logOut()`                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `src/lib/scan.svelte.ts`     | The summary of the analysis, kept live by `listen()` (`GET /api/events`); `startScan()`, `confirmType()`                                                                                                                                                                                                                                                                                                                                    |
 | `src/lib/rows.ts`            | `loadRows()`, `changeRow()`, `searchRow()`, `posterUrl()`                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -289,6 +291,23 @@ interface at each change and sends the `/api` requests to the server.
   `GET /api/i18n` for the languages, then loads the first language of the
   browser that S.O.K has (`pickLanguage`); the setup sends it to the server.
   With an account, it loads the language of the settings.
+- **Demo.** The website shows the interface at `/demo/` without a server:
+  `npm run build:demo` (Vite's `demo` mode) builds it with the base `/demo/`
+  into `web/dist-demo`, and `api()` and `openEvents()` answer from
+  `src/demo/server.ts`, a server in TypeScript that keeps its state in the
+  page (loading it again starts again) and changes no file. It answers from
+  `src/demo/data.json`, the answers of a real `sok-server` recorded by
+  `scripts/record_demo.py` (see [Scripts](https://github.com/SOKTeam/S.O.K/tree/main/scripts)):
+  the rows, the new names of each candidate, two searches, the file to
+  check, the history, the settings, and a file that arrives 40 seconds after
+  the opening for the automatic sorting to rename. The other searches find
+  nothing. The language is the browser's; the banner of `Shell` says that
+  nothing is renamed and credits TMDB. Below 768 pixels,
+  `demo/MobileNotice.svelte` first fills the screen: S.O.K Server is not
+  made for a phone, "Continue anyway" (once per tab) or back to the site. The normal build holds
+  none of it: `import.meta.env.MODE` is fixed at build time and the demo is
+  loaded with `import()`. Record the data again when the API or the interface changes
+  what it reads.
 - **CI.** The `Web interface` job of `ci.yml` runs `npm ci`, `format:check`,
   `check`, `test` and `build` on every pull request.
 

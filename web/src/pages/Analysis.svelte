@@ -5,7 +5,7 @@
   import { errorText, stopText, watchProblemText } from "../lib/errors";
   import { i18n, t } from "../lib/i18n.svelte";
   import { MEDIA_PAGES } from "../lib/pages";
-  import { follow } from "../lib/router.svelte";
+  import { follow, href } from "../lib/router.svelte";
   import { analysis, confirmType, startScan, type Counts, type ToCheck } from "../lib/scan.svelte";
   import { loadSettings, settings } from "../lib/settings.svelte";
   import { loadWatch, watch } from "../lib/watch.svelte";
@@ -135,7 +135,7 @@
             </p>
           {/each}
         {:else if settings.data}
-          <a href="/settings/folders" onclick={follow} class="link mt-1 inline-block">
+          <a href={href("/settings/folders")} onclick={follow} class="link mt-1 inline-block">
             {t("web_add_source", "Add a source folder")}
           </a>
         {/if}
@@ -183,7 +183,9 @@
         {:else if auto}
           <p class="mt-1 text-sm">
             {t("web_auto_sort_disabled", "Off")} ·
-            <a href="/settings/auto" onclick={follow} class="link">{t("web_turn_on", "Turn on")}</a>
+            <a href={href("/settings/auto")} onclick={follow} class="link"
+              >{t("web_turn_on", "Turn on")}</a
+            >
           </p>
         {/if}
       </div>
@@ -221,7 +223,7 @@
             {/each}
           </div>
           {#if scan.error.code === "missing_key" || scan.error.code === "key_refused"}
-            <a href="/settings/keys" onclick={follow} class="link shrink-0">
+            <a href={href("/settings/keys")} onclick={follow} class="link shrink-0">
               {t("settings", "Settings")}
             </a>
           {/if}
@@ -294,7 +296,7 @@
               {@render count(counts.ambiguous, "font-semibold text-warn")}
               {@render count(counts.missing, "font-semibold text-error")}
               <td class="px-3 py-2 text-right">
-                <a href={page.path} onclick={follow} class="button-outline px-3.5 py-1">
+                <a href={href(page.path)} onclick={follow} class="button-outline px-3.5 py-1">
                   {t("web_open", "Open")}
                 </a>
               </td>
@@ -318,7 +320,7 @@
         {t("web_processed_hidden", "{n} files already processed are left out.", {
           n: scan.processed,
         })}
-        <a href="/history/processed" onclick={follow} class="link">
+        <a href={href("/history/processed")} onclick={follow} class="link">
           {t("web_show_processed", "Show them")}
         </a>
       </p>

@@ -2,7 +2,7 @@
   import Icon from "./Icon.svelte";
   import { t } from "../lib/i18n.svelte";
   import { ANALYSIS, MEDIA_PAGES, OTHER_PAGES, type Page } from "../lib/pages";
-  import { follow, router } from "../lib/router.svelte";
+  import { follow, href, router } from "../lib/router.svelte";
   import { analysis } from "../lib/scan.svelte";
   import { logOut, session } from "../lib/session.svelte";
 
@@ -13,7 +13,7 @@
   {@const current = router.path === page.path || router.path.startsWith(`${page.path}/`)}
   {@const counts = page.mediaType ? analysis.summary?.counts[page.mediaType] : undefined}
   <a
-    href={page.path}
+    href={href(page.path)}
     onclick={follow}
     aria-current={current ? "page" : undefined}
     class={[
@@ -43,7 +43,7 @@
 
 <nav class="flex h-full w-60 shrink-0 flex-col border-r border-line bg-sidebar px-3 pt-5 pb-3.5">
   <div class="flex items-center gap-2.5 px-2 pb-5">
-    <img src="/favicon.svg" alt="" class="size-7" />
+    <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" class="size-7" />
     <span class="font-bold">S.O.K Server</span>
   </div>
 

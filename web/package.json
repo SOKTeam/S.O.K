@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "dev:demo": "vite --mode demo",
+    "build:demo": "vite build --mode demo",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
     "format": "prettier --write .",

@@ -1,9 +1,18 @@
-// The page shown is the path of the address: /movies, /settings…
+// The page shown is the path of the address: /movies, /settings…, under the
+// base of the build ("/", or "/demo/" for the demo on the website).
 
-const state = $state({ path: location.pathname });
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+/** The path of a page in an address: "/demo/movies" is "/movies". */
+function pathOf(pathname: string): string {
+  const path = pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname;
+  return path || "/";
+}
+
+const state = $state({ path: pathOf(location.pathname) });
 
 window.addEventListener("popstate", () => {
-  state.path = location.pathname;
+  state.path = pathOf(location.pathname);
 });
 
 export const router = {
@@ -12,10 +21,15 @@ export const router = {
   },
 };
 
+/** The address of a page, for href. */
+export function href(path: string): string {
+  return BASE + path;
+}
+
 /** Show another page, as a link does. */
 export function navigate(path: string): void {
   if (path !== state.path) {
-    history.pushState(null, "", path);
+    history.pushState(null, "", href(path));
     state.path = path;
   }
 }
@@ -28,5 +42,5 @@ export function follow(event: MouseEvent): void {
     return;
   }
   event.preventDefault();
-  navigate(link.pathname);
+  navigate(pathOf(link.pathname));
 }
