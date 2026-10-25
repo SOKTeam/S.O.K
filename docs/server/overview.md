@@ -305,7 +305,10 @@ interface at each change and sends the `/api` requests to the server.
   nothing is renamed and credits TMDB. Below 768 pixels,
   `demo/MobileNotice.svelte` first fills the screen: S.O.K Server is not
   made for a phone, "Continue anyway" (once per tab) or back to the site. The
-  normal build holds none of it: `import.meta.env.MODE` is fixed at build time
+  `demoPreview` plugin of `vite.config.ts` gives its page the preview of a
+  shared link (Open Graph and Twitter tags, with the image `/og-demo.png` of
+  the website, whose address is the `SITE` constant). The normal build holds
+  none of it: `import.meta.env.MODE` is fixed at build time
   and the demo is loaded with `import()`. At each release, the `demo` job of `release.yml`
   builds it and puts it on the website (see
   [Releases](/guides/building/#releases)). **The data are not recorded
