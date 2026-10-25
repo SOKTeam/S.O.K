@@ -1,7 +1,7 @@
 <script lang="ts">
   import { t } from "../lib/i18n.svelte";
   import type { Rename } from "../lib/renames.svelte";
-  import { follow } from "../lib/router.svelte";
+  import { follow, href } from "../lib/router.svelte";
 
   // The rename running, or the result of the last one, above the rows.
   let { rename, ondismiss }: { rename: Rename; ondismiss: () => void } = $props();
@@ -73,7 +73,11 @@
           </ul>
         {/if}
         {#if result?.renamed}
-          <a href="/history" onclick={follow} class="mt-2 inline-block text-accent hover:underline">
+          <a
+            href={href("/history")}
+            onclick={follow}
+            class="mt-2 inline-block text-accent hover:underline"
+          >
             {t("web_see_history", "See the history, to undo it")}
           </a>
         {/if}

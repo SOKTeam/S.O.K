@@ -475,5 +475,12 @@
     "web_file": "Файл",
     "web_renamed_to": "Новое имя",
     "web_date": "Дата",
-    "web_analyze_selection": "Проанализировать выбранное снова"
+    "web_analyze_selection": "Проанализировать выбранное снова",
+    "web_demo": "Демо: ни один файл на самом деле не переименовывается. Перезагрузите страницу, чтобы начать заново.",
+    "web_demo_install": "Установить S.O.K Server",
+    "web_demo_tmdb": "Данные о фильмах и сериалах: TMDB. Этот продукт использует API TMDB, но не одобрен и не сертифицирован TMDB.",
+    "web_demo_mobile_title": "Демо S.O.K Server",
+    "web_demo_mobile_text": "S.O.K Server не предназначен для мобильных устройств. Мы не рекомендуем использовать его на телефоне.",
+    "web_demo_mobile_continue": "Всё равно продолжить",
+    "web_demo_mobile_back": "Назад на сайт"
 }

@@ -475,5 +475,12 @@
     "web_file": "File",
     "web_renamed_to": "Rinominato in",
     "web_date": "Data",
-    "web_analyze_selection": "Rianalizza la selezione"
+    "web_analyze_selection": "Rianalizza la selezione",
+    "web_demo": "Demo: nessun file viene rinominato davvero. Ricarica la pagina per ricominciare.",
+    "web_demo_install": "Installa S.O.K Server",
+    "web_demo_tmdb": "Dati di film e serie: TMDB. Questo prodotto utilizza l'API di TMDB ma non è approvato né certificato da TMDB.",
+    "web_demo_mobile_title": "Demo di S.O.K Server",
+    "web_demo_mobile_text": "S.O.K Server non è stato pensato per l'uso su mobile. Ti sconsigliamo di usarlo su un telefono.",
+    "web_demo_mobile_continue": "Continua comunque",
+    "web_demo_mobile_back": "Torna al sito"
 }

@@ -1,4 +1,8 @@
-// Calls to the API of the server, with the session cookie.
+// Calls to the API of the server, with the session cookie. The demo build
+// (vite build --mode demo) answers them in the browser instead.
+
+/** In the demo build: the server written in TypeScript. */
+const DEMO = import.meta.env.MODE === "demo";
 
 /** An answer of the API that is not a success. */
 export class ApiError extends Error {
@@ -30,6 +34,10 @@ export async function api<T>(
   path: string,
   options: { method?: string; body?: unknown } = {},
 ): Promise<T> {
+  if (DEMO) {
+    const { demoApi } = await import("../demo/server");
+    return demoApi<T>(path, options);
+  }
   let response: Response;
   try {
     response = await fetch(path, {
@@ -50,4 +58,19 @@ export async function api<T>(
     throw new ApiError(response.status, data?.detail ?? null, retry ? Number(retry) : null);
   }
   return data as T;
+}
+
+/** What the interface uses of an EventSource. */
+export interface Events {
+  addEventListener(type: string, listener: (event: Event) => void): void;
+  close(): void;
+}
+
+/** The events of the server (GET /api/events). */
+export async function openEvents(): Promise<Events> {
+  if (DEMO) {
+    const { demoEvents } = await import("../demo/server");
+    return demoEvents();
+  }
+  return new EventSource("/api/events");
 }

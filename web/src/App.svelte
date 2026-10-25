@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, type Component } from "svelte";
 
   import { pickLanguage } from "./lib/format";
   import { i18n, loadTexts } from "./lib/i18n.svelte";
@@ -9,6 +9,9 @@
   import Shell from "./pages/Shell.svelte";
 
   let ready = $state(false);
+
+  /** In the demo on a small screen: a notice first (demo/MobileNotice). */
+  let Notice = $state<Component<{ onContinue: () => void }> | null>(null);
 
   /** Before the account, the language of the browser; then the settings'.
    * With the login off (SOK_AUTH=none), the app opens without an account. */
@@ -23,6 +26,10 @@
         await loadTexts(browser);
       }
     }
+    if (import.meta.env.MODE === "demo") {
+      const notice = await import("./demo/MobileNotice.svelte");
+      if (notice.needed()) Notice = notice.default;
+    }
     ready = true;
   }
 
@@ -35,7 +42,9 @@
 </script>
 
 {#if ready && session.current}
-  {#if session.current.logged_in}
+  {#if Notice}
+    <Notice onContinue={() => (Notice = null)} />
+  {:else if session.current.logged_in}
     <Shell />
   {:else if !session.current.account}
     <Setup onDone={loggedIn} />
