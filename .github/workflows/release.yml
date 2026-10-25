@@ -132,13 +132,76 @@ jobs:
     with:
       tag: v${{ needs.release.outputs.version }}
 
+  demo:
+    # The demo of S.O.K Server on the website (/demo): built from this version
+    # (npm run build:demo) and put in public/demo on the branch release/vX.Y.Z
+    # of SOKTeam/site, made from its master when there is none; publish then
+    # merges it. Its data (web/src/demo/data.json) are recorded by hand with
+    # scripts/record_demo.py. A demo that fails never holds the release back.
+    name: Demo for the website
+    needs: release
+    if: needs.release.outputs.version != ''
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout the version
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.release.outputs.version }}
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build the demo
+        working-directory: web
+        run: |
+          npm ci
+          npm run build:demo
+
+      - name: Put it on the branch of the website
+        env:
+          GH_TOKEN: ${{ secrets.SITE_TOKEN }}
+          BRANCH: release/v${{ needs.release.outputs.version }}
+          SITE: SOKTeam/site
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "No SITE_TOKEN secret: the demo of the website is not updated."
+            exit 0
+          fi
+          url="https://x-access-token:${GH_TOKEN}@github.com/${SITE}.git"
+          if ! git clone --quiet --branch "$BRANCH" "$url" site 2>/dev/null; then
+            git clone --quiet --branch master "$url" site
+            git -C site checkout --quiet -b "$BRANCH"
+          fi
+          rm -rf site/public/demo
+          cp -r web/dist-demo site/public/demo
+          cd site
+          git add -A public/demo
+          if git diff --cached --quiet; then
+            echo "The demo of the website is already up to date."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit --quiet -m "chore: update the demo of S.O.K Server to v$VERSION"
+          git push --quiet origin "$BRANCH"
+          echo "Demo of v$VERSION put on $BRANCH."
+
   publish:
     # The release is created as a draft (.releaserc.json), so the apps and the
     # website never see it without its packages. It is published once the
     # three builds have attached them and the server image is pushed; if one
     # fails, it stays a draft.
     name: Publish the release
-    needs: [release, linux, windows, macos, docker]
+    needs: [release, linux, windows, macos, docker, demo]
     runs-on: ubuntu-latest
     permissions:
       contents: write

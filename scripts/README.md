@@ -94,7 +94,10 @@ uv run --extra server python scripts/record_demo.py
 cd web && npm run build:demo   # the demo, in web/dist-demo
 ```
 
-Run it again when the API or the web interface changes what it reads.
+Run it **by hand** when the API or the web interface changes what the demo
+reads, and commit `data.json` with that change: the release builds the demo
+and puts it on the website (`demo` job of `release.yml`), but never records
+its data.
 
 ---
 
