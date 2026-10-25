@@ -63,6 +63,18 @@ def test_the_tags_most_tracks_give(tags):
         ("Radiohead - 1997 - OK Computer", "OK Computer", "Radiohead", 1997),
         ("Radiohead - OK Computer [1997]/CD1", "OK Computer", "Radiohead", 1997),
         ("Discovery", "Discovery", None, None),
+        ("Radiohead - OK Computer (1997) [FLAC]", "OK Computer", "Radiohead", 1997),
+        ("Daft Punk - Discovery [2001] [WEB FLAC]", "Discovery", "Daft Punk", 2001),
+        ("Daft Punk - Discovery (2001) (320 kbps)", "Discovery", "Daft Punk", 2001),
+        ("Daft Punk - Discovery {24bit-96kHz}", "Discovery", "Daft Punk", None),
+        ("Discovery [FLAC]", "Discovery", None, None),
+        # Parentheses that are not tags belong to the name of the album.
+        (
+            "Daft Punk - Discovery (Deluxe Edition)",
+            "Discovery (Deluxe Edition)",
+            "Daft Punk",
+            None,
+        ),
     ],
 )
 def test_without_tags_the_folder_names_the_album(tags, folder, album, artist, year):
