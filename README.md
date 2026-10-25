@@ -198,6 +198,9 @@ renames what is Ready; the rest waits for you in the tables. After each
 rename it can post to **Discord**, refresh **Jellyfin** or **Plex**, call a
 **webhook**, or run a **script**.
 
+Try it first in the [live demo](https://sokfromsokteam.vercel.app/demo): the
+real interface with an example library, in your browser, nothing to install.
+
 ```yaml
 services:
   sok-server:

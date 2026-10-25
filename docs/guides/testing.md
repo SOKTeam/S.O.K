@@ -43,8 +43,10 @@ recorded.
 
 The web interface of S.O.K Server has its own tests, with
 [Vitest](https://vitest.dev), next to the code they test
-(`web/src/lib/*.test.ts`): the helpers that need no browser. `svelte-check`
-checks the types of the pages.
+(`web/src/lib/*.test.ts`): the helpers that need no browser. The server of
+the demo has its own (`web/src/demo/server.test.ts`): renames, undo, searches
+and the automatic sorting, with fake timers. `svelte-check` checks the types
+of the pages.
 
 ```sh
 cd web
