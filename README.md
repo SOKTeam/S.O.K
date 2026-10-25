@@ -303,10 +303,23 @@ database, translations and building the Windows, macOS and Linux packages.
   destination folders per media type, files already processed left out
 - S.O.K Server sorts new files automatically once downloaded, then notifies
   Discord, Jellyfin, Plex, a webhook or a script
+- A live demo of S.O.K Server on the website
 
 **➡️ Next**
 
-- Several user accounts on S.O.K Server
+- S.O.K Server: a new season joins the series already in your library, even
+  when its folder is named differently
+- S.O.K Server: check and fix the language of the audio tracks and subtitles
+  of a video
+- Subtitles: the language of a subtitle file found from its text, and the
+  subtitles of a `Subs` folder renamed with their video
+- S.O.K Server: convert videos to MKV, without losing quality
+- S.O.K Server: write the title, year, poster and more into the video files
+
+**🔭 Later**
+
+- S.O.K Server: fetch downloads from a seedbox over SFTP
+- A mobile app for S.O.K Server
 
 ---
 
