@@ -26,6 +26,7 @@ from sok.__version__ import __version__
 from sok.core.security import check_security
 from sok.config.config_manager import log_dir
 from sok.core.desktop_entry import install_desktop_entry
+from sok.ui.platform import use_srgb_windows
 from sok.ui.theme import APP_ICON, load_bundled_fonts
 
 # Add src to path if running from source to find sok package
@@ -63,6 +64,7 @@ def main():
     """
     configure_logging()
     check_security()
+    use_srgb_windows()
     app = QApplication(sys.argv)
 
     app.setApplicationName("S.O.K")

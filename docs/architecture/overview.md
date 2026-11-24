@@ -33,7 +33,10 @@ Built in code with PySide6; no Qt Designer file is loaded at run time.
 
 - `main_window.py`: the window, the sidebar and the page stack. On Windows and
   Linux the window is frameless with its own title bar; on macOS it keeps the
-  native title bar.
+  native title bar, and the windows are tagged sRGB (`use_srgb_windows()` in
+  `platform.py`, called before the application is created) so that macOS
+  converts the theme colors for each screen instead of showing them raw on a
+  wide-gamut one.
 - `pages/`: home, TV shows (`organize_page.py`), music (an Albums and a Tracks
   tab), the batch pages (`batch_page.py` and its movies, books, games and tracks
   subclasses), settings and the history of renames (`history_page.py`).
