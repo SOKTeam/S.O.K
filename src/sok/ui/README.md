@@ -33,6 +33,7 @@ ui/
 ├── workers/             # Asynchronous tasks (QThreads)
 ├── i18n.py              # Translation system
 ├── main_window.py       # Main window (Container)
+├── motion.py            # The few animations and their durations
 ├── responsive.py        # Sizes that follow the window (side column, titles, max width)
 ├── theme.py             # Palettes (dark and light) and theme helpers
 └── tokens.py            # Colors of the art direction (generated)
@@ -52,7 +53,12 @@ hand. The interface supports a dynamic dark mode.
 its big title with `fit_display()`, and hides its decorations below
 `LOW_HEIGHT`, from its `resizeEvent` (see `responsive.py`). Past
 `MAX_CONTENT_WIDTH` the navigation and the pages are centered.
-5. **Modularity**: Prefer creating new components in `components/` rather than
+5. **Motion**: only the moments that change the state of things move (a
+panel coming in or leaving, an item recognized or sorted, the end of a
+rename, the switch to the pick panel, the press of a key), at most 250ms,
+with the helpers of `motion.py`. What is done over and over (moving in a
+list, changing page, typing, scrolling, hovering) never moves.
+6. **Modularity**: Prefer creating new components in `components/` rather than
 overloading page files.
 
 ## Graphic Style

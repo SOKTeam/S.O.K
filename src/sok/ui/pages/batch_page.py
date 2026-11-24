@@ -90,6 +90,7 @@ from sok.ui.controllers.undo import undo_operation
 from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.i18n import tr, trn
 from sok.ui.platform import IS_MACOS, request_attention
+from sok.ui.motion import fade_in
 from sok.ui.responsive import (
     LOW_HEIGHT,
     SidePanel,
@@ -1263,6 +1264,7 @@ class BatchPage(QWidget):
             return
         self._picking = key
         self._right.setCurrentWidget(self._picker)
+        fade_in(self._picker)
         self._refresh_picker()
         self._picker.focus_search()
 
@@ -1272,6 +1274,7 @@ class BatchPage(QWidget):
         entry = self._list.entry(key)
         if entry is not None and entry.status == STATUS_OK:
             self._right.setCurrentWidget(self._scene_scroll)
+            fade_in(self._scene_scroll)
             self._show_scene(entry.key)
         else:
             # Nothing chosen yet: go to the next item.
@@ -1322,6 +1325,7 @@ class BatchPage(QWidget):
         self._picking = None
         self._list.choose(key, index)
         self._right.setCurrentWidget(self._scene_scroll)
+        fade_in(self._scene_scroll)
         self._show_scene(key)
 
     def _leave_current(self) -> None:
@@ -1724,6 +1728,8 @@ class BatchPage(QWidget):
             )
         )
         self._list.set_current(None)
+        # The summary comes in once, at the end: a fade and a small rise.
+        self._summary.arrive()
         # In a narrow window the summary comes over the list.
         self._panel.open()
         self._update_destination()

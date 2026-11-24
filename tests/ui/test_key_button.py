@@ -55,5 +55,12 @@ def test_pressed_face_is_darker(qtbot):
     btn.resize(btn.sizeHint())
 
     btn.setDown(True)
+    btn.pressed.emit()
+    # The face darkens in 90ms.
+    qtbot.waitUntil(lambda: btn._press == 1.0, timeout=1000)
 
     assert pixel(btn, 10, 22) == QColor(Theme.DARK["key-pressed"])
+
+    btn.released.emit()
+    qtbot.waitUntil(lambda: btn._press == 0.0, timeout=1000)
+    assert pixel(btn, 10, 22) == QColor(Theme.DARK["key"])

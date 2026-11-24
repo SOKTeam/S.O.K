@@ -41,6 +41,7 @@ from PySide6.QtGui import (
 
 from sok.ui.platform import IS_MACOS
 from sok.ui.theme import Theme, ui_font
+from sok.ui.motion import PRESS, animate
 from sok.ui.tokens import RADIUS, SPACE
 import logging
 
@@ -401,6 +402,16 @@ class Toggle(QWidget):
         p.drawEllipse(QPointF(cx, radius), knob_r, knob_r)
 
 
+def _mix(a: QColor, b: QColor, t: float) -> QColor:
+    """The color t of the way from a to b."""
+    return QColor(
+        round(a.red() + (b.red() - a.red()) * t),
+        round(a.green() + (b.green() - a.green()) * t),
+        round(a.blue() + (b.blue() - a.blue()) * t),
+        round(a.alpha() + (b.alpha() - a.alpha()) * t),
+    )
+
+
 class KeyButton(QPushButton):
     """The button of the art direction: a flat face lit from above.
 
@@ -450,6 +461,17 @@ class KeyButton(QPushButton):
         # never the blue ring of macOS.
         self.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, False)
         self._keyboard_focus = False
+        # 0 at rest, 1 pressed: the face darkens and settles in 90ms.
+        self._press = 0.0
+        self.pressed.connect(lambda: self._animate_press(1.0))
+        self.released.connect(lambda: self._animate_press(0.0))
+
+    def _animate_press(self, target: float) -> None:
+        animate(self, PRESS, self._set_press, start=self._press, end=target)
+
+    def _set_press(self, value: float) -> None:
+        self._press = value
+        self.update()
 
     def focusInEvent(self, e):  # noqa: N802 - Qt API
         self._keyboard_focus = e.reason() in (
@@ -535,13 +557,11 @@ class KeyButton(QPushButton):
         c = getattr(self.window(), "c", None) or Theme.DARK
         role = "accent" if self._primary else "key"
         shadow = "shadow-key-primary" if self._primary else "shadow-key"
-        pressed = self.isDown()
-        if pressed:
-            face = c[f"{role}-pressed"]
-        elif self._hovered and self.isEnabled():
-            face = c[f"{role}-hover"]
-        else:
-            face = c[role]
+        rest = c[f"{role}-hover"] if self._hovered and self.isEnabled() else c[role]
+        # Between its color at rest and pressed, as the press goes.
+        face_color = _mix(
+            parse_color(rest), parse_color(c[f"{role}-pressed"]), self._press
+        )
         if self._primary:
             ink = c["on-accent"]
         else:
@@ -553,10 +573,11 @@ class KeyButton(QPushButton):
             p.setOpacity(0.4)
         height = self.HEIGHT[self._small]
         face_rect = QRectF(0, 0, self.width(), height)
-        if pressed:
+        if self._press > 0:
+            scale = 1 - (1 - self.PRESSED_SCALE) * self._press
             center = face_rect.center()
             p.translate(center)
-            p.scale(self.PRESSED_SCALE, self.PRESSED_SCALE)
+            p.scale(scale, scale)
             p.translate(-center)
         radius = RADIUS["key-sm"] if self._small else RADIUS["key"]
 
@@ -564,7 +585,7 @@ class KeyButton(QPushButton):
         # Shadow line: the same shape 1px lower, under the face.
         p.setBrush(parse_color(c[f"{shadow}-drop"]))
         p.drawRoundedRect(face_rect.translated(0, 1), radius, radius)
-        p.setBrush(parse_color(face))
+        p.setBrush(face_color)
         p.drawRoundedRect(face_rect, radius, radius)
         # Light line inside the top edge: the face minus itself 1px lower.
         light = QPainterPath()

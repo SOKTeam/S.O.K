@@ -25,6 +25,7 @@ from PySide6.QtGui import QColor, QFont, QKeySequence, QPainter, QShortcut
 from PySide6.QtWidgets import QBoxLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from sok.ui.components.base import KeyButton, parse_color
+from sok.ui.motion import SLIDE_IN, SLIDE_OUT
 from sok.ui.theme import ui_font
 
 # Widest the navigation and the pages get; past it they are centered.
@@ -236,21 +237,36 @@ class SidePanel(QObject):
         self.holder.show()
         self.holder.raise_()
         self.holder.move(self._host.width(), 0)
-        self._slide = QPropertyAnimation(self.holder, b"pos", self)
-        self._slide.setDuration(220)
-        self._slide.setEasingCurve(QEasingCurve.Type.OutCubic)
-        self._slide.setStartValue(QPoint(self._host.width(), 0))
-        self._slide.setEndValue(self._target())
-        self._slide.start()
+        self._slide_to(self._target(), SLIDE_IN, QEasingCurve.Type.OutCubic)
 
     def close(self) -> None:
+        """Slide the column out to the right, a little faster than in."""
         if not self._narrow or not self._open:
             return
         self._open = False
+        self._dim.hide()
+        self._slide_to(
+            QPoint(self._host.width(), 0),
+            SLIDE_OUT,
+            QEasingCurve.Type.InCubic,
+            on_done=self._hide_if_closed,
+        )
+
+    def _hide_if_closed(self) -> None:
+        if not self._open:
+            self.holder.hide()
+
+    def _slide_to(self, end: QPoint, duration: int, curve, on_done=None) -> None:
         if self._slide is not None:
             self._slide.stop()
-        self._dim.hide()
-        self.holder.hide()
+        self._slide = QPropertyAnimation(self.holder, b"pos", self)
+        self._slide.setDuration(duration)
+        self._slide.setEasingCurve(curve)
+        self._slide.setStartValue(self.holder.pos())
+        self._slide.setEndValue(end)
+        if on_done is not None:
+            self._slide.finished.connect(on_done)
+        self._slide.start()
 
     def eventFilter(self, obj, e):  # noqa: N802 - Qt API
         if obj is self._host and e.type() == QEvent.Type.Resize:

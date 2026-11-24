@@ -33,6 +33,7 @@ from PySide6.QtWidgets import QWidget
 
 from sok.ui.components.base import parse_color
 from sok.ui.components.media_visual import rounded, standin_pixmap
+from sok.ui.motion import GAUGE, SORTED, animate
 from sok.ui.theme import Theme, ui_font
 from sok.ui.tokens import RADIUS
 
@@ -92,17 +93,36 @@ PHASE_TONES = {
 }
 
 
-def draw_check(p: QPainter, x: float, center_y: float, color: QColor) -> None:
-    """The 18px check of a sorted item (Lucide "check", 2px)."""
+def draw_check(
+    p: QPainter, x: float, center_y: float, color: QColor, progress: float = 1.0
+) -> None:
+    """The 18px check of a sorted item (Lucide "check", 2px), drawn up to
+    progress (0 to 1): the short stroke, then the long one."""
+    if progress <= 0:
+        return
     pen = QPen(color, 2)
     pen.setCapStyle(Qt.PenCapStyle.RoundCap)
     pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
     p.setPen(pen)
     p.setBrush(Qt.BrushStyle.NoBrush)
     scale = 18 / 24
-    path = QPainterPath(QPointF(x + 20 * scale, center_y + (6 - 12) * scale))
-    path.lineTo(QPointF(x + 9 * scale, center_y + (17 - 12) * scale))
-    path.lineTo(QPointF(x + 4 * scale, center_y + (12 - 12) * scale))
+    points = [
+        QPointF(x + 4 * scale, center_y),
+        QPointF(x + 9 * scale, center_y + 5 * scale),
+        QPointF(x + 20 * scale, center_y - 6 * scale),
+    ]
+    lengths = [
+        ((b.x() - a.x()) ** 2 + (b.y() - a.y()) ** 2) ** 0.5
+        for a, b in zip(points, points[1:])
+    ]
+    left = sum(lengths) * min(1.0, progress)
+    path = QPainterPath(points[0])
+    for (a, b), length in zip(zip(points, points[1:]), lengths):
+        if left <= 0:
+            break
+        share = min(1.0, left / length)
+        path.lineTo(a + (b - a) * share)
+        left -= length
     p.drawPath(path)
 
 
@@ -130,7 +150,7 @@ def small_key_width(text: str) -> int:
 
 
 def draw_gauge(
-    p: QPainter, x: float, center_y: float, filled: int, c: dict[str, str]
+    p: QPainter, x: float, center_y: float, filled: float, c: dict[str, str]
 ) -> float:
     """Draw the five-notch confidence gauge; return its width.
 
@@ -138,12 +158,21 @@ def draw_gauge(
         p: Painter.
         x: Left edge.
         center_y: Vertical center.
-        filled: Filled notches, 0 to 5.
+        filled: Filled notches, 0 to 5; a fraction lights the next notch
+            part of the way (while the gauge fills).
         c: Palette.
     """
     p.setPen(Qt.PenStyle.NoPen)
+    off, on = parse_color(c["line-strong"]), parse_color(c["accent"])
     for i in range(NOTCHES):
-        p.setBrush(parse_color(c["accent"] if i < filled else c["line-strong"]))
+        share = max(0.0, min(1.0, filled - i))
+        color = QColor(
+            round(off.red() + (on.red() - off.red()) * share),
+            round(off.green() + (on.green() - off.green()) * share),
+            round(off.blue() + (on.blue() - off.blue()) * share),
+            round(off.alpha() + (on.alpha() - off.alpha()) * share),
+        )
+        p.setBrush(color)
         p.drawRoundedRect(QRectF(x + i * 6, center_y - 7, 3, 14), 1.5, 1.5)
     return NOTCHES * 6 - 3
 
@@ -219,6 +248,10 @@ class FileRow(QWidget):
         self._thumb: QPixmap | None = None
         self._key_rect = QRectF()
         self._key_hover = False
+        # Shown values of the gauge and of the sorted check, which move to
+        # the data in a short animation (see set_data).
+        self._gauge = float(data.confidence)
+        self._sorted = 1.0 if data.phase == "done" else 0.0
         self.setMouseTracking(True)
         self.setFixedHeight(self.HEIGHT)
         self.setMinimumWidth(320)
@@ -230,8 +263,27 @@ class FileRow(QWidget):
         return self._data
 
     def set_data(self, data: RowData) -> None:
+        old = self._data
         self._data = data
         self._thumb = None
+        # The gauge fills when the item is recognized.
+        if data.confidence > old.confidence and not data.phase:
+            animate(self, GAUGE, self._set_gauge, self._gauge, data.confidence)
+        else:
+            self._gauge = float(data.confidence)
+        # The check draws itself and the thumbnail fades when it is sorted.
+        if data.phase == "done" and old.phase != "done":
+            animate(self, SORTED, self._set_sorted, 0.0, 1.0)
+        elif data.phase != "done":
+            self._sorted = 0.0
+        self.update()
+
+    def _set_gauge(self, value: float) -> None:
+        self._gauge = value
+        self.update()
+
+    def _set_sorted(self, value: float) -> None:
+        self._sorted = value
         self.update()
 
     def set_was_label(self, text: str) -> None:
@@ -314,7 +366,7 @@ class FileRow(QWidget):
         # Thumbnail with a 1px inner line; faded once sorted.
         tx, ty = self.PAD_X, self.PAD_Y
         if d.phase == "done":
-            p.setOpacity(0.55)
+            p.setOpacity(1 - 0.45 * self._sorted)
         p.drawPixmap(tx, ty, self._thumbnail())
         p.setOpacity(1.0)
         p.setBrush(Qt.BrushStyle.NoBrush)
@@ -338,13 +390,13 @@ class FileRow(QWidget):
                 draw_small_key(p, self._key_rect, d.action, c, self._key_hover)
                 state_right = self._key_rect.left() - self.GAP
             elif d.phase == "done":
-                draw_check(p, right - 18, center_y, parse_color(c["ink"]))
+                draw_check(p, right - 18, center_y, parse_color(c["ink"]), self._sorted)
                 state_right = right - 28 - self.GAP
             elif d.phase in ("failed",):
                 state_right = right
             else:
                 gauge_x = right - (NOTCHES * 6 - 3)
-                draw_gauge(p, gauge_x, center_y, max(0, min(NOTCHES, d.confidence)), c)
+                draw_gauge(p, gauge_x, center_y, max(0, min(NOTCHES, self._gauge)), c)
                 state_right = gauge_x - self.GAP
             text_right = state_right
             if d.state:
@@ -361,7 +413,7 @@ class FileRow(QWidget):
         else:
             # Right side: tags then the gauge, measured from the right edge.
             gauge_x = right - (NOTCHES * 6 - 3)
-            draw_gauge(p, gauge_x, center_y, max(0, min(NOTCHES, d.confidence)), c)
+            draw_gauge(p, gauge_x, center_y, max(0, min(NOTCHES, self._gauge)), c)
             x = gauge_x - self.GAP
             tag_widths = [
                 QFontMetrics(ui_font(11, 400, mono=True)).horizontalAdvance(t) + 12
@@ -458,6 +510,7 @@ class CoverTile(QWidget):
     def __init__(self, data: RowData, was_label: str = "was", parent=None):
         super().__init__(parent)
         self._data = data
+        self._sorted = 1.0 if data.phase == "done" else 0.0
         self._selected = False
         self._hovered = False
         self._cover: QPixmap | None = None
@@ -469,7 +522,15 @@ class CoverTile(QWidget):
     def data(self) -> RowData:
         return self._data
 
+    def _set_sorted(self, value: float) -> None:
+        self._sorted = value
+        self.update()
+
     def set_data(self, data: RowData) -> None:
+        if data.phase == "done" and self._data.phase != "done":
+            animate(self, SORTED, self._set_sorted, 0.0, 1.0)
+        elif data.phase != "done":
+            self._sorted = 0.0
         self._data = data
         self._cover = None
         self.update()
@@ -527,7 +588,7 @@ class CoverTile(QWidget):
         size = max(1, self.width() - 2 * ring)
         cover = QRectF(ring, ring, size, size)
         if d.phase == "done":
-            p.setOpacity(0.55)
+            p.setOpacity(1 - 0.45 * self._sorted)
         p.drawPixmap(int(ring), int(ring), self._cover_pixmap(size))
         p.setOpacity(1.0)
         p.setBrush(Qt.BrushStyle.NoBrush)
@@ -556,7 +617,13 @@ class CoverTile(QWidget):
             ),
         )
         if d.phase == "done":
-            draw_check(p, cover.right() - 26, cover.top() + 18, parse_color(c["ink"]))
+            draw_check(
+                p,
+                cover.right() - 26,
+                cover.top() + 18,
+                parse_color(c["ink"]),
+                self._sorted,
+            )
         # During a rename, the state replaces the artist.
         line = d.state if d.phase else (d.note or d.by)
         if line:

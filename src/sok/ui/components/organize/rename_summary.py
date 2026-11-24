@@ -28,6 +28,7 @@ from PySide6.QtWidgets import QBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWid
 from sok.ui.components.base import KeyButton, parse_color
 from sok.ui.components.media_visual import dominant_color, draw_fan, standin_colors
 from sok.ui.components.scene import _Sheet, paint_light
+from sok.ui.motion import SUMMARY, animate, fade_in
 from sok.ui.responsive import LOW_HEIGHT
 from sok.ui.theme import Theme, ui_font
 
@@ -147,6 +148,26 @@ class RenameSummary(QWidget):
         layout.addWidget(self.note)
         layout.addStretch()
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+
+    def arrive(self) -> None:
+        """Come in: fade in while rising 12px (240ms), once per rename."""
+        layout = self.layout()
+        if layout is None:
+            return
+        margins = layout.contentsMargins()
+        top = margins.top()
+
+        def step(t: float) -> None:
+            layout.setContentsMargins(
+                margins.left(),
+                round(top + 12 * (1 - t)),
+                margins.right(),
+                margins.bottom(),
+            )
+            self.light_changed.emit()
+
+        fade_in(self, SUMMARY)
+        animate(self, SUMMARY, step)
 
     def paint_light_into(self, p: QPainter, offset: QPointF, area: QRectF) -> None:
         """Paint this light in another widget, this one at offset there."""

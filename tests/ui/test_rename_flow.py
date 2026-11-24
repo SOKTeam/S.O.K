@@ -207,3 +207,27 @@ class TestPage:
 def test_durations():
     assert duration_text(38) == "38 s"
     assert duration_text(130) == "2 min 10"
+
+
+class TestMotion:
+    def test_a_sorted_row_draws_its_check(self, qtbot):
+        from sok.ui.components.file_row import FileRow, RowData
+
+        row = FileRow(RowData("Dune", phase="waiting"))
+        qtbot.addWidget(row)
+
+        row.set_data(RowData("Dune", phase="done"))
+
+        assert row._sorted < 1.0
+        qtbot.waitUntil(lambda: row._sorted == 1.0, timeout=1000)
+
+    def test_the_gauge_fills_when_recognized(self, qtbot):
+        from sok.ui.components.file_row import FileRow, RowData
+
+        row = FileRow(RowData("Dune"))
+        qtbot.addWidget(row)
+
+        row.set_data(RowData("Dune", confidence=5))
+
+        assert row._gauge < 5
+        qtbot.waitUntil(lambda: row._gauge == 5.0, timeout=1000)
