@@ -20,7 +20,15 @@ confidence gauge.
 from dataclasses import dataclass, field
 
 from PySide6.QtCore import QRectF, QSize, Qt, Signal
-from PySide6.QtGui import QFontMetrics, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtGui import (
+    QColor,
+    QFontMetrics,
+    QLinearGradient,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QPixmap,
+)
 from PySide6.QtWidgets import QWidget
 
 from sok.ui.components.base import parse_color
@@ -46,6 +54,9 @@ class RowData:
         thumbnail: Poster or cover; None draws the stand-in.
         note: Second line written instead of "was <original name>", such as
             "Season 1 · 7 episodes" for a series ("" for none).
+        book: Draw the thumbnail as a book: square corners at the spine,
+            on the left, with its shadow.
+        by_tone: Palette color of the author ("ink-muted" for books).
     """
 
     title: str
@@ -57,6 +68,8 @@ class RowData:
     unknown: bool = False
     thumbnail: QPixmap | None = None
     note: str = ""
+    book: bool = False
+    by_tone: str = "ink-faint"
 
 
 def draw_gauge(
@@ -92,6 +105,30 @@ def draw_tag(
     p.setPen(parse_color(c["ink-muted"]))
     p.drawText(QRectF(x, center_y - 9, width, 18), Qt.AlignmentFlag.AlignCenter, text)
     return width
+
+
+def book_cover(pixmap: QPixmap, width: int, height: int) -> QPixmap:
+    """A thumbnail shaped like a book: corners of 3px at the spine (left)
+    and 6px at the edge, and the shadow of the spine over 4px."""
+    ratio = pixmap.devicePixelRatio() or 1.0
+    out = QPixmap(int(width * ratio), int(height * ratio))
+    out.setDevicePixelRatio(ratio)
+    out.fill(Qt.GlobalColor.transparent)
+    p = QPainter(out)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    path = QPainterPath()
+    path.addRoundedRect(QRectF(0, 0, width, height), 6, 6)
+    spine = QPainterPath()
+    spine.addRoundedRect(QRectF(0, 0, 12, height), 3, 3)
+    path = path.united(spine)
+    p.setClipPath(path)
+    p.drawPixmap(0, 0, pixmap)
+    shadow = QLinearGradient(0, 0, 4, 0)
+    shadow.setColorAt(0, QColor(0, 0, 0, 90))
+    shadow.setColorAt(1, QColor(0, 0, 0, 0))
+    p.fillRect(QRectF(0, 0, 4, height), shadow)
+    p.end()
+    return out
 
 
 class FileRow(QWidget):
@@ -174,6 +211,8 @@ class FileRow(QWidget):
                 self._data.title, "", w, h, ratio
             )
             self._thumb = rounded(source, w, h, 6)
+            if self._data.book:
+                self._thumb = book_cover(self._thumb, w, h)
         return self._thumb
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
@@ -252,7 +291,7 @@ class FileRow(QWidget):
                 d.by, Qt.TextElideMode.ElideRight, int(text_right - x)
             )
             p.setFont(by_font)
-            p.setPen(parse_color(c["ink-faint"]))
+            p.setPen(parse_color(c[d.by_tone]))
             p.drawText(int(x), int(baseline), by)
 
         if d.note:

@@ -580,5 +580,6 @@
     "batch_tracks_one": "{n} Titel",
     "batch_tracks_other": "{n} Titel",
     "batch_more_tracks_one": "+ {n} Titel",
-    "batch_more_tracks_other": "+ {n} Titel"
+    "batch_more_tracks_other": "+ {n} Titel",
+    "batch_books_by_author": "Nach Autor geordnet."
 }

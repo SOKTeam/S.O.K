@@ -399,7 +399,7 @@ class BatchPage(QWidget):
 
     def scene_subtitle(self, item: Any, candidate: Dict[str, Any]) -> str:
         """The muted line under the title on the scene: year and author."""
-        year = getattr(item, "year", None)
+        year = getattr(item, "year", None) or candidate_year(candidate)
         return " · ".join(str(x) for x in (year, self.item_author(item)) if x)
 
     def scene_destination(self, entry: Entry) -> str:
