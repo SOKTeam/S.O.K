@@ -385,6 +385,12 @@ class Scene(QWidget):
         self._warning.setWordWrap(True)
         details.addWidget(self._warning)
 
+        # A widget of the page, such as the episodes of a series.
+        self._extra_slot = QVBoxLayout()
+        self._extra_slot.setContentsMargins(0, 0, 0, 0)
+        details.addLayout(self._extra_slot)
+        self._extra: QWidget | None = None
+
         self._sheet = _Sheet()
         details.addWidget(self._sheet)
 
@@ -412,6 +418,15 @@ class Scene(QWidget):
     def color(self) -> QColor:
         """Dominant color of the item, used for its light."""
         return self._color
+
+    def set_extra(self, widget: QWidget | None) -> None:
+        """Show a widget of the page between the title and the details."""
+        if self._extra is not None:
+            self._extra_slot.removeWidget(self._extra)
+            self._extra.deleteLater()
+        self._extra = widget
+        if widget is not None:
+            self._extra_slot.addWidget(widget)
 
     def set_destination_label(self, text: str) -> None:
         self._destination_label.setText(text)

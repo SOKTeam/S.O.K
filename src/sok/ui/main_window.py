@@ -55,6 +55,7 @@ from sok.ui.pages.home_page import HomePage
 from sok.ui.pages.organize_page import OrganizePage
 from sok.ui.pages.batch_page import BatchPage
 from sok.ui.pages.movies_page import MoviesPage
+from sok.ui.pages.series_page import SeriesPage
 from sok.ui.pages.books_page import BooksPage
 from sok.ui.pages.games_page import GamesPage
 from sok.ui.pages.music_page import MusicPage
@@ -280,7 +281,7 @@ class MainWindow(QMainWindow):
         home_page.open_group.connect(self._open_group)
         self._pages.addWidget(home_page)
 
-        self._pages.addWidget(OrganizePage("video"))
+        self._pages.addWidget(SeriesPage())
         self._pages.addWidget(MoviesPage())
         self._pages.addWidget(MusicPage())
         self._pages.addWidget(BooksPage())

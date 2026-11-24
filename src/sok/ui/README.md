@@ -24,7 +24,8 @@ ui/
 │   └── window.py        # Window controls (Custom title bar)
 ├── pages/               # Main application pages
 │   ├── home_page.py     # Dashboard
-│   ├── organize_page.py # Generic organization page
+│   ├── organize_page.py # One-item page (the Albums tab of Music)
+│   ├── series_page.py   # TV shows, several series at once
 │   └── settings_page.py # Settings page
 ├── workers/             # Asynchronous tasks (QThreads)
 ├── i18n.py              # Translation system

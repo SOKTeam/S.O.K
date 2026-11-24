@@ -8,21 +8,23 @@ description:
 Renaming happens on two kinds of pages:
 
 - **Batch pages**, where every file (or group of files) gets its own online
-  item: Movies, Books, Games and the Tracks tab of Music.
+  item: Movies, TV shows (a row per series), Books, Games and the Tracks tab of
+  Music.
 - **One-item pages**, where all the files belong to one item chosen by the user:
-  TV shows (one series) and the Albums tab of Music (one album).
+  the Albums tab of Music (one album).
 
 The batch engine, `sok.core.batch`, has no Qt dependency: S.O.K Server will use
 it as it is.
 
 ## Batch pages
 
-| Page   | One row is                           | Organized by                                |
-| ------ | ------------------------------------ | ------------------------------------------- |
-| Movies | a video file                         | `VideoFileOperations.organize_movies_batch` |
-| Books  | a book file                          | `BookFileOperations.organize_items_batch`   |
-| Games  | a ROM, or the .cue/.bin files of one | `GameFileOperations.organize_items_batch`   |
-| Tracks | an audio file                        | `MusicFileOperations.organize_items_batch`  |
+| Page     | One row is                           | Organized by                                                    |
+| -------- | ------------------------------------ | --------------------------------------------------------------- |
+| Movies   | a video file                         | `VideoFileOperations.organize_movies_batch`                     |
+| TV shows | the episodes of one series           | `VideoFileOperations.organize_files_list`, one series at a time |
+| Books    | a book file                          | `BookFileOperations.organize_items_batch`                       |
+| Games    | a ROM, or the .cue/.bin files of one | `GameFileOperations.organize_items_batch`                       |
+| Tracks   | an audio file                        | `MusicFileOperations.organize_items_batch`                      |
 
 Each page is a subclass of `BatchPage` (`sok/ui/pages/batch_page.py`), which
 holds the list, the scene, the workers and the buttons. A subclass only sets
@@ -131,12 +133,15 @@ where `batch_target(item, file, alone)` says:
 The platform of a game comes from a `[SNES]` tag, the extension or the folder
 name (`GameFileOperations.detect_platform`).
 
-## One-item pages
+## TV shows
 
-On TV shows and Albums, the user searches and selects one series or one album
-(`SearchWorker`, then `DetailsWorker` for the episodes or the tracks). The page
-builds the item, and `OrganizeWorker` calls `organize_files_list` of the file
-operations:
+The TV shows page (`sok/ui/pages/series_page.py`, a `BatchPage`) groups the
+dropped episodes by series with the type detector of the home page
+(`group_by_series`) and searches each series with `parse_series`, like S.O.K
+Server. Once a series is Ready, `DetailsWorker` loads its seasons and the titles
+of its episodes, one series at a time; the list then shows the episodes under
+the selected series, and the scene a square per episode of each season.
+Renaming calls `organize_files_list` for each series:
 
 - **TV shows** (`VideoFileOperations.organize_files_list`): the files go to
   `Series/Season N/`, or to a season folder that already exists in the
@@ -148,6 +153,13 @@ operations:
   ("Season 2", or "Season 2 - The Return" when the season has a name of its
   own), and `fetch_episode_titles()` reads the episodes of each season
   (`S01E01` → title); a season that fails is skipped.
+
+## One-item pages
+
+On Albums, the user searches and selects one album (`SearchWorker`, then
+`DetailsWorker` for the tracks). The page builds the item, and
+`OrganizeWorker` calls `organize_files_list` of the file operations:
+
 - **Albums**: each track is named from the music format, with the artist, album
   and year of the album found online, and the title and number of its tags (or
   of its file name).

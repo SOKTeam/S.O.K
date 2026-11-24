@@ -44,6 +44,8 @@ class RowData:
         confidence: Filled notches, 0 to 5.
         unknown: Not recognized: the title is written in the caution color.
         thumbnail: Poster or cover; None draws the stand-in.
+        note: Second line written instead of "was <original name>", such as
+            "Season 1 · 7 episodes" for a series ("" for none).
     """
 
     title: str
@@ -54,6 +56,7 @@ class RowData:
     confidence: int = 0
     unknown: bool = False
     thumbnail: QPixmap | None = None
+    note: str = ""
 
 
 def draw_gauge(
@@ -252,7 +255,15 @@ class FileRow(QWidget):
             p.setPen(parse_color(c["ink-faint"]))
             p.drawText(int(x), int(baseline), by)
 
-        if d.was:
+        if d.note:
+            note_font = ui_font(14)
+            note = QFontMetrics(note_font).elidedText(
+                d.note, Qt.TextElideMode.ElideRight, int(available)
+            )
+            p.setFont(note_font)
+            p.setPen(parse_color(c["ink-muted"]))
+            p.drawText(int(left), int(center_y + 16), note)
+        elif d.was:
             was_font = ui_font(12, 400, mono=True)
             was = QFontMetrics(was_font).elidedText(
                 f"{self._was_label} {d.was}",

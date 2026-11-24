@@ -58,6 +58,8 @@ def one_item_per_file(files: List[Path]) -> List[List[Path]]:
 
 # Turns an entry into what its row shows.
 MakeRow = Callable[["Entry"], RowData]
+# What the selected row shows under it (the episodes of a series), or None.
+MakeDetail = Callable[["Entry"], Optional[QWidget]]
 
 
 @dataclass
@@ -129,6 +131,7 @@ class MediaList(QWidget):
         file_extensions: Optional[List[str]] = None,
         describe: Describe = describe_dated,
         group_files: GroupFiles = one_item_per_file,
+        make_detail: Optional[MakeDetail] = None,
         parent: Optional[QWidget] = None,
     ):
         """Build an empty list.
@@ -138,6 +141,7 @@ class MediaList(QWidget):
             file_extensions: Accepted extensions (with the dot) for drops.
             describe: Text of a candidate, for the pick list of the scene.
             group_files: Splits added files into items.
+            make_detail: What the selected row shows under it, if anything.
             parent: Parent widget.
         """
         super().__init__(parent)
@@ -151,6 +155,8 @@ class MediaList(QWidget):
         self._owner: Dict[Path, Path] = {}
         self._current: Optional[Path] = None
         self._was_label = "was"
+        self._make_detail = make_detail
+        self._detail: Optional[QWidget] = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -189,6 +195,9 @@ class MediaList(QWidget):
         """Remove every item."""
         for row in self._rows.values():
             row.deleteLater()
+        if self._detail is not None:
+            self._detail.deleteLater()
+            self._detail = None
         self._entries.clear()
         self._rows.clear()
         self._owner.clear()
@@ -249,11 +258,29 @@ class MediaList(QWidget):
         return bool(self._entries)
 
     def refresh_row(self, key: Path) -> None:
-        """Draw a row again from its entry."""
+        """Draw a row again from its entry, and its detail if selected."""
         row = self._rows.get(key)
         entry = self._entries.get(key)
         if row and entry:
             row.set_data(self._make_row(entry))
+            if key == self._current:
+                self._show_detail()
+
+    def _show_detail(self) -> None:
+        """Put the detail of the selected row under it."""
+        if self._detail is not None:
+            self._rows_layout.removeWidget(self._detail)
+            self._detail.deleteLater()
+            self._detail = None
+        entry = self._entries.get(self._current) if self._current else None
+        if entry is None or self._make_detail is None:
+            return
+        detail = self._make_detail(entry)
+        if detail is None:
+            return
+        index = self._rows_layout.indexOf(self._rows[entry.key])
+        self._rows_layout.insertWidget(index + 1, detail)
+        self._detail = detail
 
     def refresh_rows(self) -> None:
         for key in self._entries:
@@ -271,6 +298,7 @@ class MediaList(QWidget):
         self._current = key
         for k, row in self._rows.items():
             row.set_selected(k == key)
+        self._show_detail()
         if key is not None and key in self._rows:
             self._scroll.ensureWidgetVisible(self._rows[key])
         self.current_changed.emit(key)

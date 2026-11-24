@@ -36,6 +36,8 @@ from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QKeySequence, QPainter, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QFileDialog,
+    QFrame,
+    QScrollArea,
     QHBoxLayout,
     QLabel,
     QMessageBox,
@@ -50,6 +52,7 @@ from sok.core.batch import (
     STATUS_AMBIGUOUS,
     STATUS_MISSING,
     BatchMatch,
+    candidate_year,
     QueryParser,
     SameWork,
 )
@@ -103,6 +106,22 @@ KIND_TEXTS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         ),
         "action": ("batch_action_movies", "Sort the movies"),
         "pick": ("batch_pick_movies", "Which movie is it?"),
+    },
+    "series": {
+        "title": (
+            "batch_title_series",
+            "{n} episode to sort.",
+            "{n} episodes to sort.",
+        ),
+        "done": ("batch_done_series", "{n} episode sorted.", "{n} episodes sorted."),
+        "empty_title": ("batch_empty_title_series", "No episodes to sort."),
+        "empty_text": (
+            "batch_empty_text_series",
+            "Drop a folder of episodes here. S.O.K groups them by series, "
+            "finds the title of each episode, then files them by season.",
+        ),
+        "action": ("batch_action_series", "Sort the episodes"),
+        "pick": ("batch_pick_series", "Which series is it?"),
     },
     "books": {
         "title": ("batch_title_books", "{n} book to sort.", "{n} books to sort."),
@@ -336,6 +355,28 @@ class BatchPage(QWidget):
         """Message when no item is ready."""
         return tr("nothing_ready", "No file is ready to rename.")
 
+    def count_of(self, entry: Entry) -> int:
+        """How much an item counts in the sentences: 1, or its files."""
+        return 1
+
+    def lead_prefix(self, entries: List[Entry]) -> List[str]:
+        """Sentences put first in the line under the title."""
+        return []
+
+    def row_detail(self, entry: Entry) -> Optional[QWidget]:
+        """What the selected row shows under it (None for nothing)."""
+        return None
+
+    def scene_subtitle(self, item: Any, candidate: Dict[str, Any]) -> str:
+        """The muted line under the title on the scene: year and author."""
+        year = getattr(item, "year", None)
+        return " · ".join(str(x) for x in (year, self.item_author(item)) if x)
+
+    def scene_destination(self, entry: Entry) -> str:
+        """The final path shown under "Will be stored here"."""
+        dest = self._dest_drop.get_path()
+        return str(dest / entry.new_name) if dest and entry.new_name else ""
+
     def item_author(self, item: Any) -> str:
         """Author, artist or platform written after the title."""
         for attr in ("author", "artist"):
@@ -438,6 +479,7 @@ class BatchPage(QWidget):
             file_extensions=self._ops.supported_extensions,
             describe=self.describe,
             group_files=self.group_files,
+            make_detail=self.row_detail,
         )
         self._list.row_changed.connect(self._refresh_previews_and_action)
         self._list.row_rescan_requested.connect(self._rescan_row)
@@ -489,7 +531,15 @@ class BatchPage(QWidget):
         self._picker.search.connect(self._on_picker_search)
         self._picker.chosen.connect(self._on_picker_chosen)
         self._picker.cancelled.connect(self._close_picker)
-        self._right.addWidget(self._scene)
+        # Scrolls when the window is too low for the poster and the details.
+        self._scene_scroll = QScrollArea()
+        self._scene_scroll.setWidgetResizable(True)
+        self._scene_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._scene_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self._scene_scroll.setWidget(self._scene)
+        self._right.addWidget(self._scene_scroll)
         self._right.addWidget(self._picker)
         columns.addWidget(self._right)
         return screen
@@ -807,7 +857,7 @@ class BatchPage(QWidget):
             self._refresh_picker()
         else:
             self._picking = None
-            self._right.setCurrentWidget(self._scene)
+            self._right.setCurrentWidget(self._scene_scroll)
             self._show_scene(entry.key)
 
     def _show_scene(self, key: Path) -> None:
@@ -825,12 +875,10 @@ class BatchPage(QWidget):
                 )
             )
             return
-        year = getattr(item, "year", None)
-        author = self.item_author(item)
-        subtitle = " · ".join(str(x) for x in (year, author) if x)
+        year = getattr(item, "year", None) or candidate_year(entry.candidate or {})
+        subtitle = self.scene_subtitle(item, entry.candidate or {})
         url = sized_image_url(getattr(item, "poster_url", None), "scene")
-        dest = self._dest_drop.get_path()
-        destination = str(dest / entry.new_name) if dest and entry.new_name else ""
+        destination = self.scene_destination(entry)
         self._scene.set_item(
             SceneItem(
                 item.title,
@@ -891,7 +939,7 @@ class BatchPage(QWidget):
         self._picking = None
         entry = self._list.entry(key)
         if entry is not None and entry.status == STATUS_OK:
-            self._right.setCurrentWidget(self._scene)
+            self._right.setCurrentWidget(self._scene_scroll)
             self._show_scene(entry.key)
         else:
             # Nothing chosen yet: go to the next item.
@@ -941,7 +989,7 @@ class BatchPage(QWidget):
             return
         self._picking = None
         self._list.choose(key, index)
-        self._right.setCurrentWidget(self._scene)
+        self._right.setCurrentWidget(self._scene_scroll)
         self._show_scene(key)
 
     def _leave_current(self) -> None:
@@ -968,17 +1016,24 @@ class BatchPage(QWidget):
         self._update_summary()
         self._refresh_action_state()
         key = self._list.current()
-        if key is not None and self._right.currentWidget() is self._scene:
+        if key is not None and self._right.currentWidget() is self._scene_scroll:
             self._show_scene(key)
 
     def _refresh_action_state(self) -> None:
-        ready = len(self._list.get_ready_mappings())
+        ready = sum(
+            self.count_of(e)
+            for e in self._list.entries()
+            if e.status == STATUS_OK and e.candidate
+        )
         self._action_btn.set_count(ready if ready else None)
         has_dest = self._dest_drop.get_path() is not None
         self._action_btn.setEnabled(bool(ready) and has_dest)
 
     def _update_summary(self) -> None:
-        counts = self._list.count_by_status()
+        entries = self._list.entries()
+        counts: Dict[str, int] = {}
+        for entry in entries:
+            counts[entry.status] = counts.get(entry.status, 0) + self.count_of(entry)
         total = sum(counts.values())
         self._title_lbl.setText(self._text("title", total))
         parts = []
@@ -991,6 +1046,7 @@ class BatchPage(QWidget):
                     f"{display_path(folder)}</span>"
                 )
             )
+        parts.extend(self.lead_prefix(entries))
         pending = counts.get(STATUS_PENDING, 0)
         if pending:
             parts.append(
