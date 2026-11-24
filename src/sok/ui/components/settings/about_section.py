@@ -10,7 +10,7 @@
 # ===----------------------------------------------------------------------=== #
 """About section for settings page.
 
-The version in Geist Mono, a box for the update check and one for Discord,
+The version in Geist Mono, a switch for the update check and one for Discord,
 and the key that resets every setting.
 """
 
@@ -22,11 +22,11 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QMessageBox, QVBoxLayout, QWi
 from sok.__version__ import __version__
 from sok.ui import message_box
 from sok.ui.components.base import KeyButton
-from sok.ui.components.settings.layout import CheckBox, CheckLine, Lines
+from sok.ui.components.settings.layout import Switch, SwitchLine, Lines
 from sok.ui.i18n import tr
 from sok.ui.theme import ui_font
 
-# (translation key, default, setting) of each box.
+# (translation key, default, setting) of each switch.
 OPTIONS = [
     ("check_updates", "Check for updates", "check_updates"),
     ("discord_rpc", "Discord Rich Presence", "use_discord_rpc"),
@@ -45,8 +45,8 @@ class AboutSection(QWidget):
     def __init__(self, config, parent=None):
         super().__init__(parent)
         self._config = config
-        self._toggles: Dict[str, CheckBox] = {}
-        self._lines: Dict[str, CheckLine] = {}
+        self._toggles: Dict[str, Switch] = {}
+        self._lines: Dict[str, SwitchLine] = {}
         self._build()
 
     def _build(self):
@@ -71,7 +71,7 @@ class AboutSection(QWidget):
         lines.add(version)
 
         for _tr_key, _default, config_key in OPTIONS:
-            line = CheckLine()
+            line = SwitchLine()
             line.box.toggled.connect(
                 lambda checked, k=config_key: self._config.set(k, checked)
             )

@@ -36,7 +36,6 @@ from sok.ui import message_box
 from sok.ui.components.base import parse_color
 from sok.ui.components.integrations.oauth import OAuthManager
 from sok.ui.components.settings.about_section import AboutSection
-from sok.ui.components.settings.api_preferences_section import ApiPreferencesSection
 from sok.ui.components.settings.api_section import ApiSection
 from sok.ui.components.settings.appearance_section import AppearanceSection
 from sok.ui.components.settings.behavior_section import BehaviorSection
@@ -117,7 +116,6 @@ class SettingsPage(QWidget):
         self.paths_section = PathsSection(self._config)
         self.formats_section = FormatsSection(self._config)
         self.api_section = ApiSection(self._config, self._oauth)
-        self.api_pref_section = ApiPreferencesSection(self._config)
         self.appearance_section = AppearanceSection(self._config)
         self.behavior_section = BehaviorSection(self._config)
         self.input_formats_section = InputFormatsSection(self._config)
@@ -131,7 +129,6 @@ class SettingsPage(QWidget):
         self._sources_note.setObjectName("SettingHint")
         self._sources_note.setWordWrap(True)
         sources_layout.addWidget(self.api_section)
-        sources_layout.addWidget(self.api_pref_section)
         sources_layout.addWidget(self._sources_note)
 
         # (translation key, default, body) of each section, in order.
@@ -172,7 +169,6 @@ class SettingsPage(QWidget):
             self.paths_section,
             self.formats_section,
             self.api_section,
-            self.api_pref_section,
             self.appearance_section,
             self.behavior_section,
             self.input_formats_section,

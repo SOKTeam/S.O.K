@@ -8,17 +8,17 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-"""File names section: the name model of each media type.
+"""File names section: the name model of each media type, as a dotted sheet.
 
-A row of keys picks the type (Movies, TV shows, Music, Books, Games); under
-it, its model in one field and its variables, a click on one inserting it.
-The preview of the settings screen follows the model as it is typed.
+A line per type (Movies, TV shows, Music, Books, Games) with its model; a
+click opens it to edit the model, its variables under the field. The
+preview of the settings screen follows the line open, as it is typed.
 """
 
 from string import Formatter
 from typing import Dict, List, NamedTuple
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
 )
 
 from sok.config.config_manager import AppConfig
-from sok.ui.components.settings.layout import CheckBox, Choice, VariableChip
+from sok.ui.components.settings.layout import SheetRow, VariableChip
 from sok.ui.i18n import tr
 from sok.ui.theme import ui_font
 
@@ -39,8 +39,6 @@ class NameModel(NamedTuple):
     config_key: str
     tr_key: str  # word of the type, as in the navigation
     default: str
-    label_key: str
-    label: str
     variables: List[str]
 
 
@@ -49,40 +47,30 @@ MODELS: List[NameModel] = [
         "movie_format",
         "movies",
         "Movies",
-        "settings_model_movies",
-        "Model for movies",
         ["title", "year", "quality"],
     ),
     NameModel(
         "video_format",
         "tv_shows",
         "TV Shows",
-        "settings_model_series",
-        "Model for TV shows",
         ["title", "season", "episode", "episode_title"],
     ),
     NameModel(
         "music_format",
         "music",
         "Music",
-        "settings_model_music",
-        "Model for music",
         ["artist", "album", "track", "title", "year"],
     ),
     NameModel(
         "book_format",
         "books",
         "Books",
-        "settings_model_books",
-        "Model for books",
         ["author", "title", "year", "series", "series_number"],
     ),
     NameModel(
         "game_format",
         "games",
         "Games",
-        "settings_model_games",
-        "Model for games",
         ["title", "year", "platform", "tags"],
     ),
 ]
@@ -127,11 +115,16 @@ def model_error(model: str, variables: List[str]) -> str:
 
 
 class FormatsSection(QWidget):
-    """The name model of each media type.
+    """The name model of each media type, as a dotted sheet.
+
+    A line per type: its name, then its model in Geist Mono. A click opens
+    the line: the field of the model, its variables in faint text (a click
+    inserts one), why it cannot be used, and a note when it gives the names
+    of Plex, Jellyfin and Kodi.
 
     Signals:
         model_changed(str, str): Setting and text of the model shown, at
-            each key typed or type chosen.
+            each key typed or line opened.
     """
 
     model_changed = Signal(str, str)
@@ -139,113 +132,118 @@ class FormatsSection(QWidget):
     def __init__(self, config, parent=None):
         super().__init__(parent)
         self._config = config
+        self._key = MODELS[0].config_key
+        self._editing = False  # a line is open
+        self._rows: Dict[str, SheetRow] = {}
         self._chips: Dict[str, QWidget] = {}
         self._build()
 
     def _build(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(14)
+        layout.setSpacing(6)
+        for model in MODELS:
+            row = SheetRow(mono_value=True)
+            row.clicked.connect(lambda k=model.config_key: self._toggle(k))
+            self._rows[model.config_key] = row
+            layout.addWidget(row)
 
-        self._choice = Choice([m.config_key for m in MODELS])
-        self._choice.chosen.connect(self._show_model)
-        layout.addWidget(self._choice)
-
-        field = QVBoxLayout()
-        field.setSpacing(8)
-        self._label = QLabel()
-        self._label.setObjectName("SettingMuted")
-        self._label.setFont(ui_font(14))
+        # One editor, moved into the line that is open.
+        self._editor = QWidget()
+        editor = QVBoxLayout(self._editor)
+        editor.setContentsMargins(0, 4, 0, 0)
+        editor.setSpacing(8)
         self._input = QLineEdit()
         self._input.setFont(ui_font(14, 400, mono=True))
         self._input.textChanged.connect(self._typed)
         self._input.editingFinished.connect(self._save)
-        field.addWidget(self._label)
-        field.addWidget(self._input)
-        layout.addLayout(field)
-
+        editor.addWidget(self._input)
         for model in MODELS:
-            row = QWidget()
-            row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(0, 0, 0, 0)
-            row_layout.setSpacing(6)
+            line = QWidget()
+            line_layout = QHBoxLayout(line)
+            line_layout.setContentsMargins(0, 0, 0, 0)
+            line_layout.setSpacing(12)
             for variable in model.variables:
                 chip = VariableChip("{" + variable + "}")
                 chip.picked.connect(self._insert)
-                row_layout.addWidget(chip)
-            row_layout.addStretch()
-            row.setVisible(False)
-            self._chips[model.config_key] = row
-            layout.addWidget(row)
-
+                line_layout.addWidget(chip)
+            line_layout.addStretch()
+            self._chips[model.config_key] = line
+            editor.addWidget(line)
         self._error = QLabel()
         self._error.setFont(ui_font(13))
         self._error.setProperty("tone", "warn")
-        self._error.setVisible(False)
-        layout.addWidget(self._error)
-
-        # A statement, not a setting: the box cannot be clicked.
-        self._compatible = QWidget()
-        line = QHBoxLayout(self._compatible)
-        line.setContentsMargins(0, 0, 0, 0)
-        line.setSpacing(10)
-        box = CheckBox()
-        box.setChecked(True)
-        box.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self._compatible_text = QLabel()
-        self._compatible_text.setObjectName("SettingText")
-        self._compatible_text.setFont(ui_font(14))
-        line.addWidget(box)
-        line.addWidget(self._compatible_text, 1)
-        layout.addWidget(self._compatible)
-
-        self._choice.set_value(MODELS[0].config_key)
+        editor.addWidget(self._error)
+        self._compatible = QLabel()
+        self._compatible.setObjectName("SettingHint")
+        self._compatible.setFont(ui_font(13))
+        editor.addWidget(self._compatible)
+        self._editor.setVisible(False)
 
     # ------------------------------------------------------------ Models
 
     def current(self) -> NameModel:
-        key = self._choice.value() or MODELS[0].config_key
-        return next(m for m in MODELS if m.config_key == key)
+        return next(m for m in MODELS if m.config_key == self._key)
 
     def text(self) -> str:
-        return self._input.text()
+        if self._editing:
+            return self._input.text()
+        return self._config.get(self._key, "") or ""
 
-    def _show_model(self, config_key: str) -> None:
+    def _toggle(self, config_key: str) -> None:
+        """Open a line, or close it if it is the open one."""
+        row = self._rows[config_key]
         self._save()
-        self._choice.set_value(config_key)
-        model = self.current()
-        for key, row in self._chips.items():
-            row.setVisible(key == config_key)
-        self._label.setText(tr(model.label_key, model.label))
+        if row.is_open():
+            row.set_open(False)
+            self._editor.setVisible(False)
+            self._editing = False
+            self._show_values()
+            return
+        for other in self._rows.values():
+            other.set_open(False)
+        self._key = config_key
+        row.details_layout.addWidget(self._editor)
+        for key, line in self._chips.items():
+            line.setVisible(key == config_key)
         self._input.blockSignals(True)
         self._input.setText(self._config.get(config_key, "") or "")
         self._input.blockSignals(False)
+        self._editor.setVisible(True)
+        self._editing = True
+        row.set_open(True)
+        self._show_values()
         self._typed()
+        self._input.setFocus()
+
+    def _show_values(self) -> None:
+        for key, row in self._rows.items():
+            if not (row.is_open() and self._editing):
+                row.value.setText(self._config.get(key, "") or "")
 
     def _typed(self, *_args) -> None:
         model = self.current()
         text = self._input.text()
         error = model_error(text, allowed_variables(model))
-        valid = not error
         self._error.setText(error)
-        self._error.setVisible(not valid)
+        self._error.setVisible(bool(error))
         self._compatible.setVisible(
-            valid
+            not error
             and model.config_key in MEDIA_SERVER_MODELS
             and text.strip() == default_model(model.config_key)
         )
+        self._rows[model.config_key].value.setText(text)
         self.model_changed.emit(model.config_key, text)
 
     def _save(self) -> None:
-        """Save the model shown, if it can be filled."""
+        """Save the model being edited, if it can be filled."""
+        if not self._editing:
+            return
         model = self.current()
-        key = model.config_key
         text = self._input.text().strip()
-        if not model_error(text, allowed_variables(model)) and text != self._config.get(
-            key, ""
-        ):
-            self._config.set(key, text)
+        error = model_error(text, allowed_variables(model))
+        if not error and text != self._config.get(model.config_key, ""):
+            self._config.set(model.config_key, text)
 
     def _insert(self, variable: str) -> None:
         self._input.insert(variable)
@@ -253,11 +251,18 @@ class FormatsSection(QWidget):
         self._save()
 
     def load(self):
-        self._show_model(self.current().config_key)
+        if self._editing:
+            self._input.blockSignals(True)
+            self._input.setText(self._config.get(self._key, "") or "")
+            self._input.blockSignals(False)
+            self._typed()
+        self._show_values()
+        self.model_changed.emit(self._key, self.text())
 
     def retranslate(self):
-        self._choice.set_texts(tr(m.tr_key, m.default) for m in MODELS)
-        self._compatible_text.setText(
+        for model in MODELS:
+            self._rows[model.config_key].name.setText(tr(model.tr_key, model.default))
+        self._compatible.setText(
             tr("settings_media_servers", "Compatible with Plex, Jellyfin and Kodi")
         )
         self.load()

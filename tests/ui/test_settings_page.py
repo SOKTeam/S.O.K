@@ -18,7 +18,7 @@ from sok.ui.components.settings.formats_section import (
     allowed_variables,
     model_error,
 )
-from sok.ui.components.settings.layout import CheckBox, Choice
+from sok.ui.components.settings.layout import Choice, Switch
 from sok.ui.components.settings.paths_section import PathsSection
 from sok.ui.components.settings.preview import _CLOSE, _OPEN, preview_parts
 
@@ -85,45 +85,58 @@ class TestPreviewParts:
         assert preview_parts("book_format", "{series}") == []
 
 
+@pytest.fixture
+def formats(qtbot, config):
+    section = FormatsSection(config)
+    qtbot.addWidget(section)
+    section.retranslate()
+    return section
+
+
 class TestFormatsSection:
-    def test_choosing_a_type_shows_its_model(self, qtbot, config):
-        section = FormatsSection(config)
-        qtbot.addWidget(section)
-        section.retranslate()
+    def test_every_model_is_a_line_with_its_value(self, formats, config):
+        for model in MODELS:
+            assert formats._rows[model.config_key].value.text() == config.get(
+                model.config_key
+            )
 
-        section._show_model("book_format")
+    def test_a_click_opens_the_line_and_its_field(self, formats, config):
+        formats._toggle("book_format")
 
-        assert section.text() == config.get("book_format")
+        assert formats._rows["book_format"].is_open()
+        assert formats._input.text() == config.get("book_format")
+        assert formats.current().config_key == "book_format"
 
-    def test_a_valid_model_is_saved(self, qtbot, config):
-        section = FormatsSection(config)
-        qtbot.addWidget(section)
-        section.retranslate()
+    def test_opening_a_line_closes_the_other(self, formats):
+        formats._toggle("book_format")
+        formats._toggle("game_format")
 
-        section._input.setText("{title} [{year}]")
-        section._save()
+        assert not formats._rows["book_format"].is_open()
+        assert formats._rows["game_format"].is_open()
+
+    def test_a_valid_model_is_saved_and_shown_on_its_line(self, formats, config):
+        formats._toggle("movie_format")
+        formats._input.setText("{title} [{year}]")
+        formats._toggle("movie_format")  # closing saves
 
         assert config.get("movie_format") == "{title} [{year}]"
+        assert formats._rows["movie_format"].value.text() == "{title} [{year}]"
 
-    def test_an_invalid_model_is_not_saved(self, qtbot, config):
-        section = FormatsSection(config)
-        qtbot.addWidget(section)
-        section.retranslate()
+    def test_an_invalid_model_is_not_saved(self, formats, config):
         before = config.get("movie_format")
+        formats._toggle("movie_format")
 
-        section._input.setText("{title} {director}")
-        section._save()
+        formats._input.setText("{title} {director}")
+        formats._save()
 
         assert config.get("movie_format") == before
-        assert not section._error.isHidden()
+        assert not formats._error.isHidden()
 
-    def test_a_variable_is_inserted_at_the_cursor(self, qtbot, config):
-        section = FormatsSection(config)
-        qtbot.addWidget(section)
-        section.retranslate()
-        section._input.setText("{title} ")
+    def test_a_variable_is_inserted_at_the_cursor(self, formats, config):
+        formats._toggle("movie_format")
+        formats._input.setText("{title} ")
 
-        section._insert("{quality}")
+        formats._insert("{quality}")
 
         assert config.get("movie_format") == "{title} {quality}"
 
@@ -142,8 +155,8 @@ class TestPathsSection:
 
 
 class TestWidgets:
-    def test_checkbox_toggles_and_emits(self, qtbot):
-        box = CheckBox()
+    def test_switch_toggles_and_emits(self, qtbot):
+        box = Switch()
         qtbot.addWidget(box)
         seen = []
         box.toggled.connect(seen.append)

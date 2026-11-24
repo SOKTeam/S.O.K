@@ -8,14 +8,16 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-"""API connection section for settings page.
+"""Sources section of the settings: the services S.O.K searches.
 
-Manages API key input, OAuth authentication flows, and connection
-status for all supported media services.
+A dotted sheet per type of media, a line per service with its state at the
+end ("Built-in key", "Your key", "Connected", "To set up", "Free") and
+"preferred" on the one searched first. A click opens the line: what the
+service gives, its key field or its connect keys, and "Search it first".
 """
 
 import webbrowser
-from typing import Dict
+from typing import Dict, List
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -24,8 +26,8 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
 )
-from sok.ui.components.base import ActionButton
-from sok.ui.components.settings.layout import Lines
+from sok.ui.components.base import KeyButton
+from sok.ui.components.settings.layout import SheetRow
 from sok.ui.i18n import tr
 from sok.ui.theme import set_tone
 from sok.ui import message_box
@@ -45,6 +47,16 @@ from sok.config.api_registry import get_service
 from PySide6.QtWidgets import QInputDialog
 from sok.config.api_registry import get_all_services
 from sok.core.media_manager import reset_media_manager
+
+OAUTH_TYPES = (AuthType.OAUTH, AuthType.BEARER, AuthType.SESSION)
+
+# The setting of the service searched first, by type of media.
+PREFERRED_KEYS = {
+    "video": "preferred_api_video",
+    "music": "preferred_api_music",
+    "books": "preferred_api_books",
+    "games": "preferred_api_games",
+}
 
 
 class ApiSection(QWidget):
@@ -66,6 +78,10 @@ class ApiSection(QWidget):
         self._config = config
         self._oauth = oauth_manager
         self._api_cat_labels: Dict[str, QLabel] = {}
+        self._rows: Dict[str, SheetRow] = {}
+        self._abouts: List[QLabel] = []
+        self._keys: List[KeyButton] = []
+        self._prefer_keys: Dict[str, KeyButton] = {}
         self._build()
         self._wire_oauth()
 
@@ -76,55 +92,26 @@ class ApiSection(QWidget):
         self._oauth.auth_started.connect(self._on_auth_started)
 
     def _build(self):
-        """Build the section UI."""
+        """A sheet per type of media: a line per service, opened on a click."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
-
-        try:
-            services_by_cat = get_services_by_category()
-            for category, services in services_by_cat.items():
-                cat_data = CATEGORY_LABELS.get(category, (category, category))
-                cat_label = QLabel()
-                cat_label.setProperty("tr_key", cat_data[0])
-                cat_label.setProperty("tr_default", cat_data[1])
-                cat_label.setObjectName("CategoryLabel")
-                layout.addWidget(cat_label)
-                self._api_cat_labels[category] = cat_label
-
-                cat_card = Lines(spacing=0)
-                for service in services:
-                    desc_key = f"api_desc_{service.id}"
-                    translated_desc = tr(desc_key, service.description)
-
-                    if service.auth_type in (
-                        AuthType.OAUTH,
-                        AuthType.BEARER,
-                        AuthType.SESSION,
-                    ):
-                        row = self._create_oauth_row(
-                            service.name, translated_desc, service.id
-                        )
-                    else:
-                        row = self._create_api_key_row(
-                            service.name,
-                            translated_desc,
-                            service.id,
-                            service.config_key,
-                            service.api_key_url,
-                        )
-                    cat_card.add(row)
-                layout.addWidget(cat_card)
-        except ImportError:
-            api_card = Lines()
-            api_card.add(self._create_oauth_row("TMDB", "Video metadata", SERVICE_TMDB))
-            api_card.add(
-                self._create_oauth_row("Last.fm", "Music metadata", SERVICE_LASTFM)
-            )
-            api_card.add(
-                self._create_oauth_row("TVDB", "TV series metadata", SERVICE_TVDB)
-            )
-            layout.addWidget(api_card)
+        layout.setSpacing(6)
+        for category, services in get_services_by_category().items():
+            cat_data = CATEGORY_LABELS.get(category, (category, category))
+            cat_label = QLabel()
+            cat_label.setProperty("tr_key", cat_data[0])
+            cat_label.setProperty("tr_default", cat_data[1])
+            cat_label.setObjectName("CategoryLabel")
+            layout.addWidget(cat_label)
+            self._api_cat_labels[category] = cat_label
+            for service in services:
+                row = SheetRow()
+                row.name.setText(service.name)
+                row.clicked.connect(lambda s=service.id: self._toggle(s))
+                setattr(self, f"_{service.id}_status", row.value)
+                self._fill_details(row, service)
+                self._rows[service.id] = row
+                layout.addWidget(row)
 
     def _get_service_config(self, service_id: str):
         """Get service configuration from registry.
@@ -140,144 +127,112 @@ class ApiSection(QWidget):
         except ImportError:
             return None
 
-    def _create_oauth_row(self, title: str, subtitle: str, service: str) -> QWidget:
-        """Create a row for OAuth service.
+    def _toggle(self, service: str) -> None:
+        """Open the line of a service, or close it if it is open."""
+        row = self._rows[service]
+        opening = not row.is_open()
+        for other in self._rows.values():
+            other.set_open(False)
+        row.set_open(opening)
 
-        Args:
-            title: Service name.
-            subtitle: Service description.
-            service: Service identifier.
+    def _fill_details(self, row: SheetRow, service) -> None:
+        """What a line shows once open: what the service gives, then its key
+        field or its connect keys, and the key that makes it the default."""
+        details = row.details_layout
+        about = QLabel()
+        about.setObjectName("SettingHint")
+        about.setWordWrap(True)
+        about.setProperty("tr_key", f"api_desc_{service.id}")
+        about.setProperty("tr_default", service.description)
+        details.addWidget(about)
+        self._abouts.append(about)
 
-        Returns:
-            Widget containing the row.
-        """
-        row = QWidget()
-        row.setFixedHeight(56)
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
-
-        lbl_container = QWidget()
-        lbl_container.setMinimumWidth(180)
-        lbl_layout = QVBoxLayout(lbl_container)
-        lbl_layout.setContentsMargins(0, 0, 0, 0)
-        lbl_layout.setSpacing(2)
-
-        title_lbl = QLabel(title)
-        title_lbl.setObjectName("RowTitle")
-
-        status_lbl = QLabel()
-        status_lbl.setObjectName("RowSubtitle")
-        setattr(self, f"_{service}_status", status_lbl)
-
-        lbl_layout.addWidget(title_lbl)
-        lbl_layout.addWidget(status_lbl)
-        layout.addWidget(lbl_container)
-        layout.addStretch()
-
-        connect_btn = ActionButton("", small=True)
-        connect_btn.setProperty("tr_key", "connect")
-        connect_btn.setProperty("tr_default", "Connect")
-        connect_btn.setText(tr("connect", "Connect"))
-        connect_btn.clicked.connect(lambda: self._connect_service(service))
-        setattr(self, f"_{service}_connect_btn", connect_btn)
-        layout.addWidget(connect_btn)
-
-        disconnect_btn = ActionButton("", small=True)
-        disconnect_btn.set_danger(True)
-        disconnect_btn.setProperty("tr_key", "disconnect")
-        disconnect_btn.setProperty("tr_default", "Disconnect")
-        disconnect_btn.setText(tr("disconnect", "Disconnect"))
-        disconnect_btn.clicked.connect(lambda: self._disconnect_service(service))
-        disconnect_btn.setVisible(False)
-        setattr(self, f"_{service}_disconnect_btn", disconnect_btn)
-        layout.addWidget(disconnect_btn)
-
-        return row
-
-    def _create_api_key_row(
-        self,
-        title: str,
-        subtitle: str,
-        service: str,
-        config_key: str,
-        api_key_url: str = "",
-    ) -> QWidget:
-        """Create a row for API key input.
-
-        Args:
-            title: Service name.
-            subtitle: Service description.
-            service: Service identifier.
-            config_key: Configuration key for API key.
-            api_key_url: URL to obtain API key.
-
-        Returns:
-            Widget containing the row.
-        """
-        row = QWidget()
-        has_default_key = service in SERVICES_WITH_DEFAULT_KEYS
-        row.setFixedHeight(68 if has_default_key else 56)
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
-
-        lbl_container = QWidget()
-        lbl_container.setMinimumWidth(200)
-        lbl_layout = QVBoxLayout(lbl_container)
-        lbl_layout.setContentsMargins(0, 0, 0, 0)
-        lbl_layout.setSpacing(2)
-
-        title_lbl = QLabel(title)
-        title_lbl.setObjectName("RowTitle")
-
-        status_lbl = QLabel()
-        status_lbl.setObjectName("RowSubtitle")
-        setattr(self, f"_{service}_status", status_lbl)
-
-        lbl_layout.addWidget(title_lbl)
-        lbl_layout.addWidget(status_lbl)
-
-        if has_default_key:
-            default_lbl = QLabel(tr("built_in_key", "Built-in key by default"))
-            default_lbl.setProperty("tr_key", "built_in_key")
-            default_lbl.setProperty("tr_default", "Built-in key by default")
-            default_lbl.setObjectName("SettingHint")
-            set_tone(default_lbl, "info")
-            setattr(self, f"_{service}_default_lbl", default_lbl)
-            lbl_layout.addWidget(default_lbl)
-
-        layout.addWidget(lbl_container)
-        layout.addStretch()
-
-        if config_key:
+        keys = QHBoxLayout()
+        keys.setSpacing(8)
+        if service.auth_type in OAUTH_TYPES:
+            connect_btn = KeyButton("", small=True)
+            connect_btn.setProperty("tr_key", "connect")
+            connect_btn.setProperty("tr_default", "Connect")
+            connect_btn.clicked.connect(lambda: self._connect_service(service.id))
+            setattr(self, f"_{service.id}_connect_btn", connect_btn)
+            disconnect_btn = KeyButton("", small=True)
+            disconnect_btn.set_danger(True)
+            disconnect_btn.setProperty("tr_key", "disconnect")
+            disconnect_btn.setProperty("tr_default", "Disconnect")
+            disconnect_btn.clicked.connect(lambda: self._disconnect_service(service.id))
+            disconnect_btn.setVisible(False)
+            setattr(self, f"_{service.id}_disconnect_btn", disconnect_btn)
+            keys.addWidget(connect_btn)
+            keys.addWidget(disconnect_btn)
+            self._keys.extend([connect_btn, disconnect_btn])
+        elif service.config_key:
             input_field = QLineEdit()
-            input_field.setMinimumWidth(220)
             input_field.setObjectName("SettingsInput")
             input_field.setEchoMode(QLineEdit.EchoMode.Password)
             # Saved on Enter or when the field loses the focus.
             input_field.editingFinished.connect(
-                lambda key=config_key, field=input_field: self._save_key(key, field)
+                lambda key=service.config_key, field=input_field: self._save_key(
+                    key, field
+                )
             )
-            setattr(self, f"_{service}_input", input_field)
-            layout.addWidget(input_field)
-
-            if api_key_url:
-                get_key_btn = ActionButton("", small=True)
+            setattr(self, f"_{service.id}_input", input_field)
+            keys.addWidget(input_field, 1)
+            if service.api_key_url:
+                get_key_btn = KeyButton("", small=True)
                 get_key_btn.setProperty("tr_key", "get")
                 get_key_btn.setProperty("tr_default", "Get")
-                get_key_btn.setText(tr("get", "Get"))
                 get_key_btn.clicked.connect(
-                    lambda checked, url=api_key_url: webbrowser.open(url)
+                    lambda _=False, url=service.api_key_url: webbrowser.open(url)
                 )
-                setattr(self, f"_{service}_get_btn", get_key_btn)
-                layout.addWidget(get_key_btn)
-        else:
-            info_lbl = QLabel(subtitle)
-            info_lbl.setObjectName("RowSubtitle")
-            set_tone(info_lbl, "info")
-            layout.addWidget(info_lbl)
-        return row
+                setattr(self, f"_{service.id}_get_btn", get_key_btn)
+                keys.addWidget(get_key_btn)
+                self._keys.append(get_key_btn)
+        if service.media_type in PREFERRED_KEYS:
+            prefer = KeyButton("", small=True)
+            prefer.setProperty("tr_key", "settings_src_use_first")
+            prefer.setProperty("tr_default", "Search it first")
+            prefer.clicked.connect(lambda: self._prefer(service))
+            self._prefer_keys[service.id] = prefer
+            keys.addWidget(prefer)
+            self._keys.append(prefer)
+        if not hasattr(self, f"_{service.id}_input"):
+            keys.addStretch()
+        details.addLayout(keys)
+
+    def _prefer(self, service) -> None:
+        """Search this service first for its type of media."""
+        self._config.set(PREFERRED_KEYS[service.media_type], service.id)
+        self.load()
+
+    def _state(self, service) -> tuple[str, str | None]:
+        """What the line of a service says, and its tone."""
+        if service.auth_type in OAUTH_TYPES:
+            session = self._config.get(
+                service.session_key or f"{service.id}_session", ""
+            )
+            key = self._config.get(service.config_key, "") if service.config_key else ""
+            if session and key:
+                return tr("connected", "Connected"), "ok"
+            if key:
+                return tr("key_configured", "Key configured"), "ok"
+            return tr("not_connected", "Not connected"), "info"
+        if not service.config_key:
+            return tr("settings_src_free", "Free"), "ok"
+        if self._config.get_user_value(service.config_key, ""):
+            return tr("settings_src_your_key", "Your key"), "ok"
+        if self._config.get(service.config_key, ""):
+            return tr("settings_src_builtin", "Built-in key"), "ok"
+        return tr("settings_src_to_set_up", "To set up"), "info"
+
+    def _usable(self, service) -> bool:
+        """True if the service has what it needs to be searched."""
+        if service.config_key and not self._config.get(service.config_key, ""):
+            return False
+        if service.requires_secret and not self._config.get(
+            service.secret_config_key, ""
+        ):
+            return False
+        return True
 
     def _save_key(self, config_key: str, input_field: QLineEdit) -> None:
         """Save the key typed in a field; an empty field removes the key."""
@@ -415,16 +370,7 @@ class ApiSection(QWidget):
             if service_config and service_config.requires_secret:
                 self._config.set(service_config.secret_config_key, "")
 
-            status_lbl = getattr(self, f"_{service}_status", None)
-            connect_btn = getattr(self, f"_{service}_connect_btn", None)
-            disconnect_btn = getattr(self, f"_{service}_disconnect_btn", None)
-            if status_lbl:
-                status_lbl.setText(tr("not_connected", "Not connected"))
-                set_tone(status_lbl, None)
-            if connect_btn:
-                connect_btn.setVisible(True)
-            if disconnect_btn:
-                disconnect_btn.setVisible(False)
+            self.load()
 
     def _on_auth_started(self, service: str):
         """Handle authentication started.
@@ -444,23 +390,13 @@ class ApiSection(QWidget):
             service: Service identifier.
             data: Authentication result data.
         """
-        status_lbl = getattr(self, f"_{service}_status", None)
-        connect_btn = getattr(self, f"_{service}_connect_btn", None)
-        disconnect_btn = getattr(self, f"_{service}_disconnect_btn", None)
-
         session_key = f"{service}_session"
         self._config.set(session_key, str(data))
+        self.load()
         username = data.get("username", "")
-        if status_lbl:
-            if username:
-                status_lbl.setText(f"{tr('connected', 'Connected')} ({username})")
-            else:
-                status_lbl.setText(tr("connected", "Connected"))
-            set_tone(status_lbl, "ok")
-        if connect_btn:
-            connect_btn.setVisible(False)
-        if disconnect_btn:
-            disconnect_btn.setVisible(True)
+        status_lbl = getattr(self, f"_{service}_status", None)
+        if status_lbl is not None and username:
+            status_lbl.setText(f"{tr('connected', 'Connected')} ({username})")
         message_box.information(
             self,
             tr("connection_success", "Connection successful"),
@@ -487,111 +423,61 @@ class ApiSection(QWidget):
         )
 
     def load(self):
-        """Load settings values into UI."""
-        try:
-            all_services = get_all_services()
-        except ImportError:
-            all_services = None
-        if not all_services:
-            return
-        for service_config in all_services:
-            service = service_config.id
-            status_lbl = getattr(self, f"_{service}_status", None)
-            connect_btn = getattr(self, f"_{service}_connect_btn", None)
-            disconnect_btn = getattr(self, f"_{service}_disconnect_btn", None)
-            input_field = getattr(self, f"_{service}_input", None)
+        """Show the state of each service, its key and the default ones."""
+        for service in get_all_services():
+            row = self._rows.get(service.id)
+            if row is None:
+                continue
+            text, tone = self._state(service)
+            preferred_key = PREFERRED_KEYS.get(service.media_type)
+            preferred = bool(
+                preferred_key and self._config.get(preferred_key, "") == service.id
+            )
+            if preferred:
+                text += " · " + tr("settings_src_preferred", "preferred")
+                if not self._usable(service):
+                    tone = "warn"
+            row.value.setText(text)
+            set_tone(row.value, tone)
+            prefer = self._prefer_keys.get(service.id)
+            if prefer is not None:
+                prefer.setVisible(not preferred)
 
-            if input_field:
-                if service in SERVICES_WITH_DEFAULT_KEYS:
+            input_field = getattr(self, f"_{service.id}_input", None)
+            if input_field is not None:
+                if service.id in SERVICES_WITH_DEFAULT_KEYS:
                     input_field.setPlaceholderText(
                         tr("custom_key_optional", "Custom key (Optional)...")
                     )
                     input_field.setToolTip(
                         tr(
                             "custom_key_tooltip",
-                            "A key is already included. Enter a value only to use your own key.",
+                            "A key is already included. Enter a value only to use "
+                            "your own key.",
                         )
                     )
                 else:
                     input_field.setPlaceholderText(
                         tr("your_api_key", "Your API key...")
                     )
-                current_key = (
-                    self._config.get_user_value(service_config.config_key, "")
-                    if service_config.config_key
+                input_field.setText(
+                    self._config.get_user_value(service.config_key, "")
+                    if service.config_key
                     else ""
                 )
-                input_field.setText(current_key)
-
-            if service_config.auth_type in (
-                AuthType.OAUTH,
-                AuthType.BEARER,
-                AuthType.SESSION,
-            ):
-                session_key = service_config.session_key or f"{service}_session"
-                session = self._config.get(session_key, "")
-                api_key = (
-                    self._config.get(service_config.config_key, "")
-                    if service_config.config_key
-                    else ""
-                )
-                if session and api_key:
-                    if status_lbl:
-                        status_lbl.setText(tr("connected", "Connected"))
-                        set_tone(status_lbl, "ok")
-                    if connect_btn:
-                        connect_btn.setVisible(False)
-                    if disconnect_btn:
-                        disconnect_btn.setVisible(True)
-                elif api_key:
-                    if status_lbl:
-                        status_lbl.setText(tr("key_configured", "Key configured"))
-                        set_tone(status_lbl, None)
-                    if connect_btn:
-                        connect_btn.setVisible(True)
-                    if disconnect_btn:
-                        disconnect_btn.setVisible(False)
-                else:
-                    if status_lbl:
-                        status_lbl.setText(tr("not_connected", "Not connected"))
-                        set_tone(status_lbl, None)
-                    if connect_btn:
-                        connect_btn.setVisible(True)
-                    if disconnect_btn:
-                        disconnect_btn.setVisible(False)
-            elif service_config.auth_type == AuthType.API_KEY:
-                if not service_config.config_key:
-                    if status_lbl:
-                        status_lbl.setText(tr("available_free", "Available (free)"))
-                        set_tone(status_lbl, "ok")
-                else:
-                    api_key = self._config.get(service_config.config_key, "")
-                    if api_key:
-                        if status_lbl:
-                            status_lbl.setText(tr("operational", "Operational"))
-                            set_tone(status_lbl, "ok")
-                    else:
-                        if status_lbl:
-                            status_lbl.setText(tr("not_configured", "Not configured"))
-                            set_tone(status_lbl, None)
+            if service.auth_type in OAUTH_TYPES:
+                connected = tone == "ok"
+                connect_btn = getattr(self, f"_{service.id}_connect_btn", None)
+                disconnect_btn = getattr(self, f"_{service.id}_disconnect_btn", None)
+                if connect_btn is not None:
+                    connect_btn.setVisible(not connected)
+                if disconnect_btn is not None:
+                    disconnect_btn.setVisible(connected)
 
     def retranslate(self):
         """Update translatable UI text."""
-        for label in self._api_cat_labels.values():
-            tr_key = label.property("tr_key")
-            default = label.property("tr_default")
-            if tr_key:
-                label.setText(tr(tr_key, default or ""))
-        for attr in dir(self):
-            if (
-                attr.endswith("_connect_btn")
-                or attr.endswith("_disconnect_btn")
-                or attr.endswith("_get_btn")
-            ):
-                btn = getattr(self, attr)
-                if isinstance(btn, ActionButton):
-                    tr_key = btn.property("tr_key")
-                    tr_default = btn.property("tr_default")
-                    if tr_key:
-                        btn.setText(tr(tr_key, tr_default or ""))
+        for label in [*self._api_cat_labels.values(), *self._abouts]:
+            label.setText(tr(label.property("tr_key"), label.property("tr_default")))
+        for key in self._keys:
+            key.setText(tr(key.property("tr_key"), key.property("tr_default")))
         self.load()

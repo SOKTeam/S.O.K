@@ -15,6 +15,7 @@ from sok.config.config_manager import ConfigManager
 from sok.ui.components.integrations.oauth import OAuthManager
 from sok.ui.components.settings import api_section
 from sok.ui.components.settings.api_section import ApiSection
+from sok.ui.i18n import tr
 
 
 @pytest.fixture
@@ -70,3 +71,44 @@ def test_lastfm_takes_a_key_without_a_secret(section, config):
     type_key(section._lastfm_input, "my-lastfm-key")
 
     assert config.get_user_value("api_key_lastfm") == "my-lastfm-key"
+
+
+def test_each_service_line_tells_its_state(section, config):
+    assert section._rows["deezer"].value.text().startswith(tr("settings_src_free"))
+    assert section._rows["rawg"].value.text() == tr("settings_src_to_set_up")
+
+    type_key(section._rawg_input, "my-rawg-key")
+
+    assert section._rows["rawg"].value.text() == tr("settings_src_your_key")
+
+
+def preferred():
+    return "· " + tr("settings_src_preferred", "preferred")
+
+
+def test_the_preferred_service_is_marked_and_can_change(section, config):
+    config.set("preferred_api_music", "deezer")
+    section.load()
+    assert section._rows["deezer"].value.text().endswith(preferred())
+    assert section._prefer_keys["deezer"].isHidden()
+
+    section._prefer_keys["musicbrainz"].click()
+
+    assert config.get("preferred_api_music") == "musicbrainz"
+    assert section._rows["musicbrainz"].value.text().endswith(preferred())
+    assert not section._rows["deezer"].value.text().endswith(preferred())
+
+
+def test_a_preferred_service_without_its_key_is_a_warning(section, config):
+    config.set("preferred_api_games", "rawg")
+    section.load()
+
+    assert section._rows["rawg"].value.property("tone") == "warn"
+
+
+def test_a_click_opens_one_line_at_a_time(section):
+    section._toggle("rawg")
+    section._toggle("tmdb")
+
+    assert section._rows["tmdb"].is_open()
+    assert not section._rows["rawg"].is_open()

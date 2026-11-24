@@ -10,7 +10,7 @@
 # ===----------------------------------------------------------------------=== #
 """Behavior section for settings page.
 
-The file mode (move, hard link or copy) comes first, then one box per
+The file mode (move, hard link or copy) comes first, then one switch per
 behavior: folder creation, posters, backups, duplicates, subtitles, log.
 """
 
@@ -22,7 +22,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from sok.core.history import COPY, LINK, MOVE
 from sok.ui.components.inputs import ModernComboBox
-from sok.ui.components.settings.layout import CheckBox, CheckLine, Lines
+from sok.ui.components.settings.layout import Switch, SwitchLine, Lines
 from sok.ui.i18n import tr
 from sok.ui.theme import ui_font
 
@@ -32,7 +32,7 @@ FILE_MODE_LABELS = [
     (COPY, "file_mode_copy", "Copy"),
 ]
 
-# (translation key, default, setting) of each box.
+# (translation key, default, setting) of each switch.
 BEHAVIORS = [
     ("create_missing_folders", "Create missing folders", "create_folders"),
     ("download_posters", "Download posters", "download_posters"),
@@ -49,8 +49,8 @@ class BehaviorSection(QWidget):
     def __init__(self, config, parent=None):
         super().__init__(parent)
         self._config = config
-        self._toggles: Dict[str, CheckBox] = {}
-        self._lines: Dict[str, CheckLine] = {}
+        self._toggles: Dict[str, Switch] = {}
+        self._lines: Dict[str, SwitchLine] = {}
         self._build()
 
     def _build(self):
@@ -60,7 +60,7 @@ class BehaviorSection(QWidget):
         layout.addWidget(lines)
         lines.add(self._create_file_mode_row())
         for _tr_key, _default, config_key in BEHAVIORS:
-            line = CheckLine()
+            line = SwitchLine()
             line.box.toggled.connect(
                 lambda checked, k=config_key: self._config.set(k, checked)
             )

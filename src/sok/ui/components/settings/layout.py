@@ -12,8 +12,10 @@
 
 A section is a title on the left (200px) and its content on the right,
 under a hairline. Inside, the settings are plain lines: no card, no shadow.
-A yes/no setting is a small square box, accent when on; a choice among a
-few words is a row of small keys, the chosen one in the accent.
+A yes/no setting is a small switch drawn like the keys; a choice among a
+few words is a row of small keys, the chosen one in the accent. Lists of
+values (name models, services) are dotted sheets whose lines open on a
+click to show their field or keys.
 """
 
 from __future__ import annotations
@@ -93,9 +95,12 @@ class SettingsBlock(QWidget):
             self.title.setStyleSheet(f"color: {c['ink']}; background: transparent;")
 
 
-class CheckBox(QWidget):
-    """An 18px square box: accent with a check when on, an outline when off.
+class Switch(QWidget):
+    """A small switch in the style of the keys: a flat face with a 1px
+    highlight on top and a 1px shadow under it, no animation, no green.
 
+    Off: the face of a key, a muted knob on the left. On: the accent face,
+    a near-black knob on the right (on-accent, as text on the accent).
     Same signals and methods as Toggle, so it takes its place.
     """
 
@@ -104,7 +109,8 @@ class CheckBox(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._on = False
-        self.setFixedSize(18, 18)
+        self._hover = False
+        self.setFixedSize(32, 20)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
@@ -122,6 +128,16 @@ class CheckBox(QWidget):
     def toggle(self) -> None:
         self.setChecked(not self._on)
 
+    def set_hover(self, hover: bool) -> None:
+        self._hover = hover
+        self.update()
+
+    def enterEvent(self, e):  # noqa: N802 - Qt API
+        self.set_hover(True)
+
+    def leaveEvent(self, e):  # noqa: N802 - Qt API
+        self.set_hover(False)
+
     def mouseReleaseEvent(self, e):  # noqa: N802 - Qt API
         if self.isEnabled() and self.rect().contains(e.position().toPoint()):
             self.toggle()
@@ -138,51 +154,157 @@ class CheckBox(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         if not self.isEnabled():
             p.setOpacity(0.4)
-        rect = QRectF(self.rect())
+        # The face leaves 1px under it for the shadow.
+        face = QRectF(0, 0, self.width(), self.height() - 1)
+        radius = face.height() / 2
         if self._on:
-            path = QPainterPath()
-            path.addRoundedRect(rect, 6, 6)
-            p.fillPath(path, parse_color(c["accent"]))
-            # Light from above (CSS: inset 0 1px 0 rgba(255,255,255,0.3)).
-            p.setPen(QPen(parse_color("rgba(255,255,255,0.3)"), 1))
-            p.drawLine(QPointF(5, 0.5), QPointF(13, 0.5))
-            pen = QPen(parse_color(c["on-accent"]), 2.0)
-            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-            pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-            p.setPen(pen)
-            check = QPainterPath(QPointF(5.2, 9.4))
-            check.lineTo(QPointF(7.9, 12.1))
-            check.lineTo(QPointF(13, 6.4))
-            p.drawPath(check)
+            color = c["accent-hover"] if self._hover else c["accent"]
+            light, knob = c["shadow-key-primary-light"], c["on-accent"]
         else:
-            p.setPen(QPen(parse_color(c["line-strong"]), 1.5))
-            p.drawRoundedRect(rect.adjusted(0.75, 0.75, -0.75, -0.75), 6, 6)
+            color = c["key-hover"] if self._hover else c["key"]
+            light, knob = c["shadow-key-light"], c["ink-muted"]
+        shadow = QPainterPath()
+        shadow.addRoundedRect(face.translated(0, 1), radius, radius)
+        p.fillPath(shadow, parse_color(c["shadow-key-drop"]))
+        path = QPainterPath()
+        path.addRoundedRect(face, radius, radius)
+        p.fillPath(path, parse_color(color))
+        p.setPen(QPen(parse_color(light), 1))
+        p.drawLine(QPointF(radius, 0.5), QPointF(face.width() - radius, 0.5))
+        size = face.height() - 6
+        x = face.width() - size - 3 if self._on else 3.0
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(parse_color(knob))
+        p.drawEllipse(QRectF(x, 3, size, size))
         if self.hasFocus():
             p.setPen(QPen(parse_color(c["accent"]), 1))
             p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawRoundedRect(rect.adjusted(0.5, 0.5, -0.5, -0.5), 6, 6)
+            p.drawRoundedRect(
+                face.adjusted(-2.5, -2.5, 2.5, 2.5), radius + 2, radius + 2
+            )
         p.end()
 
 
-class CheckLine(QWidget):
-    """A box and its sentence, the whole line clickable."""
+class SwitchLine(QWidget):
+    """A sentence and its switch at the right, the whole line clickable."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
-        self.box = CheckBox()
+        layout.setSpacing(16)
         self.label = QLabel()
         self.label.setObjectName("SettingText")
         self.label.setFont(ui_font(14))
-        self.label.setCursor(Qt.CursorShape.PointingHandCursor)
-        layout.addWidget(self.box)
+        self.box = Switch()
         layout.addWidget(self.label, 1)
+        layout.addWidget(self.box)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def enterEvent(self, e):  # noqa: N802 - Qt API
+        self.box.set_hover(True)
+
+    def leaveEvent(self, e):  # noqa: N802 - Qt API
+        self.box.set_hover(False)
 
     def mouseReleaseEvent(self, e):  # noqa: N802 - Qt API
         if self.box.isEnabled():
             self.box.toggle()
+
+
+class _Leader(QWidget):
+    """The dotted line between a name and its value, 4px above the baseline."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setFixedHeight(22)
+        self.setMinimumWidth(16)
+        self.baseline = 15
+
+    def paintEvent(self, e):  # noqa: N802 - Qt API
+        c = _palette(self)
+        p = QPainter(self)
+        pen = QPen(parse_color(c["line-strong"]), 1, Qt.PenStyle.CustomDashLine)
+        pen.setDashPattern([1, 2])
+        p.setPen(pen)
+        y = self.baseline - 4 + 0.5
+        p.drawLine(QPointF(8, y), QPointF(self.width() - 8, y))
+        p.end()
+
+
+class SheetRow(QWidget):
+    """A line of a dotted sheet (name ....... value) that opens on a click.
+
+    The details (a field, keys…) are shown under it while it is open. The
+    name and the value turn to ink under the mouse and while open.
+
+    Signals:
+        clicked: The line was clicked.
+    """
+
+    clicked = Signal()
+
+    def __init__(self, mono_value: bool = False, parent=None):
+        super().__init__(parent)
+        self._open = False
+        self._hover = False
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(10)
+        self._line = QWidget()
+        self._line.setCursor(Qt.CursorShape.PointingHandCursor)
+        line = QHBoxLayout(self._line)
+        line.setContentsMargins(0, 0, 0, 0)
+        line.setSpacing(0)
+        self.name = QLabel()
+        self.name.setObjectName("SheetName")
+        self.name.setFont(ui_font(14))
+        self.value = QLabel()
+        self.value.setObjectName("SheetValueMono" if mono_value else "SheetValue")
+        self.value.setFont(ui_font(13, 400, mono=mono_value))
+        self.value.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
+        line.addWidget(self.name)
+        line.addWidget(_Leader(), 1)
+        line.addWidget(self.value)
+        outer.addWidget(self._line)
+        self.details = QWidget()
+        self.details_layout = QVBoxLayout(self.details)
+        self.details_layout.setContentsMargins(0, 0, 0, 8)
+        self.details_layout.setSpacing(10)
+        self.details.setVisible(False)
+        outer.addWidget(self.details)
+        self._line.installEventFilter(self)
+
+    def is_open(self) -> bool:
+        return self._open
+
+    def set_open(self, open_: bool) -> None:
+        self._open = open_
+        self.details.setVisible(open_ and self.details_layout.count() > 0)
+        self._mark()
+
+    def _mark(self) -> None:
+        lit = self._open or self._hover
+        self.name.setProperty("lit", "true" if lit else "false")
+        for label in (self.name, self.value):
+            label.style().unpolish(label)
+            label.style().polish(label)
+
+    def eventFilter(self, obj, e):  # noqa: N802 - Qt API
+        kind = e.type()
+        if kind == e.Type.Enter:
+            self._hover = True
+            self._mark()
+        elif kind == e.Type.Leave:
+            self._hover = False
+            self._mark()
+        elif kind == e.Type.MouseButtonRelease:
+            self.clicked.emit()
+            return True
+        return False
 
 
 class Choice(QWidget):
@@ -228,7 +350,8 @@ class Choice(QWidget):
 
 
 class VariableChip(QLabel):
-    """A variable of a name model, such as {title}: click to insert it.
+    """A variable of a name model, such as {title}, in faint mono text:
+    click to insert it.
 
     Signals:
         picked(str): The variable, with its braces.
@@ -239,7 +362,7 @@ class VariableChip(QLabel):
     def __init__(self, text: str, parent=None):
         super().__init__(text, parent)
         # Kept apart: the window stylesheet replaces the family of setFont.
-        self._font = ui_font(11, 400, mono=True)
+        self._font = ui_font(12, 400, mono=True)
         self.setFont(self._font)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -247,7 +370,7 @@ class VariableChip(QLabel):
 
     def sizeHint(self) -> QSize:  # noqa: N802 - Qt API
         width = QFontMetrics(self._font).horizontalAdvance(self.text())
-        return QSize(width + 12, 18)
+        return QSize(width + 2, 18)
 
     def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt API
         return self.sizeHint()
@@ -266,12 +389,9 @@ class VariableChip(QLabel):
     def paintEvent(self, e):  # noqa: N802 - Qt API
         c = _palette(self)
         p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        rect = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
-        p.setPen(QPen(parse_color(c["line-strong"]), 1))
-        p.drawRoundedRect(rect, 5, 5)
+        p.setRenderHint(QPainter.RenderHint.TextAntialiasing)
         p.setFont(self._font)
-        p.setPen(parse_color(c["ink"] if self._hover else c["ink-muted"]))
+        p.setPen(parse_color(c["ink"] if self._hover else c["ink-faint"]))
         p.drawText(QRectF(self.rect()), Qt.AlignmentFlag.AlignCenter, self.text())
         p.end()
 
@@ -299,18 +419,28 @@ def settings_stylesheet(c: dict[str, str], root: str) -> str:
         #{root} QLabel#CategoryLabel {{
             font-weight: 400; letter-spacing: 0; margin: 12px 0 0 0; padding: 0; qproperty-indent: 0;
         }}
+        #{root} QLabel#SheetName {{ color: {c["ink-muted"]}; font-size: 14px; }}
+        #{root} QLabel#SheetName[lit="true"] {{ color: {c["ink"]}; }}
+        #{root} QLabel#SheetValue {{ color: {c["ink"]}; font-size: 13px; }}
+        #{root} QLabel#SheetValueMono {{
+            color: {c["ink"]}; font-family: '{mono}'; font-size: 13px;
+        }}
         #{root} QLabel#SettingPath {{
             color: {c["ink"]}; font-family: '{mono}'; font-size: 13px;
         }}
         #{root} QLabel#SettingPath[empty="true"] {{ color: {c["ink-faint"]}; }}
         #{root} QLabel[tone="ok"], #{root} QLabel#RowSubtitle[tone="ok"],
-        #{root} QLabel#SettingHint[tone="ok"] {{ color: {c["ink-muted"]}; }}
+        #{root} QLabel#SettingHint[tone="ok"],
+        #{root} QLabel#SheetValue[tone="ok"] {{ color: {c["ink-muted"]}; }}
         #{root} QLabel[tone="warn"], #{root} QLabel#RowSubtitle[tone="warn"],
-        #{root} QLabel#SettingHint[tone="warn"] {{ color: {c["caution"]}; }}
+        #{root} QLabel#SettingHint[tone="warn"],
+        #{root} QLabel#SheetValue[tone="warn"] {{ color: {c["caution"]}; }}
         #{root} QLabel[tone="error"], #{root} QLabel#RowSubtitle[tone="error"],
-        #{root} QLabel#SettingHint[tone="error"] {{ color: {c["danger"]}; }}
+        #{root} QLabel#SettingHint[tone="error"],
+        #{root} QLabel#SheetValue[tone="error"] {{ color: {c["danger"]}; }}
         #{root} QLabel[tone="info"], #{root} QLabel#RowSubtitle[tone="info"],
-        #{root} QLabel#SettingHint[tone="info"] {{ color: {c["ink-faint"]}; }}
+        #{root} QLabel#SettingHint[tone="info"],
+        #{root} QLabel#SheetValue[tone="info"] {{ color: {c["ink-faint"]}; }}
         #{root} QLineEdit {{
             font-family: '{mono}'; font-size: 14px;
             min-height: 40px; max-height: 40px; padding: 0 12px;

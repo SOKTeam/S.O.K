@@ -11,7 +11,7 @@
 """Appearance section for settings page.
 
 Three keys pick the theme (Dark, Light, System), the chosen one in the
-accent; on macOS a box uses the accent color of the system; then the
+accent; on macOS a switch uses the accent color of the system; then the
 language.
 """
 
@@ -21,7 +21,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from sok.ui.components.inputs import ModernComboBox
-from sok.ui.components.settings.layout import CheckBox, CheckLine, Choice, Lines
+from sok.ui.components.settings.layout import Switch, SwitchLine, Choice, Lines
 from sok.ui.i18n import tr
 from sok.ui.platform import (
     IS_MACOS,
@@ -72,10 +72,10 @@ class AppearanceSection(QWidget):
         lines.add(self.theme_choice)
 
         # macOS only: use the accent color chosen in the system settings.
-        self._accent_line: Optional[CheckLine] = None
-        self.accent_toggle: Optional[CheckBox] = None
+        self._accent_line: Optional[SwitchLine] = None
+        self.accent_toggle: Optional[Switch] = None
         if IS_MACOS:
-            self._accent_line = CheckLine()
+            self._accent_line = SwitchLine()
             self.accent_toggle = self._accent_line.box
             self.accent_toggle.toggled.connect(self._on_accent_change)
             lines.add(self._accent_line)

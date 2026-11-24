@@ -44,11 +44,17 @@ around it: without a year, `{title} ({year})` gives `Title`. Folder and file
 names then lose the characters that Windows does not accept:
 `< > : " / \ | ? *`.
 
-In Settings › File names, a model is saved when its field loses the focus, and
-only if it can be used: closed braces and only the variables of its type (the
-renaming of movies and TV shows stops on an unknown one). The live preview next
+In Settings › File names, a model is saved when its field loses the focus or
+its line is closed, and only if it can be used: closed braces and only the
+variables of its type (the renaming of movies and TV shows stops on an unknown
+one). The live preview next
 to it fills the model of an example file with `fill_format()` and
 `format_name()`, as the renaming does (`sok.ui.components.settings.preview`).
+
+In Settings › Sources, each service is a line with its state: free, built-in
+key, the user's key, connected, or to set up, and "preferred" on the one
+searched first for its type, in the caution color when it lacks a key. Its
+"Search it first" key sets `preferred_api_*` (`ApiSection._prefer`).
 
 Read a setting with `get_config_manager().get(key, default)`, and change it with
 `set(key, value)`, which saves the file.
