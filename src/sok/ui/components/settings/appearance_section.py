@@ -12,11 +12,10 @@
 
 A sheet like the other sections: the theme as three words (Dark, Light,
 System), the chosen one in ink; the language, whose line opens on the
-names of the languages; on macOS a switch for the accent color of the
-system.
+names of the languages.
 """
 
-from typing import Dict, Optional
+from typing import Dict
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
@@ -25,12 +24,9 @@ from sok.ui.components.settings.layout import (
     Choice,
     ChoiceLine,
     SheetRow,
-    Switch,
-    SwitchLine,
 )
 from sok.ui.i18n import tr
 from sok.ui.platform import (
-    IS_MACOS,
     SYSTEM_THEME,
     apply_color_scheme,
     system_prefers_dark,
@@ -51,7 +47,7 @@ LANGUAGE_NAMES: Dict[str, str] = {
 
 
 class AppearanceSection(QWidget):
-    """Theme, system accent (macOS) and language.
+    """Theme and language.
 
     Signals:
         theme_changed(bool): The theme to show now, True for dark.
@@ -91,16 +87,6 @@ class AppearanceSection(QWidget):
         self._lang_row.details_layout.addLayout(words)
         layout.addWidget(self._lang_row)
 
-        # macOS only: use the accent color chosen in the system settings.
-        self._accent_line: Optional[SwitchLine] = None
-        self.accent_toggle: Optional[Switch] = None
-        if IS_MACOS:
-            layout.addSpacing(8)
-            self._accent_line = SwitchLine()
-            self.accent_toggle = self._accent_line.box
-            self.accent_toggle.toggled.connect(self._on_accent_change)
-            layout.addWidget(self._accent_line)
-
     def _on_theme_choice(self, theme: str) -> None:
         """Save the theme chosen and show it.
 
@@ -109,13 +95,6 @@ class AppearanceSection(QWidget):
         """
         self._config.set("theme", theme)
         apply_color_scheme(theme)
-        is_dark = system_prefers_dark() if theme == SYSTEM_THEME else theme == "dark"
-        self.theme_changed.emit(is_dark)
-
-    def _on_accent_change(self, use_system: bool):
-        """Use the accent color of the system or the coral (macOS)."""
-        self._config.set("use_system_accent", use_system)
-        theme = self._config.get("theme", SYSTEM_THEME)
         is_dark = system_prefers_dark() if theme == SYSTEM_THEME else theme == "dark"
         self.theme_changed.emit(is_dark)
 
@@ -130,10 +109,6 @@ class AppearanceSection(QWidget):
         # "orange", the dropped orange theme, reads as light.
         theme = "light" if theme == "orange" else theme
         self.theme_choice.set_value(theme if theme in THEMES else SYSTEM_THEME)
-        if self.accent_toggle:
-            self.accent_toggle.blockSignals(True)
-            self.accent_toggle.setChecked(bool(self._config.get("use_system_accent")))
-            self.accent_toggle.blockSignals(False)
         code = self._config.get("language", "fr")
         self.lang_choice.set_value(code)
         self._lang_row.value.setText(LANGUAGE_NAMES.get(code, code.upper()))
@@ -147,10 +122,6 @@ class AppearanceSection(QWidget):
                 tr("theme_system", "System"),
             ]
         )
-        if self._accent_line:
-            self._accent_line.label.setText(
-                tr("use_system_accent", "Use system accent color")
-            )
         self._theme_line.name.setText(tr("settings_theme", "Theme"))
         self._lang_row.name.setText(tr("language", "Language"))
         self.load()

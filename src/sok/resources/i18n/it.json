@@ -224,7 +224,6 @@
     "zoom": "Ridimensiona",
     "documentation": "Documentazione di S.O.K",
     "follow_system_theme": "Usa l'aspetto del sistema",
-    "use_system_accent": "Usa il colore di evidenziazione del sistema",
     "show_in_finder": "Mostra nel Finder",
     "error_online_service": "Il servizio online",
     "error_api_key": "{service}: la chiave API manca o non è corretta. Controllala in {where}.",

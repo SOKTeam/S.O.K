@@ -216,13 +216,11 @@ class AppConfig:
     Attributes:
         language: UI language code
         theme: UI theme (dark, light, or system to follow the OS)
-        use_system_accent: Use the system accent color instead of coral (macOS)
         is_prod: Whether the app is running in production (compiled) mode
     """
 
     language: str = "en"
     theme: str = "system"
-    use_system_accent: bool = False
     is_prod: bool = HAS_SECURE_CONSTANTS
 
     api_key_tmdb_v4: str = ""

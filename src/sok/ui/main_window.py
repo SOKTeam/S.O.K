@@ -653,7 +653,7 @@ class MainWindow(QMainWindow):
         Args:
             dark: True for the dark theme.
         """
-        return palette(dark, bool(self._config.get("use_system_accent")))
+        return palette(dark)
 
     def _on_system_scheme_changed(self, _scheme):
         """Follow the system appearance when the theme is set to "system"."""

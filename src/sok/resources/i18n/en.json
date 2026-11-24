@@ -224,7 +224,6 @@
     "zoom": "Zoom",
     "documentation": "S.O.K Documentation",
     "follow_system_theme": "Match system appearance",
-    "use_system_accent": "Use system accent color",
     "show_in_finder": "Show in Finder",
     "error_online_service": "The online service",
     "error_api_key": "{service}: the API key is missing or wrong. Check it in {where}.",

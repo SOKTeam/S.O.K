@@ -224,7 +224,6 @@
     "zoom": "Изменить масштаб",
     "documentation": "Документация S.O.K",
     "follow_system_theme": "Как в системе",
-    "use_system_accent": "Использовать системный цвет акцента",
     "show_in_finder": "Показать в Finder",
     "error_online_service": "Онлайн-сервис",
     "error_api_key": "{service}: ключ API отсутствует или неверен. Проверьте его в разделе {where}.",

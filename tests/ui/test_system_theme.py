@@ -10,7 +10,7 @@
 # ===----------------------------------------------------------------------=== #
 import pytest
 
-from sok.ui import platform, theme
+from sok.ui import platform
 from sok.ui.components.settings import appearance_section
 from sok.ui.components.settings.appearance_section import AppearanceSection
 
@@ -56,10 +56,9 @@ class TestIsDarkTheme:
         assert platform.is_dark_theme(theme) is expected
 
 
-class TestAppearanceSectionOnMacOS:
+class TestAppearanceSection:
     @pytest.fixture
     def section(self, qtbot, monkeypatch, system_dark):
-        monkeypatch.setattr(appearance_section, "IS_MACOS", True)
         config = FakeConfig(theme="light", language="fr")
         widget = AppearanceSection(config)
         qtbot.addWidget(widget)
@@ -114,13 +113,6 @@ class TestAppearanceSectionOnMacOS:
         assert emitted == ["en"]
         assert widget._lang_row.value.text() == "English"
 
-    def test_no_accent_box_on_other_platforms(self, qtbot, monkeypatch):
-        monkeypatch.setattr(appearance_section, "IS_MACOS", False)
-        widget = AppearanceSection(FakeConfig(theme="dark"))
-        qtbot.addWidget(widget)
-
-        assert widget.accent_toggle is None
-
 
 class TestApplyColorScheme:
     @pytest.fixture
@@ -164,45 +156,3 @@ class TestApplyColorScheme:
         platform.apply_color_scheme("dark")
 
         assert calls == []
-
-
-class TestAccentColor:
-    @pytest.fixture
-    def system_accent(self, monkeypatch):
-        monkeypatch.setattr(theme, "IS_MACOS", True)
-        monkeypatch.setattr(theme, "system_accent_color", lambda: "#0a60ff")
-
-    def test_coral_accent_by_default(self, system_accent):
-        assert theme.palette(dark=True)["accent"] == theme.Theme.DARK["accent"]
-
-    def test_system_accent_replaces_coral(self, system_accent):
-        c = theme.palette(dark=False, system_accent=True)
-
-        assert c["accent"] == "#0a60ff"
-        assert c["accent_text"] == "#FFFFFF"
-        assert theme.Theme.LIGHT["accent"] != "#0a60ff"
-
-    def test_system_accent_is_ignored_on_other_platforms(
-        self, system_accent, monkeypatch
-    ):
-        monkeypatch.setattr(theme, "IS_MACOS", False)
-
-        c = theme.palette(dark=True, system_accent=True)
-
-        assert c["accent"] == theme.Theme.DARK["accent"]
-
-    def test_toggle_saves_the_setting_and_restyles(
-        self, qtbot, monkeypatch, system_dark
-    ):
-        monkeypatch.setattr(appearance_section, "IS_MACOS", True)
-        config = FakeConfig(theme="dark", language="en")
-        widget = AppearanceSection(config)
-        qtbot.addWidget(widget)
-        widget.load()
-        emitted = []
-        widget.theme_changed.connect(emitted.append)
-
-        widget._on_accent_change(True)
-
-        assert config.get("use_system_accent") is True
-        assert emitted == [True]

@@ -21,7 +21,7 @@ import re
 
 from sok.config.config_manager import resources_dir
 from sok.ui import tokens
-from sok.ui.platform import IS_LINUX, IS_MACOS, system_accent_color
+from sok.ui.platform import IS_LINUX
 
 logger = logging.getLogger(__name__)
 
@@ -114,22 +114,13 @@ class Theme:
     TONE_PREFIX = "tone_"
 
 
-def palette(dark: bool, system_accent: bool = False) -> dict[str, str]:
+def palette(dark: bool) -> dict[str, str]:
     """Return the color palette to use.
 
     Args:
         dark: True for the dark theme.
-        system_accent: Replace the orange accent with the system accent
-            color (macOS setting).
     """
-    c = dict(Theme.DARK if dark else Theme.LIGHT)
-    if system_accent and IS_MACOS:
-        accent = system_accent_color()
-        c["accent"] = c["accent-text"] = accent
-        # The near-black text of the coral is not readable on every system
-        # color (blue, purple, graphite): keep white there.
-        c["accent_text"] = c["on-accent"] = "#FFFFFF"
-    return c
+    return dict(Theme.DARK if dark else Theme.LIGHT)
 
 
 def ui_font(

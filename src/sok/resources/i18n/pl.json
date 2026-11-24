@@ -224,7 +224,6 @@
     "zoom": "Zmień rozmiar",
     "documentation": "Dokumentacja S.O.K",
     "follow_system_theme": "Zgodnie z wyglądem systemu",
-    "use_system_accent": "Użyj koloru akcentu systemu",
     "show_in_finder": "Pokaż w Finderze",
     "error_online_service": "Usługa online",
     "error_api_key": "{service}: brak klucza API lub jest on nieprawidłowy. Sprawdź go w {where}.",
