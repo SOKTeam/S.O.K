@@ -266,7 +266,7 @@
     "add_more_tracks": "+ Add more tracks",
     "track_title_artist": "Title (optional artist)",
     "input_formats": "Input Formats",
-    "input_formats_help": "Describe how your file names are built, with the variables of the output formats. Your patterns are tried before the ones S.O.K knows. {ignore} skips a part of the name.",
+    "input_formats_help": "Describe how your file names are built, with the variables of the file names above. Your patterns are tried before the ones S.O.K knows. {ignore} skips a part of the name.",
     "input_builtin": "Recognized by default: {forms}",
     "input_add_placeholder": "Add a pattern",
     "add_pattern": "Add",
@@ -656,5 +656,6 @@
     "settings_src_to_set_up": "To set up",
     "settings_src_preferred": "preferred",
     "settings_src_use_first": "Search it first",
-    "settings_theme": "Theme"
+    "settings_theme": "Theme",
+    "input_kind": "Kind"
 }

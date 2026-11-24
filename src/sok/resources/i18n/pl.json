@@ -266,7 +266,7 @@
     "add_more_tracks": "+ Dodaj więcej utworów",
     "track_title_artist": "Tytuł (wykonawca opcjonalnie)",
     "input_formats": "Formaty wejściowe",
-    "input_formats_help": "Opisz, jak zbudowane są nazwy Twoich plików, za pomocą zmiennych formatów wyjściowych. Twoje wzorce są sprawdzane przed tymi, które zna S.O.K. {ignore} pomija część nazwy.",
+    "input_formats_help": "Opisz, jak zbudowane są nazwy twoich plików, za pomocą zmiennych nazw plików powyżej. Twoje wzorce są sprawdzane przed tymi, które zna S.O.K. {ignore} pomija część nazwy.",
     "input_builtin": "Domyślnie rozpoznawane: {forms}",
     "input_add_placeholder": "Dodaj wzorzec",
     "add_pattern": "Dodaj",
@@ -278,7 +278,7 @@
     "pattern_exists": "Ten wzorzec jest już na liście",
     "input_test": "Test",
     "input_test_placeholder": "Wklej nazwę pliku",
-    "input_test_pattern": "Odczytano Twoim wzorcem {pattern}",
+    "input_test_pattern": "Odczytano twoim wzorcem {pattern}",
     "input_test_builtin": "Odczytano regułami domyślnymi",
     "input_test_no_type": "Dodaj rozszerzenie pliku (.mkv, .mp3, .epub…)",
     "history": "Historia",
@@ -689,5 +689,6 @@
     "settings_src_to_set_up": "Do skonfigurowania",
     "settings_src_preferred": "preferowane",
     "settings_src_use_first": "Używaj najpierw",
-    "settings_theme": "Motyw"
+    "settings_theme": "Motyw",
+    "input_kind": "Rodzaj"
 }

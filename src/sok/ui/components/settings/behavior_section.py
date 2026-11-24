@@ -18,11 +18,10 @@ from __future__ import annotations
 
 from typing import Dict
 
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from sok.core.history import COPY, LINK, MOVE
-from sok.ui.components.inputs import ModernComboBox
-from sok.ui.components.settings.layout import Switch, SwitchLine, Lines
+from sok.ui.components.settings.layout import ChoiceLine, Lines, Switch, SwitchLine
 from sok.ui.i18n import tr
 from sok.ui.theme import ui_font
 
@@ -69,27 +68,14 @@ class BehaviorSection(QWidget):
             lines.add(line)
 
     def _create_file_mode_row(self) -> QWidget:
-        """The file mode: its name, its combo, and what a hard link does."""
-        row = QWidget()
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
-        self.file_mode_lbl = QLabel()
-        self.file_mode_lbl.setObjectName("SettingMuted")
-        self.file_mode_lbl.setFont(ui_font(14))
-        self.file_mode_combo = ModernComboBox()
-        self.file_mode_combo.setMinimumWidth(160)
-        self.file_mode_combo.setObjectName("SettingsCombo")
-        for mode, _key, _default in FILE_MODE_LABELS:
-            self.file_mode_combo.addItem("", mode)
-        self.file_mode_combo.currentIndexChanged.connect(
-            lambda index: self._config.set(
-                "file_mode", self.file_mode_combo.itemData(index)
-            )
+        """The file mode as words on its line, and what a hard link does."""
+        self._file_mode_line = ChoiceLine(
+            [mode for mode, _key, _default in FILE_MODE_LABELS]
         )
-        layout.addWidget(self.file_mode_lbl)
-        layout.addWidget(self.file_mode_combo)
-        layout.addStretch()
+        self.file_mode_choice = self._file_mode_line.choice
+        self.file_mode_choice.chosen.connect(
+            lambda mode: self._config.set("file_mode", mode)
+        )
         self._file_mode_hint = QLabel()
         self._file_mode_hint.setObjectName("SettingHint")
         self._file_mode_hint.setFont(ui_font(13))
@@ -98,12 +84,12 @@ class BehaviorSection(QWidget):
         box_layout = QVBoxLayout(box)
         box_layout.setContentsMargins(0, 0, 0, 6)
         box_layout.setSpacing(6)
-        box_layout.addWidget(row)
+        box_layout.addWidget(self._file_mode_line)
         box_layout.addWidget(self._file_mode_hint)
         return box
 
     def _translate_file_mode(self) -> None:
-        self.file_mode_lbl.setText(tr("file_mode", "File mode"))
+        self._file_mode_line.name.setText(tr("file_mode", "File mode"))
         self._file_mode_hint.setText(
             tr(
                 "file_mode_hint",
@@ -112,8 +98,9 @@ class BehaviorSection(QWidget):
                 "the same drive.",
             )
         )
-        for i, (_mode, key, default) in enumerate(FILE_MODE_LABELS):
-            self.file_mode_combo.setItemText(i, tr(key, default))
+        self.file_mode_choice.set_texts(
+            tr(key, default) for _mode, key, default in FILE_MODE_LABELS
+        )
 
     def load(self):
         """Load settings values into UI."""
@@ -122,10 +109,8 @@ class BehaviorSection(QWidget):
             toggle.setChecked(self._config.get(key, False))
             toggle.blockSignals(False)
         mode = self._config.get("file_mode", MOVE)
-        index = max(self.file_mode_combo.findData(mode), 0)
-        self.file_mode_combo.blockSignals(True)
-        self.file_mode_combo.setCurrentIndex(index)
-        self.file_mode_combo.blockSignals(False)
+        modes = [m for m, _key, _default in FILE_MODE_LABELS]
+        self.file_mode_choice.set_value(mode if mode in modes else MOVE)
 
     def retranslate(self):
         """Update translatable UI text."""

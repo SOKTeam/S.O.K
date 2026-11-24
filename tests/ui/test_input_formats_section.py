@@ -12,6 +12,7 @@ import pytest
 from PySide6.QtWidgets import QLabel
 
 from sok.core import name_patterns
+from sok.ui.components.base import KeyButton
 from sok.ui.components.settings.input_formats_section import InputFormatsSection
 
 
@@ -43,7 +44,7 @@ def section(qtbot, monkeypatch):
 
 
 def add(widget, kind, pattern):
-    widget._kind.setCurrentIndex(widget._kind.findData(kind))
+    widget._kind.set_value(kind)
     widget._input.setText(pattern)
     widget._add()
 
@@ -114,3 +115,14 @@ def test_the_default_forms_are_in_the_tooltip(section):
     widget, _ = section
 
     assert "{title} S{season}E{episode}" in widget._info.toolTip()
+
+
+def test_a_pattern_line_opens_on_the_key_that_removes_it(section):
+    widget, config = section
+    row = widget._rows[0]
+
+    widget._open_line(row)
+    remove = row.details.findChildren(KeyButton)[0]
+    remove.click()
+
+    assert config.get("input_patterns") == {}

@@ -266,7 +266,7 @@
     "add_more_tracks": "+ Aggiungi altri brani",
     "track_title_artist": "Titolo (artista facoltativo)",
     "input_formats": "Formati di ingresso",
-    "input_formats_help": "Descrivi come sono costruiti i nomi dei tuoi file, con le variabili dei formati di uscita. I tuoi modelli vengono provati prima di quelli che S.O.K conosce. {ignore} salta una parte del nome.",
+    "input_formats_help": "Descrivi come sono costruiti i nomi dei tuoi file, con le variabili dei nomi dei file qui sopra. I tuoi modelli vengono provati prima di quelli che S.O.K conosce. {ignore} salta una parte del nome.",
     "input_builtin": "Riconosciuti di default: {forms}",
     "input_add_placeholder": "Aggiungi un modello",
     "add_pattern": "Aggiungi",
@@ -656,5 +656,6 @@
     "settings_src_to_set_up": "Da configurare",
     "settings_src_preferred": "preferita",
     "settings_src_use_first": "Usa per prima",
-    "settings_theme": "Tema"
+    "settings_theme": "Tema",
+    "input_kind": "Tipo"
 }

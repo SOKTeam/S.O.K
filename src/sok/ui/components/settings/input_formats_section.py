@@ -8,7 +8,7 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-"""Input formats section for settings page.
+"""Input formats section for settings page, as a dotted sheet.
 
 Lets users describe how their file names are built, with patterns such as
 "{artist} - {year} - {album} - {track} - {title}" (see
@@ -24,7 +24,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QPushButton,
     QVBoxLayout,
     QWidget,
 )
@@ -37,9 +36,8 @@ from sok.file_operations import (
     MusicFileOperations,
     VideoFileOperations,
 )
-from sok.ui.components.base import ActionButton
-from sok.ui.components.settings.layout import Lines
-from sok.ui.components.inputs import ModernComboBox
+from sok.ui.components.base import KeyButton
+from sok.ui.components.settings.layout import ChoiceLine, SheetRow
 from sok.ui.i18n import tr
 from sok.ui.theme import set_tone
 
@@ -118,7 +116,7 @@ def pattern_error_text(error: PatternError) -> str:
 
 
 class InputFormatsSection(QWidget):
-    """Input formats section for settings page.
+    """Input formats section for settings page, as a dotted sheet.
 
     One card: the user's patterns, a line to add one, and a field to test a
     file name. The variables and the forms S.O.K reads by default are in
@@ -149,66 +147,61 @@ class InputFormatsSection(QWidget):
         self._info.setWordWrap(True)
         self._info.setCursor(Qt.CursorShape.WhatsThisCursor)
         layout.addWidget(self._info)
+        layout.addSpacing(6)
 
-        card = Lines()
         self._list = QWidget()
         self._list_layout = QVBoxLayout(self._list)
         self._list_layout.setContentsMargins(0, 0, 0, 0)
-        self._list_layout.setSpacing(0)
-        card.add(self._list)
-        card.add(self._build_add_row())
-        card.add(self._build_test_row())
-        layout.addWidget(card)
+        self._list_layout.setSpacing(6)
+        self._rows: List[SheetRow] = []
+        layout.addWidget(self._list)
+        layout.addSpacing(6)
+        layout.addWidget(self._build_add_row())
+        layout.addSpacing(8)
+        layout.addWidget(self._build_test_row())
 
     def _build_add_row(self) -> QWidget:
-        """Row with a kind, a pattern and the Add button."""
+        """The kind as words, then the pattern and the Add key."""
         row = QWidget()
         layout = QVBoxLayout(row)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(4)
+        layout.setSpacing(10)
 
-        self._error = QLabel()
-        # Same look as the "API key required" warnings.
-        set_tone(self._error, "warn")
-        self._error.setVisible(False)
+        self._kind_line = ChoiceLine([kind for kind, _key, _default in KINDS])
+        self._kind = self._kind_line.choice
+        self._kind.set_value(KINDS[0][0])
+        layout.addWidget(self._kind_line)
 
         line = QHBoxLayout()
-        self._kind = ModernComboBox()
-        self._kind.setObjectName("SettingsCombo")
-        self._kind.setMinimumWidth(110)
+        line.setSpacing(8)
         self._input = QLineEdit()
         self._input.setObjectName("SettingsFormatInput")
         self._input.returnPressed.connect(self._add)
         self._input.textChanged.connect(lambda: self._error.setVisible(False))
-        self._add_btn = ActionButton(small=True)
+        self._add_btn = KeyButton("", small=True)
         self._add_btn.clicked.connect(self._add)
-        line.addWidget(self._kind)
         line.addWidget(self._input, 1)
         line.addWidget(self._add_btn)
         layout.addLayout(line)
+
+        self._error = QLabel()
+        set_tone(self._error, "warn")
+        self._error.setVisible(False)
         layout.addWidget(self._error)
         return row
 
     def _build_test_row(self) -> QWidget:
-        """Row with a file name and what is read from it."""
+        """A file name to test, and what is read from it."""
         row = QWidget()
         layout = QVBoxLayout(row)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(4)
-
-        line = QHBoxLayout()
-        self._test_title = QLabel()
-        self._test_title.setObjectName("SettingMuted")
-        self._test_title.setMinimumWidth(110)
+        layout.setSpacing(6)
         self._test_input = QLineEdit()
         self._test_input.setObjectName("SettingsFormatInput")
         self._test_input.textChanged.connect(self._run_test)
-        line.addWidget(self._test_title)
-        line.addWidget(self._test_input, 1)
-        layout.addLayout(line)
-
+        layout.addWidget(self._test_input)
         self._test_result = QLabel()
-        self._test_result.setObjectName("RowSubtitle")
+        self._test_result.setObjectName("SettingHint")
         self._test_result.setWordWrap(True)
         self._test_result.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
@@ -238,44 +231,44 @@ class InputFormatsSection(QWidget):
         self._run_test()
 
     def _show_patterns(self) -> None:
-        """One line per pattern of the settings: its kind, it, a remove button."""
+        """A line per pattern of the settings: its kind ..... it. A click
+        opens it on the key that removes it."""
         while self._list_layout.count():
             item = self._list_layout.takeAt(0)
             widget = item.widget() if item else None
             if widget:
                 widget.deleteLater()
+        self._rows = []
         for kind, _key, _default in KINDS:
             for pattern in self.patterns(kind):
                 self._list_layout.addWidget(self._pattern_line(kind, pattern))
         self._list.setVisible(self._list_layout.count() > 0)
 
-    def _pattern_line(self, kind: str, pattern: str) -> QWidget:
-        line = QWidget()
-        line.setFixedHeight(32)
-        layout = QHBoxLayout(line)
-        layout.setContentsMargins(0, 0, 0, 0)
-        kind_lbl = QLabel(kind_label(kind))
-        kind_lbl.setObjectName("RowSubtitle")
-        kind_lbl.setMinimumWidth(110)
-        pattern_lbl = QLabel(pattern)
-        pattern_lbl.setObjectName("SettingPath")
-        pattern_lbl.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextSelectableByMouse
-        )
-        remove = QPushButton("×")
-        remove.setObjectName("PatternRemoveBtn")
-        remove.setFixedSize(24, 24)
-        remove.setCursor(Qt.CursorShape.PointingHandCursor)
-        remove.setToolTip(tr("remove_pattern", "Remove this pattern"))
+    def _pattern_line(self, kind: str, pattern: str) -> SheetRow:
+        row = SheetRow(mono_value=True)
+        row.name.setText(kind_label(kind))
+        row.value.setText(pattern)
+        row.value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        remove = KeyButton(tr("remove_pattern", "Remove this pattern"), small=True)
+        remove.set_danger(True)
         remove.clicked.connect(lambda _=False: self._remove(kind, pattern))
-        layout.addWidget(kind_lbl)
-        layout.addWidget(pattern_lbl, 1)
-        layout.addWidget(remove)
-        return line
+        keys = QHBoxLayout()
+        keys.addWidget(remove)
+        keys.addStretch()
+        row.details_layout.addLayout(keys)
+        row.clicked.connect(lambda r=row: self._open_line(r))
+        self._rows.append(row)
+        return row
+
+    def _open_line(self, row: SheetRow) -> None:
+        opening = not row.is_open()
+        for other in self._rows:
+            other.set_open(False)
+        row.set_open(opening)
 
     def _add(self) -> None:
         pattern = self._input.text().strip()
-        kind = self._kind.currentData()
+        kind = self._kind.value()
         if not pattern or not kind:
             return
         error = check_pattern(kind, pattern)
@@ -374,21 +367,17 @@ class InputFormatsSection(QWidget):
             tr(
                 "input_formats_help",
                 "Describe how your file names are built, with the variables "
-                "of the output formats. Your patterns are tried before the "
+                "of the file names above. Your patterns are tried before the "
                 "ones S.O.K knows. {ignore} skips a part of the name.",
             )
         )
         self._info.setToolTip(self._tooltip())
         self._input.setPlaceholderText(tr("input_add_placeholder", "Add a pattern"))
         self._add_btn.setText(tr("add_pattern", "Add"))
-        self._test_title.setText(tr("input_test", "Test"))
         self._test_input.setPlaceholderText(
             tr("input_test_placeholder", "Paste a file name")
         )
-        current = self._kind.currentData()
-        self._kind.clear()
-        for kind, tr_key, default in KINDS:
-            self._kind.addItem(tr(tr_key, default), kind)
-        self._kind.setCurrentIndex(max(self._kind.findData(current), 0))
+        self._kind_line.name.setText(tr("input_kind", "Kind"))
+        self._kind.set_texts(tr(key, default) for _kind, key, default in KINDS)
         self._show_patterns()
         self._run_test()
