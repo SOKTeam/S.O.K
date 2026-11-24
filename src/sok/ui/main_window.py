@@ -360,7 +360,6 @@ class MainWindow(QMainWindow):
         """Name the S.O.K mark and the icons of the navigation."""
         titles = self._nav_titles()
         self._navbar.mark.setToolTip(titles[HOME_PAGE])
-        self._navbar.mark.set_label(titles[HOME_PAGE])
         for index, icon in self._navbar.icons.items():
             icon.setToolTip(titles[index])
 
