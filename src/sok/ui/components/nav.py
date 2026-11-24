@@ -20,7 +20,7 @@ Settings are icons at the right, outside the navigation.
 from functools import partial
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
-from PySide6.QtGui import QFontMetrics, QPainter
+from PySide6.QtGui import QColor, QFontMetrics, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QHBoxLayout, QWidget
 
 from sok.ui.components.base import parse_color
@@ -146,16 +146,58 @@ class NavWord(_Clickable):
         p.end()
 
 
-class NavMark(_Clickable):
-    """The "● S.O.K" mark: a coral dot and the name. Opens the home page,
-    and is written in ink while it is open."""
+# The cube of the S.O.K logo, as strokes in its 512 × 508 box: the outline
+# and the top face (open at the left corner), then the front vertical edge
+# (not touching the center), which is drawn in the accent.
+CUBE_OUTLINE = [
+    (124, 121),
+    (256, 62),
+    (442, 146),
+    (256, 229),
+    (70, 146),
+    (70, 360),
+    (256, 446),
+    (442, 360),
+    (442, 146),
+]
+CUBE_EDGE = [(256, 284), (256, 446)]
+CUBE_STROKE = 40
 
-    DOT = 8
+
+def draw_cube(p: QPainter, rect: QRectF, ink: QColor, accent: QColor) -> None:
+    """The S.O.K cube in rect: ink strokes, its front edge in the accent."""
+    scale = min(rect.width() / 512, rect.height() / 508)
+    x0 = rect.x() + (rect.width() - 512 * scale) / 2
+    y0 = rect.y() + (rect.height() - 508 * scale) / 2
+
+    def path(points) -> QPainterPath:
+        result = QPainterPath(
+            QPointF(x0 + points[0][0] * scale, y0 + points[0][1] * scale)
+        )
+        for x, y in points[1:]:
+            result.lineTo(QPointF(x0 + x * scale, y0 + y * scale))
+        return result
+
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    for points, color in ((CUBE_OUTLINE, ink), (CUBE_EDGE, accent)):
+        pen = QPen(color, CUBE_STROKE * scale)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        p.setPen(pen)
+        p.drawPath(path(points))
+
+
+class NavMark(_Clickable):
+    """The mark: the S.O.K cube (its front edge in the accent) and the name.
+    Opens the home page, and is written in ink while it is open."""
+
+    CUBE = 22
+    GAP = 10
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._font = ui_font(15, 700)
-        self._font.setLetterSpacing(self._font.SpacingType.AbsoluteSpacing, -0.45)
+        self._font = ui_font(20, 700)
+        self._font.setLetterSpacing(self._font.SpacingType.AbsoluteSpacing, -0.7)
         self._active = False
 
     def set_active(self, active: bool) -> None:
@@ -164,21 +206,21 @@ class NavMark(_Clickable):
 
     def sizeHint(self) -> QSize:  # noqa: N802 - Qt API
         text = QFontMetrics(self._font).horizontalAdvance("S.O.K")
-        return QSize(self.DOT + 9 + text + 1, 30)
+        return QSize(self.CUBE + self.GAP + text + 1, 30)
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
         c = _palette(self)
+        ink = parse_color(c["ink"] if self._active or self._hovered else c["ink-muted"])
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(parse_color(c["accent"]))
-        p.drawEllipse(QPointF(self.DOT / 2, self.height() / 2), 4, 4)
-        p.setFont(self._font)
-        p.setPen(
-            parse_color(c["ink"] if self._active or self._hovered else c["ink-muted"])
+        top = (self.height() - self.CUBE) / 2
+        draw_cube(
+            p, QRectF(0, top, self.CUBE, self.CUBE), ink, parse_color(c["accent"])
         )
+        p.setFont(self._font)
+        p.setPen(ink)
         p.drawText(
-            QRectF(self.DOT + 9, 0, self.width(), self.height()),
+            QRectF(self.CUBE + self.GAP, 0, self.width(), self.height()),
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
             "S.O.K",
         )
