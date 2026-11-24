@@ -206,6 +206,12 @@ class NavIcon(_Clickable):
         pixmap = svg_icon(self._icon, color, 18)
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if self._active or self._hovered:
+            # A light key behind the icon of the page open, as on hover.
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(parse_color(c["surface-raised"]))
+            p.drawRoundedRect(QRectF(self.rect()), 10, 10)
         offset = (self.SIZE - 18) // 2
         p.drawPixmap(offset, offset, pixmap)
         p.end()

@@ -14,6 +14,7 @@ from sok.core.history import Move, Operation, UndoReport, MISSING
 from sok.ui import message_box
 from sok.ui.controllers.undo import reason_text, undo_summary
 from sok.ui.pages import history_page
+from sok.ui.i18n import tr
 from sok.ui.pages.history_page import HistoryPage, operation_title
 
 
@@ -33,35 +34,35 @@ def texts(widget):
     return [lbl.text() for lbl in widget.findChildren(QLabel)]
 
 
-def test_the_page_lists_the_operations(qtbot, rename_history):
+def test_the_page_lists_the_operations_newest_first(qtbot, rename_history):
     rename_history.add(operation("a"))
     rename_history.add(operation("b", undone=(True, True)))
 
     page = HistoryPage()
     qtbot.addWidget(page)
 
-    assert [card._operation.id for card in page._cards] == ["b", "a"]
-    assert page._empty.isHidden()
+    assert [row.operation.id for row in page._rows] == ["b", "a"]
+    assert page._current == "b"
 
 
 def test_an_empty_history_says_so(qtbot):
     page = HistoryPage()
     qtbot.addWidget(page)
 
-    assert not page._empty.isHidden()
+    assert page._lead.text() == tr("history_empty", "No renames yet.")
     assert page._clear_btn.isHidden()
+    assert page._scene_scroll.isHidden()
 
 
-def test_a_card_shows_its_files_when_clicked(qtbot, rename_history):
-    rename_history.add(operation())
+def test_the_scene_shows_the_files_of_the_rename_selected(qtbot, rename_history):
+    rename_history.add(operation("a"))
     page = HistoryPage()
     qtbot.addWidget(page)
-    card = page._cards[0]
 
-    card._toggle()
+    page._select("a")
 
-    assert any("0.mkv  →  Movie 0.mkv" in text for text in texts(card))
-    assert card._chevron.text() == "⌄"
+    assert "Movie 0.mkv" in texts(page._scene)
+    assert any("0.mkv" in text and text != "Movie 0.mkv" for text in texts(page._scene))
 
 
 def test_clearing_asks_first(qtbot, monkeypatch, rename_history):
@@ -77,23 +78,16 @@ def test_clearing_asks_first(qtbot, monkeypatch, rename_history):
     page._clear()
 
     assert rename_history.operations() == []
-    assert page._cards == []
+    assert page._rows == []
 
 
-def test_the_title_counts_the_files():
-    # The interface language is the one of the local settings.
-    assert "2" in operation_title(operation()).split(" · ")[1]
-
-
-def test_the_title_counts_the_subtitles_apart():
+def test_the_title_counts_the_files_not_the_subtitles():
     op = operation()
     op.moves.append(Move("/in/0.srt", "/out/Movie 0.srt", follows="/out/Movie 0.mkv"))
 
-    parts = operation_title(op).split(" · ")
-
-    assert len(parts) == 3
-    assert "2" in parts[1]
-    assert "1" in parts[2]
+    # The interface language is the one of the local settings.
+    assert "2" in operation_title(op)
+    assert "3" not in operation_title(op)
 
 
 def test_the_undo_message_lists_the_files_left_in_place():

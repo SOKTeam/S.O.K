@@ -281,8 +281,8 @@ When two videos of a folder can claim a subtitle (`Movie.mkv` and
 The report lists them in `"subtitles"`, apart from `"moved"`, so the counts
 and the posters stay those of the videos; a skipped or failed subtitle joins
 `"skipped"` or `"errors"`. The rename workers pass their number on as
-`"subtitles"`: the end message adds "With 3 subtitle(s).", and the History page
-counts them apart and shows each one under its video.
+`"subtitles"`: the done screen shows how many, and the History page counts the
+videos only ("6 movies sorted").
 
 :::tip
 A rename can be undone: see [Rename history](#rename-history) below.
@@ -290,8 +290,13 @@ A rename can be undone: see [Rename history](#rename-history) below.
 
 ## Rename history
 
-Each rename can be undone, from the message shown at its end ("Undo rename") or
-from the History page. `sok/core/history.py` keeps the history, without Qt.
+Each rename can be undone, from the done screen of its page ("Undo"), from the
+band of the home page (the last one), or from the History page. That page groups
+the renames by day (today, yesterday, earlier this month; the older months fold
+into one row each, the month of the last rename always shown) and shows the one
+selected on a scene: where from, where to, how (moved, hard links, copied), its
+size, and its files with what each one was and a key to put it back.
+`sok/core/history.py` keeps the history, without Qt.
 
 **Recording.** `BatchOrganizeWorker` runs the rename and the
 poster downloads inside `history.record(kind)`. While it runs, three functions
