@@ -13,7 +13,7 @@
 A section is a title on the left (200px) and its content on the right,
 under a hairline. Inside, the settings are plain lines: no card, no shadow.
 A yes/no setting is a small switch drawn like the keys; a choice among a
-few words is a row of small keys, the chosen one in the accent. Lists of
+few words is the words themselves, the chosen one in ink. Lists of
 values (name models, services) are dotted sheets whose lines open on a
 click to show their field or keys.
 """
@@ -33,7 +33,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from sok.ui.components.base import KeyButton, parse_color
+from sok.ui.components.base import parse_color
 from sok.ui.theme import Theme, ui_font
 
 # Width of the title column of a section.
@@ -307,11 +307,73 @@ class SheetRow(QWidget):
         return False
 
 
+class _Word(QWidget):
+    """A clickable word of a Choice: ink when chosen, faint otherwise."""
+
+    clicked = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Kept apart: the window stylesheet replaces the family of setFont.
+        self._font = ui_font(13)
+        self._text = ""
+        self.chosen = False
+        self._hover = False
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+    def setText(self, text: str) -> None:  # noqa: N802 - Qt API
+        self._text = text
+        self.setAccessibleName(text)
+        self.updateGeometry()
+        self.update()
+
+    def text(self) -> str:
+        return self._text
+
+    def sizeHint(self) -> QSize:  # noqa: N802 - Qt API
+        return QSize(QFontMetrics(self._font).horizontalAdvance(self._text) + 2, 22)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt API
+        return self.sizeHint()
+
+    def enterEvent(self, e):  # noqa: N802 - Qt API
+        self._hover = True
+        self.update()
+
+    def leaveEvent(self, e):  # noqa: N802 - Qt API
+        self._hover = False
+        self.update()
+
+    def mouseReleaseEvent(self, e):  # noqa: N802 - Qt API
+        self.clicked.emit()
+
+    def keyPressEvent(self, e):  # noqa: N802 - Qt API
+        if e.key() in (Qt.Key.Key_Space, Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            self.clicked.emit()
+        else:
+            super().keyPressEvent(e)
+
+    def paintEvent(self, e):  # noqa: N802 - Qt API
+        c = _palette(self)
+        role = "ink" if self.chosen else ("ink-muted" if self._hover else "ink-faint")
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+        p.setFont(self._font)
+        p.setPen(parse_color(c[role]))
+        # Same baseline as the names of a sheet (15px).
+        p.drawText(QPointF(1, 15), self._text)
+        if self.hasFocus():
+            p.setPen(QPen(parse_color(c["accent"]), 1))
+            p.drawLine(QPointF(1, 19.5), QPointF(self.width() - 1, 19.5))
+        p.end()
+
+
 class Choice(QWidget):
-    """A row of small keys, one of them chosen (in the accent).
+    """A few words, one of them chosen (in ink, the others faint).
 
     Signals:
-        chosen(str): The value of the key clicked.
+        chosen(str): The value of the word clicked.
     """
 
     chosen = Signal(str)
@@ -320,33 +382,50 @@ class Choice(QWidget):
         super().__init__(parent)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
-        self._keys: List[Tuple[str, KeyButton]] = []
+        layout.setSpacing(14)
+        self._words: List[Tuple[str, _Word]] = []
         self._value: Optional[str] = None
         for value in values:
-            key = KeyButton("", small=True)
-            key.clicked.connect(lambda _=False, v=value: self._click(v))
-            layout.addWidget(key)
-            self._keys.append((value, key))
-        layout.addStretch()
+            word = _Word()
+            word.clicked.connect(lambda v=value: self._click(v))
+            layout.addWidget(word)
+            self._words.append((value, word))
 
     def set_texts(self, texts: Iterable[str]) -> None:
-        for (_value, key), text in zip(self._keys, texts):
-            key.setText(text)
+        for (_value, word), text in zip(self._words, texts):
+            word.setText(text)
 
     def value(self) -> Optional[str]:
         return self._value
 
     def set_value(self, value: Optional[str]) -> None:
         self._value = value
-        for v, key in self._keys:
-            key.set_primary(v == value)
-            key.setAccessibleDescription("pressed" if v == value else "")
+        for v, word in self._words:
+            word.chosen = v == value
+            word.setAccessibleDescription("selected" if v == value else "")
+            word.update()
 
     def _click(self, value: str) -> None:
         if value != self._value:
             self.set_value(value)
             self.chosen.emit(value)
+
+
+class ChoiceLine(QWidget):
+    """A line of a sheet whose value is a Choice: name ....... a  b  c."""
+
+    def __init__(self, values: Iterable[str], parent=None):
+        super().__init__(parent)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        self.name = QLabel()
+        self.name.setObjectName("SheetName")
+        self.name.setFont(ui_font(14))
+        self.choice = Choice(values)
+        layout.addWidget(self.name)
+        layout.addWidget(_Leader(), 1)
+        layout.addWidget(self.choice)
 
 
 class VariableChip(QLabel):

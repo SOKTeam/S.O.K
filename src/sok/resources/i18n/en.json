@@ -655,5 +655,6 @@
     "settings_src_builtin": "Built-in key",
     "settings_src_to_set_up": "To set up",
     "settings_src_preferred": "preferred",
-    "settings_src_use_first": "Search it first"
+    "settings_src_use_first": "Search it first",
+    "settings_theme": "Theme"
 }

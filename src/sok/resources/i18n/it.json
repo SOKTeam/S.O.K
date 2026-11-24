@@ -655,5 +655,6 @@
     "settings_src_builtin": "Chiave integrata",
     "settings_src_to_set_up": "Da configurare",
     "settings_src_preferred": "preferita",
-    "settings_src_use_first": "Usa per prima"
+    "settings_src_use_first": "Usa per prima",
+    "settings_theme": "Tema"
 }

@@ -26,7 +26,7 @@ class FakeConfig:
         self._values[key] = value
 
     def get_available_languages(self):
-        return ["en"]
+        return ["fr", "en"]
 
 
 @pytest.fixture
@@ -60,7 +60,7 @@ class TestAppearanceSectionOnMacOS:
     @pytest.fixture
     def section(self, qtbot, monkeypatch, system_dark):
         monkeypatch.setattr(appearance_section, "IS_MACOS", True)
-        config = FakeConfig(theme="light", language="en")
+        config = FakeConfig(theme="light", language="fr")
         widget = AppearanceSection(config)
         qtbot.addWidget(widget)
         widget.load()
@@ -102,6 +102,17 @@ class TestAppearanceSectionOnMacOS:
 
         assert config.get("theme") == "system"
         assert widget.theme_choice.value() == "system"
+
+    def test_choosing_a_language_saves_it_and_shows_its_name(self, section):
+        widget, config = section
+        emitted = []
+        widget.language_changed.connect(emitted.append)
+
+        widget.lang_choice._click("en")
+
+        assert config.get("language") == "en"
+        assert emitted == ["en"]
+        assert widget._lang_row.value.text() == "English"
 
     def test_no_accent_box_on_other_platforms(self, qtbot, monkeypatch):
         monkeypatch.setattr(appearance_section, "IS_MACOS", False)

@@ -688,5 +688,6 @@
     "settings_src_builtin": "Встроенный ключ",
     "settings_src_to_set_up": "Нужно настроить",
     "settings_src_preferred": "основной",
-    "settings_src_use_first": "Использовать первым"
+    "settings_src_use_first": "Использовать первым",
+    "settings_theme": "Тема"
 }

@@ -688,5 +688,6 @@
     "settings_src_builtin": "Wbudowany klucz",
     "settings_src_to_set_up": "Do skonfigurowania",
     "settings_src_preferred": "preferowane",
-    "settings_src_use_first": "Używaj najpierw"
+    "settings_src_use_first": "Używaj najpierw",
+    "settings_theme": "Motyw"
 }

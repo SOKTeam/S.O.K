@@ -655,5 +655,6 @@
     "settings_src_builtin": "Integrierter Schlüssel",
     "settings_src_to_set_up": "Einzurichten",
     "settings_src_preferred": "bevorzugt",
-    "settings_src_use_first": "Zuerst verwenden"
+    "settings_src_use_first": "Zuerst verwenden",
+    "settings_theme": "Design"
 }

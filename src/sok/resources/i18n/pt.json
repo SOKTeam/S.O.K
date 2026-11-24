@@ -655,5 +655,6 @@
     "settings_src_builtin": "Chave incluída",
     "settings_src_to_set_up": "Por configurar",
     "settings_src_preferred": "preferida",
-    "settings_src_use_first": "Usar primeiro"
+    "settings_src_use_first": "Usar primeiro",
+    "settings_theme": "Tema"
 }
