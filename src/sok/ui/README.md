@@ -14,10 +14,13 @@ ui/
 │   ├── integrations/    # Third-party modules (Discord RPC, Updates, OAuth)
 │   ├── base.py          # Base elements (Cards, Buttons, Toggles)
 │   ├── dialogs.py       # Custom dialog boxes
+│   ├── file_row.py      # Row of a media list (before/after, tags, gauge)
 │   ├── inputs.py        # Input elements and Drop Zones
 │   ├── layouts.py       # Custom layouts (FlowLayout)
+│   ├── media_visual.py  # Dominant color, stand-in for a missing poster
 │   ├── search.py        # Widgets dedicated to search results
 │   ├── nav.py           # Navigation (media types as words, icons)
+│   ├── scene.py         # Scene: the selected item shown large, lit
 │   └── window.py        # Window controls (Custom title bar)
 ├── pages/               # Main application pages
 │   ├── home_page.py     # Dashboard
