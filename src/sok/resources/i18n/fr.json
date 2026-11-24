@@ -701,5 +701,10 @@
     "batch_end_failed_one": "{n} fichier n'a pas pu bouger.",
     "batch_end_failed_other": "{n} fichiers n'ont pas pu bouger.",
     "batch_end_not_reached_one": "{n} fichier n'a pas encore été rangé.",
-    "batch_end_not_reached_other": "{n} fichiers n'ont pas encore été rangés."
+    "batch_end_not_reached_other": "{n} fichiers n'ont pas encore été rangés.",
+    "batch_how_it_works": "Comment ça marche",
+    "batch_formats_accepted_one": "{n} format accepté",
+    "batch_formats_accepted_other": "{n} formats acceptés",
+    "batch_consoles_known_one": "{n} console reconnue",
+    "batch_consoles_known_other": "{n} consoles reconnues"
 }

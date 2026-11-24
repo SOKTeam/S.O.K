@@ -67,6 +67,7 @@ from sok.media.factory import create_media_item
 from sok.ui import message_box
 from sok.ui.components.base import KeyButton, parse_color
 from sok.ui.components.file_row import RowData
+from sok.ui.components.organize.empty_state import EmptyFan, TagCloud
 from sok.ui.components.organize.rename_summary import RenameSummary, SummaryData
 from sok.ui.components.organize.media_list import (
     STATUS_DONE,
@@ -215,6 +216,18 @@ class _Run:
     current_file: Optional[Path] = None
     done_files: int = 0
     done_bytes: int = 0
+
+
+# The website, until it has its own domain (see the release checklist).
+SITE_URL = "https://sokfromsokteam.vercel.app"
+
+
+def guide_url() -> str:
+    """The user guide of the website: /guide in English, /<lang>/guide in
+    the other languages of the app."""
+    language = get_config_manager().get("language", "en")
+    prefix = "" if language == "en" else f"/{language}"
+    return f"{SITE_URL}{prefix}/guide"
 
 
 def duration_text(seconds: float) -> str:
@@ -368,6 +381,8 @@ class BatchPage(QWidget):
 
     kind = "movies"
     scene_shape = Shape.POSTER
+    # Shape of the empty places of the empty screen (scene_shape if None).
+    empty_shape: Optional[Shape] = None
     default_path_type = "video"
     media_type = MediaType.VIDEO
     content_type = ContentType.MOVIE
@@ -537,30 +552,83 @@ class BatchPage(QWidget):
         self._show_screen()
 
     def _build_empty(self) -> QWidget:
+        """The empty screen of mockup 05, centered: three empty places, the
+        title, what to drop, the keys, and what S.O.K recognizes."""
         screen = _Screen()
         layout = QVBoxLayout(screen)
-        layout.setContentsMargins(40, 64, 40, 40)
+        layout.setContentsMargins(40, 40, 40, 40)
         layout.setSpacing(0)
+        layout.addStretch(1)
+        center = Qt.AlignmentFlag.AlignHCenter
+        layout.addWidget(EmptyFan(self.empty_shape or self.scene_shape), 0, center)
+        layout.addSpacing(28)
         self._empty_title = QLabel()
         self._empty_title.setFont(self._display_font())
         self._empty_title.setWordWrap(True)
+        self._empty_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self._empty_title)
-        layout.addSpacing(14)
+        layout.addSpacing(28)
         self._empty_text = QLabel()
         self._empty_text.setFont(ui_font(17))
         self._empty_text.setWordWrap(True)
-        self._empty_text.setMaximumWidth(620)
-        layout.addWidget(self._empty_text)
-        layout.addSpacing(32)
+        self._empty_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Centered between stretches: a label added with an alignment does
+        # not get the height of its wrapped lines.
+        self._empty_text.setFixedWidth(520)
+        text_row = QHBoxLayout()
+        text_row.addStretch()
+        text_row.addWidget(self._empty_text)
+        text_row.addStretch()
+        layout.addLayout(text_row)
+        layout.addSpacing(28)
         row = QHBoxLayout()
+        row.setSpacing(12)
+        row.addStretch()
         self._choose_btn = KeyButton("", primary=True)
         self._choose_btn.set_shortcut(shortcut_label("O"))
         self._choose_btn.clicked.connect(self._browse_sources)
         row.addWidget(self._choose_btn)
+        self._guide_btn = KeyButton("")
+        self._guide_btn.clicked.connect(self._open_guide)
+        row.addWidget(self._guide_btn)
         row.addStretch()
         layout.addLayout(row)
-        layout.addStretch()
+        layout.addSpacing(48)
+        self._known_lbl = QLabel()
+        known = ui_font(11, 600)
+        known.setLetterSpacing(known.SpacingType.AbsoluteSpacing, 0.88)
+        known.setCapitalization(known.Capitalization.AllUppercase)
+        self._known_lbl.setFont(known)
+        self._known_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self._known_lbl)
+        layout.addSpacing(12)
+        self._known_tags = TagCloud()
+        layout.addWidget(self._known_tags, 0, center)
+        layout.addStretch(1)
         return screen
+
+    def known_tags(self) -> Tuple[str, List[str]]:
+        """What the empty screen lists under its keys: a label and tags.
+
+        By default the formats the page accepts ("14 formats accepted":
+        MKV, MP4…). The games page lists the consoles instead.
+        """
+        formats = list(
+            dict.fromkeys(
+                ext.lstrip(".").upper() for ext in self._ops.supported_extensions
+            )
+        )
+        label = trn(
+            "batch_formats_accepted",
+            len(formats),
+            "{n} format accepted",
+            "{n} formats accepted",
+        )
+        return label, formats
+
+    def _open_guide(self) -> None:
+        """The user guide of the website, in the language of the app."""
+        QDesktopServices.openUrl(QUrl(guide_url()))
 
     def _build_work(self) -> QWidget:
         screen = _Screen()
@@ -692,6 +760,7 @@ class BatchPage(QWidget):
         for label, role in (
             (self._empty_title, "ink"),
             (self._empty_text, "ink-muted"),
+            (self._known_lbl, "ink-faint"),
             (self._title_lbl, "ink"),
             (self._lead_lbl, "ink-muted"),
             (self._dest_lbl, "ink-muted"),
@@ -738,6 +807,10 @@ class BatchPage(QWidget):
         self._empty_title.setText(self._text("empty_title"))
         self._empty_text.setText(self._text("empty_text"))
         self._choose_btn.setText(tr("batch_choose_folder", "Choose a folder"))
+        self._guide_btn.setText(tr("batch_how_it_works", "How it works"))
+        label, tags = self.known_tags()
+        self._known_lbl.setText(label)
+        self._known_tags.set_tags(tags)
         self._action_btn.setText(self._text("action"))
         self._dest_btn.setText(tr("batch_change_folder", "Change folder"))
         self._scene.set_destination_label(

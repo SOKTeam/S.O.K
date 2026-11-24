@@ -701,5 +701,10 @@
     "batch_end_failed_one": "{n} file non è stato spostato.",
     "batch_end_failed_other": "{n} file non sono stati spostati.",
     "batch_end_not_reached_one": "{n} file non è ancora stato sistemato.",
-    "batch_end_not_reached_other": "{n} file non sono ancora stati sistemati."
+    "batch_end_not_reached_other": "{n} file non sono ancora stati sistemati.",
+    "batch_how_it_works": "Come funziona",
+    "batch_formats_accepted_one": "{n} formato accettato",
+    "batch_formats_accepted_other": "{n} formati accettati",
+    "batch_consoles_known_one": "{n} console riconosciuta",
+    "batch_consoles_known_other": "{n} console riconosciute"
 }

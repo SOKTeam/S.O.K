@@ -701,5 +701,10 @@
     "batch_end_failed_one": "{n} Datei konnte nicht bewegt werden.",
     "batch_end_failed_other": "{n} Dateien konnten nicht bewegt werden.",
     "batch_end_not_reached_one": "{n} Datei wurde noch nicht sortiert.",
-    "batch_end_not_reached_other": "{n} Dateien wurden noch nicht sortiert."
+    "batch_end_not_reached_other": "{n} Dateien wurden noch nicht sortiert.",
+    "batch_how_it_works": "So funktioniert's",
+    "batch_formats_accepted_one": "{n} Format akzeptiert",
+    "batch_formats_accepted_other": "{n} Formate akzeptiert",
+    "batch_consoles_known_one": "{n} Konsole erkannt",
+    "batch_consoles_known_other": "{n} Konsolen erkannt"
 }

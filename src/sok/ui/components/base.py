@@ -446,6 +446,21 @@ class KeyButton(QPushButton):
         self.setFixedHeight(self.HEIGHT[small] + 1)
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+        # The accent ring is drawn only for the keyboard (CSS :focus-visible);
+        # never the blue ring of macOS.
+        self.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, False)
+        self._keyboard_focus = False
+
+    def focusInEvent(self, e):  # noqa: N802 - Qt API
+        self._keyboard_focus = e.reason() in (
+            Qt.FocusReason.TabFocusReason,
+            Qt.FocusReason.BacktabFocusReason,
+        )
+        super().focusInEvent(e)
+
+    def focusOutEvent(self, e):  # noqa: N802 - Qt API
+        self._keyboard_focus = False
+        super().focusOutEvent(e)
 
     def set_primary(self, primary: bool) -> None:
         """Use the coral face (True) or the graphite one (False)."""
@@ -559,7 +574,11 @@ class KeyButton(QPushButton):
         p.setBrush(parse_color(c[f"{shadow}-light"]))
         p.drawPath(light.subtracted(below))
 
-        if self.hasFocus() and self.focusPolicy() != Qt.FocusPolicy.NoFocus:
+        if (
+            self.hasFocus()
+            and self._keyboard_focus
+            and self.focusPolicy() != Qt.FocusPolicy.NoFocus
+        ):
             p.setBrush(Qt.BrushStyle.NoBrush)
             p.setPen(QPen(parse_color(c["accent"]), 2))
             p.drawRoundedRect(face_rect.adjusted(-3, -3, 3, 3), radius + 3, radius + 3)

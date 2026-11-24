@@ -29,7 +29,11 @@ holds the list, the scene, the workers and the buttons. A subclass only sets
 class attributes (media type, content type, how to read a file name, how rows
 are grouped, the `kind` of its texts and the `scene_shape` of its items).
 
-The page has two screens: an empty one (a sentence and "Choose a folder"),
+The page has two screens: an empty one, centered (three empty places in the
+shape of its items, a sentence, "Choose a folder" and "How it works", which
+opens the guide of the website in the language of the app, and what S.O.K
+recognizes: `known_tags()`, the accepted formats, or the consoles on the games
+page),
 and the work screen (a sentence such as "18 movies to sort.", the list of
 `FileRow`s and the `Scene` of the selected item). The work screen also shows a
 rename while it runs and once it is over (see [Renaming](#5-renaming)). The texts
