@@ -41,8 +41,5 @@ class MoviesPage(BatchPage):
     def page_title(self) -> str:
         return tr("movies", "Movies")
 
-    def rename_confirm_text(self, count: int) -> str:
-        return tr("rename_confirm", "Rename {0} movie file(s)?").format(count)
-
     def nothing_ready_text(self) -> str:
         return tr("no_movies_ready", "No movies are ready to rename.")

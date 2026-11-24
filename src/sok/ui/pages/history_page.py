@@ -48,13 +48,13 @@ from sok.config import get_config_manager
 from sok.core.history import COPY, LINK, Move, Operation, get_history
 from sok.ui import message_box
 from sok.ui.components.base import KeyButton, parse_color
-from sok.ui.components.media_visual import standin_colors
+from sok.ui.components.media_visual import draw_fan, standin_colors
 from sok.ui.components.scene import _Sheet
 from sok.ui.controllers.undo import undo_operation
 from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.i18n import tr, trn
 from sok.ui.pages.batch_page import KIND_TEXTS, display_path, human_size
-from sok.ui.pages.home_page import _fan, when_text
+from sok.ui.pages.home_page import when_text
 from sok.ui.theme import Theme, ui_font
 
 # The kind of texts of the page an operation was made on, by its kind.
@@ -245,7 +245,7 @@ class OperationRow(QWidget):
         )
         if op.undone:
             p.setOpacity(0.45)
-        _fan(
+        draw_fan(
             p,
             self._covers,
             14 + 52 + 16,
@@ -371,7 +371,7 @@ class _Fan(QWidget):
         p.restore()
         if self._faded:
             p.setOpacity(0.45)
-        _fan(p, self._covers, x, 0, (w, h), step, 14, self.devicePixelRatioF())
+        draw_fan(p, self._covers, x, 0, (w, h), step, 14, self.devicePixelRatioF())
         p.end()
 
 

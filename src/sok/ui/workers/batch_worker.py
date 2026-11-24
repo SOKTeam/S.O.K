@@ -110,15 +110,23 @@ class BatchSearchWorker(BaseWorker):
 OrganizeBatch = Callable[..., Dict[str, Any]]
 
 
+class StopRequested(Exception):
+    """Raised between two files when the user stops a rename."""
+
+
 class BatchOrganizeWorker(BaseWorker):
     """Worker that renames/moves files, each with its own media item.
 
     Signals:
         progress (int, str): Percent complete and current filename.
-        finished (dict): Report with total/success/errors/skipped.
+        file_started (str, int, int): Name of the file about to be moved,
+            its number and the number of files, before each file.
+        finished (dict): Report with total/success/errors/skipped, and
+            "stopped" when the user stopped it.
     """
 
     progress = Signal(int, str)
+    file_started = Signal(str, int, int)
     finished = Signal(dict)
 
     def __init__(
@@ -141,8 +149,20 @@ class BatchOrganizeWorker(BaseWorker):
         self._mappings = mappings
         self._dest = dest_path
         self._organize = organize
+        self._stop = False
+        self._started = 0
+
+    def request_stop(self) -> None:
+        """Stop before the next file; the files already moved stay moved."""
+        self._stop = True
 
     def _on_progress(self, current: int, total: int, filename: str):
+        # Called before each file. A series counts its own files, so the
+        # number of the run is kept here.
+        if self._stop:
+            raise StopRequested
+        self._started += 1
+        self.file_started.emit(filename, self._started, len(self._mappings))
         if total > 0:
             pct = int((current / total) * 100)
             self.progress.emit(pct, f"({current}/{total}) {filename}")
@@ -154,13 +174,32 @@ class BatchOrganizeWorker(BaseWorker):
             return
 
         self.progress.emit(0, "Preparing...")
+        stopped = False
+        report: Dict[str, Any]
         with record(content_kind(self._mappings[0][1])) as journal:
-            report = self._organize(
-                mappings=self._mappings,
-                dest_path=str(self._dest),
-                dry_run=False,
-                progress_callback=self._on_progress,
-            )
+            try:
+                report = self._organize(
+                    mappings=self._mappings,
+                    dest_path=str(self._dest),
+                    dry_run=False,
+                    progress_callback=self._on_progress,
+                )
+            except StopRequested:
+                # The report of the run is lost with the exception: what
+                # moved is in the journal.
+                stopped = True
+                moved = [
+                    {"from": m.source, "to": m.target}
+                    for m in journal.moves
+                    if m.follows is None
+                ]
+                report = {
+                    "total_files": len(self._mappings),
+                    "total_moved": len(moved),
+                    "moved": moved,
+                    "errors": [],
+                    "skipped": [],
+                }
             if self._config.get("download_posters") and report.get("moved"):
                 self.progress.emit(100, "Downloading posters...")
                 save_artwork(self._mappings, report["moved"], str(self._dest))
@@ -174,5 +213,6 @@ class BatchOrganizeWorker(BaseWorker):
                 "errors": report.get("errors", []),
                 "skipped": report.get("skipped", []),
                 "operation": journal.operation_id,
+                "stopped": stopped,
             }
         )

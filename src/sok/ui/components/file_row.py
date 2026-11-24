@@ -19,7 +19,7 @@ confidence gauge.
 
 from dataclasses import dataclass, field
 
-from PySide6.QtCore import QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import (
     QColor,
     QFontMetrics,
@@ -57,6 +57,13 @@ class RowData:
         book: Draw the thumbnail as a book: square corners at the spine,
             on the left, with its shadow.
         by_tone: Palette color of the author ("ink-muted" for books).
+        phase: Where the item is in a rename: "" (not renaming), "waiting",
+            "current", "done", "stays" (left where it is) or "failed".
+        state: Short mono text at the right during a rename ("sorted"…).
+        line: Second line written instead of "was …" (the new path, or why
+            the file did not move), in the palette color line_tone.
+        action: Text of a small key drawn at the right ("Pick", "Retry"),
+            which emits action_clicked ("" for none).
     """
 
     title: str
@@ -70,6 +77,56 @@ class RowData:
     note: str = ""
     book: bool = False
     by_tone: str = "ink-faint"
+    phase: str = ""
+    state: str = ""
+    line: str = ""
+    line_tone: str = "ink-faint"
+    action: str = ""
+
+
+# Palette color of the state text of each phase of a rename.
+PHASE_TONES = {
+    "current": "accent-text",
+    "stays": "caution",
+    "failed": "danger",
+}
+
+
+def draw_check(p: QPainter, x: float, center_y: float, color: QColor) -> None:
+    """The 18px check of a sorted item (Lucide "check", 2px)."""
+    pen = QPen(color, 2)
+    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+    p.setPen(pen)
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    scale = 18 / 24
+    path = QPainterPath(QPointF(x + 20 * scale, center_y + (6 - 12) * scale))
+    path.lineTo(QPointF(x + 9 * scale, center_y + (17 - 12) * scale))
+    path.lineTo(QPointF(x + 4 * scale, center_y + (12 - 12) * scale))
+    p.drawPath(path)
+
+
+def draw_small_key(
+    p: QPainter, rect: QRectF, text: str, c: dict[str, str], hover: bool = False
+) -> None:
+    """A small key drawn in a row: the face, its 1px light and shadow."""
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(parse_color(c["shadow-key-drop"]))
+    p.drawRoundedRect(rect.translated(0, 1), RADIUS["key-sm"], RADIUS["key-sm"])
+    p.setBrush(parse_color(c["key-hover"] if hover else c["key"]))
+    p.drawRoundedRect(rect, RADIUS["key-sm"], RADIUS["key-sm"])
+    p.setPen(QPen(parse_color(c["shadow-key-light"]), 1))
+    p.drawLine(
+        QPointF(rect.left() + RADIUS["key-sm"], rect.top() + 0.5),
+        QPointF(rect.right() - RADIUS["key-sm"], rect.top() + 0.5),
+    )
+    p.setFont(ui_font(13, 600))
+    p.setPen(parse_color(c["ink"]))
+    p.drawText(rect, Qt.AlignmentFlag.AlignCenter, text)
+
+
+def small_key_width(text: str) -> int:
+    return QFontMetrics(ui_font(13, 600)).horizontalAdvance(text) + 24
 
 
 def draw_gauge(
@@ -136,9 +193,11 @@ class FileRow(QWidget):
 
     Signals:
         clicked: The row was clicked.
+        action_clicked: Its small key (RowData.action) was clicked.
     """
 
     clicked = Signal()
+    action_clicked = Signal()
 
     THUMB = QSize(36, 54)
     PAD_X, PAD_Y, GAP = 14, 10, 18
@@ -158,6 +217,9 @@ class FileRow(QWidget):
         self._selected = False
         self._hovered = False
         self._thumb: QPixmap | None = None
+        self._key_rect = QRectF()
+        self._key_hover = False
+        self.setMouseTracking(True)
         self.setFixedHeight(self.HEIGHT)
         self.setMinimumWidth(320)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -189,12 +251,23 @@ class FileRow(QWidget):
 
     def leaveEvent(self, e):  # noqa: N802 - Qt API
         self._hovered = False
+        self._key_hover = False
         self.update()
 
+    def mouseMoveEvent(self, e):  # noqa: N802 - Qt API
+        hover = bool(self._data.action) and self._key_rect.contains(e.position())
+        if hover != self._key_hover:
+            self._key_hover = hover
+            self.update()
+
     def mouseReleaseEvent(self, e):  # noqa: N802 - Qt API
-        if e.button() == Qt.MouseButton.LeftButton and self.rect().contains(
+        if e.button() != Qt.MouseButton.LeftButton or not self.rect().contains(
             e.position().toPoint()
         ):
+            return
+        if self._data.action and self._key_rect.contains(e.position()):
+            self.action_clicked.emit()
+        else:
             self.clicked.emit()
 
     def keyPressEvent(self, e):  # noqa: N802 - Qt API
@@ -222,23 +295,28 @@ class FileRow(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         box = QRectF(self.rect())
 
-        if self._selected or self._hovered:
+        # The item being moved is lit like a selected row.
+        lit = self._selected or d.phase == "current"
+        if lit or self._hovered:
             p.setPen(Qt.PenStyle.NoPen)
             p.setBrush(parse_color(c["surface-raised"]))
-            if not self._selected:
+            if not lit:
                 p.setOpacity(0.5)
             p.drawRoundedRect(box, RADIUS["key"], RADIUS["key"])
             p.setOpacity(1.0)
-            if self._selected:
+            if lit:
                 p.setBrush(Qt.BrushStyle.NoBrush)
                 p.setPen(QPen(parse_color(c["line"]), 1))
                 p.drawRoundedRect(
                     box.adjusted(0.5, 0.5, -0.5, -0.5), RADIUS["key"], RADIUS["key"]
                 )
 
-        # Thumbnail with a 1px inner line.
+        # Thumbnail with a 1px inner line; faded once sorted.
         tx, ty = self.PAD_X, self.PAD_Y
+        if d.phase == "done":
+            p.setOpacity(0.55)
         p.drawPixmap(tx, ty, self._thumbnail())
+        p.setOpacity(1.0)
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.setPen(QPen(parse_color(c["highlight"]), 1))
         thumb_rect = QRectF(
@@ -248,23 +326,54 @@ class FileRow(QWidget):
         path.addRoundedRect(thumb_rect, 6, 6)
         p.drawPath(path)
 
-        # Right side: tags then the gauge, measured from the right edge.
         center_y = self.height() / 2
         right = self.width() - self.PAD_X
-        gauge_x = right - (NOTCHES * 6 - 3)
-        draw_gauge(p, gauge_x, center_y, max(0, min(NOTCHES, d.confidence)), c)
-        x = gauge_x - self.GAP
-        tag_widths = [
-            QFontMetrics(ui_font(11, 400, mono=True)).horizontalAdvance(t) + 12
-            for t in d.tags
-        ]
-        tags_width = sum(tag_widths) + 6 * max(0, len(d.tags) - 1)
-        x -= tags_width
-        tags_left = x
-        for tag, width in zip(d.tags, tag_widths):
-            draw_tag(p, x, center_y, tag, c)
-            x += width + 6
-        text_right = (tags_left if d.tags else gauge_x) - self.GAP
+        self._key_rect = QRectF()
+        if d.phase:
+            # During and after a rename: the state, then a key, a check or
+            # the gauge; no tags.
+            if d.action:
+                width = small_key_width(d.action)
+                self._key_rect = QRectF(right - width, center_y - 16, width, 32)
+                draw_small_key(p, self._key_rect, d.action, c, self._key_hover)
+                state_right = self._key_rect.left() - self.GAP
+            elif d.phase == "done":
+                draw_check(p, right - 18, center_y, parse_color(c["ink"]))
+                state_right = right - 28 - self.GAP
+            elif d.phase in ("failed",):
+                state_right = right
+            else:
+                gauge_x = right - (NOTCHES * 6 - 3)
+                draw_gauge(p, gauge_x, center_y, max(0, min(NOTCHES, d.confidence)), c)
+                state_right = gauge_x - self.GAP
+            text_right = state_right
+            if d.state:
+                state_font = ui_font(12, 400, mono=True)
+                width = QFontMetrics(state_font).horizontalAdvance(d.state)
+                p.setFont(state_font)
+                p.setPen(parse_color(c[PHASE_TONES.get(d.phase, "ink-faint")]))
+                p.drawText(
+                    QRectF(state_right - width, 0, width, self.height()),
+                    Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight,
+                    d.state,
+                )
+                text_right = state_right - width - self.GAP
+        else:
+            # Right side: tags then the gauge, measured from the right edge.
+            gauge_x = right - (NOTCHES * 6 - 3)
+            draw_gauge(p, gauge_x, center_y, max(0, min(NOTCHES, d.confidence)), c)
+            x = gauge_x - self.GAP
+            tag_widths = [
+                QFontMetrics(ui_font(11, 400, mono=True)).horizontalAdvance(t) + 12
+                for t in d.tags
+            ]
+            tags_width = sum(tag_widths) + 6 * max(0, len(d.tags) - 1)
+            x -= tags_width
+            tags_left = x
+            for tag, width in zip(d.tags, tag_widths):
+                draw_tag(p, x, center_y, tag, c)
+                x += width + 6
+            text_right = (tags_left if d.tags else gauge_x) - self.GAP
 
         # Title line: title, year, author, on one baseline.
         left = tx + self.THUMB.width() + self.GAP
@@ -294,7 +403,18 @@ class FileRow(QWidget):
             p.setPen(parse_color(c[d.by_tone]))
             p.drawText(int(x), int(baseline), by)
 
-        if d.note:
+        if d.line:
+            line_font = ui_font(12, 400, mono=True)
+            mode = (
+                Qt.TextElideMode.ElideRight
+                if d.phase == "failed"
+                else Qt.TextElideMode.ElideMiddle
+            )
+            line = QFontMetrics(line_font).elidedText(d.line, mode, int(available))
+            p.setFont(line_font)
+            p.setPen(parse_color(c[d.line_tone]))
+            p.drawText(int(left), int(center_y + 16), line)
+        elif d.note:
             note_font = ui_font(14)
             note = QFontMetrics(note_font).elidedText(
                 d.note, Qt.TextElideMode.ElideRight, int(available)
@@ -406,11 +526,17 @@ class CoverTile(QWidget):
         ring = self.RING
         size = max(1, self.width() - 2 * ring)
         cover = QRectF(ring, ring, size, size)
+        if d.phase == "done":
+            p.setOpacity(0.55)
         p.drawPixmap(int(ring), int(ring), self._cover_pixmap(size))
+        p.setOpacity(1.0)
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.setPen(QPen(parse_color(c["highlight"]), 1))
         p.drawRoundedRect(cover.adjusted(0.5, 0.5, -0.5, -0.5), 10, 10)
-        if self._selected or self.hasFocus():
+        if d.phase == "current":
+            p.setPen(QPen(parse_color(c["accent"]), 2))
+            p.drawRoundedRect(cover.adjusted(-2, -2, 2, 2), 12, 12)
+        elif self._selected or self.hasFocus():
             p.setPen(QPen(parse_color(c["accent"]), 2))
             p.drawRoundedRect(cover.adjusted(-2, -2, 2, 2), 12, 12)
         elif self._hovered:
@@ -429,11 +555,20 @@ class CoverTile(QWidget):
                 d.title, Qt.TextElideMode.ElideRight, int(size)
             ),
         )
-        line = d.note or d.by
+        if d.phase == "done":
+            draw_check(p, cover.right() - 26, cover.top() + 18, parse_color(c["ink"]))
+        # During a rename, the state replaces the artist.
+        line = d.state if d.phase else (d.note or d.by)
         if line:
             note_font = ui_font(13)
             p.setFont(note_font)
-            p.setPen(parse_color(c["ink-muted"]))
+            p.setPen(
+                parse_color(
+                    c[PHASE_TONES.get(d.phase, "ink-faint")]
+                    if d.phase
+                    else c["ink-muted"]
+                )
+            )
             p.drawText(
                 int(ring),
                 int(top + 34),

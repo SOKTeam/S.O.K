@@ -16,7 +16,7 @@ ui/
 │   ├── file_row.py      # Row of a media list (before/after, tags, gauge)
 │   ├── inputs.py        # Input elements and Drop Zones
 │   ├── media_visual.py  # Dominant color, stand-in for a missing poster
-│   ├── organize/        # Parts of the media pages (list, pick panel, done screen…)
+│   ├── organize/        # Parts of the media pages (list, pick panel, rename summary…)
 │   ├── search.py        # Loading of posters and covers in the background
 │   ├── settings/        # Sections of the settings, their blocks and the live preview
 │   ├── nav.py           # Navigation (media types as words, icons)
@@ -24,7 +24,7 @@ ui/
 │   └── window.py        # Window controls (Custom title bar)
 ├── pages/               # Main application pages
 │   ├── home_page.py     # Dashboard
-│   ├── batch_page.py    # Base of the media pages: list, scene, done screen
+│   ├── batch_page.py    # Base of the media pages: list, scene, rename run
 │   ├── movies_page.py   # Movies (and books_page, games_page)
 │   ├── series_page.py   # TV shows, several series at once
 │   ├── music_page.py    # Music: albums and loose tracks, as a grid

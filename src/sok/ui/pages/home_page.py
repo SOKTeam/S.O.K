@@ -61,10 +61,9 @@ from sok.file_operations.detection import (
 from sok.ui.components.base import KeyButton, parse_color
 from sok.ui.components.media_drop import CheckRow
 from sok.ui.components.media_visual import (
+    draw_fan,
     dominant_color,
-    rounded,
     standin_colors,
-    standin_pixmap,
 )
 from sok.ui.controllers.undo import undo_operation
 from sok.ui.controllers.worker_runner import WorkerRunner
@@ -239,29 +238,6 @@ def _palette(widget: QWidget) -> dict[str, str]:
     return getattr(widget.window(), "c", None) or Theme.DARK
 
 
-def _fan(
-    p: QPainter,
-    covers: Sequence[Tuple[Optional[QPixmap], str]],
-    x: float,
-    y: float,
-    size: Tuple[int, int],
-    step: float,
-    radius: float,
-    ratio: float,
-) -> None:
-    """Draw covers overlapping from left to right, the first on top."""
-    w, h = size
-    for index in reversed(range(len(covers))):
-        pixmap, title = covers[index]
-        source = pixmap or standin_pixmap(title, "", w, h, ratio, text=False)
-        p.drawPixmap(QPointF(x + index * step, y), rounded(source, w, h, radius))
-        p.setBrush(Qt.BrushStyle.NoBrush)
-        p.setPen(QPen(QColor(255, 255, 255, 26), 1))
-        p.drawRoundedRect(
-            QRectF(x + index * step + 0.5, y + 0.5, w - 1, h - 1), radius, radius
-        )
-
-
 class TypeRow(QWidget):
     """A media type on the home page: covers, name, counts, size, "See".
 
@@ -318,7 +294,7 @@ class TypeRow(QWidget):
         size = (40, 40) if self._square else (34, 51)
         covers = s.covers or []
         if covers:
-            _fan(
+            draw_fan(
                 p,
                 covers[:3],
                 14,
@@ -419,7 +395,7 @@ class HomeScene(QWidget):
             step = 56
             span = w + step * (len(self._covers) - 1)
             x = (rect.width() - span) / 2
-            _fan(
+            draw_fan(
                 p,
                 self._covers,
                 x,

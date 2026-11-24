@@ -29,10 +29,10 @@ holds the list, the scene, the workers and the buttons. A subclass only sets
 class attributes (media type, content type, how to read a file name, how rows
 are grouped, the `kind` of its texts and the `scene_shape` of its items).
 
-The page has three screens: an empty one (a sentence and "Choose a folder"),
-the work screen (a sentence such as "18 movies to sort.", the list of
-`FileRow`s and the `Scene` of the selected item), and the done screen after a
-rename (`DoneScreen`: counts, first changes, Undo, Open the folder). The texts
+The page has two screens: an empty one (a sentence and "Choose a folder"),
+and the work screen (a sentence such as "18 movies to sort.", the list of
+`FileRow`s and the `Scene` of the selected item). The work screen also shows a
+rename while it runs and once it is over (see [Renaming](#5-renaming)). The texts
 of each kind are in `KIND_TEXTS`; sentences with a number use `trn()`, which
 picks the plural form of the language (`sok.ui.i18n.plural_form`).
 
@@ -116,9 +116,30 @@ shows what S.O.K knows without opening the files: quality read from the name
 ### 5. Renaming
 
 The main key ("Sort the movies", with the count of Ready rows and Ctrl/Cmd+R)
-only takes the Ready rows. The page builds a `sok.media` item for
+only takes the Ready rows, and starts at once: no question is asked, since the
+rename can be stopped and undone. The page builds a `sok.media` item for
 each one (`create_media_item`) and starts `BatchOrganizeWorker` with
-`(file, item)` pairs. The organize method of the file operations moves each file
+`(file, item)` pairs.
+
+**While it runs** (`BatchPage._phase == "running"`), the worker emits
+`file_started(name, number, total)` before each file, and the list follows it:
+each row has a phase (`Entry.phase`: waiting, current, done, stays for the
+items not ready, failed), the scene shows the item being moved, and the
+bottom shows Stop and a line such as "6 / 17 · 64,3 GB moved · 48 MB/s ·
+1 min 40 left", from the sizes of the files finished (S.O.K cannot see inside
+one file). Stop (`request_stop()`) raises `StopRequested` from the progress
+callback, so the rename ends between two files; what moved is taken from the
+journal and stays in the history.
+
+**Once it is over** (`"end"`), the list puts first what is left (items to pick,
+with a Pick key; files that did not move, with their reason and a Retry key),
+then the sorted items with their new path (status `STATUS_DONE`, never renamed
+again). The right column becomes a `RenameSummary`: covers, a dotted sheet
+(sorted, time, size moved, left in place, destination), Open the folder and
+Undo the renaming. Dropping new files clears the sorted items and goes back to
+`"idle"`.
+
+The organize method of the file operations moves each file
 where `batch_target(item, file, alone)` says:
 
 | Type  | Destination                                                                                                                                          |
@@ -281,8 +302,8 @@ When two videos of a folder can claim a subtitle (`Movie.mkv` and
 The report lists them in `"subtitles"`, apart from `"moved"`, so the counts
 and the posters stay those of the videos; a skipped or failed subtitle joins
 `"skipped"` or `"errors"`. The rename workers pass their number on as
-`"subtitles"`: the done screen shows how many, and the History page counts the
-videos only ("6 movies sorted").
+`"subtitles"`, and the History page counts the videos only ("6 movies
+sorted").
 
 :::tip
 A rename can be undone: see [Rename history](#rename-history) below.
@@ -290,7 +311,8 @@ A rename can be undone: see [Rename history](#rename-history) below.
 
 ## Rename history
 
-Each rename can be undone, from the done screen of its page ("Undo"), from the
+Each rename can be undone, from its page once it is over ("Undo the
+renaming"), from the
 band of the home page (the last one), or from the History page. That page groups
 the renames by day (today, yesterday, earlier this month; the older months fold
 into one row each, the month of the last rename always shown) and shows the one

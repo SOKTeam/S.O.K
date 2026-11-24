@@ -18,13 +18,16 @@ the title written on it.
 
 import zlib
 
-from PySide6.QtCore import QRectF, Qt
+from typing import Optional, Sequence, Tuple
+
+from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import (
     QColor,
     QImage,
     QLinearGradient,
     QPainter,
     QPainterPath,
+    QPen,
     QPixmap,
 )
 
@@ -150,3 +153,26 @@ def rounded(pixmap: QPixmap, width: int, height: int, radius: float) -> QPixmap:
     )
     p.end()
     return out
+
+
+def draw_fan(
+    p: QPainter,
+    covers: Sequence[Tuple[Optional[QPixmap], str]],
+    x: float,
+    y: float,
+    size: Tuple[int, int],
+    step: float,
+    radius: float,
+    ratio: float,
+) -> None:
+    """Draw covers overlapping from left to right, the first on top."""
+    w, h = size
+    for index in reversed(range(len(covers))):
+        pixmap, title = covers[index]
+        source = pixmap or standin_pixmap(title, "", w, h, ratio, text=False)
+        p.drawPixmap(QPointF(x + index * step, y), rounded(source, w, h, radius))
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.setPen(QPen(QColor(255, 255, 255, 26), 1))
+        p.drawRoundedRect(
+            QRectF(x + index * step + 0.5, y + 0.5, w - 1, h - 1), radius, radius
+        )

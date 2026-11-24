@@ -285,10 +285,16 @@ class _Sheet(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._fields: list[tuple[str, str]] = []
+        self._tones: dict[str, str] = {}
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-    def set_fields(self, fields: list[tuple[str, str]]) -> None:
+    def set_fields(
+        self, fields: list[tuple[str, str]], tones: dict[str, str] | None = None
+    ) -> None:
+        """Show (label, value) rows; tones gives the palette color of the
+        value of some labels (ink by default)."""
         self._fields = fields
+        self._tones = tones or {}
         self.setFixedHeight(max(0, len(fields) * self.ROW - 4))
         self.setVisible(bool(fields))
         self.update()
@@ -305,7 +311,7 @@ class _Sheet(QWidget):
             label_w = QFontMetrics(label_font).horizontalAdvance(label)
             value_w = QFontMetrics(value_font).horizontalAdvance(value)
             p.setFont(value_font)
-            p.setPen(parse_color(c["ink"]))
+            p.setPen(parse_color(c[self._tones.get(label, "ink")]))
             p.drawText(self.width() - value_w, baseline, value)
             # Dotted leader between them, 4px above the baseline.
             pen = QPen(parse_color(c["line-strong"]), 1, Qt.PenStyle.CustomDashLine)
@@ -390,6 +396,16 @@ class Scene(QWidget):
 
         heading = QVBoxLayout()
         heading.setSpacing(6)
+        # Small capitals above the title, such as "In progress".
+        self._label = QLabel()
+        label_font = ui_font(11, 600)
+        label_font.setLetterSpacing(label_font.SpacingType.AbsoluteSpacing, 0.88)
+        label_font.setCapitalization(label_font.Capitalization.AllUppercase)
+        self._label.setFont(label_font)
+        self._label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._label.setVisible(False)
+        self._label_tone = "ink-faint"
+        heading.addWidget(self._label)
         self._title = QLabel()
         title_font = ui_font(30, 650)
         title_font.setLetterSpacing(title_font.SpacingType.AbsoluteSpacing, -1.05)
@@ -451,6 +467,20 @@ class Scene(QWidget):
         if widget is not None:
             self._extra_slot.addWidget(widget)
 
+    def set_label(self, text: str, tone: str = "ink-faint") -> None:
+        """Small capitals above the title ("" hides them)."""
+        self._label.setText(text)
+        self._label.setVisible(bool(text))
+        self._label_tone = tone
+        self._restyle()
+
+    def set_actions_visible(self, visible: bool) -> None:
+        """Show or hide the keys under the details (hidden while renaming)."""
+        for i in range(self._actions.count()):
+            widget = self._actions.itemAt(i).widget()
+            if widget:
+                widget.setVisible(visible and self._item is not None)
+
     def set_destination_label(self, text: str) -> None:
         self._destination_label.setText(text)
 
@@ -489,6 +519,7 @@ class Scene(QWidget):
         c = _palette(self)
         # Transparent, so that the light of the scene shows behind the texts.
         for label, role in (
+            (self._label, self._label_tone),
             (self._title, "ink"),
             (self._subtitle, "ink-muted"),
             (self._warning, "caution"),

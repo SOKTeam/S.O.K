@@ -37,6 +37,8 @@ from sok.ui.i18n import tr
 
 STATUS_OK = STATUS_READY
 STATUS_PENDING = "pending"
+# Sorted by a rename: shown with its new path, never renamed again.
+STATUS_DONE = "done"
 
 # Text of a candidate in the pick list.
 Describe = Callable[[Dict[str, Any]], str]
@@ -74,6 +76,10 @@ class Entry:
         selected: Index of the chosen candidate, or None.
         status: STATUS_READY, STATUS_AMBIGUOUS, STATUS_MISSING or pending.
         new_name: New name of the first file, or "".
+        phase: Where it is in a rename ("", "waiting", "current", "done",
+            "stays", "failed"); see RowData.phase.
+        moved_to: Where its first file went, once sorted.
+        reason: Why it did not move, when it failed.
     """
 
     files: List[Path]
@@ -83,6 +89,9 @@ class Entry:
     selected: Optional[int] = None
     status: str = STATUS_PENDING
     new_name: str = ""
+    phase: str = ""
+    moved_to: str = ""
+    reason: str = ""
 
     @property
     def key(self) -> Path:
@@ -161,6 +170,7 @@ class MediaList(QWidget):
     """
 
     row_changed = Signal()
+    row_action = Signal(object)
     row_rescan_requested = Signal(object, str)
     files_added = Signal(list)
     current_changed = Signal(object)
@@ -283,6 +293,8 @@ class MediaList(QWidget):
             row = FileRow(data, self._was_label)
             self._rows_layout.insertWidget(self._rows_layout.count() - 1, row)
         row.clicked.connect(lambda k=key: self._set_current(k))
+        if isinstance(row, FileRow):
+            row.action_clicked.connect(lambda k=key: self.row_action.emit(k))
         self._rows[key] = row
 
     def files(self) -> List[Path]:
@@ -456,6 +468,30 @@ class MediaList(QWidget):
             following = [k for k in rest if order.index(k) > order.index(self._current)]
             nxt: List[Optional[Path]] = [*following, *rest, None]
             self._set_current(nxt[0])
+
+    def put_first(self, keys: List[Path]) -> None:
+        """Move these items to the top of the list, in this order."""
+        keys = [k for k in keys if k in self._entries]
+        rest = [k for k in self._entries if k not in keys]
+        self._entries = {k: self._entries[k] for k in [*keys, *rest]}
+        if self._grid is not None:
+            for key in self._entries:
+                self._grid.remove(self._rows[key])
+            for key in self._entries:
+                self._grid.add(self._rows[key])
+            return
+        for index, key in enumerate(self._entries):
+            row = self._rows[key]
+            self._rows_layout.removeWidget(row)
+            self._rows_layout.insertWidget(index, row)
+        self._show_detail()
+
+    def clear_phases(self) -> None:
+        """Forget the phases of the last rename, keeping the items."""
+        for entry in self._entries.values():
+            entry.phase = ""
+            entry.reason = ""
+        self.refresh_rows()
 
     def count_by_status(self) -> Dict[str, int]:
         counts: Dict[str, int] = {

@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -41,7 +42,6 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QHBoxLayout,
     QLabel,
-    QMessageBox,
     QProgressBar,
     QStackedWidget,
     QVBoxLayout,
@@ -49,6 +49,7 @@ from PySide6.QtWidgets import (
 )
 
 from sok.config import get_config_manager
+from sok.core.history import COPY, LINK
 from sok.core.batch import (
     STATUS_AMBIGUOUS,
     STATUS_MISSING,
@@ -66,8 +67,9 @@ from sok.media.factory import create_media_item
 from sok.ui import message_box
 from sok.ui.components.base import KeyButton, parse_color
 from sok.ui.components.file_row import RowData
-from sok.ui.components.organize.done_screen import DoneData, DoneScreen, StatData
+from sok.ui.components.organize.rename_summary import RenameSummary, SummaryData
 from sok.ui.components.organize.media_list import (
+    STATUS_DONE,
     STATUS_OK,
     STATUS_PENDING,
     Describe,
@@ -180,6 +182,47 @@ SERVICE_NAMES = {
 }
 
 TMDB_SIZES = {"thumb": "w92", "scene": "w500"}
+
+
+@dataclass
+class _Run:
+    """A rename in progress, as the page follows it.
+
+    Attributes:
+        worker: The worker, to stop it.
+        started: time.monotonic() at the start.
+        mode: File mode of the settings (move, link, copy).
+        total: Number of files to move.
+        total_bytes: Their size.
+        owners: Each file to move, with the key of its item.
+        by_name: Files not started yet, by name (the worker gives names).
+        current: Key of the item being moved.
+        current_file: File being moved.
+        done_files: Files finished.
+        done_bytes: Size of the files finished.
+        sizes: Size of each file.
+    """
+
+    worker: Any
+    started: float
+    mode: str
+    total: int
+    total_bytes: int
+    owners: Dict[Path, Path]
+    by_name: Dict[str, List[Path]]
+    sizes: Dict[Path, int]
+    current: Optional[Path] = None
+    current_file: Optional[Path] = None
+    done_files: int = 0
+    done_bytes: int = 0
+
+
+def duration_text(seconds: float) -> str:
+    """ "38 s", "2 min 10"."""
+    seconds = max(0, round(seconds))
+    if seconds < 60:
+        return tr("batch_secs", "{s} s").format(s=seconds)
+    return tr("batch_mins", "{m} min {s:02d}").format(m=seconds // 60, s=seconds % 60)
 
 
 def sized_image_url(path: Optional[str], size: str) -> Optional[str]:
@@ -359,8 +402,11 @@ class BatchPage(QWidget):
         # Key of the item shown in the pick panel, or None for the scene.
         self._picking: Optional[Path] = None
         self._searching: set[Path] = set()
-        self._rename_started = 0.0
         self._last_report: Optional[Dict[str, Any]] = None
+        # "idle", "running" (a rename is going on) or "end" (it is over and
+        # the list shows what each item became).
+        self._phase = "idle"
+        self._run: Optional[_Run] = None
 
         self._build()
         self._apply_default_destination()
@@ -387,10 +433,6 @@ class BatchPage(QWidget):
         """New name of an item's first file."""
         return self._ops.generate_new_filename(item, file.name)
 
-    def rename_confirm_text(self, count: int) -> str:
-        """Question asked before renaming count files."""
-        return tr("rename_confirm_files", "Rename {0} file(s)?").format(count)
-
     def nothing_ready_text(self) -> str:
         """Message when no item is ready."""
         return tr("nothing_ready", "No file is ready to rename.")
@@ -399,6 +441,8 @@ class BatchPage(QWidget):
         """Counts, size and first covers of the items, for the home page."""
         result = PageSummary()
         for entry in self._list.entries():
+            if entry.status == STATUS_DONE:
+                continue
             count = self.count_of(entry)
             result.total += count
             if entry.status == STATUS_OK and entry.candidate:
@@ -476,12 +520,7 @@ class BatchPage(QWidget):
 
         self._empty = self._build_empty()
         self._work = self._build_work()
-        self._done = DoneScreen()
-        self._done.continue_clicked.connect(self._leave_done)
-        self._done.history_clicked.connect(self.history_requested.emit)
-        self._done.open_clicked.connect(self._open_destination)
-        self._done.undo_clicked.connect(self._undo_last)
-        for screen in (self._empty, self._work, self._done):
+        for screen in (self._empty, self._work):
             self._screens.addWidget(screen)
 
         rename = QShortcut(QKeySequence("Ctrl+R"), self)
@@ -535,6 +574,14 @@ class BatchPage(QWidget):
         head = QVBoxLayout()
         head.setContentsMargins(14, 0, 14, 0)
         head.setSpacing(10)
+        self._kicker = QLabel()
+        kicker = ui_font(11, 600)
+        kicker.setLetterSpacing(kicker.SpacingType.AbsoluteSpacing, 0.88)
+        kicker.setCapitalization(kicker.Capitalization.AllUppercase)
+        self._kicker.setFont(kicker)
+        self._kicker.setVisible(False)
+        self._kicker_tone = "ink-faint"
+        head.addWidget(self._kicker)
         self._title_lbl = QLabel()
         self._title_lbl.setFont(self._display_font())
         self._title_lbl.setWordWrap(True)
@@ -548,7 +595,7 @@ class BatchPage(QWidget):
         left.addSpacing(28)
 
         self._list = MediaList(
-            self._row_data,
+            self._phased_row,
             file_extensions=self._ops.supported_extensions,
             describe=self.describe,
             group_files=self.group_files,
@@ -559,6 +606,7 @@ class BatchPage(QWidget):
         self._list.row_rescan_requested.connect(self._rescan_row)
         self._list.files_added.connect(self._on_files_added)
         self._list.current_changed.connect(self._on_current_changed)
+        self._list.row_action.connect(self._on_row_action)
         left.addWidget(self._list, 1)
 
         self._progress = QProgressBar()
@@ -584,6 +632,14 @@ class BatchPage(QWidget):
         self._dest_btn = KeyButton("")
         self._dest_btn.clicked.connect(self._choose_destination)
         actions.addWidget(self._dest_btn)
+        self._stop_btn = KeyButton("")
+        self._stop_btn.clicked.connect(self._stop_rename)
+        self._stop_btn.setVisible(False)
+        actions.addWidget(self._stop_btn)
+        self._run_lbl = QLabel()
+        self._run_lbl.setVisible(False)
+        actions.addSpacing(4)
+        actions.addWidget(self._run_lbl)
         actions.addStretch()
         left.addLayout(actions)
         left.addSpacing(12)
@@ -613,8 +669,12 @@ class BatchPage(QWidget):
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
         self._scene_scroll.setWidget(self._scene)
+        self._summary = RenameSummary()
+        self._summary.open_clicked.connect(self._open_destination)
+        self._summary.undo_clicked.connect(self._undo_last)
         self._right.addWidget(self._scene_scroll)
         self._right.addWidget(self._picker)
+        self._right.addWidget(self._summary)
         columns.addWidget(self._right)
         return screen
 
@@ -635,8 +695,13 @@ class BatchPage(QWidget):
             (self._title_lbl, "ink"),
             (self._lead_lbl, "ink-muted"),
             (self._dest_lbl, "ink-muted"),
+            (self._kicker, self._kicker_tone),
         ):
             label.setStyleSheet(f"color: {c[role]}; background: transparent;")
+        self._run_lbl.setStyleSheet(
+            f"color: {c['ink-muted']}; background: transparent;"
+            f" font-family: '{Theme.MONO}'; font-size: 13px;"
+        )
 
     def changeEvent(self, e):  # noqa: N802 - Qt API
         super().changeEvent(e)
@@ -644,9 +709,7 @@ class BatchPage(QWidget):
             self._restyle()
 
     def _show_screen(self) -> None:
-        """Show the empty screen or the list, keeping the done screen."""
-        if self._screens.currentWidget() is self._done:
-            return
+        """Show the empty screen or the list."""
         self._screens.setCurrentWidget(
             self._work if self._list.has_rows() else self._empty
         )
@@ -688,9 +751,12 @@ class BatchPage(QWidget):
             tr("batch_cancel", "Cancel"),
         )
         self._list.set_was_label(tr("batch_was", "was"))
-        self._done.continue_btn.setText(tr("batch_continue", "Continue"))
-        self._done.open_btn.setText(tr("batch_open_folder", "Open the folder"))
-        self._done.undo_btn.setText(tr("batch_undo", "Undo"))
+        self._stop_btn.setText(tr("batch_stop", "Stop"))
+        self._summary.open_btn.setText(tr("batch_open_folder", "Open the folder"))
+        self._summary.undo_btn.setText(tr("batch_undo_rename", "Undo the renaming"))
+        self._summary.note.setText(
+            tr("batch_undo_note", "Every file can go back exactly where it was.")
+        )
         self._update_summary()
         self._update_destination()
         self._on_current_changed(self._list.current())
@@ -724,8 +790,8 @@ class BatchPage(QWidget):
         """Run a batch search on newly added items only."""
         if not items:
             return
-        if self._screens.currentWidget() is self._done:
-            self._screens.setCurrentWidget(self._work)
+        if self._phase == "end":
+            self._back_to_idle()
         self._files = self._list.files()
         self._show_screen()
         self._update_summary()
@@ -752,10 +818,19 @@ class BatchPage(QWidget):
                 f"<span style='font-family: \"Geist Mono\"; color: {c['ink']}'>"
                 f"{display_path(dest)}</span>"
             )
-            text = tr(
-                "batch_destination",
-                "To {path}. Nothing moves before you confirm.",
-            ).format(path=path)
+            text = tr("batch_to", "To {path}.").format(path=path)
+            waiting = sum(
+                len(e.files)
+                for e in self._list.entries()
+                if e.status in (STATUS_AMBIGUOUS, STATUS_MISSING)
+            )
+            if waiting:
+                text += " " + trn(
+                    "batch_unknown_stays",
+                    waiting,
+                    "The unrecognized file stays where it is.",
+                    "The {n} unrecognized files stay where they are.",
+                )
         else:
             text = tr("batch_no_destination", "Choose where to store them.")
         self._dest_lbl.setText(text)
@@ -900,6 +975,32 @@ class BatchPage(QWidget):
         load_poster(url, width, height, self, loaded)
         return None
 
+    def _phased_row(self, entry: Entry) -> RowData:
+        """The row of an item, with where it is in a rename."""
+        data = self._row_data(entry)
+        data.phase = entry.phase
+        if entry.phase == "waiting":
+            data.state = tr("batch_state_waiting", "waiting")
+        elif entry.phase == "current":
+            mode = self._run.mode if self._run else "move"
+            key, default = {
+                COPY: ("batch_state_copy", "copying…"),
+                LINK: ("batch_state_link", "linking…"),
+            }.get(mode, ("batch_state_move", "moving…"))
+            data.state = tr(key, default)
+        elif entry.phase == "done":
+            data.state = tr("batch_state_done", "sorted")
+            data.line, data.line_tone = entry.moved_to, "ink-muted"
+        elif entry.phase == "stays":
+            data.state = tr("batch_state_stays", "stays here")
+            if self._phase == "end":
+                data.action = tr("batch_action_pick", "Pick")
+        elif entry.phase == "failed":
+            data.state = tr("batch_state_failed", "did not move")
+            data.line, data.line_tone = entry.reason, "danger"
+            data.action = tr("batch_action_retry", "Retry")
+        return data
+
     def _row_data(self, entry: Entry) -> RowData:
         """What the row of an item shows."""
         was = entry.files[0].name
@@ -936,6 +1037,13 @@ class BatchPage(QWidget):
 
     def _on_current_changed(self, key: Optional[Path]) -> None:
         entry = self._list.entry(key)
+        if self._phase == "running":
+            # The scene follows the file being moved.
+            return
+        if self._phase == "end" and (entry is None or entry.status == STATUS_DONE):
+            self._right.setVisible(True)
+            self._right.setCurrentWidget(self._summary)
+            return
         if entry is None:
             self._right.setVisible(False)
             return
@@ -1102,6 +1210,10 @@ class BatchPage(QWidget):
         return self.preview_name(item, files[0])
 
     def _refresh_previews_and_action(self) -> None:
+        for entry in self._list.entries():
+            # Picked after a rename: ready to sort like any other item.
+            if entry.phase == "stays" and entry.status == STATUS_OK:
+                entry.phase = ""
         self._list.update_new_names(self._compute_new_name)
         self._update_summary()
         self._refresh_action_state()
@@ -1118,13 +1230,27 @@ class BatchPage(QWidget):
         self._action_btn.set_count(ready if ready else None)
         has_dest = self._dest_drop.get_path() is not None
         self._action_btn.setEnabled(bool(ready) and has_dest)
+        # While renaming, Stop takes its place; after, it comes back only
+        # when something new is ready (an item just picked, a retry).
+        self._action_btn.setVisible(
+            self._phase == "idle" or (self._phase == "end" and bool(ready))
+        )
+        # After a rename, Open the folder is the one primary key.
+        self._action_btn.set_primary(self._phase == "idle")
 
     def _update_summary(self) -> None:
-        entries = self._list.entries()
+        entries = [e for e in self._list.entries() if e.status != STATUS_DONE]
         counts: Dict[str, int] = {}
         for entry in entries:
             counts[entry.status] = counts.get(entry.status, 0) + self.count_of(entry)
         total = sum(counts.values())
+        if self._phase != "idle":
+            # The rename writes the title and the lead.
+            if self._phase == "end":
+                set_count = getattr(self.window(), "set_nav_count", None)
+                if set_count is not None:
+                    set_count(self, total)
+            return
         self._title_lbl.setText(self._text("title", total))
         parts = []
         folder = common_folder(self._list.files()) if self.show_found_in else None
@@ -1171,10 +1297,16 @@ class BatchPage(QWidget):
     # -------------------------------------------------------------- Rename
 
     def _on_rename_shortcut(self) -> None:
-        if self._action_btn.isEnabled() and self._screens.currentWidget() is self._work:
+        if (
+            self._action_btn.isVisible()
+            and self._action_btn.isEnabled()
+            and self._screens.currentWidget() is self._work
+        ):
             self._start_rename()
 
     def _start_rename(self) -> None:
+        """Rename the Ready items now: no question, it can be stopped and
+        undone."""
         dest = self._dest_drop.get_path()
         if not dest or not Path(dest).exists():
             message_box.warning(
@@ -1185,122 +1317,311 @@ class BatchPage(QWidget):
             return
 
         mappings: List[Tuple[Path, Any]] = []
-        for files, cand in self._list.get_ready_mappings():
-            item = self._media_item(cand, files)
+        owners: Dict[Path, Path] = {}
+        for entry in self._list.entries():
+            if entry.status != STATUS_OK or not entry.candidate:
+                continue
+            item = self._media_item(entry.candidate, entry.files)
             if item is None:
                 continue
-            mappings.extend((file, item) for file in files)
-
+            mappings.extend((file, item) for file in entry.files)
+            for file in entry.files:
+                owners[file] = entry.key
         if not mappings:
             message_box.information(self, tr("info", "Info"), self.nothing_ready_text())
             return
         if hard_link_blocked(self, [file for file, _ in mappings], str(dest)):
             return
 
-        msg = QMessageBox(self)
-        msg.setWindowTitle(tr("confirmation", "Confirmation"))
-        msg.setText(self.rename_confirm_text(len(mappings)))
-        to_pick = self._list.count_by_status().get(STATUS_AMBIGUOUS, 0)
-        if to_pick:
-            msg.setInformativeText(
-                tr(
-                    "rename_skips_to_pick",
-                    "{0} file(s) still to pick will be left as they are.",
-                ).format(to_pick)
-            )
-        msg.setStandardButtons(
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        message_box.as_sheet(msg, self)
-        if msg.exec() != QMessageBox.StandardButton.Yes:
-            return
-
-        self._action_btn.setEnabled(False)
-        self._set_progress(True, tr("organizing", "Organizing..."), 0)
-        self._rename_started = time.monotonic()
+        sizes: Dict[Path, int] = {}
+        by_name: Dict[str, List[Path]] = {}
+        for file, _item in mappings:
+            try:
+                sizes[file] = file.stat().st_size
+            except OSError:
+                sizes[file] = 0
+            by_name.setdefault(file.name, []).append(file)
+        for entry in self._list.entries():
+            if entry.key in owners.values():
+                entry.phase, entry.reason = "waiting", ""
+            elif entry.status != STATUS_DONE:
+                entry.phase = "stays"
         worker = BatchOrganizeWorker(mappings, str(dest), self.organize_method())
-        self._organize_runner.run(
-            worker,
-            self._on_organize_done,
-            self._on_organize_error,
-            self._on_search_progress,
+        self._run = _Run(
+            worker=worker,
+            started=time.monotonic(),
+            mode=get_config_manager().get("file_mode", "move"),
+            total=len(mappings),
+            total_bytes=sum(sizes.values()),
+            owners=owners,
+            by_name=by_name,
+            sizes=sizes,
         )
+        # Only the item being moved is lit while renaming.
+        self._list.set_current(None)
+        self._set_phase("running")
+        self._list.refresh_rows()
+        worker.file_started.connect(self._on_file_started)
+        self._organize_runner.run(
+            worker, self._on_organize_done, self._on_organize_error
+        )
+
+    def _stop_rename(self) -> None:
+        """Stop after the file being moved."""
+        if self._run is not None:
+            self._run.worker.request_stop()
+            self._stop_btn.setEnabled(False)
+
+    def _on_file_started(self, name: str, number: int, _total: int) -> None:
+        """A file is about to move: the one before is done."""
+        run = self._run
+        if run is None:
+            return
+        if run.current_file is not None:
+            run.done_bytes += run.sizes.get(run.current_file, 0)
+        run.done_files = number - 1
+        files = run.by_name.get(name) or []
+        file = files.pop(0) if files else None
+        key = run.owners.get(file) if file is not None else None
+        if run.current is not None and run.current != key:
+            previous = self._list.entry(run.current)
+            dest = self._dest_drop.get_path()
+            if previous is not None:
+                previous.phase = "done"
+                if previous.new_name and dest is not None:
+                    previous.moved_to = self._shown_target(
+                        str(dest / previous.new_name), dest
+                    )
+            self._list.refresh_row(run.current)
+        run.current, run.current_file = key, file
+        entry = self._list.entry(key)
+        if entry is not None:
+            entry.phase = "current"
+            self._list.refresh_row(entry.key)
+            self._show_scene(entry.key)
+        self._show_run()
+
+    def _show_run(self) -> None:
+        """Title, lead, progress line and scene of a rename in progress."""
+        run = self._run
+        if run is None:
+            return
+        c = self._palette()
+        done = self._text("done", run.done_files).rstrip(".")
+        tail = tr("batch_of_total", "of {n}.").format(n=run.total)
+        self._title_lbl.setText(
+            f"{done} <span style='color: {c['ink-muted']}'>{tail}</span>"
+        )
+        dest = self._dest_drop.get_path()
+        path = display_path(dest) if dest else ""
+        lead_key, lead_default = {
+            COPY: ("batch_lead_copy", "Copying to {path}."),
+            LINK: ("batch_lead_link", "Linking into {path}."),
+        }.get(run.mode, ("batch_lead_move", "Moving to {path}."))
+        self._lead_lbl.setText(
+            tr(lead_key, lead_default).format(path=path)
+            + " "
+            + tr(
+                "batch_lead_go_on",
+                "You can go to another page, the renaming goes on.",
+            )
+        )
+        parts = [f"{run.done_files} / {run.total}"]
+        if run.mode != LINK and run.done_bytes:
+            key, default = (
+                ("batch_bytes_copy", "{size} copied")
+                if run.mode == COPY
+                else ("batch_bytes_move", "{size} moved")
+            )
+            parts.append(tr(key, default).format(size=human_size(run.done_bytes)))
+            elapsed = max(0.001, time.monotonic() - run.started)
+            rate = run.done_bytes / elapsed
+            parts.append(
+                tr("batch_rate", "{size}/s").format(size=human_size(int(rate)))
+            )
+            left = (run.total_bytes - run.done_bytes) / rate if rate else 0
+            parts.append(
+                tr("batch_eta", "{time} left").format(time=duration_text(left))
+            )
+        self._run_lbl.setText(" · ".join(parts))
+        set_count = getattr(self.window(), "set_nav_count", None)
+        if set_count is not None:
+            set_count(self, max(0, run.total - run.done_files))
 
     def _on_organize_done(self, report: Dict[str, Any]) -> None:
-        self._set_progress(False)
+        run = self._run
         request_attention(self)
-        moved = report.get("moved", [])
-        left = [
-            e
-            for e in self._list.entries()
-            if Path(e.key) not in {Path(m["from"]) for m in moved}
+        self._last_report = report
+        dest = self._dest_drop.get_path()
+        moved = {Path(m["from"]): m.get("to", "") for m in report.get("moved", [])}
+        failed: Dict[Path, str] = {}
+        for error in report.get("errors", []):
+            # "[Errno 16] Resource busy" → "Resource busy".
+            text = re.sub(r"^\[Errno \d+\]\s*", "", str(error.get("error", "")))
+            failed[Path(str(error.get("file", "")))] = text
+        for skip in report.get("skipped", []):
+            failed[Path(str(skip.get("file", "")))] = tr(
+                "batch_skip_exists", "A file with this name is already there."
+            )
+        first: List[Path] = []
+        sorted_keys: List[Path] = []
+        for entry in self._list.entries():
+            if run is None or entry.key not in run.owners.values():
+                if entry.phase == "stays":
+                    first.append(entry.key)
+                continue
+            reasons = [failed[f] for f in entry.files if f in failed]
+            targets = [moved[f] for f in entry.files if f in moved]
+            if reasons:
+                entry.phase, entry.reason = "failed", reasons[0]
+                first.append(entry.key)
+            elif targets:
+                entry.phase, entry.status = "done", STATUS_DONE
+                entry.moved_to = self._shown_target(targets[0], dest)
+                sorted_keys.append(entry.key)
+            else:
+                # Not reached: the rename was stopped before it.
+                entry.phase = ""
+        self._set_phase("end")
+        self._list.put_first(first)
+        self._list.refresh_rows()
+        self._show_end(report, sorted_keys)
+
+    def _shown_target(self, target: str, dest: Optional[Path]) -> str:
+        """The new path, from the destination folder ("Films/Dune (2021)/…")."""
+        path = Path(target)
+        if dest is not None:
+            try:
+                return str(Path(dest.name) / path.relative_to(dest))
+            except ValueError:
+                pass
+        return str(path)
+
+    def _show_end(self, report: Dict[str, Any], sorted_keys: List[Path]) -> None:
+        """Title, lead and summary of the rename that just ended."""
+        run = self._run
+        success = report.get("success", 0)
+        seconds = time.monotonic() - run.started if run else 0
+        at = datetime.now().strftime("%H:%M")
+        if report.get("stopped"):
+            self._set_kicker(tr("batch_stopped_at", "Stopped at {0}").format(at))
+        else:
+            self._set_kicker(tr("batch_done_at", "Done at {0}").format(at))
+        self._title_lbl.setText(self._text("done", success))
+        entries = self._list.entries()
+        stays = sum(len(e.files) for e in entries if e.phase == "stays")
+        failed = sum(len(e.files) for e in entries if e.phase == "failed")
+        waiting = sum(
+            len(e.files) for e in entries if e.status == STATUS_OK and not e.phase
+        )
+        parts: List[str] = []
+        if stays:
+            parts.append(
+                trn(
+                    "batch_end_stays",
+                    stays,
+                    "{n} file still waits for you: pick what it is.",
+                    "{n} files still wait for you: pick what they are.",
+                )
+            )
+        if failed:
+            parts.append(
+                trn(
+                    "batch_end_failed",
+                    failed,
+                    "{n} file could not move.",
+                    "{n} files could not move.",
+                )
+            )
+        if waiting:
+            parts.append(
+                trn(
+                    "batch_end_not_reached",
+                    waiting,
+                    "{n} file was not sorted yet.",
+                    "{n} files were not sorted yet.",
+                )
+            )
+        if not parts:
+            parts.append(tr("batch_end_all", "Everything is sorted."))
+        self._lead_lbl.setText(" ".join(parts))
+
+        dest = self._dest_drop.get_path()
+        moved_bytes = sum(
+            (run.sizes.get(Path(m["from"]), 0) for m in report.get("moved", []))
+            if run
+            else []
+        )
+        fields = [
+            (tr("batch_sum_sorted", "Sorted"), str(success)),
+            (tr("batch_sum_time", "Time"), duration_text(seconds)),
         ]
-        # Items still to pick stay, so the user can finish them.
-        self._list.remove_files([Path(m["from"]) for m in moved])
-        self._files = self._list.files()
+        if run and run.mode != LINK and moved_bytes:
+            key, default = (
+                ("batch_sum_copied", "Copied")
+                if run.mode == COPY
+                else ("batch_sum_moved", "Moved")
+            )
+            fields.append((tr(key, default), human_size(moved_bytes)))
+        tones: Dict[str, str] = {}
+        if stays + failed:
+            label = tr("batch_sum_left", "Left in place")
+            fields.append((label, str(stays + failed)))
+            tones[label] = "caution"
+        if dest:
+            fields.append(
+                (tr("batch_sum_destination", "Destination"), display_path(dest, 28))
+            )
+        covers = []
+        for sorted_key in sorted_keys[:3]:
+            entry = self._list.entry(sorted_key)
+            if entry is not None:
+                data = self._row_data(entry)
+                covers.append((data.thumbnail, data.title))
+        self._summary.show_data(
+            SummaryData(
+                covers=covers,
+                square=self.grid,
+                fields=fields,
+                tones=tones,
+                can_undo=bool(report.get("operation")),
+            )
+        )
+        self._list.set_current(None)
+        self._update_destination()
+        self._dest_lbl.setText(
+            tr(
+                "batch_end_note",
+                "Drop more files to go on. The sorted lines then leave the list.",
+            )
+        )
         self._update_summary()
         self._refresh_action_state()
-        self._last_report = report
 
-        success = report.get("success", 0)
-        errors = report.get("errors", [])
-        seconds = max(1, round(time.monotonic() - self._rename_started))
-        stats = [
-            StatData(
-                tr("batch_stat_sorted", "Sorted"),
-                str(success),
-                trn("batch_seconds", seconds, "in {n} second", "in {n} seconds"),
-            )
+    def _on_row_action(self, key: Path) -> None:
+        """The key of a row: pick what it is, or try the rename again."""
+        entry = self._list.entry(key)
+        if entry is None:
+            return
+        if entry.phase == "failed":
+            self._start_rename()
+        else:
+            self._list.set_current(key)
+
+    def _back_to_idle(self) -> None:
+        """Leave the end of a rename: the sorted items leave the list."""
+        done = [
+            f for e in self._list.entries() if e.status == STATUS_DONE for f in e.files
         ]
-        if left:
-            names = ", ".join(e.files[0].name for e in left[:2])
-            stats.append(
-                StatData(tr("batch_stat_left", "Left aside"), str(len(left)), names)
-            )
-        if errors:
-            stats.append(
-                StatData(
-                    tr("batch_stat_errors", "Errors"), str(len(errors)), str(errors[0])
-                )
-            )
-        if report.get("subtitles"):
-            stats.append(
-                StatData(
-                    tr("batch_stat_subtitles", "Subtitles"), str(report["subtitles"])
-                )
-            )
-        dest = self._dest_drop.get_path()
-        changes = []
-        for move in moved[:3]:
-            new = Path(move.get("to", ""))
-            try:
-                new_text = str(new.relative_to(dest)) if dest else str(new)
-            except ValueError:
-                new_text = str(new)
-            changes.append((Path(move["from"]).name, new_text))
-        self._done.show_data(
-            DoneData(
-                finished=tr("batch_done_at", "Done at {0}").format(
-                    datetime.now().strftime("%H:%M")
-                ),
-                title=self._text("done", success),
-                lead=tr("batch_done_lead", "Undo puts every file back where it was."),
-                stats=stats,
-                changes_label=tr("batch_changes", "What changed"),
-                changes=changes,
-            )
-        )
-        self._done.undo_btn.setVisible(bool(report.get("operation")))
-        self._done.history_btn.setText(
-            trn(
-                "batch_see_changes", len(moved), "See the change", "See the {n} changes"
-            )
-        )
-        self._screens.setCurrentWidget(self._done)
-
-    def _leave_done(self) -> None:
-        self._screens.setCurrentWidget(self._work)
+        self._list.remove_files(done)
+        self._list.clear_phases()
+        self._set_phase("idle")
+        self._files = self._list.files()
         self._show_screen()
+        self._update_summary()
+        self._update_destination()
+        self._refresh_action_state()
+        self._on_current_changed(self._list.current())
 
     def _undo_last(self) -> None:
         operation = (self._last_report or {}).get("operation")
@@ -1312,19 +1633,56 @@ class BatchPage(QWidget):
     def _on_undone(self, report: UndoReport) -> None:
         """Put the files back in the list, to rename them again."""
         self._last_report = None
-        self._screens.setCurrentWidget(self._work)
+        self._back_to_idle()
         self.load_files([Path(move.source) for move in report.restored])
         self._show_screen()
 
     def _on_organize_error(self, error: str) -> None:
-        self._set_progress(False)
         request_attention(self)
+        self._list.clear_phases()
+        self._set_phase("idle")
+        self._update_summary()
         self._refresh_action_state()
         message_box.critical(
             self,
             tr("error", "Error"),
             f"{tr('error_prefix', 'Error:')} {error}",
         )
+
+    def _set_kicker(self, text: str, tone: str = "ink-faint") -> None:
+        self._kicker.setText(text)
+        self._kicker.setVisible(bool(text))
+        self._kicker_tone = tone
+        self._restyle()
+
+    def _set_phase(self, phase: str) -> None:
+        """Show the keys and texts of a phase: idle, running or end."""
+        self._phase = phase
+        running = phase == "running"
+        self._stop_btn.setVisible(running)
+        self._stop_btn.setEnabled(True)
+        self._run_lbl.setVisible(running)
+        self._dest_btn.setVisible(phase == "idle")
+        self._scene.set_actions_visible(not running)
+        if running:
+            self._set_kicker(tr("batch_running", "Renaming"), "accent-text")
+            self._dest_lbl.setText(
+                tr(
+                    "batch_stop_note",
+                    "Stop finishes the file in progress. What is already "
+                    "sorted stays sorted, and can be undone from History.",
+                )
+            )
+            self._scene.set_label(tr("batch_in_progress", "In progress"), "accent-text")
+            self._right.setCurrentWidget(self._scene_scroll)
+            self._right.setVisible(True)
+            self._show_run()
+        else:
+            self._scene.set_label("")
+        if phase == "idle":
+            self._set_kicker("")
+            self._run = None
+        self._refresh_action_state()
 
     # -------------------------------------------------------------- Helpers
 
