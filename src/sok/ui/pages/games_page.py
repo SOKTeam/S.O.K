@@ -16,6 +16,7 @@ from sok.core.batch import group_game_files, parse_game
 from sok.core.interfaces import ContentType, MediaType
 from sok.file_operations import GameFileOperations
 from sok.ui.i18n import tr
+from sok.ui.components.scene import Shape
 from sok.ui.pages.batch_page import BatchPage
 
 
@@ -29,6 +30,8 @@ class GamesPage(BatchPage):
     GameFileOperations.batch_target).
     """
 
+    kind = "games"
+    scene_shape = Shape.POSTER
     default_path_type = "game"
     media_type = MediaType.GAME
     content_type = ContentType.GAME
@@ -44,12 +47,6 @@ class GamesPage(BatchPage):
 
     def page_title(self) -> str:
         return tr("games", "Games")
-
-    def empty_hint(self) -> str:
-        return tr("games_drop_hint", "Drop game files or folders, or click to browse")
-
-    def add_more_text(self) -> str:
-        return tr("add_more_games", "+ Add more games")
 
     def query_placeholder(self) -> str:
         return tr("game_title", "Game title")

@@ -292,6 +292,10 @@ class MainWindow(QMainWindow):
 
         self._pages.addWidget(HistoryPage())
 
+        # The done screen of the batch pages opens the history.
+        for page in self._pages.findChildren(BatchPage):
+            page.history_requested.connect(lambda: self._go(HISTORY_PAGE))
+
     def _on_language_changed(self, lang_code):
         """Handle language change from settings.
 
@@ -321,6 +325,18 @@ class MainWindow(QMainWindow):
         self._set_nav_tooltips()
 
         self._update_title_by_index(self._pages.currentIndex())
+
+    def set_nav_count(self, page: QWidget, count: int) -> None:
+        """Write the number of items a page has to sort in the navigation.
+
+        Args:
+            page: The page, or a page inside it (the tracks of Music).
+            count: Items to sort; 0 hides the number.
+        """
+        for index in NAV_PAGES:
+            widget = self._pages.widget(index)
+            if widget is page or widget.isAncestorOf(page):
+                self._navbar.set_count(index, count or None)
 
     def _set_nav_tooltips(self):
         """Name the S.O.K mark and the icons of the navigation."""

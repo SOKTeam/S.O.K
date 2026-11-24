@@ -92,6 +92,54 @@ def tr(key: str, default: Optional[str] = None) -> str:
     return _translator_instance.translate(key, default)
 
 
+def plural_form(language: str, n: int) -> str:
+    """Return the plural form of a number in a language.
+
+    "one", "few", "many" or "other", after the CLDR rules of the eight
+    languages of the app: French puts 0 with 1; Polish and Russian have a
+    form for 2 to 4.
+
+    Args:
+        language: Language code ("fr", "pl"…).
+        n: The number.
+    """
+    n = abs(n)
+    if language == "fr":
+        return "one" if n in (0, 1) else "other"
+    if language in ("pl", "ru"):
+        if language == "ru" and n % 10 == 1 and n % 100 != 11:
+            return "one"
+        if language == "pl" and n == 1:
+            return "one"
+        if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14):
+            return "few"
+        return "many"
+    return "one" if n == 1 else "other"
+
+
+def trn(key: str, n: int, one: str, other: str) -> str:
+    """Translate a text that depends on a number, and put the number in it.
+
+    The translations are "<key>_one", "<key>_few", "<key>_many" and
+    "<key>_other"; a language without a form uses "_other", then "_many".
+    "{n}" in the text is replaced by the number.
+
+    Args:
+        key: Base key, such as "batch_title_movies".
+        n: The number.
+        one: English text for 1.
+        other: English text for any other number.
+    """
+    language = get_config_manager().get("language", "en")
+    form = plural_form(language, n)
+    default = one if form == "one" else other
+    for suffix in (form, "other", "many"):
+        text = _translator_instance.translate(f"{key}_{suffix}", None)
+        if text != f"{key}_{suffix}":
+            return text.replace("{n}", str(n))
+    return default.replace("{n}", str(n))
+
+
 def reload_language() -> None:
     """
     Forces a reload of the translation files (e.g. after language setting change).

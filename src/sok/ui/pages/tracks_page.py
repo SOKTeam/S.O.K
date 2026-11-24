@@ -17,6 +17,7 @@ from sok.core.batch import candidate_year, parse_track, same_track
 from sok.core.interfaces import ContentType, MediaType
 from sok.file_operations import MusicFileOperations
 from sok.ui.i18n import tr
+from sok.ui.components.scene import Shape
 from sok.ui.pages.batch_page import BatchPage
 
 
@@ -37,6 +38,8 @@ class TracksPage(BatchPage):
     the settings.
     """
 
+    kind = "tracks"
+    scene_shape = Shape.COVER
     default_path_type = "music"
     media_type = MediaType.MUSIC
     content_type = ContentType.TRACK
@@ -58,12 +61,6 @@ class TracksPage(BatchPage):
 
     def page_title(self) -> str:
         return tr("music", "Music")
-
-    def empty_hint(self) -> str:
-        return tr("tracks_drop_hint", "Drop audio files or folders, or click to browse")
-
-    def add_more_text(self) -> str:
-        return tr("add_more_tracks", "+ Add more tracks")
 
     def query_placeholder(self) -> str:
         return tr("track_title_artist", "Title (optional artist)")

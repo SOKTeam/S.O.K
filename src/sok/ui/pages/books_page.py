@@ -16,6 +16,7 @@ from sok.core.batch import parse_book, same_book
 from sok.core.interfaces import ContentType, MediaType
 from sok.file_operations import BookFileOperations
 from sok.ui.i18n import tr
+from sok.ui.components.scene import Shape
 from sok.ui.pages.batch_page import BatchPage
 
 
@@ -35,6 +36,8 @@ class BooksPage(BatchPage):
     "Author - Title (Year)". The editions of a book count as one match.
     """
 
+    kind = "books"
+    scene_shape = Shape.BOOK
     default_path_type = "book"
     media_type = MediaType.BOOK
     content_type = ContentType.BOOK
@@ -53,12 +56,6 @@ class BooksPage(BatchPage):
 
     def page_title(self) -> str:
         return tr("books", "Books")
-
-    def empty_hint(self) -> str:
-        return tr("books_drop_hint", "Drop book files or folders, or click to browse")
-
-    def add_more_text(self) -> str:
-        return tr("add_more_books", "+ Add more books")
 
     def query_placeholder(self) -> str:
         return tr("book_title_author", "Title (optional author)")

@@ -25,17 +25,26 @@ it as it is.
 | Tracks | an audio file                        | `MusicFileOperations.organize_items_batch`  |
 
 Each page is a subclass of `BatchPage` (`sok/ui/pages/batch_page.py`), which
-holds the table, the workers and the buttons. A subclass only sets class
-attributes (media type, content type, how to read a file name, how rows are
-grouped) and a few texts.
+holds the list, the scene, the workers and the buttons. A subclass only sets
+class attributes (media type, content type, how to read a file name, how rows
+are grouped, the `kind` of its texts and the `scene_shape` of its items).
+
+The page has three screens: an empty one (a sentence and "Choose a folder"),
+the work screen (a sentence such as "18 movies to sort.", the list of
+`FileRow`s and the `Scene` of the selected item), and the done screen after a
+rename (`DoneScreen`: counts, first changes, Undo, Open the folder). The texts
+of each kind are in `KIND_TEXTS`; sentences with a number use `trn()`, which
+picks the plural form of the language (`sok.ui.i18n.plural_form`).
 
 ### 1. Adding files
 
 Files dropped on the page, picked in the file dialog or sent from the home page
-(`BatchPage.load_files`) go to the table, `MediaBatchTable`. Its `group_files`
-function makes the rows: one per file by default, one per game for games
+(`BatchPage.load_files`) go to the list, `MediaList`
+(`sok/ui/components/organize/media_list.py`), which keeps an `Entry` per row
+(files, query, results, chosen result, status). Its `group_files` function
+makes the rows: one per file by default, one per game for games
 (`group_game_files`: a .cue, .m3u or .gdi takes the files it lists). Files that
-are already in the table are skipped.
+are already in the list are skipped.
 
 ### 2. Reading the file names
 
@@ -93,12 +102,21 @@ on a compilation or a live album (`same_track`). A track found only on compilati
 live or remix releases is never Ready (`on_other_release`): the album it came
 out on is still unknown.
 
-The user can change the selected result of a row, or type another search (the
-row is searched again with that text as its title).
+The five notches of a row show its status: 5 when Ready and the name gave the
+year too, 4 when Ready from the title only, 2 for Pick one, 0 for Missing
+(`Entry.confidence`).
+
+A row to pick or missing opens the pick panel in place of the scene
+(`PickPanel`), and so does "This is not it" on the scene of a Ready row: the
+user picks another result or types another search (the row is searched again
+with that text as its title, and its results must then be picked). The scene
+shows what S.O.K knows without opening the files: quality read from the name
+(movies), format, size, the service that found it, and the final path.
 
 ### 5. Renaming
 
-"Rename all" only takes the Ready rows. The page builds a `sok.media` item for
+The main key ("Sort the movies", with the count of Ready rows and Ctrl/Cmd+R)
+only takes the Ready rows. The page builds a `sok.media` item for
 each one (`create_media_item`) and starts `BatchOrganizeWorker` with
 `(file, item)` pairs. The organize method of the file operations moves each file
 where `batch_target(item, file, alone)` says:
