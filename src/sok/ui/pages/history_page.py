@@ -49,7 +49,7 @@ from sok.core.history import COPY, LINK, Move, Operation, get_history
 from sok.ui import message_box
 from sok.ui.components.base import KeyButton, parse_color
 from sok.ui.components.media_visual import draw_fan, standin_colors
-from sok.ui.components.scene import _Sheet
+from sok.ui.components.scene import _Sheet, paint_spill
 from sok.ui.controllers.undo import undo_operation
 from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.i18n import tr, trn
@@ -425,6 +425,8 @@ class HistoryScene(QWidget):
     undo_clicked = Signal()
     undo_file = Signal(int)
     open_clicked = Signal()
+    # The light moved: the page repaints what spills out.
+    light_changed = Signal()
 
     def __init__(self):
         super().__init__()
@@ -474,6 +476,22 @@ class HistoryScene(QWidget):
         layout.addLayout(keys)
         layout.addStretch()
         self._lines: List[_FileLine] = []
+
+    def paint_light_into(self, p: QPainter, offset: QPointF, area: QRectF) -> None:
+        """The ambient light of the covers, painted in a widget where this
+        one is at offset (here, or the page under the list)."""
+        center = offset + QPointF(self.width() / 2, self.height() * 0.22)
+        light = QRadialGradient(center, 420)
+        tint = QColor(self._color)
+        tint.setAlphaF(0.11)
+        light.setColorAt(0, tint)
+        tint.setAlphaF(0)
+        light.setColorAt(1, tint)
+        p.fillRect(area, light)
+
+    def resizeEvent(self, e):  # noqa: N802 - Qt API
+        super().resizeEvent(e)
+        self.light_changed.emit()
 
     def show_operation(self, op: Optional[Operation]) -> None:
         for line in self._lines:
@@ -540,6 +558,7 @@ class HistoryScene(QWidget):
         self.undo_btn.setVisible(not op.undone)
         self._restyle()
         self.update()
+        self.light_changed.emit()
 
     def _restyle(self) -> None:
         c = _palette(self)
@@ -559,13 +578,7 @@ class HistoryScene(QWidget):
         p = QPainter(self)
         rect = QRectF(self.rect())
         p.fillRect(rect, parse_color(c["bg"]))
-        light = QRadialGradient(QPointF(rect.width() / 2, rect.height() * 0.22), 420)
-        tint = QColor(self._color)
-        tint.setAlphaF(0.11)
-        light.setColorAt(0, tint)
-        tint.setAlphaF(0)
-        light.setColorAt(1, tint)
-        p.fillRect(rect, light)
+        self.paint_light_into(p, QPointF(0, 0), rect)
         p.setPen(QPen(parse_color(c["line"]), 1))
         p.drawLine(QPointF(0.5, 0), QPointF(0.5, rect.height()))
         p.end()
@@ -649,10 +662,15 @@ class HistoryPage(QWidget):
         self._panel = SidePanel(
             self, columns, scene_scroll, lambda: tr("back_to_list", "List")
         )
+        self._scene.light_changed.connect(self.update)
+        scene_scroll.verticalScrollBar().valueChanged.connect(self.update)
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
         p = QPainter(self)
         p.fillRect(self.rect(), parse_color(_palette(self)["bg"]))
+        # The light of the scene spills a little under the list.
+        if not self._panel.narrow:
+            paint_spill(p, self, self._scene, self._panel.holder)
         p.end()
 
     def resizeEvent(self, e):  # noqa: N802 - Qt API

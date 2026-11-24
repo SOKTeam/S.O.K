@@ -109,6 +109,8 @@ class RenameSummary(QWidget):
 
     open_clicked = Signal()
     undo_clicked = Signal()
+    # The light or the covers moved: the page repaints what spills out.
+    light_changed = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -144,8 +146,17 @@ class RenameSummary(QWidget):
         layout.addStretch()
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
 
+    def paint_light_into(self, p: QPainter, offset: QPointF, area: QRectF) -> None:
+        """Paint this light in another widget, this one at offset there."""
+        if not self._fan.isVisible():
+            return
+        obj = self._fan.object_rect().translated(QPointF(self._fan.pos()) + offset)
+        rect = QRectF(offset, QRectF(self.rect()).size())
+        paint_light(p, rect, self._color, obj, area)
+
     def resizeEvent(self, e):  # noqa: N802 - Qt API
         super().resizeEvent(e)
+        self.light_changed.emit()
         self._fan.setVisible(bool(self._fan._covers) and self._room())
         self._keys.setDirection(
             QBoxLayout.Direction.TopToBottom
@@ -164,6 +175,7 @@ class RenameSummary(QWidget):
         self._sheet.set_fields(data.fields, data.tones)
         self.undo_btn.setVisible(data.can_undo)
         self.note.setVisible(data.can_undo)
+        self.light_changed.emit()
         if data.covers:
             first, title = data.covers[0]
             self._color = standin_colors(title)[0]

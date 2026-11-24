@@ -23,7 +23,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Dict, List
 
-from PySide6.QtCore import QPointF, QRectF, Qt
+from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
 
@@ -143,6 +143,9 @@ def _palette(widget: QWidget) -> dict[str, str]:
 class SettingsPreview(QWidget):
     """The right column of the settings: the example before and after."""
 
+    # The light or the example moved: the page repaints what spills out.
+    light_changed = Signal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._key = "movie_format"
@@ -207,6 +210,18 @@ class SettingsPreview(QWidget):
             )
         self._show_texts()
         self.update()
+        self.light_changed.emit()
+
+    def paint_light_into(self, p: QPainter, offset: QPointF, area: QRectF) -> None:
+        """Paint this light in another widget, this one at offset there."""
+        obj = self._stage.object_rect().translated(QPointF(self._stage.pos()) + offset)
+        if obj.isValid():
+            rect = QRectF(offset, QRectF(self.rect()).size())
+            paint_light(p, rect, self._color, obj, area)
+
+    def resizeEvent(self, e):  # noqa: N802 - Qt API
+        super().resizeEvent(e)
+        self.light_changed.emit()
 
     def _show_texts(self) -> None:
         c = _palette(self)

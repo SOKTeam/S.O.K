@@ -43,6 +43,7 @@ from sok.ui.components.settings.formats_section import FormatsSection
 from sok.ui.components.settings.input_formats_section import InputFormatsSection
 from sok.ui.components.settings.layout import SettingsBlock, settings_stylesheet
 from sok.ui.components.settings.paths_section import PathsSection
+from sok.ui.components.scene import paint_spill
 from sok.ui.components.settings.preview import SettingsPreview
 from sok.ui.i18n import tr
 from sok.ui.responsive import fit_display, side_width
@@ -163,6 +164,8 @@ class SettingsPage(QWidget):
         preview_scroll.setWidget(self._preview)
         columns.addWidget(preview_scroll)
         self._preview_scroll = preview_scroll
+        self._preview.light_changed.connect(self.update)
+        preview_scroll.verticalScrollBar().valueChanged.connect(self.update)
 
         self.appearance_section.theme_changed.connect(self._on_theme_change)
         self.appearance_section.language_changed.connect(self._on_language_change)
@@ -234,7 +237,10 @@ class SettingsPage(QWidget):
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
         p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), parse_color(_palette(self)["bg"]))
+        # The light of the preview spills a little under the settings.
+        paint_spill(p, self, self._preview, self._preview_scroll)
         p.end()
 
     def _restyle(self) -> None:

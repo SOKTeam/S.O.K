@@ -34,7 +34,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from PySide6.QtCore import QPoint, QPointF, QRectF, QSizeF, Qt, QUrl, Signal
+from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QKeySequence, QPainter, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -81,7 +81,7 @@ from sok.ui.components.organize.media_list import (
     one_item_per_file,
 )
 from sok.ui.components.organize.pick_panel import Choice, PickPanel
-from sok.ui.components.scene import Scene, SceneItem, Shape, paint_light
+from sok.ui.components.scene import Scene, SceneItem, Shape, paint_spill
 from sok.ui.components.search import load_poster
 from sok.ui.controllers.default_paths import default_destination
 from sok.ui.controllers.file_mode import hard_link_blocked
@@ -359,34 +359,18 @@ class _Screen(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.scene: Optional[Scene] = None
         self.panel: Optional[SidePanel] = None
+        # Gives the widget whose light spills under the list, or None.
+        self.light_source: Optional[Callable[[], Any]] = None
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
         c = getattr(self.window(), "c", None) or Theme.DARK
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), parse_color(c["bg"]))
-        scene, panel = self.scene, self.panel
-        light = scene.light() if scene is not None else None
-        if (
-            light is not None
-            and scene is not None
-            and panel is not None
-            and not panel.narrow
-            and panel.holder.isVisible()
-            and scene.isVisible()
-        ):
-            color, obj = light
-            offset = QPointF(scene.mapTo(self, QPoint(0, 0)))
-            left = panel.holder.mapTo(self, QPoint(0, 0)).x()
-            paint_light(
-                p,
-                QRectF(offset, QSizeF(scene.size())),
-                color,
-                obj.translated(offset),
-                QRectF(0, 0, left, self.height()),
-            )
+        panel = self.panel
+        if panel is not None and not panel.narrow and self.light_source is not None:
+            paint_spill(p, self, self.light_source(), panel.holder)
         p.end()
 
 
@@ -797,10 +781,14 @@ class BatchPage(QWidget):
         )
         self._list.row_clicked.connect(lambda _key: self._panel.open())
         # The light of the scene spills a little under the list.
-        screen.scene = self._scene
         screen.panel = self._panel
-        self._scene.light_changed.connect(screen.update)
-        self._scene_scroll.verticalScrollBar().valueChanged.connect(screen.update)
+        screen.light_source = self._light_source
+        for source, scroll in (
+            (self._scene, self._scene_scroll),
+            (self._summary, self._summary_scroll),
+        ):
+            source.light_changed.connect(screen.update)
+            scroll.verticalScrollBar().valueChanged.connect(screen.update)
         self._right.currentChanged.connect(lambda _i: screen.update())
         return screen
 
@@ -1231,6 +1219,15 @@ class BatchPage(QWidget):
             )
         )
         self._fit_scene()
+
+    def _light_source(self) -> Any:
+        """The scene or the summary, whichever the right column shows."""
+        current = self._right.currentWidget()
+        if current is self._scene_scroll:
+            return self._scene
+        if current is self._summary_scroll:
+            return self._summary
+        return None
 
     def _fit_scene(self) -> None:
         """The poster of the scene gets smaller in a low window."""
