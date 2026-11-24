@@ -74,7 +74,6 @@ def main():
         # by this id: packaging/linux/com.sokteam.sok.desktop.
         app.setDesktopFileName("com.sokteam.sok")
         install_desktop_entry()
-        load_bundled_fonts()
         icon_path = APP_ICON
     else:
         icon_name = "logo.icns" if sys.platform == "darwin" else "logo.ico"
@@ -82,6 +81,7 @@ def main():
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
 
+    load_bundled_fonts()
     window = MainWindow()
     window.show()
 

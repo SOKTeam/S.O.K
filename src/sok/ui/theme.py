@@ -13,9 +13,7 @@ Design Tokens and Theme Utilities for S.O.K
 """
 
 import logging
-import sys
-import os
-from PySide6.QtGui import QColor, QFontDatabase, QPainter, QPixmap
+from PySide6.QtGui import QColor, QFont, QFontDatabase, QPainter, QPixmap
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
 from PySide6.QtSvg import QSvgRenderer
@@ -36,10 +34,10 @@ APP_ICON = ASSETS_DIR / ("logo_linux.png" if IS_LINUX else "logo.ico")
 
 
 def load_bundled_fonts() -> None:
-    """Register the bundled Inter font, the Linux UI font (see Theme.FONT).
+    """Register the bundled Geist and Geist Mono fonts (see Theme.FONT).
 
-    Few distributions install Inter; shipping it gives the same rendering on
-    all of them. Needs a QGuiApplication.
+    The art direction uses them on every system, so they ship with the app
+    (variable fonts, SIL Open Font License). Needs a QGuiApplication.
     """
     for path in sorted(FONTS_DIR.glob("*.ttf")):
         if QFontDatabase.addApplicationFont(str(path)) < 0:
@@ -96,19 +94,15 @@ class Theme:
     by scripts/make_theme_tokens.py), the same on every system.
 
     Attributes:
-        FONT: UI font name (macOS system font, Segoe UI, or the bundled
-            Inter on Linux).
+        FONT: UI font name (the bundled Geist).
+        MONO: Font name for data: paths, file names, years, figures,
+            shortcuts (the bundled Geist Mono).
         LIGHT: Light theme color dictionary.
         DARK: Dark theme color dictionary, the one screens are judged on.
     """
 
-    FONT = (
-        # Name Qt gives the macOS system font (SF Pro): "SF Pro Text" is not
-        # an installed family name, so Qt fell back to it with a warning.
-        ".AppleSystemUIFont"
-        if sys.platform == "darwin"
-        else ("Segoe UI Variable" if os.name == "nt" else "Inter")
-    )
+    FONT = "Geist"
+    MONO = "Geist Mono"
 
     LIGHT = {**_legacy_palette(tokens.LIGHT), "font": FONT}
 
@@ -136,6 +130,30 @@ def palette(dark: bool, system_accent: bool = False) -> dict[str, str]:
         # color (blue, purple, graphite): keep white there.
         c["accent_text"] = c["on-accent"] = "#FFFFFF"
     return c
+
+
+def ui_font(
+    px: int, weight: int = 400, mono: bool = False, tabular: bool = False
+) -> QFont:
+    """Return a font of the art direction at an exact size and weight.
+
+    Stylesheets round a weight to the nearest named one (650 becomes 600);
+    this sets the weight axis of the variable font, so any weight works.
+
+    Args:
+        px: Size in pixels.
+        weight: Weight, 100 to 900 (the titles use 650).
+        mono: Geist Mono instead of Geist.
+        tabular: Figures of equal width, for columns of numbers (Geist Mono
+            always has them).
+    """
+    font = QFont(Theme.MONO if mono else Theme.FONT)
+    font.setPixelSize(px)
+    font.setWeight(QFont.Weight(min(max(weight, 100), 900)))
+    font.setVariableAxis(QFont.Tag("wght"), float(weight))
+    if tabular:
+        font.setFeature(QFont.Tag("tnum"), 1)
+    return font
 
 
 def tone_stylesheet(c: dict[str, str]) -> str:

@@ -46,5 +46,8 @@ overloading page files.
 ## Graphic Style
 
 S.O.K uses a custom frameless interface following the SOKTeam art direction:
-dark by default, with the S.O.K coral as the only accent. Rendering is managed through a mix of
+dark by default, with the S.O.K coral as the only accent. The fonts are Geist
+for the interface and Geist Mono for data (paths, file names, years, figures),
+bundled in `resources/fonts/` and loaded on every system. `theme.ui_font()`
+gives an exact size and weight (stylesheets round 650 down to 600). Rendering is managed through a mix of
 **QSS** (Qt Style Sheets) and custom drawing in `paintEvent`.
