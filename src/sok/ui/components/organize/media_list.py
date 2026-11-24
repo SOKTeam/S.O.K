@@ -294,9 +294,7 @@ class MediaList(QWidget):
         else:
             row = FileRow(data, self._was_label)
             self._rows_layout.insertWidget(self._rows_layout.count() - 1, row)
-        row.clicked.connect(
-            lambda k=key: (self._set_current(k), self.row_clicked.emit(k))
-        )
+        row.clicked.connect(lambda k=key: self._click_row(k))
         if isinstance(row, FileRow):
             row.action_clicked.connect(lambda k=key: self.row_action.emit(k))
         self._rows[key] = row
