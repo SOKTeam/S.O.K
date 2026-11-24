@@ -220,7 +220,7 @@ class BatchPage(QScrollArea):
         self._rescan_all_btn.clicked.connect(self._rescan_all)
         action_row.addWidget(self._rescan_all_btn)
 
-        self._action_btn = ActionButton(tr("rename_all", "Rename all"))
+        self._action_btn = ActionButton(tr("rename_all", "Rename all"), primary=True)
         self._action_btn.setEnabled(False)
         self._action_btn.clicked.connect(self._start_rename)
         action_row.addWidget(self._action_btn)

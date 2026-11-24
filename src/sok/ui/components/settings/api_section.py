@@ -187,7 +187,7 @@ class ApiSection(QWidget):
         layout.addWidget(lbl_container)
         layout.addStretch()
 
-        connect_btn = ActionButton("")
+        connect_btn = ActionButton("", small=True)
         connect_btn.setProperty("tr_key", "connect")
         connect_btn.setProperty("tr_default", "Connect")
         connect_btn.setText(tr("connect", "Connect"))
@@ -195,10 +195,10 @@ class ApiSection(QWidget):
         setattr(self, f"_{service}_connect_btn", connect_btn)
         layout.addWidget(connect_btn)
 
-        disconnect_btn = ActionButton("")
+        disconnect_btn = ActionButton("", small=True)
+        disconnect_btn.set_danger(True)
         disconnect_btn.setProperty("tr_key", "disconnect")
         disconnect_btn.setProperty("tr_default", "Disconnect")
-        disconnect_btn.setObjectName("DestructiveBtn")
         disconnect_btn.setText(tr("disconnect", "Disconnect"))
         disconnect_btn.clicked.connect(lambda: self._disconnect_service(service))
         disconnect_btn.setVisible(False)
@@ -275,7 +275,7 @@ class ApiSection(QWidget):
             layout.addWidget(input_field)
 
             if api_key_url:
-                get_key_btn = ActionButton("")
+                get_key_btn = ActionButton("", small=True)
                 get_key_btn.setProperty("tr_key", "get")
                 get_key_btn.setProperty("tr_default", "Get")
                 get_key_btn.setText(tr("get", "Get"))

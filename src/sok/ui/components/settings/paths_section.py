@@ -99,7 +99,7 @@ class PathsSection(QWidget):
         self._path_labels[config_key] = path_lbl
         self._title_labels[config_key] = title_lbl
 
-        browse_btn = ActionButton("")
+        browse_btn = ActionButton("", small=True)
         browse_btn.setProperty("tr_key", "browse")
         browse_btn.setProperty("tr_default", "Browse")
         browse_btn.setText(tr("browse", "Browse"))

@@ -905,11 +905,6 @@ class MainWindow(QMainWindow):
                 color: {c["text"]};
             }}
 
-            #ActionBtn, #DestructiveBtn {{
-                border-radius: 6px;
-                padding: 0 12px;
-            }}
-
             #SearchBar, #SettingsInput, #SettingsFormatInput, QComboBox {{
                 border-radius: 6px;
             }}
@@ -1116,17 +1111,7 @@ class MainWindow(QMainWindow):
                 font-size: 13px;
             }}
 
-            #LinkBtn {{
-                background: transparent;
-                border: none;
-                color: {c["secondary"]};
-                font-size: 13px;
-            }}
 
-            #LinkBtn:hover {{
-                color: {c["text"]};
-                text-decoration: underline;
-            }}
 
             #PatternRemoveBtn {{
                 background: {c["hover"]};
@@ -1191,31 +1176,9 @@ class MainWindow(QMainWindow):
             }}
 
             /* Buttons */
-            #ActionBtn {{
-                background: {c["accent"]};
-                border-radius: 16px;
-                color: {c["accent_text"]};
-                font-weight: 600;
-                font-size: 13px;
-                padding: 0 16px;
-                border: none;
-            }}
 
-            #ActionBtn:hover {{
-                background: {c["accent"]};
-                opacity: 0.9;
-            }}
 
-            #ActionBtn:pressed {{
-                background: {c["accent"]};
-                margin-top: 1px;
-                margin-bottom: -1px;
-            }}
 
-            #ActionBtn:disabled {{
-                background: {c["separator"]};
-                color: {c["secondary"]};
-            }}
 
             #SmallBtn {{
                 background: {c["accent"]};
@@ -1233,22 +1196,6 @@ class MainWindow(QMainWindow):
                 background: {c["accent"]};
             }}
 
-            #DestructiveBtn {{
-                background: {c.get("red", "#FF5555")};
-                border-radius: 16px;
-                color: white;
-                font-weight: 600;
-            }}
-
-            #DestructiveBtn:hover {{
-                background: #FF6B6B;
-            }}
-
-            #DestructiveBtn:pressed {{
-                background: #EE4444;
-                margin-top: 1px;
-                margin-bottom: -1px;
-            }}
 
             {scrollbar_rules}
 

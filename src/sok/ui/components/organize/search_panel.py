@@ -24,12 +24,11 @@ from PySide6.QtWidgets import (
     QFrame,
     QLabel,
     QComboBox,
-    QPushButton,
 )
 from PySide6.QtCore import Qt, QTimer, Signal
 
 from sok.ui.theme import card_shadow
-from sok.ui.components.base import Card
+from sok.ui.components.base import ActionButton, Card
 from sok.ui.components.inputs import SearchBar
 from sok.ui.components.window import StopPropagationScrollArea
 from sok.ui.components.search import SearchResultRow, SelectedMediaWidget
@@ -129,10 +128,7 @@ class SearchPanel(QWidget):
         self._search_input.textChanged.connect(self._on_search_text_changed)
         sr_layout.addWidget(self._search_input)
 
-        search_btn = QPushButton(tr("go", "Go"))
-        search_btn.setObjectName("SmallBtn")
-        search_btn.setFixedSize(40, 28)
-        search_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        search_btn = ActionButton(tr("go", "Go"), small=True)
         search_btn.clicked.connect(self._on_manual_search)
         sr_layout.addWidget(search_btn)
 

@@ -18,13 +18,12 @@ the detector found, each opened in its page, and the files to check.
 from pathlib import Path
 from typing import List, Optional
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal
 from PySide6.QtGui import QDropEvent
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QLabel,
-    QPushButton,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -185,7 +184,7 @@ class _GroupRow(QWidget):
             layout.addWidget(state_lbl)
 
         if remaining:
-            btn = ActionButton(tr("drop_open", "Open"))
+            btn = ActionButton(tr("drop_open", "Open"), small=True)
             btn.clicked.connect(self.open_clicked.emit)
             layout.addWidget(btn)
 
@@ -219,7 +218,7 @@ class _CheckRow(QWidget):
         self._combo.setCurrentIndex(KINDS.index(item.kind))
         layout.addWidget(self._combo)
 
-        btn = ActionButton(tr("drop_add", "Add"))
+        btn = ActionButton(tr("drop_add", "Add"), small=True)
         btn.clicked.connect(lambda: self.confirmed.emit(self._combo.currentData()))
         layout.addWidget(btn)
 
@@ -293,11 +292,7 @@ class DropSummary(QWidget):
         )
         header.addWidget(title)
         header.addStretch()
-        clear_btn = QPushButton(tr("drop_clear", "Clear"))
-        clear_btn.setObjectName("SmallBtn")
-        clear_btn.setFixedHeight(24)
-        clear_btn.setStyleSheet("padding: 0 10px;")
-        clear_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        clear_btn = ActionButton(tr("drop_clear", "Clear"), small=True)
         clear_btn.clicked.connect(lambda: self.set_report(None))
         header.addWidget(clear_btn)
         self._layout.addLayout(header)

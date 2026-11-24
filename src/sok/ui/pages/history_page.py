@@ -101,7 +101,7 @@ class OperationCard(Card):
         layout.addLayout(texts, 1)
 
         if not operation.undone:
-            undo = ActionButton(tr("undo", "Undo"))
+            undo = ActionButton(tr("undo", "Undo"), small=True)
             undo.clicked.connect(self._undo_all)
             layout.addWidget(undo)
         self._chevron = QLabel("›")
@@ -193,9 +193,7 @@ class HistoryPage(QScrollArea):
         header = QHBoxLayout()
         self._title = QLabel()
         self._title.setObjectName("PageTitle")
-        self._clear_btn = QPushButton()
-        self._clear_btn.setObjectName("LinkBtn")
-        self._clear_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._clear_btn = ActionButton(small=True)
         self._clear_btn.clicked.connect(self._clear)
         header.addWidget(self._title)
         header.addStretch()

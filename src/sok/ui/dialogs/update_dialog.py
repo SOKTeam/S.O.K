@@ -19,7 +19,6 @@ from PySide6.QtWidgets import (
     QDialog,
     QVBoxLayout,
     QLabel,
-    QPushButton,
     QTextBrowser,
     QHBoxLayout,
     QProgressBar,
@@ -27,7 +26,6 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QObject
 from sok.core.updater import UpdateManager, running_appimage
 from sok.ui.components.base import ActionButton
-from sok.ui.platform import IS_MACOS
 from sok.ui.theme import Theme
 from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.i18n import tr
@@ -35,7 +33,6 @@ from sok.ui import message_box
 import webbrowser
 
 # Same height as ActionButton.
-BUTTON_HEIGHT = 28 if IS_MACOS else 32
 
 
 # Files the dialog downloads and starts itself (see
@@ -140,6 +137,8 @@ class UpdateDialog(QDialog):
         # The colors of the main window theme (light or dark).
         window = parent.window() if parent else None
         c = getattr(window, "c", None) or Theme.DARK
+        # The buttons draw themselves with the palette of their window.
+        self.c = c
 
         layout = QVBoxLayout(self)
         layout.setSpacing(15)
@@ -168,14 +167,11 @@ class UpdateDialog(QDialog):
 
         btn_layout = QHBoxLayout()
 
-        self.btn_cancel = QPushButton(tr("ignore", "Ignore"))
-        self.btn_cancel.setObjectName("UpdateIgnoreBtn")
-        self.btn_cancel.setFixedHeight(BUTTON_HEIGHT)
-        self.btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_cancel = ActionButton(tr("ignore", "Ignore"))
         self.btn_cancel.clicked.connect(self.reject)
 
         self.btn_update = ActionButton(
-            tr("download_and_install", "Download and Install")
+            tr("download_and_install", "Download and Install"), primary=True
         )
         self.btn_update.clicked.connect(self.start_update)
         self.btn_update.setDefault(True)
@@ -226,27 +222,6 @@ class UpdateDialog(QDialog):
             QProgressBar::chunk {{
                 background: {c["accent"]};
                 border-radius: 4px;
-            }}
-            #ActionBtn {{
-                background: {c["accent"]};
-                color: {c["accent_text"]};
-                border: none;
-                border-radius: {BUTTON_HEIGHT // 2}px;
-                font-weight: 600;
-            }}
-            #ActionBtn:disabled, #UpdateIgnoreBtn:disabled {{
-                background: {c["separator"]};
-                color: {c["secondary"]};
-            }}
-            #UpdateIgnoreBtn {{
-                background: transparent;
-                color: {c["text"]};
-                border: 1px solid {c["separator"]};
-                border-radius: {BUTTON_HEIGHT // 2}px;
-                padding: 0 15px;
-            }}
-            #UpdateIgnoreBtn:hover {{
-                background: {c["hover"]};
             }}
         """
 

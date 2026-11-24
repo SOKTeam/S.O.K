@@ -189,7 +189,7 @@ class InputFormatsSection(QWidget):
         self._input.setObjectName("SettingsFormatInput")
         self._input.returnPressed.connect(self._add)
         self._input.textChanged.connect(lambda: self._error.setVisible(False))
-        self._add_btn = ActionButton()
+        self._add_btn = ActionButton(small=True)
         self._add_btn.clicked.connect(self._add)
         line.addWidget(self._kind)
         line.addWidget(self._input, 1)

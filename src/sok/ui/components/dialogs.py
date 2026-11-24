@@ -264,8 +264,7 @@ class SearchResultsDialog(QDialog):
         self._search.returnPressed.connect(self._do_search)
         search_row.addWidget(self._search)
 
-        self._search_btn = ActionButton()
-        self._search_btn.setFixedWidth(100)
+        self._search_btn = ActionButton(small=True)
         self._search_btn.clicked.connect(self._do_search)
         search_row.addWidget(self._search_btn)
 

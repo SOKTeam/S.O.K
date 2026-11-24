@@ -132,7 +132,7 @@ class OptionsPanel(QWidget):
         self._progress_label.setVisible(False)
         layout.addWidget(self._progress_label)
 
-        self._action_btn = ActionButton("")
+        self._action_btn = ActionButton("", primary=True)
         self._action_btn.setEnabled(False)
         self._action_btn.clicked.connect(self.organize_clicked.emit)
         layout.addWidget(self._action_btn)

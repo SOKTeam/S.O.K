@@ -84,7 +84,7 @@ class AboutSection(QWidget):
         rr_layout = QHBoxLayout(reset_row)
         rr_layout.setContentsMargins(12, 6, 12, 6)
 
-        self.reset_btn = ActionButton("")
+        self.reset_btn = ActionButton("", small=True)
         self.reset_btn.setProperty("tr_key", "reset_settings")
         self.reset_btn.setProperty("tr_default", "Reset settings")
         self.reset_btn.clicked.connect(self._confirm_reset)

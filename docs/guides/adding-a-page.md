@@ -137,11 +137,20 @@ Give a widget the object name of its role and it follows the theme, light or
 dark. A widget without one keeps the Qt default: a progress bar without the name
 `Progress` is blue instead of coral.
 
+Every action is a button, never a text link: `KeyButton` (or `ActionButton`,
+the same) from `sok.ui.components.base` draws itself with the theme. It is
+graphite by default; pass `primary=True` for the one main action of the page
+(coral), and `small=True` inside a row or a card (32px instead of 44px).
+`set_count(n)` adds the number of items it applies to, `set_shortcut("⌘R")` the
+shortcut, and `set_danger(True)` writes a destructive action in red.
+
 Other helpers of `sok.ui.theme` and `sok.ui.controllers`:
 
 - `set_tone(widget, "ok")` colors a text with a tone of the palette (`ok`,
   `error`, `ambiguous`…).
 - `card_shadow()` gives a card its shadow.
+- `ui_font(px, weight, mono=False, tabular=False)` gives a Geist or Geist Mono
+  font at an exact size and weight.
 - `make_section_label(key, default)` makes a section title.
 - `set_progress(bar, label, visible, message, value)` shows or hides a progress
   bar and its text.

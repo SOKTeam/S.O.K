@@ -43,7 +43,7 @@ from sok.core.batch import (
     BatchMatch,
     candidate_year,
 )
-from sok.ui.components.base import Card
+from sok.ui.components.base import ActionButton, Card
 from sok.ui.components.window import StopPropagationScrollArea
 from sok.ui.controllers.ui_state import set_empty_state
 from sok.ui.i18n import tr
@@ -155,10 +155,7 @@ class BatchRow(QWidget):
         self._query_edit.editingFinished.connect(self._on_query_edited)
         query_row.addWidget(self._query_edit, 1)
 
-        self._rescan_btn = QPushButton("⟲")
-        self._rescan_btn.setFixedSize(24, 24)
-        self._rescan_btn.setObjectName("SmallBtn")
-        self._rescan_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._rescan_btn = ActionButton("⟲", small=True)
         self._rescan_btn.setToolTip(tr("rescan", "Re-scan"))
         self._rescan_btn.clicked.connect(self._on_rescan)
         query_row.addWidget(self._rescan_btn)
