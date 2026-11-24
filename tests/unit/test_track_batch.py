@@ -23,7 +23,7 @@ from sok.core.batch import (
 from sok.file_operations import MusicFileOperations
 from sok.media.music.track import Track
 from sok.media.factory import create_media_item
-from sok.ui.pages.tracks_page import describe_track
+from sok.ui.pages.music_page import describe_track
 
 
 def track(title, album, album_type="album", date="2017-06-23", number=None):

@@ -28,6 +28,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -148,17 +149,17 @@ KIND_TEXTS: Dict[str, Dict[str, Tuple[str, ...]]] = {
         "action": ("batch_action_games", "Sort the games"),
         "pick": ("batch_pick_games", "Which game is it?"),
     },
-    "tracks": {
-        "title": ("batch_title_tracks", "{n} track to sort.", "{n} tracks to sort."),
-        "done": ("batch_done_tracks", "{n} track sorted.", "{n} tracks sorted."),
-        "empty_title": ("batch_empty_title_tracks", "No tracks to sort."),
+    "music": {
+        "title": ("batch_title_music", "{n} track to sort.", "{n} tracks to sort."),
+        "done": ("batch_done_music", "{n} track sorted.", "{n} tracks sorted."),
+        "empty_title": ("batch_empty_title_music", "No music to sort."),
         "empty_text": (
-            "batch_empty_text_tracks",
-            "Drop single tracks here. S.O.K finds the title, the artist and "
-            "the album of each one, then files it with its album.",
+            "batch_empty_text_music",
+            "Drop your music here. S.O.K gathers the tracks into albums, finds "
+            "each album and its cover, then files it under its artist.",
         ),
-        "action": ("batch_action_tracks", "Sort the tracks"),
-        "pick": ("batch_pick_tracks", "Which track is it?"),
+        "action": ("batch_action_music", "Sort the tracks"),
+        "pick": ("batch_pick_music", "Which one is it?"),
     },
 }
 
@@ -241,6 +242,17 @@ def display_path(path: Path, limit: int = 48) -> str:
     return f"…/{tail or parts[-1]}"
 
 
+@dataclass(frozen=True)
+class SearchSpec:
+    """How the items of a kind are searched and turned into media items."""
+
+    content_type: ContentType
+    parse: Any
+    same_work: Optional[Any]
+    localized: bool
+    factory_type: str
+
+
 class _Destination:
     """The folder the items go to (what the destination drop zone was)."""
 
@@ -314,6 +326,7 @@ class BatchPage(QWidget):
         self._search_runner = WorkerRunner(self)
         self._rescan_runner = WorkerRunner(self)
         self._organize_runner = WorkerRunner(self)
+        self._search_queue: List[Tuple[SearchSpec, List[List[Path]]]] = []
         self._dest_drop = _Destination()
         self._images: Dict[str, QPixmap] = {}
         # Key of the item shown in the pick panel, or None for the scene.
@@ -354,6 +367,17 @@ class BatchPage(QWidget):
     def nothing_ready_text(self) -> str:
         """Message when no item is ready."""
         return tr("nothing_ready", "No file is ready to rename.")
+
+    def search_spec(self, files: Optional[List[Path]] = None) -> SearchSpec:
+        """How the item of these files is searched: the class attributes,
+        unless a page searches its items in several ways (albums and tracks)."""
+        return SearchSpec(
+            self.content_type,
+            self.parse,
+            self.same_work,
+            self.localized,
+            self.factory_type,
+        )
 
     def count_of(self, entry: Entry) -> int:
         """How much an item counts in the sentences: 1, or its files."""
@@ -699,14 +723,23 @@ class BatchPage(QWidget):
             return
         for item in target:
             self._list.set_row_loading(item[0])
+        # One search per way of searching, one after the other.
+        by_spec: Dict[SearchSpec, List[List[Path]]] = {}
+        for item in target:
+            by_spec.setdefault(self.search_spec(item), []).append(item)
+        self._search_queue = list(by_spec.items())
         self._set_progress(True, tr("searching", "Searching..."), 0)
+        self._run_next_search()
+
+    def _run_next_search(self) -> None:
+        spec, items = self._search_queue.pop(0)
         worker = BatchSearchWorker(
-            target,
+            items,
             self.media_type,
-            self.content_type,
-            self.parse,
-            same_work=self.same_work,
-            localized=self.localized,
+            spec.content_type,
+            spec.parse,
+            same_work=spec.same_work,
+            localized=spec.localized,
         )
         self._search_runner.run(
             worker,
@@ -719,11 +752,15 @@ class BatchPage(QWidget):
         self._set_progress(True, filename, percent)
 
     def _on_batch_search_done(self, results: List[BatchMatch]) -> None:
-        self._set_progress(False)
         self._list.apply_results(results)
+        if self._search_queue:
+            self._run_next_search()
+        else:
+            self._set_progress(False)
         self._refresh_previews_and_action()
 
     def _on_search_error(self, error: str) -> None:
+        self._search_queue = []
         self._set_progress(False)
         self._list.fail_pending()
         self._update_summary()
@@ -743,14 +780,15 @@ class BatchPage(QWidget):
             return
         self._searching.add(key)
         self._refresh_picker()
+        spec = self.search_spec(files)
         worker = BatchSearchWorker(
             [files],
             self.media_type,
-            self.content_type,
-            self.parse,
+            spec.content_type,
+            spec.parse,
             query,
-            same_work=self.same_work,
-            localized=self.localized,
+            same_work=spec.same_work,
+            localized=spec.localized,
         )
         self._rescan_runner.run(
             worker,
@@ -782,13 +820,15 @@ class BatchPage(QWidget):
 
     # ------------------------------------------------------------- Display
 
-    def _media_item(self, candidate: Optional[Dict[str, Any]]) -> Any:
+    def _media_item(
+        self, candidate: Optional[Dict[str, Any]], files: Optional[List[Path]] = None
+    ) -> Any:
+        """The media item of a result, for the files of its item."""
         if not candidate:
             return None
         lang = get_config_manager().get("language", "en")
-        return create_media_item(
-            candidate, self.factory_type, self._manager, language=lang
-        )
+        factory = self.search_spec(files).factory_type
+        return create_media_item(candidate, factory, self._manager, language=lang)
 
     def _image(
         self, url: Optional[str], key: Path, width: int, height: int
@@ -818,7 +858,7 @@ class BatchPage(QWidget):
         tags = self._quality_tags(entry.files[0]) if self.show_quality else []
         if entry.status == STATUS_PENDING:
             return RowData(entry.query or entry.files[0].stem, was, tags=tags)
-        item = self._media_item(entry.candidate)
+        item = self._media_item(entry.candidate, entry.files)
         if item is None:
             return RowData(
                 tr("batch_unknown", "Unknown title"),
@@ -864,7 +904,7 @@ class BatchPage(QWidget):
         entry = self._list.entry(key)
         if entry is None:
             return
-        item = self._media_item(entry.candidate)
+        item = self._media_item(entry.candidate, entry.files)
         if item is None:
             self._scene.set_item(
                 SceneItem(
@@ -951,7 +991,7 @@ class BatchPage(QWidget):
             return
         choices = []
         for index, candidate in enumerate(entry.candidates):
-            item = self._media_item(candidate)
+            item = self._media_item(candidate, entry.files)
             year = getattr(item, "year", None) if item else None
             author = self.item_author(item) if item else ""
             choices.append(
@@ -1006,7 +1046,7 @@ class BatchPage(QWidget):
     # ------------------------------------------------------------- Preview
 
     def _compute_new_name(self, files: List[Path], candidate: Dict[str, Any]) -> str:
-        item = self._media_item(candidate)
+        item = self._media_item(candidate, files)
         if item is None:
             return ""
         return self.preview_name(item, files[0])
@@ -1096,7 +1136,7 @@ class BatchPage(QWidget):
 
         mappings: List[Tuple[Path, Any]] = []
         for files, cand in self._list.get_ready_mappings():
-            item = self._media_item(cand)
+            item = self._media_item(cand, files)
             if item is None:
                 continue
             mappings.extend((file, item) for file in files)

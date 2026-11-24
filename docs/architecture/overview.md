@@ -36,9 +36,9 @@ Built in code with PySide6; no Qt Designer file is loaded at run time.
   the page stack. On Windows and
   Linux the window is frameless with its own title bar; on macOS it keeps the
   native title bar.
-- `pages/`: home, TV shows (`series_page.py`), music (an Albums and a Tracks
-  tab), the batch pages (`batch_page.py` and its movies, books, games and tracks
-  subclasses), settings and the history of renames (`history_page.py`).
+- `pages/`: home, the batch pages (`batch_page.py` and its movies, TV shows,
+  music, books and games subclasses), settings and the history of renames
+  (`history_page.py`).
 - `components/`: reusable widgets (search results, preview, settings sections…).
 - `controllers/`: logic shared by the pages (source scanning, preview, window
   chrome, `WorkerRunner`).

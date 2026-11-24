@@ -7,11 +7,9 @@ description:
 
 Renaming happens on two kinds of pages:
 
-- **Batch pages**, where every file (or group of files) gets its own online
-  item: Movies, TV shows (a row per series), Books, Games and the Tracks tab of
-  Music.
-- **One-item pages**, where all the files belong to one item chosen by the user:
-  the Albums tab of Music (one album).
+All of them are **batch pages**, where every file (or group of files) gets its
+own online item: Movies, TV shows (a row per series), Music (a row per album or
+loose track), Books and Games.
 
 The batch engine, `sok.core.batch`, has no Qt dependency: S.O.K Server will use
 it as it is.
@@ -24,7 +22,7 @@ it as it is.
 | TV shows | the episodes of one series           | `VideoFileOperations.organize_files_list`, one series at a time |
 | Books    | a book file                          | `BookFileOperations.organize_items_batch`                       |
 | Games    | a ROM, or the .cue/.bin files of one | `GameFileOperations.organize_items_batch`                       |
-| Tracks   | an audio file                        | `MusicFileOperations.organize_items_batch`                      |
+| Music    | an album folder, or a loose track    | `MusicFileOperations.organize_items_batch`                      |
 
 Each page is a subclass of `BatchPage` (`sok/ui/pages/batch_page.py`), which
 holds the list, the scene, the workers and the buttons. A subclass only sets
@@ -154,15 +152,19 @@ Renaming calls `organize_files_list` for each series:
   own), and `fetch_episode_titles()` reads the episodes of each season
   (`S01E01` → title); a season that fails is skipped.
 
-## One-item pages
+## Music
 
-On Albums, the user searches and selects one album (`SearchWorker`, then
-`DetailsWorker` for the tracks). The page builds the item, and
-`OrganizeWorker` calls `organize_files_list` of the file operations:
+The Music page (`sok/ui/pages/music_page.py`) groups the dropped audio files
+with the type detector: the tracks of an album folder make one row, searched as
+an album (`parse_album`, `same_album`); a track on its own is a row searched as
+a track (`parse_track`, `same_track`). A page says how each row is searched with
+`BatchPage.search_spec(files)`; the searches of each kind run one after the
+other. The scene lists the tracks of the album with their length (from the
+tags).
 
-- **Albums**: each track is named from the music format, with the artist, album
-  and year of the album found online, and the title and number of its tags (or
-  of its file name).
+Each track of an album is named from the music format, with the artist, album
+and year of the album found online, and the title and number of its tags (or of
+its file name) (`MusicFileOperations.batch_target`).
 
 ## From the home page
 

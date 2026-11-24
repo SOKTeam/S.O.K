@@ -52,7 +52,6 @@ from sok.ui.components.nav import NavBar
 from sok.ui.components.window import WindowControlButton
 from sok.ui.controllers.window_chrome import ResizeGrips, hit_test_resize
 from sok.ui.pages.home_page import HomePage
-from sok.ui.pages.organize_page import OrganizePage
 from sok.ui.pages.batch_page import BatchPage
 from sok.ui.pages.movies_page import MoviesPage
 from sok.ui.pages.series_page import SeriesPage
@@ -579,17 +578,8 @@ class MainWindow(QMainWindow):
         idx = PAGE_BY_KIND[group.kind]
         self._go(idx)
         page = self._pages.widget(idx)
-        if isinstance(page, MusicPage):
-            if group.kind == ContentType.TRACK:
-                page.show_tracks()
-                page.tracks.load_files(files)
-            else:
-                page.show_albums()
-                page.albums.load_sources(files, group.title, "album")
-        elif isinstance(page, BatchPage):
+        if isinstance(page, BatchPage):
             page.load_files(files)
-        elif isinstance(page, OrganizePage):
-            page.load_sources(files, group.title, "series")
 
     def current_page(self) -> QWidget:
         """Return the page currently shown."""

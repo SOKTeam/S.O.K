@@ -8,117 +8,201 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-"""Music page: albums one at a time, or tracks in batches."""
+"""Music page: albums and loose tracks, several at once.
 
-from typing import Optional
+The audio files dropped are grouped like on the home page: the tracks of an
+album folder make one item, searched as an album; a track on its own is an
+item searched as a track (the same engine as S.O.K Server). The scene shows
+the cover and the tracks of the album, with their length.
+"""
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QButtonGroup,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QStackedWidget,
-    QVBoxLayout,
-    QWidget,
+from __future__ import annotations
+
+import os
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+from PySide6.QtWidgets import QWidget
+
+from sok.core.batch import (
+    candidate_year,
+    parse_album,
+    parse_track,
+    same_album,
+    same_track,
 )
+from sok.core.interfaces import ContentType, MediaType
+from sok.file_operations import MusicFileOperations
+from sok.file_operations.detection import detect_sources
+from sok.ui.components.organize.media_list import Entry
+from sok.ui.components.organize.track_list import TrackLine, TrackList
+from sok.ui.components.scene import Shape
+from sok.ui.i18n import tr, trn
+from sok.ui.pages.batch_page import BatchPage, SearchSpec
 
-from sok.ui.i18n import tr
-from sok.ui.pages.organize_page import OrganizePage
-from sok.ui.pages.tracks_page import TracksPage
+ALBUM = SearchSpec(ContentType.ALBUM, parse_album, same_album, False, "album")
+TRACK = SearchSpec(ContentType.TRACK, parse_track, same_track, False, "track")
 
 
-class MusicPage(QWidget):
-    """Holds the Albums page and the Tracks page, with a switch between them.
+def describe_track(candidate: Dict[str, Any]) -> str:
+    """ "Title — Artist (Album, year)", the text of a result."""
+    title = candidate.get("title") or tr("unknown", "Unknown")
+    text = f"{title} — {candidate['artist']}" if candidate.get("artist") else title
+    details = [str(v) for v in (candidate.get("album"), candidate_year(candidate)) if v]
+    return f"{text} ({', '.join(details)})" if details else text
 
-    The two pages keep their own content; their titles are hidden and this
-    page shows one title with the switch next to it.
-    """
+
+def length_text(seconds: Optional[float]) -> str:
+    """ "5:20" for a length in seconds, "" when unknown."""
+    if not seconds:
+        return ""
+    minutes, rest = divmod(int(round(seconds)), 60)
+    return f"{minutes}:{rest:02d}"
+
+
+class MusicPage(BatchPage):
+    """Page for batch music renaming: albums and loose tracks."""
+
+    kind = "music"
+    scene_shape = Shape.COVER
+    default_path_type = "music"
+    media_type = MediaType.MUSIC
+    content_type = ContentType.TRACK
+    factory_type = "track"
+    parse = staticmethod(parse_track)
+    same_work = staticmethod(same_track)
+    localized = False
+    describe = staticmethod(describe_track)
 
     def __init__(self, parent: Optional[QWidget] = None):
-        """Initialize the music page."""
+        # Key of every item that is an album.
+        self._albums: set[Path] = set()
+        self._tags: Dict[Path, Dict[str, Any]] = {}
         super().__init__(parent)
-        self.setObjectName("Page")
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
 
-        header = QWidget()
-        header.setObjectName("PageContent")
-        row = QHBoxLayout(header)
-        row.setContentsMargins(24, 20, 24, 0)
-        self._title = QLabel()
-        self._title.setObjectName("PageTitle")
-        row.addWidget(self._title)
-        row.addStretch()
+    def make_ops(self) -> MusicFileOperations:
+        return MusicFileOperations()
 
-        self._albums_btn = self._switch_button(0)
-        self._tracks_btn = self._switch_button(1)
-        group = QButtonGroup(self)
-        group.setExclusive(True)
-        for btn in (self._albums_btn, self._tracks_btn):
-            group.addButton(btn)
-            row.addWidget(btn)
-        layout.addWidget(header)
+    def organize_method(self) -> Callable[..., Dict[str, Any]]:
+        return self._ops.organize_items_batch
 
-        self.albums = OrganizePage("music")
-        self.tracks = TracksPage()
-        self.albums.lbl_page_title.hide()
-        self.tracks._title_lbl.hide()
-        self._stack = QStackedWidget()
-        self._stack.addWidget(self.albums)
-        self._stack.addWidget(self.tracks)
-        layout.addWidget(self._stack, 1)
-        self._albums_btn.setChecked(True)
-        self.retranslateUi()
+    def page_title(self) -> str:
+        return tr("music", "Music")
 
-    def _switch_button(self, index: int) -> QPushButton:
-        btn = QPushButton()
-        btn.setCheckable(True)
-        btn.setObjectName("SmallBtn")
-        btn.setFixedHeight(26)
-        btn.setStyleSheet("padding: 0 14px;")
-        btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.toggled.connect(lambda on: self._update_switch(index, on))
-        return btn
+    def query_placeholder(self) -> str:
+        return tr("batch_music_placeholder", "Album or title (optional artist)")
 
-    def _update_switch(self, index: int, on: bool) -> None:
-        if on:
-            self._stack.setCurrentIndex(index)
-        for btn in (self._albums_btn, self._tracks_btn):
-            # The selected side has the accent color, the other one is plain.
-            btn.setStyleSheet(
-                "padding: 0 14px;"
-                if btn.isChecked()
-                else "padding: 0 14px; background: transparent; color: palette(text);"
+    # ------------------------------------------------------------- Items
+
+    def group_files(self, files: List[Path]) -> List[List[Path]]:  # type: ignore[override]
+        """An item per album folder, and one per track on its own."""
+        report = detect_sources(files)
+        items: List[List[Path]] = []
+        seen: set[Path] = set()
+        for group in report.groups:
+            mine = [f for f in group.files if f in files and f not in seen]
+            if not mine:
+                continue
+            if group.kind == ContentType.ALBUM:
+                items.append(mine)
+                self._albums.add(mine[0])
+            else:
+                items.extend([f] for f in mine)
+            seen.update(mine)
+        items.extend([f] for f in files if f not in seen)
+        return items
+
+    def search_spec(self, files: Optional[List[Path]] = None) -> SearchSpec:
+        return ALBUM if files and files[0] in self._albums else TRACK
+
+    def _is_album(self, entry: Entry) -> bool:
+        return entry.key in self._albums
+
+    def _tags_of(self, file: Path) -> Dict[str, Any]:
+        if file not in self._tags:
+            try:
+                self._tags[file] = self._ops.read_metadata(str(file)) or {}
+            except (OSError, ValueError):
+                self._tags[file] = {}
+        return self._tags[file]
+
+    def preview_name(self, item: Any, file: Path) -> str:
+        folders, name = self._ops.batch_target(item, file, True)
+        return "/".join([*folders, name])
+
+    # ---------------------------------------------------------- Display
+
+    def count_of(self, entry: Entry) -> int:
+        return len(entry.files)
+
+    def lead_prefix(self, entries: List[Entry]) -> List[str]:
+        albums = sum(1 for e in entries if self._is_album(e))
+        if not albums:
+            return []
+        return [trn("batch_album_count", albums, "In {n} album.", "In {n} albums.")]
+
+    def _fields(self, entry: Entry, item: Any) -> List[Tuple[str, str]]:
+        """No dotted sheet: the scene lists the tracks instead."""
+        return []
+
+    def _row_data(self, entry: Entry):
+        data = super()._row_data(entry)
+        if entry.status == "pending" or data.unknown:
+            if self._is_album(entry):
+                data.note = trn(
+                    "batch_tracks", len(entry.files), "{n} track", "{n} tracks"
+                )
+            return data
+        item = self._media_item(entry.candidate, entry.files)
+        artist = self.item_author(item)
+        if self._is_album(entry):
+            data.note = " · ".join(x for x in (artist, data.year) if x)
+        else:
+            album = getattr(item, "album", "") or ""
+            data.note = " · ".join(x for x in (artist, album) if x)
+        data.by, data.year = "", ""
+        return data
+
+    def scene_subtitle(self, item: Any, candidate: Dict[str, Any]) -> str:
+        entry = self._list.entry(self._list.current())
+        year = getattr(item, "year", None) or candidate_year(candidate)
+        parts = [self.item_author(item), str(year or "")]
+        if entry is not None and self._is_album(entry):
+            parts.append(
+                trn("batch_tracks", len(entry.files), "{n} track", "{n} tracks")
             )
+        else:
+            parts[1] = getattr(item, "album", "") or parts[1]
+        return " · ".join(p for p in parts if p)
 
-    def show_albums(self) -> None:
-        """Switch to the Albums page."""
-        self._albums_btn.setChecked(True)
+    def scene_destination(self, entry: Entry) -> str:
+        dest = self._dest_drop.get_path()
+        if not dest or not entry.new_name:
+            return ""
+        if self._is_album(entry):
+            return str(dest / os.path.dirname(entry.new_name)) + os.sep
+        return str(dest / entry.new_name)
 
-    def show_tracks(self) -> None:
-        """Switch to the Tracks page."""
-        self._tracks_btn.setChecked(True)
-
-    def current(self) -> QWidget:
-        """The page shown: albums or tracks."""
-        return self._stack.currentWidget()
-
-    def focus_search(self) -> None:
-        """Focus the search of the Albums page (Find in the macOS menu)."""
-        if self.current() is self.albums:
-            self.albums.focus_search()
-
-    def retranslateUi(self) -> None:
-        """Refresh the texts of both pages."""
-        self._title.setText(tr("music", "Music"))
-        self._albums_btn.setText(tr("albums", "Albums"))
-        self._tracks_btn.setText(tr("tracks", "Tracks"))
-        self.albums.retranslateUi()
-        self.tracks.retranslateUi()
-
-    def stop_workers(self) -> None:
-        """Stop the workers of both pages."""
-        self.albums.stop_workers()
-        self.tracks.stop_workers()
+    def _show_scene(self, key: Path) -> None:
+        super()._show_scene(key)
+        entry = self._list.entry(key)
+        if entry is None or not self._is_album(entry) or entry.candidate is None:
+            self._scene.set_extra(None)
+            return
+        lines = []
+        for index, file in enumerate(sorted(entry.files), start=1):
+            tags = self._tags_of(file)
+            info = self._ops.extract_info_from_filename(file.name)
+            raw = str(tags.get("track_number") or info.get("track_number") or index)
+            digits = raw.split("/")[0].strip()
+            number = int(digits) if digits.isdigit() else index
+            title = tags.get("title") or info.get("title") or file.stem
+            lines.append(
+                TrackLine(f"{number:02d}", title, length_text(tags.get("duration")))
+            )
+        more = len(lines) - 6
+        self._scene.set_extra(
+            TrackList(
+                lines, trn("batch_more_tracks", more, "+ {n} track", "+ {n} tracks")
+            )
+        )

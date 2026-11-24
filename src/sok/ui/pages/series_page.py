@@ -143,13 +143,15 @@ class SeriesPage(BatchPage):
         self._queue_details()
         super()._refresh_previews_and_action()
 
-    def _media_item(self, candidate: Optional[Dict[str, Any]]) -> Any:
+    def _media_item(
+        self, candidate: Optional[Dict[str, Any]], files: Optional[List[Path]] = None
+    ) -> Any:
         """The series, with its episode titles and season folders once loaded."""
         series_id = self._series_id(candidate)
         details = self._details.get(series_id or "")
         if candidate and details:
             candidate = {**candidate, "episodes": details.get("episodes") or {}}
-        item = super()._media_item(candidate)
+        item = super()._media_item(candidate, files)
         if isinstance(item, Series) and details:
             item.seasons = season_folders(details, tr("season", "Season"))
         return item
