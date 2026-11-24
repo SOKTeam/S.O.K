@@ -155,14 +155,29 @@ class NavMark(_Clickable):
         super().__init__(parent)
         self._font = ui_font(15, 700)
         self._font.setLetterSpacing(self._font.SpacingType.AbsoluteSpacing, -0.45)
+        self._label_font = ui_font(15)
         self._active = False
+        self._label = ""
 
     def set_active(self, active: bool) -> None:
         self._active = active
+        self.updateGeometry()
         self.update()
+
+    def set_label(self, text: str) -> None:
+        """Name of the home page, written after "S.O.K" while it is open."""
+        self._label = text
+        self.updateGeometry()
+        self.update()
+
+    def _label_shown(self) -> str:
+        return self._label if self._active else ""
 
     def sizeHint(self) -> QSize:  # noqa: N802 - Qt API
         text = QFontMetrics(self._font).horizontalAdvance("S.O.K")
+        label = self._label_shown()
+        if label:
+            text += 6 + QFontMetrics(self._label_font).horizontalAdvance(label)
         return QSize(self.DOT + 9 + text + 1, 30)
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
@@ -181,6 +196,16 @@ class NavMark(_Clickable):
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
             "S.O.K",
         )
+        label = self._label_shown()
+        if label:
+            x = self.DOT + 9 + QFontMetrics(self._font).horizontalAdvance("S.O.K") + 6
+            p.setFont(self._label_font)
+            p.setPen(parse_color(c["ink-muted"]))
+            p.drawText(
+                QRectF(x, 0, self.width() - x, self.height()),
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+                label,
+            )
         p.end()
 
 

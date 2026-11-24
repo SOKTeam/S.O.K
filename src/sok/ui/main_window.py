@@ -277,8 +277,9 @@ class MainWindow(QMainWindow):
         """
         home_page = HomePage()
         home_page.navigate.connect(self._go)
-        home_page.open_group.connect(self._open_group)
+        home_page.open_group.connect(self._send_group)
         self._pages.addWidget(home_page)
+        self._home = home_page
 
         self._pages.addWidget(SeriesPage())
         self._pages.addWidget(MoviesPage())
@@ -295,6 +296,20 @@ class MainWindow(QMainWindow):
         # The done screen of the batch pages opens the history.
         for page in self._pages.findChildren(BatchPage):
             page.history_requested.connect(lambda: self._go(HISTORY_PAGE))
+
+        # The home page shows what each media page has to sort.
+        titles = self._nav_titles
+        self._home.set_pages(
+            [
+                (
+                    index,
+                    lambda i=index: titles()[i],
+                    self._pages.widget(index),
+                    index == 3,
+                )
+                for index in NAV_PAGES
+            ]
+        )
 
     def _on_language_changed(self, lang_code):
         """Handle language change from settings.
@@ -337,11 +352,15 @@ class MainWindow(QMainWindow):
             widget = self._pages.widget(index)
             if widget is page or widget.isAncestorOf(page):
                 self._navbar.set_count(index, count or None)
+        home = getattr(self, "_home", None)
+        if home is not None and self._pages.currentWidget() is home:
+            home.update_summary()
 
     def _set_nav_tooltips(self):
         """Name the S.O.K mark and the icons of the navigation."""
         titles = self._nav_titles()
         self._navbar.mark.setToolTip(titles[HOME_PAGE])
+        self._navbar.mark.set_label(titles[HOME_PAGE])
         for index, icon in self._navbar.icons.items():
             icon.setToolTip(titles[index])
 
@@ -568,16 +587,15 @@ class MainWindow(QMainWindow):
         if hasattr(page, "refresh"):
             page.refresh()  # type: ignore[union-attr]
 
-    def _open_group(self, group: MediaGroup, files: list[Path]):
-        """Open files sorted on the home page in the page of their type.
+    def _send_group(self, group: MediaGroup, files: list[Path]):
+        """Give files sorted on the home page to the page of their type,
+        which searches them; the home page stays open.
 
         Args:
             group: The group of the detection report.
-            files: Its files that are still in place.
+            files: Its files.
         """
-        idx = PAGE_BY_KIND[group.kind]
-        self._go(idx)
-        page = self._pages.widget(idx)
+        page = self._pages.widget(PAGE_BY_KIND[group.kind])
         if isinstance(page, BatchPage):
             page.load_files(files)
 

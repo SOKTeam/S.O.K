@@ -16,7 +16,6 @@ This package contains reusable UI components for the S.O.K application, such as 
 
 from sok.ui.components.base import Card, Row, Toggle, ActionButton
 from sok.ui.components.inputs import ModernComboBox, SearchBar, FileItemRow, DropZone
-from sok.ui.components.layouts import FlowLayout
 from sok.ui.components.nav import NavBar
 from sok.ui.components.window import WindowControlButton, StopPropagationScrollArea
 
@@ -29,7 +28,6 @@ __all__ = [
     "SearchBar",
     "FileItemRow",
     "DropZone",
-    "FlowLayout",
     "NavBar",
     "WindowControlButton",
     "StopPropagationScrollArea",

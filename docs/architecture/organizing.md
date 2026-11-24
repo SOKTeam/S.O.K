@@ -175,9 +175,12 @@ per album. Files whose type is a guess (an `.iso` can be a movie or a game) are
 listed for the user to confirm, as is a video without a year among the episodes
 of one series (a bonus?); next to the episodes of several series, as in a
 downloads folder, a video stays a movie. A video read by an episode pattern of the
-settings is an episode, one read by a movie pattern is a movie. Opening a group calls `MainWindow._open_group`,
-which shows the page of its type and gives it the files (`load_files` on a batch
-page).
+settings is an episode, one read by a movie pattern is a movie. Each group goes
+straight to the page of its type (`MainWindow._send_group` calls `load_files`),
+which searches it; the home page stays open and shows a row per media type with
+what its page has to sort (`BatchPage.summary()`), and the files to confirm
+(`CheckRow`), each sent to the page of the type chosen. The home page also shows
+the last rename, with Undo, and the disks of the default folders (`DiskWorker`).
 
 ## Names and safety settings
 

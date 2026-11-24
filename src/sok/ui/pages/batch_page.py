@@ -28,7 +28,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -253,6 +253,26 @@ class SearchSpec:
     factory_type: str
 
 
+@dataclass
+class PageSummary:
+    """What the home page shows of a media page.
+
+    Attributes:
+        total: Items to sort, counted as the page counts them (files for
+            series and music).
+        ready: Of them, recognized.
+        waiting: Of them, to pick or not found.
+        size: Bytes of all the files.
+        covers: (thumbnail or None, title) of the first items.
+    """
+
+    total: int = 0
+    ready: int = 0
+    waiting: int = 0
+    size: int = 0
+    covers: List[Tuple[Optional[QPixmap], str]] = field(default_factory=list)
+
+
 class _Destination:
     """The folder the items go to (what the destination drop zone was)."""
 
@@ -333,6 +353,7 @@ class BatchPage(QWidget):
         self._rescan_runner = WorkerRunner(self)
         self._organize_runner = WorkerRunner(self)
         self._search_queue: List[Tuple[SearchSpec, List[List[Path]]]] = []
+        self._sizes: Dict[Path, int] = {}
         self._dest_drop = _Destination()
         self._images: Dict[str, QPixmap] = {}
         # Key of the item shown in the pick panel, or None for the scene.
@@ -373,6 +394,28 @@ class BatchPage(QWidget):
     def nothing_ready_text(self) -> str:
         """Message when no item is ready."""
         return tr("nothing_ready", "No file is ready to rename.")
+
+    def summary(self, covers: int = 3) -> PageSummary:
+        """Counts, size and first covers of the items, for the home page."""
+        result = PageSummary()
+        for entry in self._list.entries():
+            count = self.count_of(entry)
+            result.total += count
+            if entry.status == STATUS_OK and entry.candidate:
+                result.ready += count
+            elif entry.status in (STATUS_AMBIGUOUS, STATUS_MISSING):
+                result.waiting += count
+            for file in entry.files:
+                if file not in self._sizes:
+                    try:
+                        self._sizes[file] = file.stat().st_size
+                    except OSError:
+                        self._sizes[file] = 0
+                result.size += self._sizes[file]
+            if len(result.covers) < covers:
+                data = self._row_data(entry)
+                result.covers.append((data.thumbnail, data.title))
+        return result
 
     def search_spec(self, files: Optional[List[Path]] = None) -> SearchSpec:
         """How the item of these files is searched: the class attributes,

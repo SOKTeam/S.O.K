@@ -15,7 +15,6 @@ ui/
 │   ├── base.py          # Base elements (Cards, Buttons, Toggles)
 │   ├── file_row.py      # Row of a media list (before/after, tags, gauge)
 │   ├── inputs.py        # Input elements and Drop Zones
-│   ├── layouts.py       # Custom layouts (FlowLayout)
 │   ├── media_visual.py  # Dominant color, stand-in for a missing poster
 │   ├── organize/        # Parts of the media pages (list, pick panel, done screen…)
 │   ├── search.py        # Loading of posters and covers in the background
