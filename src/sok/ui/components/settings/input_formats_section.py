@@ -172,6 +172,10 @@ class InputFormatsSection(QWidget):
         self._kind.set_value(KINDS[0][0])
         layout.addWidget(self._kind_line)
 
+        self._error = QLabel()
+        set_tone(self._error, "warn")
+        self._error.setVisible(False)
+
         line = QHBoxLayout()
         line.setSpacing(8)
         self._input = QLineEdit()
@@ -183,10 +187,6 @@ class InputFormatsSection(QWidget):
         line.addWidget(self._input, 1)
         line.addWidget(self._add_btn)
         layout.addLayout(line)
-
-        self._error = QLabel()
-        set_tone(self._error, "warn")
-        self._error.setVisible(False)
         layout.addWidget(self._error)
         return row
 
