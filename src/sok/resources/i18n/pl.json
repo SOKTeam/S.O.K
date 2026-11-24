@@ -687,8 +687,7 @@
     "settings_src_your_key": "Twój klucz",
     "settings_src_builtin": "Wbudowany klucz",
     "settings_src_to_set_up": "Do skonfigurowania",
-    "settings_src_preferred": "preferowane",
-    "settings_src_use_first": "Używaj najpierw",
     "settings_theme": "Motyw",
-    "input_kind": "Rodzaj"
+    "input_kind": "Rodzaj",
+    "settings_src_first": "Szukane najpierw"
 }

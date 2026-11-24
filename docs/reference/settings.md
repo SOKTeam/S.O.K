@@ -51,10 +51,11 @@ one). The live preview next
 to it fills the model of an example file with `fill_format()` and
 `format_name()`, as the renaming does (`sok.ui.components.settings.preview`).
 
-In Settings › Sources, each service is a line with its state: free, built-in
-key, the user's key, connected, or to set up, and "preferred" on the one
-searched first for its type, in the caution color when it lacks a key. Its
-"Search it first" key sets `preferred_api_*` (`ApiSection._prefer`).
+In Settings › Sources, each type of media starts with a "Searched first" line
+whose words are its services: a click sets `preferred_api_*`
+(`ApiSection._prefer`). Then each service is a line with its state: free,
+built-in key, the user's key, connected, or to set up, in the caution color
+when it is the one searched first and lacks its key.
 
 Read a setting with `get_config_manager().get(key, default)`, and change it with
 `set(key, value)`, which saves the file.

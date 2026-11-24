@@ -82,21 +82,17 @@ def test_each_service_line_tells_its_state(section, config):
     assert section._rows["rawg"].value.text() == tr("settings_src_your_key")
 
 
-def preferred():
-    return "· " + tr("settings_src_preferred", "preferred")
-
-
-def test_the_preferred_service_is_marked_and_can_change(section, config):
+def test_each_type_has_a_line_for_the_service_searched_first(section, config):
     config.set("preferred_api_music", "deezer")
     section.load()
-    assert section._rows["deezer"].value.text().endswith(preferred())
-    assert section._prefer_keys["deezer"].isHidden()
+    line = section._first_lines["music"]
+    assert line.choice.value() == "deezer"
+    assert "images" not in section._first_lines
 
-    section._prefer_keys["musicbrainz"].click()
+    line.choice._click("musicbrainz")
 
     assert config.get("preferred_api_music") == "musicbrainz"
-    assert section._rows["musicbrainz"].value.text().endswith(preferred())
-    assert not section._rows["deezer"].value.text().endswith(preferred())
+    assert line.choice.value() == "musicbrainz"
 
 
 def test_a_preferred_service_without_its_key_is_a_warning(section, config):

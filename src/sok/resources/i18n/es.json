@@ -654,8 +654,7 @@
     "settings_src_your_key": "Tu clave",
     "settings_src_builtin": "Clave integrada",
     "settings_src_to_set_up": "Por configurar",
-    "settings_src_preferred": "preferida",
-    "settings_src_use_first": "Usar primero",
     "settings_theme": "Tema",
-    "input_kind": "Tipo"
+    "input_kind": "Tipo",
+    "settings_src_first": "Se busca primero"
 }

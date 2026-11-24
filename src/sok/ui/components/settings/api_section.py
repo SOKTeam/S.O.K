@@ -10,10 +10,12 @@
 # ===----------------------------------------------------------------------=== #
 """Sources section of the settings: the services S.O.K searches.
 
-A dotted sheet per type of media, a line per service with its state at the
-end ("Built-in key", "Your key", "Connected", "To set up", "Free") and
-"preferred" on the one searched first. A click opens the line: what the
-service gives, its key field or its connect keys, and "Search it first".
+A dotted sheet per type of media. Its first line picks the service searched
+first ("Searched first ..... TMDB  TVDB  OMDb", the chosen one in ink), then
+a line per service with its state at the end ("Built-in key", "Your key",
+"Connected", "To set up", "Free"), in the caution color when the service
+searched first lacks its key. A click opens the line of a service: what it
+gives, and its key field or its connect keys.
 """
 
 import webbrowser
@@ -27,7 +29,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 from sok.ui.components.base import KeyButton
-from sok.ui.components.settings.layout import SheetRow
+from sok.ui.components.settings.layout import ChoiceLine, SheetRow
 from sok.ui.i18n import tr
 from sok.ui.theme import set_tone
 from sok.ui import message_box
@@ -81,7 +83,7 @@ class ApiSection(QWidget):
         self._rows: Dict[str, SheetRow] = {}
         self._abouts: List[QLabel] = []
         self._keys: List[KeyButton] = []
-        self._prefer_keys: Dict[str, KeyButton] = {}
+        self._first_lines: Dict[str, ChoiceLine] = {}
         self._build()
         self._wire_oauth()
 
@@ -104,6 +106,14 @@ class ApiSection(QWidget):
             cat_label.setObjectName("CategoryLabel")
             layout.addWidget(cat_label)
             self._api_cat_labels[category] = cat_label
+            if category in PREFERRED_KEYS and len(services) > 1:
+                first = ChoiceLine([service.id for service in services])
+                first.choice.set_texts(service.name for service in services)
+                first.choice.chosen.connect(
+                    lambda service_id, c=category: self._prefer(c, service_id)
+                )
+                self._first_lines[category] = first
+                layout.addWidget(first)
             for service in services:
                 row = SheetRow()
                 row.name.setText(service.name)
@@ -187,21 +197,13 @@ class ApiSection(QWidget):
                 setattr(self, f"_{service.id}_get_btn", get_key_btn)
                 keys.addWidget(get_key_btn)
                 self._keys.append(get_key_btn)
-        if service.media_type in PREFERRED_KEYS:
-            prefer = KeyButton("", small=True)
-            prefer.setProperty("tr_key", "settings_src_use_first")
-            prefer.setProperty("tr_default", "Search it first")
-            prefer.clicked.connect(lambda: self._prefer(service))
-            self._prefer_keys[service.id] = prefer
-            keys.addWidget(prefer)
-            self._keys.append(prefer)
         if not hasattr(self, f"_{service.id}_input"):
             keys.addStretch()
         details.addLayout(keys)
 
-    def _prefer(self, service) -> None:
-        """Search this service first for its type of media."""
-        self._config.set(PREFERRED_KEYS[service.media_type], service.id)
+    def _prefer(self, category: str, service_id: str) -> None:
+        """Search a service first for its type of media."""
+        self._config.set(PREFERRED_KEYS[category], service_id)
         self.load()
 
     def _state(self, service) -> tuple[str, str | None]:
@@ -423,7 +425,9 @@ class ApiSection(QWidget):
         )
 
     def load(self):
-        """Show the state of each service, its key and the default ones."""
+        """Show the service searched first, and the state and key of each."""
+        for category, line in self._first_lines.items():
+            line.choice.set_value(self._config.get(PREFERRED_KEYS[category], ""))
         for service in get_all_services():
             row = self._rows.get(service.id)
             if row is None:
@@ -433,15 +437,10 @@ class ApiSection(QWidget):
             preferred = bool(
                 preferred_key and self._config.get(preferred_key, "") == service.id
             )
-            if preferred:
-                text += " · " + tr("settings_src_preferred", "preferred")
-                if not self._usable(service):
-                    tone = "warn"
+            if preferred and not self._usable(service):
+                tone = "warn"
             row.value.setText(text)
             set_tone(row.value, tone)
-            prefer = self._prefer_keys.get(service.id)
-            if prefer is not None:
-                prefer.setVisible(not preferred)
 
             input_field = getattr(self, f"_{service.id}_input", None)
             if input_field is not None:
@@ -480,4 +479,6 @@ class ApiSection(QWidget):
             label.setText(tr(label.property("tr_key"), label.property("tr_default")))
         for key in self._keys:
             key.setText(tr(key.property("tr_key"), key.property("tr_default")))
+        for line in self._first_lines.values():
+            line.name.setText(tr("settings_src_first", "Searched first"))
         self.load()

@@ -654,8 +654,7 @@
     "settings_src_your_key": "Ta clé",
     "settings_src_builtin": "Clé intégrée",
     "settings_src_to_set_up": "À configurer",
-    "settings_src_preferred": "préférée",
-    "settings_src_use_first": "Utiliser en priorité",
     "settings_theme": "Thème",
-    "input_kind": "Type"
+    "input_kind": "Type",
+    "settings_src_first": "Cherché en premier"
 }
