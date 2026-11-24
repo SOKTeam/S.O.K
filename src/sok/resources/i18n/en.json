@@ -129,7 +129,7 @@
     "disconnect_title": "Disconnect",
     "disconnect_confirm": "Do you really want to disconnect from this service?",
     "connection_success": "Connection successful",
-    "connected_to": "You are now connected to {service}!",
+    "connected_to": "You are now connected to {service}.",
     "connection_error": "Connection error",
     "connection_failed": "Unable to connect:",
     "api_key_required": "{name} API Key required",
