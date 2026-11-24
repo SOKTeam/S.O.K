@@ -20,15 +20,14 @@ from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QLabel,
-    QSizePolicy,
     QHBoxLayout,
     QLineEdit,
     QMessageBox,
 )
-from sok.ui.components.base import Card, ActionButton
-from sok.ui.controllers.ui_helpers import make_section_label
+from sok.ui.components.base import ActionButton
+from sok.ui.components.settings.layout import Lines
 from sok.ui.i18n import tr
-from sok.ui.theme import card_shadow, set_tone
+from sok.ui.theme import set_tone
 from sok.ui import message_box
 from sok.core.constants import (
     SERVICE_TMDB,
@@ -82,9 +81,6 @@ class ApiSection(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        self.label = make_section_label("api_keys", "API Keys")
-        layout.addWidget(self.label)
-
         try:
             services_by_cat = get_services_by_category()
             for category, services in services_by_cat.items():
@@ -96,7 +92,7 @@ class ApiSection(QWidget):
                 layout.addWidget(cat_label)
                 self._api_cat_labels[category] = cat_label
 
-                cat_card = Card()
+                cat_card = Lines(spacing=0)
                 for service in services:
                     desc_key = f"api_desc_{service.id}"
                     translated_desc = tr(desc_key, service.description)
@@ -118,23 +114,15 @@ class ApiSection(QWidget):
                             service.api_key_url,
                         )
                     cat_card.add(row)
-                cat_card.setGraphicsEffect(card_shadow())
-                cat_card.setSizePolicy(
-                    QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
-                )
                 layout.addWidget(cat_card)
         except ImportError:
-            api_card = Card()
+            api_card = Lines()
             api_card.add(self._create_oauth_row("TMDB", "Video metadata", SERVICE_TMDB))
             api_card.add(
                 self._create_oauth_row("Last.fm", "Music metadata", SERVICE_LASTFM)
             )
             api_card.add(
                 self._create_oauth_row("TVDB", "TV series metadata", SERVICE_TVDB)
-            )
-            api_card.setGraphicsEffect(card_shadow())
-            api_card.setSizePolicy(
-                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
             )
             layout.addWidget(api_card)
 
@@ -166,7 +154,7 @@ class ApiSection(QWidget):
         row = QWidget()
         row.setFixedHeight(56)
         layout = QHBoxLayout(row)
-        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
 
         lbl_container = QWidget()
@@ -231,7 +219,7 @@ class ApiSection(QWidget):
         has_default_key = service in SERVICES_WITH_DEFAULT_KEYS
         row.setFixedHeight(68 if has_default_key else 56)
         layout = QHBoxLayout(row)
-        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
 
         lbl_container = QWidget()
@@ -254,7 +242,7 @@ class ApiSection(QWidget):
             default_lbl = QLabel(tr("built_in_key", "Built-in key by default"))
             default_lbl.setProperty("tr_key", "built_in_key")
             default_lbl.setProperty("tr_default", "Built-in key by default")
-            default_lbl.setStyleSheet("font-size: 10px; font-style: italic;")
+            default_lbl.setObjectName("SettingHint")
             set_tone(default_lbl, "info")
             setattr(self, f"_{service}_default_lbl", default_lbl)
             lbl_layout.addWidget(default_lbl)
@@ -589,7 +577,6 @@ class ApiSection(QWidget):
 
     def retranslate(self):
         """Update translatable UI text."""
-        self.label.setText(tr("api_keys", "API Keys"))
         for label in self._api_cat_labels.values():
             tr_key = label.property("tr_key")
             default = label.property("tr_default")

@@ -18,6 +18,7 @@ ui/
 │   ├── media_visual.py  # Dominant color, stand-in for a missing poster
 │   ├── organize/        # Parts of the media pages (list, pick panel, done screen…)
 │   ├── search.py        # Loading of posters and covers in the background
+│   ├── settings/        # Sections of the settings, their blocks and the live preview
 │   ├── nav.py           # Navigation (media types as words, icons)
 │   ├── scene.py         # Scene: the selected item shown large, lit
 │   └── window.py        # Window controls (Custom title bar)
@@ -27,7 +28,8 @@ ui/
 │   ├── movies_page.py   # Movies (and books_page, games_page)
 │   ├── series_page.py   # TV shows, several series at once
 │   ├── music_page.py    # Music: albums and loose tracks, as a grid
-│   └── settings_page.py # Settings page
+│   ├── history_page.py  # History of the renames, with undo
+│   └── settings_page.py # Settings: sections on the left, live preview on the right
 ├── workers/             # Asynchronous tasks (QThreads)
 ├── i18n.py              # Translation system
 ├── main_window.py       # Main window (Container)

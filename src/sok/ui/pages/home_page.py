@@ -224,6 +224,7 @@ def destination_folders() -> List[Path]:
     folders = []
     for key in (
         "default_video_path",
+        "default_series_path",
         "default_music_path",
         "default_books_path",
         "default_games_path",

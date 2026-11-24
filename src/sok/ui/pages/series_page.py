@@ -72,7 +72,7 @@ class SeriesPage(BatchPage):
     kind = "series"
     scene_shape = Shape.POSTER
     show_quality = True
-    default_path_type = "video"
+    default_path_type = "series"
     media_type = MediaType.VIDEO
     content_type = ContentType.TV_SERIES
     factory_type = "tv"

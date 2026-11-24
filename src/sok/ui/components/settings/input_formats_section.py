@@ -25,7 +25,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
-    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -38,11 +37,11 @@ from sok.file_operations import (
     MusicFileOperations,
     VideoFileOperations,
 )
-from sok.ui.components.base import ActionButton, Card
+from sok.ui.components.base import ActionButton
+from sok.ui.components.settings.layout import Lines
 from sok.ui.components.inputs import ModernComboBox
-from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.i18n import tr
-from sok.ui.theme import card_shadow, set_tone
+from sok.ui.theme import set_tone
 
 # Kinds of names, with the translation key and default of their label.
 KINDS = [
@@ -144,18 +143,14 @@ class InputFormatsSection(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        header = QHBoxLayout()
-        header.setSpacing(6)
-        self.label = make_section_label("input_formats", "Input Formats")
-        self._info = QLabel("ⓘ")
-        self._info.setObjectName("SectionLabel")
+        # The help, visible; the variables and default forms in its tooltip.
+        self._info = QLabel()
+        self._info.setObjectName("SettingHint")
+        self._info.setWordWrap(True)
         self._info.setCursor(Qt.CursorShape.WhatsThisCursor)
-        header.addWidget(self.label)
-        header.addWidget(self._info)
-        header.addStretch()
-        layout.addLayout(header)
+        layout.addWidget(self._info)
 
-        card = Card()
+        card = Lines()
         self._list = QWidget()
         self._list_layout = QVBoxLayout(self._list)
         self._list_layout.setContentsMargins(0, 0, 0, 0)
@@ -163,21 +158,17 @@ class InputFormatsSection(QWidget):
         card.add(self._list)
         card.add(self._build_add_row())
         card.add(self._build_test_row())
-
-        card.setGraphicsEffect(card_shadow())
-        card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(card)
 
     def _build_add_row(self) -> QWidget:
         """Row with a kind, a pattern and the Add button."""
         row = QWidget()
         layout = QVBoxLayout(row)
-        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
         self._error = QLabel()
         # Same look as the "API key required" warnings.
-        self._error.setStyleSheet("font-size: 11px; font-weight: bold;")
         set_tone(self._error, "warn")
         self._error.setVisible(False)
 
@@ -202,12 +193,12 @@ class InputFormatsSection(QWidget):
         """Row with a file name and what is read from it."""
         row = QWidget()
         layout = QVBoxLayout(row)
-        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
         line = QHBoxLayout()
         self._test_title = QLabel()
-        self._test_title.setObjectName("RowTitle")
+        self._test_title.setObjectName("SettingMuted")
         self._test_title.setMinimumWidth(110)
         self._test_input = QLineEdit()
         self._test_input.setObjectName("SettingsFormatInput")
@@ -262,17 +253,18 @@ class InputFormatsSection(QWidget):
         line = QWidget()
         line.setFixedHeight(32)
         layout = QHBoxLayout(line)
-        layout.setContentsMargins(12, 0, 12, 0)
+        layout.setContentsMargins(0, 0, 0, 0)
         kind_lbl = QLabel(kind_label(kind))
         kind_lbl.setObjectName("RowSubtitle")
         kind_lbl.setMinimumWidth(110)
         pattern_lbl = QLabel(pattern)
+        pattern_lbl.setObjectName("SettingPath")
         pattern_lbl.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
         remove = QPushButton("×")
         remove.setObjectName("PatternRemoveBtn")
-        remove.setFixedSize(20, 20)
+        remove.setFixedSize(24, 24)
         remove.setCursor(Qt.CursorShape.PointingHandCursor)
         remove.setToolTip(tr("remove_pattern", "Remove this pattern"))
         remove.clicked.connect(lambda _=False: self._remove(kind, pattern))
@@ -303,7 +295,7 @@ class InputFormatsSection(QWidget):
         self.save_patterns(kind, [p for p in self.patterns(kind) if p != pattern])
 
     def _show_error(self, text: str) -> None:
-        self._error.setText(f"⚠ {text}")
+        self._error.setText(text)
         self._error.setVisible(True)
 
     def _parser(self, filename: str):
@@ -351,17 +343,8 @@ class InputFormatsSection(QWidget):
         self._test_result.setVisible(True)
 
     def _tooltip(self) -> str:
-        """Help, then the variables and the default forms of each kind."""
-        blocks = [
-            html.escape(
-                tr(
-                    "input_formats_help",
-                    "Describe how your file names are built, with the variables "
-                    "of the output formats. Your patterns are tried before the "
-                    "ones S.O.K knows. {ignore} skips a part of the name.",
-                )
-            )
-        ]
+        """The variables and the default forms of each kind."""
+        blocks: List[str] = []
         for kind, _key, _default in KINDS:
             variables = [*VARIABLES[kind], name_patterns.IGNORE]
             # One form per line: on one line they cannot be told apart.
@@ -387,7 +370,14 @@ class InputFormatsSection(QWidget):
 
     def retranslate(self):
         """Update translatable UI text."""
-        self.label.setText(tr("input_formats", "Input Formats"))
+        self._info.setText(
+            tr(
+                "input_formats_help",
+                "Describe how your file names are built, with the variables "
+                "of the output formats. Your patterns are tried before the "
+                "ones S.O.K knows. {ignore} skips a part of the name.",
+            )
+        )
         self._info.setToolTip(self._tooltip())
         self._input.setPlaceholderText(tr("input_add_placeholder", "Add a pattern"))
         self._add_btn.setText(tr("add_pattern", "Add"))

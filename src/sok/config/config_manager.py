@@ -244,6 +244,8 @@ class AppConfig:
     client_id_discord: str = ""
 
     default_video_path: str = ""
+    # The TV shows go with the movies while it is empty.
+    default_series_path: str = ""
     default_music_path: str = ""
     default_books_path: str = ""
     default_games_path: str = ""

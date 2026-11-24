@@ -72,3 +72,21 @@ class TestDefaultDestination:
         page.show()
 
         assert page._dest_drop.get_path() == chosen
+
+
+class TestSeriesFolder:
+    def test_series_go_with_the_movies_without_a_folder_of_their_own(
+        self, tmp_path, config
+    ):
+        config._values["default_video_path"] = str(tmp_path)
+
+        assert default_paths.default_destination("series") == tmp_path
+
+    def test_series_folder_comes_first(self, tmp_path, config):
+        series = tmp_path / "series"
+        series.mkdir()
+        config._values["default_video_path"] = str(tmp_path)
+        config._values["default_series_path"] = str(series)
+
+        assert default_paths.default_destination("series") == series
+        assert default_paths.default_destination("video") == tmp_path

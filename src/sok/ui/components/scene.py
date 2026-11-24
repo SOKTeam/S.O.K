@@ -145,6 +145,29 @@ def _with_alpha(color: QColor, alpha: float) -> QColor:
     return out
 
 
+def paint_light(p: QPainter, rect: QRectF, color: QColor, obj: QRectF) -> None:
+    """The light of a scene: ambient light of the object's color from the
+    top, and its glow around the object.
+
+    Args:
+        p: Painter of the scene.
+        rect: Rectangle of the scene.
+        color: Dominant color of the object.
+        obj: Rectangle of the object in the scene.
+    """
+    # Ambient light (CSS: radial gradient at 50% 22%, fading out at 72%).
+    center = QPointF(rect.width() / 2, rect.height() * 0.22)
+    light = QRadialGradient(center, max(rect.width(), 420) * 0.72)
+    light.setColorAt(0, _with_alpha(color, AMBIENT_ALPHA))
+    light.setColorAt(1, _with_alpha(color, 0))
+    p.fillRect(rect, light)
+    # Glow around the object, 50px lower (CSS: 0 50px 110px, opacity 0.3).
+    glow = QRadialGradient(obj.center() + QPointF(0, 50), obj.height() * 0.62)
+    glow.setColorAt(0, _with_alpha(color, GLOW_ALPHA))
+    glow.setColorAt(1, _with_alpha(color, 0))
+    p.fillRect(rect, glow)
+
+
 class _Stage(QWidget):
     """The object on the floor: glow, shadows, the visual and its edges."""
 
@@ -486,20 +509,8 @@ class Scene(QWidget):
         rect = QRectF(self.rect())
         p.fillRect(rect, parse_color(c["bg"]))
         if self._item:
-            # Ambient light of the item's color, from the top (CSS: radial
-            # gradient at 50% 22%, fading out at 72%).
-            center = QPointF(rect.width() / 2, rect.height() * 0.22)
-            light = QRadialGradient(center, max(rect.width(), 420) * 0.72)
-            light.setColorAt(0, _with_alpha(self._color, AMBIENT_ALPHA))
-            light.setColorAt(1, _with_alpha(self._color, 0))
-            p.fillRect(rect, light)
-            # Glow of its own color around the object, 50px lower (CSS:
-            # 0 50px 110px, opacity 0.3).
             obj = self._stage.object_rect().translated(QPointF(self._stage.pos()))
-            glow = QRadialGradient(obj.center() + QPointF(0, 50), obj.height() * 0.62)
-            glow.setColorAt(0, _with_alpha(self._color, GLOW_ALPHA))
-            glow.setColorAt(1, _with_alpha(self._color, 0))
-            p.fillRect(rect, glow)
+            paint_light(p, rect, self._color, obj)
         # A hairline separates the scene from the list.
         p.setPen(QPen(parse_color(c["line"]), 1))
         p.drawLine(QPointF(0.5, 0), QPointF(0.5, rect.height()))

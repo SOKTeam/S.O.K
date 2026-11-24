@@ -10,125 +10,88 @@
 # ===----------------------------------------------------------------------=== #
 """About section for settings page.
 
-Displays application version, update settings, Discord RPC toggle,
-and provides a reset settings button.
+The version in Geist Mono, a box for the update check and one for Discord,
+and the key that resets every setting.
 """
 
+from typing import Dict
+
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QLabel,
-    QHBoxLayout,
-    QMessageBox,
-    QSizePolicy,
-)
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QMessageBox, QVBoxLayout, QWidget
+
 from sok.__version__ import __version__
-from sok.ui.components.base import Card, Row, ActionButton, Toggle
-from sok.ui.controllers.ui_helpers import make_section_label
-from sok.ui.i18n import tr
-from sok.ui.theme import card_shadow
 from sok.ui import message_box
+from sok.ui.components.base import KeyButton
+from sok.ui.components.settings.layout import CheckBox, CheckLine, Lines
+from sok.ui.i18n import tr
+from sok.ui.theme import ui_font
+
+# (translation key, default, setting) of each box.
+OPTIONS = [
+    ("check_updates", "Check for updates", "check_updates"),
+    ("discord_rpc", "Discord Rich Presence", "use_discord_rpc"),
+]
 
 
 class AboutSection(QWidget):
-    """About and global actions section.
-
-    Displays application version, update settings, Discord RPC toggle,
-    and provides a reset settings button.
+    """Version, update check, Discord, and the reset key.
 
     Signals:
-        reset_requested: Emitted when user confirms settings reset.
+        reset_requested: The user confirmed the reset of the settings.
     """
 
     reset_requested = Signal()
 
     def __init__(self, config, parent=None):
-        """Initialize the about section.
-
-        Args:
-            config: Configuration manager instance.
-            parent: Parent widget.
-        """
         super().__init__(parent)
         self._config = config
-        self._toggles = {}
+        self._toggles: Dict[str, CheckBox] = {}
+        self._lines: Dict[str, CheckLine] = {}
         self._build()
 
     def _build(self):
-        """Build the section UI."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        lines = Lines()
+        layout.addWidget(lines)
 
-        self.label = make_section_label("about", "About")
-        layout.addWidget(self.label)
+        version = QWidget()
+        version_layout = QHBoxLayout(version)
+        version_layout.setContentsMargins(0, 0, 0, 0)
+        version_layout.setSpacing(12)
+        self._version_lbl = QLabel()
+        self._version_lbl.setObjectName("SettingMuted")
+        self._version_lbl.setFont(ui_font(14))
+        self._version_lbl.setFixedWidth(86)
+        number = QLabel(__version__)
+        number.setObjectName("SettingPath")
+        number.setFont(ui_font(13, 400, mono=True))
+        version_layout.addWidget(self._version_lbl)
+        version_layout.addWidget(number, 1)
+        lines.add(version)
 
-        card = Card()
+        for _tr_key, _default, config_key in OPTIONS:
+            line = CheckLine()
+            line.box.toggled.connect(
+                lambda checked, k=config_key: self._config.set(k, checked)
+            )
+            self._toggles[config_key] = line.box
+            self._lines[config_key] = line
+            lines.add(line)
 
-        self.version_row = Row("")
-        self.version_row.setProperty("tr_key", "version")
-        self.version_row.setProperty("tr_default", "Version")
-        self.version_row.set_value(__version__)
-        self.version_row.set_chevron(False)
-        card.add(self.version_row)
-
-        for tr_key, default, config_key in [
-            ("check_updates", "Check for updates", "check_updates"),
-            ("discord_rpc", "Discord Rich Presence", "use_discord_rpc"),
-        ]:
-            card.add(self._create_toggle_row(tr_key, default, config_key))
-
-        reset_row = QWidget()
-        reset_row.setFixedHeight(44)
-        rr_layout = QHBoxLayout(reset_row)
-        rr_layout.setContentsMargins(12, 6, 12, 6)
-
-        self.reset_btn = ActionButton("", small=True)
-        self.reset_btn.setProperty("tr_key", "reset_settings")
-        self.reset_btn.setProperty("tr_default", "Reset settings")
+        reset = QHBoxLayout()
+        reset.setContentsMargins(0, 6, 0, 0)
+        self.reset_btn = KeyButton("", small=True)
+        self.reset_btn.set_danger(True)
         self.reset_btn.clicked.connect(self._confirm_reset)
-        rr_layout.addWidget(self.reset_btn)
-
-        card.add(reset_row)
-
-        card.setGraphicsEffect(card_shadow())
-        card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        layout.addWidget(card)
-
-    def _create_toggle_row(self, tr_key: str, default: str, config_key: str) -> QWidget:
-        """Create a row with a label and toggle.
-
-        Args:
-            tr_key: Translation key for the label.
-            default: Default label text.
-            config_key: Configuration key for the toggle.
-
-        Returns:
-            Widget containing the row.
-        """
-        row = QWidget()
-        row.setFixedHeight(32)
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(12, 0, 12, 0)
-
-        title_lbl = QLabel()
-        title_lbl.setProperty("tr_key", tr_key)
-        title_lbl.setProperty("tr_default", default)
-        title_lbl.setObjectName("RowTitle")
-
-        toggle = Toggle()
-        toggle.setProperty("config_key", config_key)
-        toggle.toggled.connect(lambda checked: self._config.set(config_key, checked))
-        self._toggles[config_key] = toggle
-
-        layout.addWidget(title_lbl)
-        layout.addStretch()
-        layout.addWidget(toggle)
-        return row
+        reset.addWidget(self.reset_btn)
+        reset.addStretch()
+        holder = QWidget()
+        holder.setLayout(reset)
+        lines.add(holder)
 
     def _confirm_reset(self):
-        """Show reset confirmation dialog."""
+        """Ask before resetting every setting."""
         reply = message_box.question(
             self,
             tr("reset_title", "Reset"),
@@ -148,13 +111,8 @@ class AboutSection(QWidget):
 
     def retranslate(self):
         """Update translatable UI text."""
-        self.label.setText(tr("about", "About"))
-        self.version_row.set_title(tr("version", "Version"))
+        self._version_lbl.setText(tr("version", "Version"))
         self.reset_btn.setText(tr("reset_settings", "Reset settings"))
-        for toggle in self._toggles.values():
-            lbl = toggle.parentWidget().findChild(QLabel)
-            if lbl:
-                tr_key = lbl.property("tr_key")
-                default = lbl.property("tr_default")
-                lbl.setText(tr(tr_key, default or ""))
+        for tr_key, default, config_key in OPTIONS:
+            self._lines[config_key].label.setText(tr(tr_key, default))
         self.load()

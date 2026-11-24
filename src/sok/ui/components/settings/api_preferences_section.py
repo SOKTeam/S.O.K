@@ -15,11 +15,11 @@ Allows users to select their preferred API provider for each media type
 """
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
-from sok.ui.components.base import Card
+from sok.ui.components.settings.layout import Lines
 from sok.ui.components.inputs import ModernComboBox
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.i18n import tr
-from sok.ui.theme import card_shadow, set_tone
+from sok.ui.theme import set_tone
 from sok.config.api_registry import get_services_by_media_type
 from sok.config.api_registry import get_service
 
@@ -49,9 +49,10 @@ class ApiPreferencesSection(QWidget):
         layout.setSpacing(8)
 
         self.label = make_section_label("preferred_api", "Preferred API")
+        self.label.setObjectName("CategoryLabel")
         layout.addWidget(self.label)
 
-        self.card = Card()
+        self.card = Lines(spacing=0)
         try:
             categories = [
                 ("video", "videos", "Video", "preferred_api_video"),
@@ -70,7 +71,6 @@ class ApiPreferencesSection(QWidget):
         except ImportError:
             pass
 
-        self.card.setGraphicsEffect(card_shadow())
         self.card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(self.card)
 
@@ -91,7 +91,7 @@ class ApiPreferencesSection(QWidget):
         row = QWidget()
         row.setFixedHeight(44)
         layout = QHBoxLayout(row)
-        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
 
         lbl = QLabel()

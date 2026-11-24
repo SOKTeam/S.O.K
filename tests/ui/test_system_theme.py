@@ -66,33 +66,48 @@ class TestAppearanceSectionOnMacOS:
         widget.load()
         return widget, config
 
-    def test_following_the_system_saves_it_and_locks_dark_mode(self, section):
+    def test_choosing_system_saves_it_and_shows_the_system_look(self, section):
         widget, config = section
         emitted = []
         widget.theme_changed.connect(emitted.append)
 
-        widget._on_system_theme_change(True)
+        widget._on_theme_choice("system")
 
         assert config.get("theme") == "system"
         assert emitted == [True]
-        assert widget.toggle.isChecked()
-        assert not widget.toggle.isEnabled()
 
-    def test_leaving_system_mode_keeps_the_current_look(self, section):
+    def test_choosing_dark_or_light_saves_it(self, section):
         widget, config = section
-        widget._on_system_theme_change(True)
+        emitted = []
+        widget.theme_changed.connect(emitted.append)
 
-        widget._on_system_theme_change(False)
+        widget._on_theme_choice("dark")
+        widget._on_theme_choice("light")
 
-        assert config.get("theme") == "dark"
-        assert widget.toggle.isEnabled()
+        assert config.get("theme") == "light"
+        assert emitted == [True, False]
 
-    def test_system_row_on_other_platforms(self, qtbot, monkeypatch):
+    def test_the_saved_theme_is_the_chosen_key(self, section):
+        widget, config = section
+        config.set("theme", "orange")  # the dropped orange theme reads as light
+
+        widget.load()
+
+        assert widget.theme_choice.value() == "light"
+
+    def test_clicking_a_key_chooses_its_theme(self, section):
+        widget, config = section
+
+        widget.theme_choice._click("system")
+
+        assert config.get("theme") == "system"
+        assert widget.theme_choice.value() == "system"
+
+    def test_no_accent_box_on_other_platforms(self, qtbot, monkeypatch):
         monkeypatch.setattr(appearance_section, "IS_MACOS", False)
         widget = AppearanceSection(FakeConfig(theme="dark"))
         qtbot.addWidget(widget)
 
-        assert widget.system_toggle is not None
         assert widget.accent_toggle is None
 
 
