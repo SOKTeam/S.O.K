@@ -178,26 +178,47 @@ class _Stage(QWidget):
         self._item: SceneItem | None = None
         self._visual: QPixmap | None = None
         self._color = QColor(128, 128, 128)
+        # Below 1, the object is drawn smaller (a low window).
+        self._scale = 1.0
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+    def _size(self) -> QSize:
+        assert self._item is not None
+        full = SIZES[self._item.shape]
+        return QSize(
+            round(full.width() * self._scale), round(full.height() * self._scale)
+        )
+
+    def set_scale(self, scale: float) -> None:
+        """Draw the object at this share of its full size."""
+        if abs(scale - self._scale) < 0.01:
+            return
+        self._scale = scale
+        self._visual = None
+        self._fit()
+        self.update()
+
+    def _fit(self) -> None:
+        height = self._size().height() if self._item else 0
+        self.setFixedHeight(height + self.FLOOR_GAP + 18 if self._item else 0)
 
     def set_item(self, item: SceneItem | None, color: QColor) -> None:
         self._item = item
         self._color = color
         self._visual = None
-        size = SIZES[item.shape] if item else QSize(0, 0)
-        self.setFixedHeight(size.height() + self.FLOOR_GAP + 18 if item else 0)
+        self._fit()
         self.update()
 
     def object_rect(self) -> QRectF:
         """Rectangle of the poster, cover or book in this widget."""
         if not self._item:
             return QRectF()
-        size = SIZES[self._item.shape]
+        size = self._size()
         return QRectF((self.width() - size.width()) / 2, 0, size.width(), size.height())
 
     def _object(self) -> QPixmap:
         assert self._item is not None
-        size = SIZES[self._item.shape]
+        size = self._size()
         if self._visual is None:
             ratio = self.devicePixelRatioF()
             source = self._item.image or standin_pixmap(
@@ -210,7 +231,7 @@ class _Stage(QWidget):
     def paintEvent(self, e):  # noqa: N802 - Qt API
         if not self._item:
             return
-        size = SIZES[self._item.shape]
+        size = self._size()
         x = (self.width() - size.width()) / 2
         rect = QRectF(x, 0, size.width(), size.height())
         p = QPainter(self)
@@ -386,6 +407,8 @@ class Scene(QWidget):
         self.setMinimumWidth(360)
         self._item: SceneItem | None = None
         self._color = QColor(128, 128, 128)
+        # Height of the column the scene was last fitted to (0: none).
+        self._fit_to = 0
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(44, 72, 44, 36)
@@ -470,6 +493,20 @@ class Scene(QWidget):
         self._extra = widget
         if widget is not None:
             self._extra_slot.addWidget(widget)
+        if self._fit_to:
+            self.fit_height(self._fit_to)
+
+    def fit_height(self, height: int) -> None:
+        """Make the object smaller when the column is low, so the title, the
+        details and the keys stay in view (down to 45% of its size)."""
+        self._fit_to = height
+        if self._item is None:
+            return
+        full = SIZES[self._item.shape].height()
+        layout = self.layout()
+        rest = (layout.sizeHint().height() if layout else 0) - self._stage.height()
+        room = height - rest - self._stage.FLOOR_GAP - 18
+        self._stage.set_scale(max(0.45, min(1.0, room / full)))
 
     def set_label(self, text: str, tone: str = "ink-faint") -> None:
         """Small capitals above the title ("" hides them)."""

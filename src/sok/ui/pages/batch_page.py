@@ -766,6 +766,7 @@ class BatchPage(QWidget):
         size of the page."""
         super().resizeEvent(e)
         self._right.setFixedWidth(side_width(self.width()))
+        self._fit_scene()
         fit_display([self._title_lbl, self._empty_title], self.width())
         self._empty_text.setFixedWidth(min(520, max(280, self.width() - 80)))
         self._empty_fan.setVisible(self.height() >= LOW_HEIGHT)
@@ -1163,6 +1164,7 @@ class BatchPage(QWidget):
                     fields=self._fields(entry, None),
                 )
             )
+            self._fit_scene()
             return
         year = getattr(item, "year", None) or candidate_year(entry.candidate or {})
         subtitle = self.scene_subtitle(item, entry.candidate or {})
@@ -1179,6 +1181,11 @@ class BatchPage(QWidget):
                 destination=destination,
             )
         )
+        self._fit_scene()
+
+    def _fit_scene(self) -> None:
+        """The poster of the scene gets smaller in a low window."""
+        self._scene.fit_height(self._scene_scroll.viewport().height())
 
     def _fields(self, entry: Entry, item: Any) -> List[Tuple[str, str]]:
         """Rows of the dotted sheet: what S.O.K knows without opening files."""
