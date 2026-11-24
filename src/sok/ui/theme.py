@@ -22,6 +22,7 @@ from PySide6.QtSvg import QSvgRenderer
 import re
 
 from sok.config.config_manager import resources_dir
+from sok.ui import tokens
 from sok.ui.platform import IS_LINUX, IS_MACOS, system_accent_color
 
 logger = logging.getLogger(__name__)
@@ -45,19 +46,60 @@ def load_bundled_fonts() -> None:
             logger.warning("Could not load font %s", path.name)
 
 
+def _legacy_palette(t: dict[str, str]) -> dict[str, str]:
+    """Return a palette with the color names the widgets use, from tokens.
+
+    The widgets still read names such as "text" or "card"; each one points to
+    a token of the art direction. The tokens themselves are included too, for
+    the widgets drawn with them.
+
+    Args:
+        t: Color tokens of one theme (see sok.ui.tokens).
+    """
+    return {
+        **t,
+        "bg": t["bg"],
+        "card": t["surface"],
+        "card_bg": t["surface"],
+        "sidebar": t["surface"],
+        "sidebar_selection": t["surface-raised"],
+        "dropdown_bg": t["surface-raised"],
+        "input_bg": t["surface-raised"],
+        "hover": t["surface-raised"],
+        "text": t["ink"],
+        "secondary": t["ink-muted"],
+        "tertiary": t["key"],
+        "icon_secondary": t["ink-muted"],
+        "separator": t["line"],
+        "accent": t["accent"],
+        "accent_text": t["on-accent"],
+        "red": t["danger"],
+        # No success color: "ok" and "renamed" use the normal text color,
+        # next to a word that says it.
+        "tone_ok": t["ink"],
+        "tone_warn": t["caution"],
+        "tone_error": t["danger"],
+        "tone_info": t["ink-muted"],
+        "tone_disabled": t["ink-faint"],
+        "tone_file": t["ink-muted"],
+        "tone_pending": t["ink-faint"],
+        "tone_renamed": t["ink"],
+        "tone_ambiguous": t["caution"],
+        "tone_missing": t["danger"],
+    }
+
+
 class Theme:
     """Design tokens and color palettes for S.O.K UI.
 
-    Provides LIGHT and DARK color dictionaries plus platform-aware
-    font selection.
+    The colors come from the SOKTeam art direction (sok.ui.tokens, generated
+    by scripts/make_theme_tokens.py), the same on every system.
 
     Attributes:
         FONT: UI font name (macOS system font, Segoe UI, or the bundled
             Inter on Linux).
-        ORANGE: Orange theme color dictionary.
-        MAC_LIGHT: macOS light theme: white and gray, orange accents.
-        LIGHT: Light theme of the current platform.
-        DARK: Dark theme color dictionary.
+        LIGHT: Light theme color dictionary.
+        DARK: Dark theme color dictionary, the one screens are judged on.
     """
 
     FONT = (
@@ -68,97 +110,9 @@ class Theme:
         else ("Segoe UI Variable" if os.name == "nt" else "Inter")
     )
 
-    ORANGE = {
-        "bg": "#FB6048",
-        "card": "#FB6048",
-        "card_bg": "rgba(255, 255, 255, 0.15)",
-        "dropdown_bg": "#DD513F",
-        "text": "#FFFFFF",
-        "secondary": "rgba(255, 255, 255, 0.9)",
-        "tertiary": "rgba(255, 255, 255, 0.6)",
-        "accent": "#FFFFFF",
-        "accent_text": "#FB6048",
-        "green": "#50FA7B",
-        "red": "#FF5555",
-        "separator": "rgba(255, 255, 255, 0.3)",
-        "hover": "rgba(255, 255, 255, 0.3)",
-        "input_bg": "rgba(255, 255, 255, 0.25)",
-        "icon_secondary": "#FFFFFF",
-        "tone_ok": "#50FA7B",
-        "tone_warn": "#FFB86C",
-        "tone_error": "#FF6B6B",
-        "tone_info": "rgba(255, 255, 255, 0.7)",
-        "tone_disabled": "rgba(255, 255, 255, 0.4)",
-        "tone_file": "#B3B3B3",
-        "tone_pending": "#404040",
-        "tone_renamed": "#30D158",
-        "tone_ambiguous": "#FFB347",
-        "tone_missing": "#FF453A",
-        "font": FONT,
-    }
+    LIGHT = {**_legacy_palette(tokens.LIGHT), "font": FONT}
 
-    MAC_LIGHT = {
-        "bg": "#FFFFFF",
-        "card": "#F5F5F7",
-        "sidebar": "#EDEDF0",
-        "sidebar_selection": "rgba(0, 0, 0, 0.1)",
-        "card_bg": "#F5F5F7",
-        "dropdown_bg": "#FFFFFF",
-        "text": "#1D1D1F",
-        "secondary": "#6E6E73",
-        "tertiary": "#C7C7CC",
-        "accent": "#FB6048",
-        "accent_text": "#FFFFFF",
-        "green": "#248A3D",
-        "red": "#D70015",
-        "separator": "#E3E3E8",
-        "hover": "rgba(0, 0, 0, 0.06)",
-        "input_bg": "#FFFFFF",
-        "icon_secondary": "#6E6E73",
-        "tone_ok": "#248A3D",
-        "tone_warn": "#B25000",
-        "tone_error": "#D70015",
-        "tone_info": "#6E6E73",
-        "tone_disabled": "#AEAEB2",
-        "tone_file": "#6E6E73",
-        "tone_pending": "#AEAEB2",
-        "tone_renamed": "#248A3D",
-        "tone_ambiguous": "#B25000",
-        "tone_missing": "#D70015",
-        "font": FONT,
-    }
-
-    LIGHT = MAC_LIGHT if IS_MACOS else ORANGE
-
-    DARK = {
-        "bg": "#121212",
-        "card": "#1E1E1E",
-        "card_bg": "#1E1E1E",
-        "dropdown_bg": "#2C2C2E",
-        "text": "#FFFFFF",
-        "secondary": "#B3B3B3",
-        "tertiary": "#404040",
-        "accent": "#FB6048",
-        "accent_text": "#FFFFFF",
-        "green": "#30D158",
-        "red": "#FF453A",
-        "separator": "#333333",
-        "hover": "rgba(255, 255, 255, 0.1)",
-        "input_bg": "#2C2C2E",
-        "icon_secondary": "#B3B3B3",
-        "sidebar_selection": "rgba(255, 255, 255, 0.1)",
-        "tone_ok": "#50FA7B",
-        "tone_warn": "#FFB86C",
-        "tone_error": "#FF6B6B",
-        "tone_info": "rgba(255, 255, 255, 0.7)",
-        "tone_disabled": "rgba(255, 255, 255, 0.4)",
-        "tone_file": "#B3B3B3",
-        "tone_pending": "#404040",
-        "tone_renamed": "#30D158",
-        "tone_ambiguous": "#FFB347",
-        "tone_missing": "#FF453A",
-        "font": FONT,
-    }
+    DARK = {**_legacy_palette(tokens.DARK), "font": FONT}
 
     R = 10
 
@@ -176,7 +130,11 @@ def palette(dark: bool, system_accent: bool = False) -> dict[str, str]:
     """
     c = dict(Theme.DARK if dark else Theme.LIGHT)
     if system_accent and IS_MACOS:
-        c["accent"] = system_accent_color()
+        accent = system_accent_color()
+        c["accent"] = c["accent-text"] = accent
+        # The near-black text of the coral is not readable on every system
+        # color (blue, purple, graphite): keep white there.
+        c["accent_text"] = c["on-accent"] = "#FFFFFF"
     return c
 
 

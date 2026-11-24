@@ -66,16 +66,13 @@ class AppearanceSection(QWidget):
 
         card = Card()
 
-        # macOS only: follow the system light/dark appearance.
-        self.system_toggle: Toggle | None = None
-        if IS_MACOS:
-            self.system_lbl, self.system_toggle = self._add_toggle_row(
-                card, self._on_system_theme_change
-            )
-
-            hints = QGuiApplication.styleHints()
-            if hints:
-                hints.colorSchemeChanged.connect(lambda _: self.load())
+        # Follow the system light/dark appearance.
+        self.system_lbl, self.system_toggle = self._add_toggle_row(
+            card, self._on_system_theme_change
+        )
+        hints = QGuiApplication.styleHints()
+        if hints:
+            hints.colorSchemeChanged.connect(lambda _: self.load())
 
         dark_row = QWidget()
         dark_row.setFixedHeight(32)
@@ -155,7 +152,7 @@ class AppearanceSection(QWidget):
         self.theme_changed.emit(is_dark)
 
     def _on_system_theme_change(self, follow_system: bool):
-        """Handle the "match system appearance" toggle (macOS).
+        """Handle the "match system appearance" toggle.
 
         Args:
             follow_system: True to follow the system appearance.
@@ -223,7 +220,7 @@ class AppearanceSection(QWidget):
 
     def load(self):
         """Load settings values into UI."""
-        theme = self._config.get("theme", "dark")
+        theme = self._config.get("theme", SYSTEM_THEME)
         follow_system = theme == SYSTEM_THEME
         is_dark = system_prefers_dark() if follow_system else theme == "dark"
         self.toggle.blockSignals(True)
@@ -231,10 +228,9 @@ class AppearanceSection(QWidget):
         self.toggle.blockSignals(False)
         # The dark mode switch shows the system appearance while following it.
         self.toggle.setEnabled(not follow_system)
-        if self.system_toggle:
-            self.system_toggle.blockSignals(True)
-            self.system_toggle.setChecked(follow_system)
-            self.system_toggle.blockSignals(False)
+        self.system_toggle.blockSignals(True)
+        self.system_toggle.setChecked(follow_system)
+        self.system_toggle.blockSignals(False)
         if self.accent_toggle:
             self.accent_toggle.blockSignals(True)
             self.accent_toggle.setChecked(bool(self._config.get("use_system_accent")))
@@ -252,10 +248,7 @@ class AppearanceSection(QWidget):
         """Update translatable UI text."""
         self.label.setText(tr("appearance", "Appearance"))
         self.dark_lbl.setText(tr("dark_mode", "Dark Mode"))
-        if self.system_toggle:
-            self.system_lbl.setText(
-                tr("follow_system_theme", "Match system appearance")
-            )
+        self.system_lbl.setText(tr("follow_system_theme", "Match system appearance"))
         if self.accent_toggle:
             self.accent_lbl.setText(tr("use_system_accent", "Use system accent color"))
         self.lang_lbl.setText(tr("language", "Language"))

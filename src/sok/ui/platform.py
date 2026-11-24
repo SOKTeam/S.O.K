@@ -47,7 +47,8 @@ def is_dark_theme(theme: str) -> bool:
     """Return True if the "theme" setting resolves to the dark palette.
 
     Args:
-        theme: Setting value: "dark", "light", "orange" or "system".
+        theme: Setting value: "dark", "light" or "system" ("orange", the
+            dropped orange theme, reads as "light").
     """
     if theme == SYSTEM_THEME:
         return system_prefers_dark()
@@ -62,7 +63,8 @@ def apply_color_scheme(theme: str) -> None:
     so system_prefers_dark() reports the real system appearance again.
 
     Args:
-        theme: Setting value: "dark", "light", "orange" or "system".
+        theme: Setting value: "dark", "light" or "system" ("orange", the
+            dropped orange theme, reads as "light").
     """
     if not IS_MACOS:
         return

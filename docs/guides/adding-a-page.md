@@ -135,7 +135,7 @@ The colors come from the main window stylesheet (`MainWindow`), which styles the
 widgets by object name: `Page`, `PageTitle`, `Card`, `SectionLabel`, `Progress`…
 Give a widget the object name of its role and it follows the theme, light or
 dark. A widget without one keeps the Qt default: a progress bar without the name
-`Progress` is blue instead of orange.
+`Progress` is blue instead of coral.
 
 Other helpers of `sok.ui.theme` and `sok.ui.controllers`:
 

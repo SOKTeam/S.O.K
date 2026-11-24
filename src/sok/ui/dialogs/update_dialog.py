@@ -137,7 +137,7 @@ class UpdateDialog(QDialog):
         self.setWindowFlags(
             self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint
         )
-        # The colors of the main window theme (light, dark or orange).
+        # The colors of the main window theme (light or dark).
         window = parent.window() if parent else None
         c = getattr(window, "c", None) or Theme.DARK
 

@@ -254,9 +254,8 @@ class ApiSection(QWidget):
             default_lbl = QLabel(tr("built_in_key", "Built-in key by default"))
             default_lbl.setProperty("tr_key", "built_in_key")
             default_lbl.setProperty("tr_default", "Built-in key by default")
-            default_lbl.setStyleSheet(
-                "color: #6272a4; font-size: 10px; font-style: italic;"
-            )
+            default_lbl.setStyleSheet("font-size: 10px; font-style: italic;")
+            set_tone(default_lbl, "info")
             setattr(self, f"_{service}_default_lbl", default_lbl)
             lbl_layout.addWidget(default_lbl)
 

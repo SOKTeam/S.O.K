@@ -10,7 +10,7 @@
 # ===----------------------------------------------------------------------=== #
 """
 S.O.K - Main Interface
-Orange / Frameless / Modern Style
+Frameless / Modern Style
 """
 
 import sys
@@ -43,6 +43,7 @@ from sok.ui.platform import (
     IS_LINUX,
     IS_MACOS,
     MACOS_TITLEBAR_HEIGHT,
+    SYSTEM_THEME,
     apply_color_scheme,
     hide_native_title,
     is_dark_theme,
@@ -103,7 +104,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self._config = get_config_manager()
-        theme_pref = self._config.get("theme", "orange")
+        theme_pref = self._config.get("theme", SYSTEM_THEME)
         apply_color_scheme(theme_pref)
 
         self.dark = is_dark_theme(theme_pref)
@@ -774,7 +775,7 @@ class MainWindow(QMainWindow):
             dark: True for dark theme, False for light.
         """
         self.dark = dark
-        self._theme_name = self._config.get("theme", "orange")
+        self._theme_name = self._config.get("theme", SYSTEM_THEME)
         self.c = self._palette(dark)
 
         self._style()
@@ -790,7 +791,7 @@ class MainWindow(QMainWindow):
 
     def _on_system_scheme_changed(self, _scheme):
         """Follow the system appearance when the theme is set to "system"."""
-        theme = self._config.get("theme", "orange")
+        theme = self._config.get("theme", SYSTEM_THEME)
         if is_dark_theme(theme) != self.dark:
             self._toggle_theme(is_dark_theme(theme))
 
@@ -825,7 +826,9 @@ class MainWindow(QMainWindow):
             pal.setColor(color_role, parse_color(color))
         for color_role in (role.WindowText, role.Text, role.ButtonText):
             pal.setColor(
-                QPalette.ColorGroup.Disabled, color_role, parse_color(c["tertiary"])
+                QPalette.ColorGroup.Disabled,
+                color_role,
+                parse_color(c["tone_disabled"]),
             )
         return pal
 

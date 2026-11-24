@@ -87,12 +87,13 @@ class TestAppearanceSectionOnMacOS:
         assert config.get("theme") == "dark"
         assert widget.toggle.isEnabled()
 
-    def test_no_system_row_on_other_platforms(self, qtbot, monkeypatch):
+    def test_system_row_on_other_platforms(self, qtbot, monkeypatch):
         monkeypatch.setattr(appearance_section, "IS_MACOS", False)
         widget = AppearanceSection(FakeConfig(theme="dark"))
         qtbot.addWidget(widget)
 
-        assert widget.system_toggle is None
+        assert widget.system_toggle is not None
+        assert widget.accent_toggle is None
 
 
 class TestApplyColorScheme:
@@ -145,13 +146,14 @@ class TestAccentColor:
         monkeypatch.setattr(theme, "IS_MACOS", True)
         monkeypatch.setattr(theme, "system_accent_color", lambda: "#0a60ff")
 
-    def test_orange_accent_by_default(self, system_accent):
+    def test_coral_accent_by_default(self, system_accent):
         assert theme.palette(dark=True)["accent"] == theme.Theme.DARK["accent"]
 
-    def test_system_accent_replaces_orange(self, system_accent):
+    def test_system_accent_replaces_coral(self, system_accent):
         c = theme.palette(dark=False, system_accent=True)
 
         assert c["accent"] == "#0a60ff"
+        assert c["accent_text"] == "#FFFFFF"
         assert theme.Theme.LIGHT["accent"] != "#0a60ff"
 
     def test_system_accent_is_ignored_on_other_platforms(

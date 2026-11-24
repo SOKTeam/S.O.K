@@ -355,7 +355,7 @@ class Toggle(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         c = self.window().c if hasattr(self.window(), "c") else Theme.DARK  # type: ignore[union-attr]
         if IS_MACOS:
-            p.setBrush(parse_color(c["green"] if self._on else c["tertiary"]))
+            p.setBrush(parse_color(c["accent"] if self._on else c["tertiary"]))
             p.setPen(Qt.PenStyle.NoPen)
             p.drawRoundedRect(0, 0, 38, 22, 11, 11)
             p.setBrush(parse_color("#FFFFFF"))

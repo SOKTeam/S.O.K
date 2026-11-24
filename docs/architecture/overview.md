@@ -45,7 +45,8 @@ Built in code with PySide6; no Qt Designer file is loaded at run time.
 - `dialogs/`: the update dialog.
 - `errors.py`: the messages shown for API errors.
 - `theme.py`, `platform.py`, `i18n.py`: colors and fonts, per-system behavior,
-  translations.
+  translations. The colors come from `tokens.py`, generated from the art
+  direction's `tokens.json` by `scripts/make_theme_tokens.py`.
 - `message_box.py`: message boxes, shown as sheets on macOS.
 - `macos_menu.py`: the native macOS menu bar.
 

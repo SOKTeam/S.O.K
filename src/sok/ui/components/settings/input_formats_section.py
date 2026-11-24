@@ -176,8 +176,7 @@ class InputFormatsSection(QWidget):
         layout.setSpacing(4)
 
         self._error = QLabel()
-        # Same look as the "API key required" warnings: red is not readable
-        # on the orange theme.
+        # Same look as the "API key required" warnings.
         self._error.setStyleSheet("font-size: 11px; font-weight: bold;")
         set_tone(self._error, "warn")
         self._error.setVisible(False)

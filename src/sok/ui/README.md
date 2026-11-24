@@ -26,7 +26,8 @@ ui/
 ├── workers/             # Asynchronous tasks (QThreads)
 ├── i18n.py              # Translation system
 ├── main_window.py       # Main window (Container)
-└── theme.py             # Style and palette definitions (Orange/Dark mode)
+├── theme.py             # Palettes (dark and light) and theme helpers
+└── tokens.py            # Colors of the art direction (generated)
 ```
 
 ## Development Principles
@@ -35,13 +36,15 @@ ui/
 in `workers`.
 2. **Translations**: All displayed texts must go through the `tr()` function
 from the `i18n` module.
-3. **Theming**: Use the palettes defined in `theme.py`.
-The interface supports a dynamic dark mode.
+3. **Theming**: Use the palettes defined in `theme.py`, never a hard-coded
+color. Their colors come from `tokens.py`, generated from the `tokens.json` of
+the SOKTeam art direction by `scripts/make_theme_tokens.py`: never edit it by
+hand. The interface supports a dynamic dark mode.
 4. **Modularity**: Prefer creating new components in `components/` rather than
 overloading page files.
 
 ## Graphic Style
 
-S.O.K uses a custom frameless interface, inspired by modern macOS design
-with a distinctive "Orange" touch. Rendering is managed through a mix of
+S.O.K uses a custom frameless interface following the SOKTeam art direction:
+dark by default, with the S.O.K coral as the only accent. Rendering is managed through a mix of
 **QSS** (Qt Style Sheets) and custom drawing in `paintEvent`.

@@ -42,6 +42,24 @@ python scripts/make_macos_assets.py
 
 ---
 
+### `make_theme_tokens.py`
+
+Generates the colors of the desktop app, `src/sok/ui/tokens.py`, from the
+`tokens.json` of the SOKTeam art direction (kept outside the repository).
+
+```bash
+uv run python scripts/make_theme_tokens.py [path/to/tokens.json]
+```
+
+**Functionality:**
+
+- Reads the color tokens of the dark and light themes, resolves the aliases
+  (`accent` → `sok`) and writes one dictionary per theme.
+- The default path is `.impeccable/refs/direction-artistique/tokens.json`.
+- Run it after every change to `tokens.json`; never edit `tokens.py` by hand.
+
+---
+
 ### `bump_version.py`
 
 Keeps the application version identical everywhere. `pyproject.toml` is the

@@ -456,7 +456,7 @@ class SelectedMediaWidget(QWidget):
                 tr("artist", "Artist"),
             )
 
-        p.setPen(parse_color(c["green"]))
+        p.setPen(parse_color(c["text"]))
         p.setFont(QFont(Theme.FONT, 13, QFont.Weight.Bold))
         p.drawText(
             QRect(x, 8, self.width() - x - 12, 22), Qt.AlignmentFlag.AlignVCenter, title

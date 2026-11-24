@@ -205,8 +205,8 @@ interface at each change and sends the `/api` requests to the server.
 | `src/lib/icons.ts`           | The icons of the desktop app (`src/sok/resources/assets`), in the color of the text                                                                                                                                                                                                                                                                                                                                                         |
 | `src/app.css`                | Tailwind, the three themes of the desktop app as Tailwind colors (`bg-card`, `text-muted`…), and the shared classes (`button`, `button-outline`, `link`, `label`, `field`, `check`)                                                                                                                                                                                                                                                         |
 
-- **Colors.** `app.css` declares the colors of `src/sok/ui/theme.py` in
-  `@theme` (the macOS light theme); `:root[data-theme="orange"]` (Windows and
+- **Colors.** `app.css` declares the former colors of the desktop app
+  (before its art direction tokens) in `@theme` (the macOS light theme); `:root[data-theme="orange"]` (Windows and
   Linux) and `:root[data-theme="dark"]` only change the variables. On orange,
   the cards and fields are darker than the page so the white text stays
   readable. `theme.svelte.ts` sets `data-theme` before the first page:
