@@ -90,7 +90,13 @@ from sok.ui.controllers.undo import undo_operation
 from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.i18n import tr, trn
 from sok.ui.platform import IS_MACOS, request_attention
-from sok.ui.responsive import LOW_HEIGHT, display_font, fit_display, side_width
+from sok.ui.responsive import (
+    LOW_HEIGHT,
+    SidePanel,
+    display_font,
+    fit_display,
+    side_width,
+)
 from sok.ui.theme import Theme, ui_font
 from sok.ui.workers import BatchOrganizeWorker, BatchSearchWorker
 
@@ -754,7 +760,11 @@ class BatchPage(QWidget):
         self._right.addWidget(self._scene_scroll)
         self._right.addWidget(self._picker)
         self._right.addWidget(self._summary_scroll)
-        columns.addWidget(self._right)
+        # Beside the list, or over it in a narrow window.
+        self._panel = SidePanel(
+            screen, columns, self._right, lambda: tr("back_to_list", "List")
+        )
+        self._list.row_clicked.connect(lambda _key: self._panel.open())
         return screen
 
     @staticmethod
@@ -765,7 +775,8 @@ class BatchPage(QWidget):
         """The right column, the big titles and the empty places follow the
         size of the page."""
         super().resizeEvent(e)
-        self._right.setFixedWidth(side_width(self.width()))
+        self._panel.fit(self.width())
+        self._right.setFixedWidth(self._panel.column_width(self.width()))
         self._fit_scene()
         fit_display([self._title_lbl, self._empty_title], self.width())
         self._empty_text.setFixedWidth(min(520, max(280, self.width() - 80)))
@@ -851,6 +862,7 @@ class BatchPage(QWidget):
         )
         self._update_summary()
         self._update_destination()
+        self._panel.retranslate()
         self._on_current_changed(self._list.current())
 
     # ------------------------------------------------------------- Sources
@@ -1455,8 +1467,10 @@ class BatchPage(QWidget):
             by_name=by_name,
             sizes=sizes,
         )
-        # Only the item being moved is lit while renaming.
+        # Only the item being moved is lit while renaming; the list shows the
+        # progress, so a narrow window closes the column.
         self._list.set_current(None)
+        self._panel.close()
         self._set_phase("running")
         self._list.refresh_rows()
         worker.file_started.connect(self._on_file_started)
@@ -1686,6 +1700,8 @@ class BatchPage(QWidget):
             )
         )
         self._list.set_current(None)
+        # In a narrow window the summary comes over the list.
+        self._panel.open()
         self._update_destination()
         self._dest_lbl.setText(
             tr(
@@ -1705,6 +1721,7 @@ class BatchPage(QWidget):
             self._start_rename()
         else:
             self._list.set_current(key)
+            self._panel.open()
 
     def _back_to_idle(self) -> None:
         """Leave the end of a rename: the sorted items leave the list."""

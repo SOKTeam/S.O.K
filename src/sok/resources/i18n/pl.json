@@ -750,5 +750,6 @@
     "batch_consoles_known_one": "{n} rozpoznawana konsola",
     "batch_consoles_known_few": "{n} rozpoznawane konsole",
     "batch_consoles_known_many": "{n} rozpoznawanych konsol",
-    "batch_consoles_known_other": "{n} rozpoznawanych konsol"
+    "batch_consoles_known_other": "{n} rozpoznawanych konsol",
+    "back_to_list": "Lista"
 }

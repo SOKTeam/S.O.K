@@ -705,5 +705,6 @@
     "batch_formats_accepted_one": "{n} format accepted",
     "batch_formats_accepted_other": "{n} formats accepted",
     "batch_consoles_known_one": "{n} console recognized",
-    "batch_consoles_known_other": "{n} consoles recognized"
+    "batch_consoles_known_other": "{n} consoles recognized",
+    "back_to_list": "List"
 }

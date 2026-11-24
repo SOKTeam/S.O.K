@@ -750,5 +750,6 @@
     "batch_consoles_known_one": "{n} распознаваемая консоль",
     "batch_consoles_known_few": "{n} распознаваемые консоли",
     "batch_consoles_known_many": "{n} распознаваемых консолей",
-    "batch_consoles_known_other": "{n} распознаваемых консолей"
+    "batch_consoles_known_other": "{n} распознаваемых консолей",
+    "back_to_list": "Список"
 }

@@ -55,7 +55,7 @@ from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.i18n import tr, trn
 from sok.ui.pages.batch_page import KIND_TEXTS, display_path, human_size
 from sok.ui.pages.home_page import when_text
-from sok.ui.responsive import fit_display, side_width
+from sok.ui.responsive import SidePanel, fit_display, side_width
 from sok.ui.theme import Theme, ui_font
 
 # The kind of texts of the page an operation was made on, by its kind.
@@ -644,8 +644,11 @@ class HistoryPage(QWidget):
         scene_scroll.setFrameShape(QFrame.Shape.NoFrame)
         scene_scroll.setFixedWidth(side_width(1440))
         scene_scroll.setWidget(self._scene)
-        columns.addWidget(scene_scroll)
         self._scene_scroll = scene_scroll
+        # Beside the list, or over it in a narrow window.
+        self._panel = SidePanel(
+            self, columns, scene_scroll, lambda: tr("back_to_list", "List")
+        )
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
         p = QPainter(self)
@@ -654,7 +657,8 @@ class HistoryPage(QWidget):
 
     def resizeEvent(self, e):  # noqa: N802 - Qt API
         super().resizeEvent(e)
-        self._scene_scroll.setFixedWidth(side_width(self.width()))
+        self._panel.fit(self.width())
+        self._scene_scroll.setFixedWidth(self._panel.column_width(self.width()))
         fit_display([self._title], self.width())
 
     def _restyle(self) -> None:
@@ -676,6 +680,7 @@ class HistoryPage(QWidget):
             self._restyle()
 
     def retranslateUi(self) -> None:
+        self._panel.retranslate()
         self._title.setText(tr("history_title", "History."))
         self._clear_btn.setText(tr("history_clear", "Clear history"))
         self.refresh()
@@ -760,7 +765,7 @@ class HistoryPage(QWidget):
                 else:
                     time_text = short_day(moment.date()) if moment else ""
                 row = OperationRow(op, time_text)
-                row.clicked.connect(lambda o=op: self._select(o.id))
+                row.clicked.connect(lambda o=op: self._open_operation(o.id))
                 self._rows.append(row)
                 self._list.addWidget(row)
         for (year, month), ops in months.items():
@@ -800,6 +805,11 @@ class HistoryPage(QWidget):
     def _show_month(self, year_month: Tuple[int, int]) -> None:
         self._shown_months.add(year_month)
         self.refresh()
+
+    def _open_operation(self, operation_id: str) -> None:
+        """A row clicked: show it on the scene (over the list if narrow)."""
+        self._select(operation_id)
+        self._panel.open()
 
     def _select(self, operation_id: Optional[str]) -> None:
         self._current = operation_id

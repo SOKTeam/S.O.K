@@ -171,6 +171,8 @@ class MediaList(QWidget):
 
     row_changed = Signal()
     row_action = Signal(object)
+    # A row clicked by the user (current_changed also follows the code).
+    row_clicked = Signal(object)
     row_rescan_requested = Signal(object, str)
     files_added = Signal(list)
     current_changed = Signal(object)
@@ -292,10 +294,16 @@ class MediaList(QWidget):
         else:
             row = FileRow(data, self._was_label)
             self._rows_layout.insertWidget(self._rows_layout.count() - 1, row)
-        row.clicked.connect(lambda k=key: self._set_current(k))
+        row.clicked.connect(
+            lambda k=key: (self._set_current(k), self.row_clicked.emit(k))
+        )
         if isinstance(row, FileRow):
             row.action_clicked.connect(lambda k=key: self.row_action.emit(k))
         self._rows[key] = row
+
+    def _click_row(self, key: Path) -> None:
+        self._set_current(key)
+        self.row_clicked.emit(key)
 
     def files(self) -> List[Path]:
         """Return every file of the list."""
