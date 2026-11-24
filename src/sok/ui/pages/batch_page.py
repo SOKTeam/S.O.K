@@ -34,7 +34,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtCore import QPoint, QPointF, QRectF, QSizeF, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QKeySequence, QPainter, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -81,7 +81,7 @@ from sok.ui.components.organize.media_list import (
     one_item_per_file,
 )
 from sok.ui.components.organize.pick_panel import Choice, PickPanel
-from sok.ui.components.scene import Scene, SceneItem, Shape
+from sok.ui.components.scene import Scene, SceneItem, Shape, paint_light
 from sok.ui.components.search import load_poster
 from sok.ui.controllers.default_paths import default_destination
 from sok.ui.controllers.file_mode import hard_link_blocked
@@ -350,12 +350,43 @@ class _Destination:
 
 
 class _Screen(QWidget):
-    """A screen of the page, painted with the window background."""
+    """A screen of the page, painted with the window background.
+
+    With a scene beside the list, it also paints the part of the light of
+    the scene that spills out of the column, under the list, so the light
+    fades out instead of stopping at the edge of the column.
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.scene: Optional[Scene] = None
+        self.panel: Optional[SidePanel] = None
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
         c = getattr(self.window(), "c", None) or Theme.DARK
         p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), parse_color(c["bg"]))
+        scene, panel = self.scene, self.panel
+        light = scene.light() if scene is not None else None
+        if (
+            light is not None
+            and scene is not None
+            and panel is not None
+            and not panel.narrow
+            and panel.holder.isVisible()
+            and scene.isVisible()
+        ):
+            color, obj = light
+            offset = QPointF(scene.mapTo(self, QPoint(0, 0)))
+            left = panel.holder.mapTo(self, QPoint(0, 0)).x()
+            paint_light(
+                p,
+                QRectF(offset, QSizeF(scene.size())),
+                color,
+                obj.translated(offset),
+                QRectF(0, 0, left, self.height()),
+            )
         p.end()
 
 
@@ -765,6 +796,12 @@ class BatchPage(QWidget):
             screen, columns, self._right, lambda: tr("back_to_list", "List")
         )
         self._list.row_clicked.connect(lambda _key: self._panel.open())
+        # The light of the scene spills a little under the list.
+        screen.scene = self._scene
+        screen.panel = self._panel
+        self._scene.light_changed.connect(screen.update)
+        self._scene_scroll.verticalScrollBar().valueChanged.connect(screen.update)
+        self._right.currentChanged.connect(lambda _i: screen.update())
         return screen
 
     @staticmethod

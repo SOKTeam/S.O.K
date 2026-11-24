@@ -21,7 +21,7 @@ muted line, a sheet of details joined by dotted leaders, the final path
 from dataclasses import dataclass, field
 from enum import Enum
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import (
     QColor,
     QFontMetrics,
@@ -145,27 +145,46 @@ def _with_alpha(color: QColor, alpha: float) -> QColor:
     return out
 
 
-def paint_light(p: QPainter, rect: QRectF, color: QColor, obj: QRectF) -> None:
+def paint_light(
+    p: QPainter,
+    rect: QRectF,
+    color: QColor,
+    obj: QRectF,
+    area: QRectF | None = None,
+) -> None:
     """The light of a scene: ambient light of the object's color from the
     top, and its glow around the object.
 
     Args:
         p: Painter of the scene.
-        rect: Rectangle of the scene.
+        rect: Rectangle of the scene, which places the light.
         color: Dominant color of the object.
-        obj: Rectangle of the object in the scene.
+        obj: Rectangle of the object, in the same coordinates.
+        area: Where to paint it (rect by default): the page paints the part
+            that spills out of the scene with the same light.
     """
+    fill = area if area is not None else rect
     # Ambient light (CSS: radial gradient at 50% 22%, fading out at 72%).
-    center = QPointF(rect.width() / 2, rect.height() * 0.22)
+    center = QPointF(rect.x() + rect.width() / 2, rect.y() + rect.height() * 0.22)
     light = QRadialGradient(center, max(rect.width(), 420) * 0.72)
     light.setColorAt(0, _with_alpha(color, AMBIENT_ALPHA))
     light.setColorAt(1, _with_alpha(color, 0))
-    p.fillRect(rect, light)
+    p.fillRect(fill, light)
     # Glow around the object, 50px lower (CSS: 0 50px 110px, opacity 0.3).
     glow = QRadialGradient(obj.center() + QPointF(0, 50), obj.height() * 0.62)
     glow.setColorAt(0, _with_alpha(color, GLOW_ALPHA))
     glow.setColorAt(1, _with_alpha(color, 0))
-    p.fillRect(rect, glow)
+    p.fillRect(fill, glow)
+
+
+def paint_drop_shadow(p: QPainter, obj: QRectF, shape: Shape, color: QColor) -> None:
+    """The soft shadow under an object (CSS: 0 20px 40px), blurred once."""
+    size = QSize(round(obj.width()), round(obj.height()))
+    radius = 6 if shape == Shape.BOOK else RADIUS["poster"]
+    p.drawImage(
+        obj.topLeft() + QPointF(-SHADOW_BLUR, 20 - SHADOW_BLUR),
+        _soft_shadow(size, radius, color),
+    )
 
 
 class _Stage(QWidget):
@@ -259,13 +278,9 @@ class _Stage(QWidget):
         p.drawEllipse(floor.center(), floor.width() / 2, floor.width() / 2)
         p.restore()
 
-        # Drop shadow of the theme (CSS: 0 20px 40px), blurred once.
+        # The drop shadow is drawn by the Scene, behind this widget, so that
+        # its blur is not cut at the bottom of the stage.
         radius = 6 if self._item.shape == Shape.BOOK else RADIUS["poster"]
-        c = _palette(self)
-        shadow_image = _soft_shadow(size, radius, parse_color(c["shadow-poster-drop"]))
-        p.drawImage(
-            rect.topLeft() + QPointF(-SHADOW_BLUR, 20 - SHADOW_BLUR), shadow_image
-        )
 
         p.drawPixmap(rect.topLeft(), self._object())
 
@@ -395,6 +410,9 @@ class Scene(QWidget):
     centered under the details.
     """
 
+    # The light or the object moved: the page repaints what spills out.
+    light_changed = Signal()
+
     def __init__(self, destination_label: str = "Will be stored here", parent=None):
         """Build an empty scene.
 
@@ -507,6 +525,7 @@ class Scene(QWidget):
         rest = (layout.sizeHint().height() if layout else 0) - self._stage.height()
         room = height - rest - self._stage.FLOOR_GAP - 18
         self._stage.set_scale(max(0.45, min(1.0, room / full)))
+        self.light_changed.emit()
 
     def set_label(self, text: str, tone: str = "ink-faint") -> None:
         """Small capitals above the title ("" hides them)."""
@@ -555,6 +574,20 @@ class Scene(QWidget):
                 widget.setVisible(item is not None)
         self._restyle()
         self.update()
+        self.light_changed.emit()
+
+    def light(self) -> tuple[QColor, QRectF] | None:
+        """Color of the light and rectangle of the object, in this widget
+        (None without an item)."""
+        if self._item is None:
+            return None
+        return self._color, self._stage.object_rect().translated(
+            QPointF(self._stage.pos())
+        )
+
+    def resizeEvent(self, e):  # noqa: N802 - Qt API
+        super().resizeEvent(e)
+        self.light_changed.emit()
 
     def _restyle(self) -> None:
         c = _palette(self)
@@ -583,6 +616,9 @@ class Scene(QWidget):
         if self._item:
             obj = self._stage.object_rect().translated(QPointF(self._stage.pos()))
             paint_light(p, rect, self._color, obj)
+            paint_drop_shadow(
+                p, obj, self._item.shape, parse_color(c["shadow-poster-drop"])
+            )
         # A hairline separates the scene from the list.
         p.setPen(QPen(parse_color(c["line"]), 1))
         p.drawLine(QPointF(0.5, 0), QPointF(0.5, rect.height()))
