@@ -32,7 +32,7 @@ from sok.core.batch import (
     BatchMatch,
     candidate_year,
 )
-from sok.ui.components.file_row import FileRow, RowData
+from sok.ui.components.file_row import CoverTile, FileRow, RowData
 from sok.ui.i18n import tr
 
 STATUS_OK = STATUS_READY
@@ -109,6 +109,46 @@ class Entry:
         return 0
 
 
+class _TileGrid(QWidget):
+    """Places CoverTiles in columns of equal width, rows of equal height."""
+
+    COLUMNS = 4
+    GAP_X, GAP_Y = 22, 28
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._tiles: List[CoverTile] = []
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+
+    def add(self, tile: CoverTile) -> None:
+        tile.setParent(self)
+        tile.show()
+        self._tiles.append(tile)
+        self._place()
+
+    def remove(self, tile: CoverTile) -> None:
+        if tile in self._tiles:
+            self._tiles.remove(tile)
+        self._place()
+
+    def resizeEvent(self, e):  # noqa: N802 - Qt API
+        super().resizeEvent(e)
+        self._place()
+
+    def _place(self) -> None:
+        width = max(1, self.width() - 14)
+        column = (width - (self.COLUMNS - 1) * self.GAP_X) / self.COLUMNS
+        height = 0
+        for index, tile in enumerate(self._tiles):
+            row, col = divmod(index, self.COLUMNS)
+            tile_height = tile.height_for(int(column))
+            x = round(col * (column + self.GAP_X))
+            y = row * (tile_height + self.GAP_Y)
+            tile.setGeometry(x, y, int(column), tile_height)
+            height = y + tile_height
+        self.setMinimumHeight(height)
+
+
 class MediaList(QWidget):
     """Scrollable list of FileRows, one per item, with a selected item.
 
@@ -132,6 +172,7 @@ class MediaList(QWidget):
         describe: Describe = describe_dated,
         group_files: GroupFiles = one_item_per_file,
         make_detail: Optional[MakeDetail] = None,
+        grid: bool = False,
         parent: Optional[QWidget] = None,
     ):
         """Build an empty list.
@@ -142,6 +183,7 @@ class MediaList(QWidget):
             describe: Text of a candidate, for the pick list of the scene.
             group_files: Splits added files into items.
             make_detail: What the selected row shows under it, if anything.
+            grid: Show the items as cover tiles in a grid (albums).
             parent: Parent widget.
         """
         super().__init__(parent)
@@ -150,7 +192,7 @@ class MediaList(QWidget):
         self.describe = describe
         self._group_files = group_files
         self._entries: Dict[Path, Entry] = {}
-        self._rows: Dict[Path, FileRow] = {}
+        self._rows: Dict[Path, Any] = {}
         # Every file of the list, with the key of its item.
         self._owner: Dict[Path, Path] = {}
         self._current: Optional[Path] = None
@@ -167,6 +209,7 @@ class MediaList(QWidget):
         # Only the viewport: a stylesheet on the scroll area would draw its
         # scroll bar with Qt instead of the system (arrows on macOS).
         self._scroll.viewport().setStyleSheet("background: transparent;")
+        self._grid: Optional[_TileGrid] = _TileGrid() if grid else None
         inner = QWidget()
         inner.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self._rows_layout = QVBoxLayout(inner)
@@ -174,7 +217,7 @@ class MediaList(QWidget):
         self._rows_layout.setContentsMargins(0, 0, 14, 0)
         self._rows_layout.setSpacing(2)
         self._rows_layout.addStretch()
-        self._scroll.setWidget(inner)
+        self._scroll.setWidget(self._grid if self._grid is not None else inner)
         layout.addWidget(self._scroll)
         self.setAcceptDrops(True)
 
@@ -230,10 +273,15 @@ class MediaList(QWidget):
         self._entries[key] = entry
         for f in files:
             self._owner[f] = key
-        row = FileRow(self._make_row(entry), self._was_label)
+        row: Any = (CoverTile if self._grid is not None else FileRow)(
+            self._make_row(entry), self._was_label
+        )
         row.clicked.connect(lambda k=key: self._set_current(k))
         self._rows[key] = row
-        self._rows_layout.insertWidget(self._rows_layout.count() - 1, row)
+        if self._grid is not None:
+            self._grid.add(row)
+        else:
+            self._rows_layout.insertWidget(self._rows_layout.count() - 1, row)
 
     def files(self) -> List[Path]:
         """Return every file of the list."""
@@ -273,7 +321,7 @@ class MediaList(QWidget):
             self._detail.deleteLater()
             self._detail = None
         entry = self._entries.get(self._current) if self._current else None
-        if entry is None or self._make_detail is None:
+        if entry is None or self._make_detail is None or self._grid is not None:
             return
         detail = self._make_detail(entry)
         if detail is None:
@@ -396,7 +444,10 @@ class MediaList(QWidget):
             for f in entry.files:
                 self._owner.pop(f, None)
             row = self._rows.pop(key)
-            self._rows_layout.removeWidget(row)
+            if self._grid is not None:
+                self._grid.remove(row)
+            else:
+                self._rows_layout.removeWidget(row)
             row.deleteLater()
         if self._current in keys:
             rest = [k for k in order if k in self._entries]

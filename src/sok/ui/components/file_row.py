@@ -279,3 +279,127 @@ class FileRow(QWidget):
             p.setPen(QPen(parse_color(c["accent"]), 2))
             p.drawRoundedRect(box.adjusted(1, 1, -1, -1), RADIUS["key"], RADIUS["key"])
         p.end()
+
+
+class CoverTile(QWidget):
+    """An album in a grid: its square cover, the title and a line under it.
+
+    Same interface as FileRow. Selected, the cover gets a 2px accent ring;
+    an unknown album has its title in the caution color.
+
+    Signals:
+        clicked: The tile was clicked.
+    """
+
+    clicked = Signal()
+
+    RING = 3
+    TEXT = 52
+
+    def __init__(self, data: RowData, was_label: str = "was", parent=None):
+        super().__init__(parent)
+        self._data = data
+        self._selected = False
+        self._hovered = False
+        self._cover: QPixmap | None = None
+        self._cover_size = 0
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+
+    @property
+    def data(self) -> RowData:
+        return self._data
+
+    def set_data(self, data: RowData) -> None:
+        self._data = data
+        self._cover = None
+        self.update()
+
+    def set_was_label(self, text: str) -> None:
+        """Kept for MediaList: a tile shows no original name."""
+
+    def set_selected(self, selected: bool) -> None:
+        self._selected = selected
+        self.update()
+
+    def is_selected(self) -> bool:
+        return self._selected
+
+    def height_for(self, width: int) -> int:
+        """Height of a tile of this width: the cover, then two lines."""
+        return width + self.TEXT
+
+    def enterEvent(self, e):  # noqa: N802 - Qt API
+        self._hovered = True
+        self.update()
+
+    def leaveEvent(self, e):  # noqa: N802 - Qt API
+        self._hovered = False
+        self.update()
+
+    def mouseReleaseEvent(self, e):  # noqa: N802 - Qt API
+        if e.button() == Qt.MouseButton.LeftButton and self.rect().contains(
+            e.position().toPoint()
+        ):
+            self.clicked.emit()
+
+    def keyPressEvent(self, e):  # noqa: N802 - Qt API
+        if e.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+            self.clicked.emit()
+        else:
+            super().keyPressEvent(e)
+
+    def _cover_pixmap(self, size: int) -> QPixmap:
+        if self._cover is None or self._cover_size != size:
+            ratio = self.devicePixelRatioF()
+            source = self._data.thumbnail or standin_pixmap(
+                self._data.title, "", size, size, ratio, text=False
+            )
+            self._cover = rounded(source, size, size, 10)
+            self._cover_size = size
+        return self._cover
+
+    def paintEvent(self, e):  # noqa: N802 - Qt API
+        c = getattr(self.window(), "c", None) or Theme.DARK
+        d = self._data
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        ring = self.RING
+        size = max(1, self.width() - 2 * ring)
+        cover = QRectF(ring, ring, size, size)
+        p.drawPixmap(int(ring), int(ring), self._cover_pixmap(size))
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.setPen(QPen(parse_color(c["highlight"]), 1))
+        p.drawRoundedRect(cover.adjusted(0.5, 0.5, -0.5, -0.5), 10, 10)
+        if self._selected or self.hasFocus():
+            p.setPen(QPen(parse_color(c["accent"]), 2))
+            p.drawRoundedRect(cover.adjusted(-2, -2, 2, 2), 12, 12)
+        elif self._hovered:
+            p.setPen(QPen(parse_color(c["line-strong"]), 2))
+            p.drawRoundedRect(cover.adjusted(-2, -2, 2, 2), 12, 12)
+
+        top = ring + size + 10
+        title_font = ui_font(15, 600)
+        title_font.setLetterSpacing(title_font.SpacingType.AbsoluteSpacing, -0.22)
+        p.setFont(title_font)
+        p.setPen(parse_color(c["caution"] if d.unknown else c["ink"]))
+        p.drawText(
+            int(ring),
+            int(top + 15),
+            QFontMetrics(title_font).elidedText(
+                d.title, Qt.TextElideMode.ElideRight, int(size)
+            ),
+        )
+        line = d.note or d.by
+        if line:
+            note_font = ui_font(13)
+            p.setFont(note_font)
+            p.setPen(parse_color(c["ink-muted"]))
+            p.drawText(
+                int(ring),
+                int(top + 34),
+                QFontMetrics(note_font).elidedText(
+                    line, Qt.TextElideMode.ElideRight, int(size)
+                ),
+            )
+        p.end()

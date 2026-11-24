@@ -315,6 +315,12 @@ class BatchPage(QWidget):
     describe: Describe = staticmethod(describe_dated)
     group_files: GroupFiles = staticmethod(one_item_per_file)
     show_quality = False
+    # Cover tiles in a grid instead of rows (albums).
+    grid = False
+    # Start the line under the title with the folder of the files.
+    show_found_in = True
+    # Size the thumbnails of the list are loaded at.
+    thumb_size = (72, 108)
 
     def __init__(self, parent: Optional[QWidget] = None):
         """Initialize the page."""
@@ -504,6 +510,7 @@ class BatchPage(QWidget):
             describe=self.describe,
             group_files=self.group_files,
             make_detail=self.row_detail,
+            grid=self.grid,
         )
         self._list.row_changed.connect(self._refresh_previews_and_action)
         self._list.row_rescan_requested.connect(self._rescan_row)
@@ -876,7 +883,7 @@ class BatchPage(QWidget):
             by=self.item_author(item),
             tags=tags,
             confidence=entry.confidence,
-            thumbnail=self._image(url, entry.key, 72, 108),
+            thumbnail=self._image(url, entry.key, *self.thumb_size),
         )
 
     def _quality_tags(self, file: Path) -> List[str]:
@@ -1077,7 +1084,7 @@ class BatchPage(QWidget):
         total = sum(counts.values())
         self._title_lbl.setText(self._text("title", total))
         parts = []
-        folder = common_folder(self._list.files())
+        folder = common_folder(self._list.files()) if self.show_found_in else None
         if folder is not None:
             c = self._palette()
             parts.append(

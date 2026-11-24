@@ -68,7 +68,12 @@ def standin_colors(title: str) -> tuple[QColor, QColor]:
 
 
 def standin_pixmap(
-    title: str, year: str, width: int, height: int, ratio: float = 1.0
+    title: str,
+    year: str,
+    width: int,
+    height: int,
+    ratio: float = 1.0,
+    text: bool = True,
 ) -> QPixmap:
     """Draw the stand-in of a missing visual: gradient, year and title.
 
@@ -78,6 +83,8 @@ def standin_pixmap(
         width: Width in pixels.
         height: Height in pixels.
         ratio: Device pixel ratio of the screen.
+        text: Write the year and the title (not when they are written under
+            the visual, as in a grid of albums).
     """
     pixmap = QPixmap(int(width * ratio), int(height * ratio))
     pixmap.setDevicePixelRatio(ratio)
@@ -90,7 +97,7 @@ def standin_pixmap(
     gradient.setColorAt(1, bottom)
     p.fillRect(QRectF(0, 0, width, height), gradient)
 
-    if width >= 80:
+    if text and width >= 80:
         pad = round(width * 0.08)
         size = max(12, round(width * 0.105))
         title_font = ui_font(size, 700)

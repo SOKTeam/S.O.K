@@ -181,3 +181,17 @@ class TestItems:
 
         assert media.files() == []
         assert not media.has_rows()
+
+
+def test_grid_shows_cover_tiles(qtbot):
+    from sok.ui.components.file_row import CoverTile
+
+    media = MediaList(make_row, [".flac"], grid=True)
+    qtbot.addWidget(media)
+
+    media.add_files([Path("/m/A.flac"), Path("/m/B.flac")])
+    media.set_current(Path("/m/B.flac"))
+
+    tiles = [media._rows[Path("/m/A.flac")], media._rows[Path("/m/B.flac")]]
+    assert all(isinstance(t, CoverTile) for t in tiles)
+    assert [t.is_selected() for t in tiles] == [False, True]

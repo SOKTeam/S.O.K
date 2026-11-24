@@ -73,6 +73,9 @@ class MusicPage(BatchPage):
     same_work = staticmethod(same_track)
     localized = False
     describe = staticmethod(describe_track)
+    grid = True
+    show_found_in = False
+    thumb_size = (480, 480)
 
     def __init__(self, parent: Optional[QWidget] = None):
         # Key of every item that is an album.
@@ -149,9 +152,10 @@ class MusicPage(BatchPage):
         data = super()._row_data(entry)
         if entry.status == "pending" or data.unknown:
             if self._is_album(entry):
-                data.note = trn(
+                tracks = trn(
                     "batch_tracks", len(entry.files), "{n} track", "{n} tracks"
                 )
+                data.note = f"{tracks} · ?" if data.unknown else tracks
             return data
         item = self._media_item(entry.candidate, entry.files)
         artist = self.item_author(item)
