@@ -33,6 +33,7 @@ ui/
 ├── workers/             # Asynchronous tasks (QThreads)
 ├── i18n.py              # Translation system
 ├── main_window.py       # Main window (Container)
+├── responsive.py        # Sizes that follow the window (side column, titles, max width)
 ├── theme.py             # Palettes (dark and light) and theme helpers
 └── tokens.py            # Colors of the art direction (generated)
 ```
@@ -47,7 +48,11 @@ from the `i18n` module.
 color. Their colors come from `tokens.py`, generated from the `tokens.json` of
 the SOKTeam art direction by `scripts/make_theme_tokens.py`: never edit it by
 hand. The interface supports a dynamic dark mode.
-4. **Modularity**: Prefer creating new components in `components/` rather than
+4. **Window sizes**: a page sizes its right column with `side_width()`,
+its big title with `fit_display()`, and hides its decorations below
+`LOW_HEIGHT`, from its `resizeEvent` (see `responsive.py`). Past
+`MAX_CONTENT_WIDTH` the navigation and the pages are centered.
+5. **Modularity**: Prefer creating new components in `components/` rather than
 overloading page files.
 
 ## Graphic Style

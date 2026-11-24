@@ -174,7 +174,7 @@ class TestPage:
         # What is left comes first, the sorted items after.
         order = [e.files[0].name for e in page._list.entries()]
         assert order[-1] == "Dune.2021.mkv"
-        assert page._right.currentWidget() is page._summary
+        assert page._right.currentWidget() is page._summary_scroll
         # The failed one is ready again, behind a key that is not primary.
         assert not page._action_btn.isHidden()
         assert not page._action_btn._primary

@@ -45,6 +45,7 @@ from sok.ui.components.settings.layout import SettingsBlock, settings_stylesheet
 from sok.ui.components.settings.paths_section import PathsSection
 from sok.ui.components.settings.preview import SettingsPreview
 from sok.ui.i18n import tr
+from sok.ui.responsive import fit_display, side_width
 from sok.ui.theme import Theme, ui_font
 
 # The folder setting of the type of each name model, for the preview.
@@ -55,6 +56,12 @@ MODEL_FOLDERS = {
     "book_format": ("default_books_path",),
     "game_format": ("default_games_path",),
 }
+
+
+# Narrowest page that still shows the preview, and narrowest left column
+# with the titles of the sections at the left of their settings.
+PREVIEW_MIN_WIDTH = 1000
+COMPACT_WIDTH = 760
 
 
 def _palette(widget: QWidget) -> dict[str, str]:
@@ -152,9 +159,10 @@ class SettingsPage(QWidget):
         preview_scroll = QScrollArea()
         preview_scroll.setWidgetResizable(True)
         preview_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        preview_scroll.setFixedWidth(460)
+        preview_scroll.setFixedWidth(side_width(1440))
         preview_scroll.setWidget(self._preview)
         columns.addWidget(preview_scroll)
+        self._preview_scroll = preview_scroll
 
         self.appearance_section.theme_changed.connect(self._on_theme_change)
         self.appearance_section.language_changed.connect(self._on_language_change)
@@ -209,6 +217,20 @@ class SettingsPage(QWidget):
         self._show_preview(model.config_key, self.formats_section.text())
 
     # ------------------------------------------------------------- Style
+
+    def resizeEvent(self, e):  # noqa: N802 - Qt API
+        """The preview leaves a narrow window, and the titles of the sections
+        go above their settings when the room is short."""
+        super().resizeEvent(e)
+        width = self.width()
+        show_preview = width >= PREVIEW_MIN_WIDTH
+        self._preview_scroll.setVisible(show_preview)
+        if show_preview:
+            self._preview_scroll.setFixedWidth(side_width(width))
+        left = width - (side_width(width) if show_preview else 0)
+        for _key, _default, block in self._blocks:
+            block.set_compact(left < COMPACT_WIDTH)
+        fit_display([self.lbl_title], width)
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
         p = QPainter(self)

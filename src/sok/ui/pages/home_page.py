@@ -41,6 +41,7 @@ from PySide6.QtGui import (
     QShortcut,
 )
 from PySide6.QtWidgets import (
+    QBoxLayout,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -74,6 +75,7 @@ from sok.ui.pages.batch_page import (
     human_size,
     shortcut_label,
 )
+from sok.ui.responsive import fit_display, side_width
 from sok.ui.theme import Theme, ui_font
 from sok.ui.tokens import RADIUS
 from sok.ui.workers import DetectionWorker
@@ -434,6 +436,15 @@ class HomeScene(QWidget):
         y += 34
         width = rect.width() - 2 * pad
         for disk in self._disks:
+            amount = tr("home_used_of", "{0} of {1}").format(
+                human_size(disk.used), human_size(disk.total)
+            )
+            mono = ui_font(13, 400, mono=True, tabular=True)
+            # The name gets what the amount leaves, shortened if need be.
+            name_room = width - 14 - QFontMetrics(mono).horizontalAdvance(amount) - 12
+            name = QFontMetrics(ui_font(13)).elidedText(
+                disk.label, Qt.TextElideMode.ElideRight, max(0, int(name_room))
+            )
             p.setFont(ui_font(13))
             p.setPen(Qt.PenStyle.NoPen)
             p.setBrush(parse_color(c["ink"]))
@@ -442,12 +453,8 @@ class HomeScene(QWidget):
             p.drawText(
                 QRectF(pad + 14, y, width - 14, 18),
                 Qt.AlignmentFlag.AlignVCenter,
-                disk.label,
+                name,
             )
-            amount = tr("home_used_of", "{0} of {1}").format(
-                human_size(disk.used), human_size(disk.total)
-            )
-            mono = ui_font(13, 400, mono=True, tabular=True)
             p.setFont(mono)
             p.setPen(parse_color(c["ink"]))
             p.drawText(
@@ -585,7 +592,9 @@ class HomePage(QWidget):
         column.setContentsMargins(0, 0, 0, 24)
         column.setSpacing(0)
         column.addWidget(scroll, 1)
-        actions = QHBoxLayout()
+        # Side by side, or the note under the key in a narrow window.
+        actions = QBoxLayout(QBoxLayout.Direction.LeftToRight)
+        self._actions = actions
         actions.setContentsMargins(40, 16, 40, 0)
         actions.setSpacing(12)
         self._choose_btn = KeyButton("", primary=True)
@@ -600,7 +609,7 @@ class HomePage(QWidget):
         columns.addLayout(column, 1)
 
         self._scene = HomeScene()
-        self._scene.setFixedWidth(460)
+        self._scene.setFixedWidth(side_width(1440))
         columns.addWidget(self._scene)
 
         shortcut = QShortcut(QKeySequence("Ctrl+O"), self)
@@ -640,6 +649,22 @@ class HomePage(QWidget):
         )
         # Its sentence holds colors of the theme.
         self._update_band()
+
+    def resizeEvent(self, e):  # noqa: N802 - Qt API
+        """The scene, the title and the key follow the size of the page."""
+        super().resizeEvent(e)
+        self._scene.setFixedWidth(side_width(self.width()))
+        fit_display([self._title], self.width())
+        narrow = self.width() - side_width(self.width()) < 560
+        self._actions.setDirection(
+            QBoxLayout.Direction.TopToBottom
+            if narrow
+            else QBoxLayout.Direction.LeftToRight
+        )
+        self._actions.setAlignment(
+            self._choose_btn,
+            Qt.AlignmentFlag.AlignLeft if narrow else Qt.AlignmentFlag(0),
+        )
 
     def changeEvent(self, e):  # noqa: N802 - Qt API
         super().changeEvent(e)

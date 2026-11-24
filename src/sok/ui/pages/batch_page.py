@@ -90,6 +90,7 @@ from sok.ui.controllers.undo import undo_operation
 from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.i18n import tr, trn
 from sok.ui.platform import IS_MACOS, request_attention
+from sok.ui.responsive import LOW_HEIGHT, display_font, fit_display, side_width
 from sok.ui.theme import Theme, ui_font
 from sok.ui.workers import BatchOrganizeWorker, BatchSearchWorker
 
@@ -560,7 +561,8 @@ class BatchPage(QWidget):
         layout.setSpacing(0)
         layout.addStretch(1)
         center = Qt.AlignmentFlag.AlignHCenter
-        layout.addWidget(EmptyFan(self.empty_shape or self.scene_shape), 0, center)
+        self._empty_fan = EmptyFan(self.empty_shape or self.scene_shape)
+        layout.addWidget(self._empty_fan, 0, center)
         layout.addSpacing(28)
         self._empty_title = QLabel()
         self._empty_title.setFont(self._display_font())
@@ -714,12 +716,13 @@ class BatchPage(QWidget):
         self._dest_lbl = QLabel()
         self._dest_lbl.setFont(ui_font(13))
         self._dest_lbl.setTextFormat(Qt.TextFormat.RichText)
+        self._dest_lbl.setWordWrap(True)
         self._dest_lbl.setContentsMargins(14, 0, 14, 0)
         left.addWidget(self._dest_lbl)
         columns.addLayout(left, 1)
 
         self._right = QStackedWidget()
-        self._right.setFixedWidth(460)
+        self._right.setFixedWidth(side_width(1440))
         self._scene = Scene()
         self._not_it_btn = self._scene.add_action()
         self._not_it_btn.clicked.connect(self._open_picker)
@@ -740,17 +743,32 @@ class BatchPage(QWidget):
         self._summary = RenameSummary()
         self._summary.open_clicked.connect(self._open_destination)
         self._summary.undo_clicked.connect(self._undo_last)
+        # Scrolls when the window is too low for the covers and the figures.
+        self._summary_scroll = QScrollArea()
+        self._summary_scroll.setWidgetResizable(True)
+        self._summary_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._summary_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self._summary_scroll.setWidget(self._summary)
         self._right.addWidget(self._scene_scroll)
         self._right.addWidget(self._picker)
-        self._right.addWidget(self._summary)
+        self._right.addWidget(self._summary_scroll)
         columns.addWidget(self._right)
         return screen
 
     @staticmethod
     def _display_font():
-        font = ui_font(52, 650)
-        font.setLetterSpacing(font.SpacingType.AbsoluteSpacing, -2.08)
-        return font
+        return display_font(1440)
+
+    def resizeEvent(self, e):  # noqa: N802 - Qt API
+        """The right column, the big titles and the empty places follow the
+        size of the page."""
+        super().resizeEvent(e)
+        self._right.setFixedWidth(side_width(self.width()))
+        fit_display([self._title_lbl, self._empty_title], self.width())
+        self._empty_text.setFixedWidth(min(520, max(280, self.width() - 80)))
+        self._empty_fan.setVisible(self.height() >= LOW_HEIGHT)
 
     def _palette(self) -> Dict[str, str]:
         return getattr(self.window(), "c", None) or Theme.DARK
@@ -1115,7 +1133,7 @@ class BatchPage(QWidget):
             return
         if self._phase == "end" and (entry is None or entry.status == STATUS_DONE):
             self._right.setVisible(True)
-            self._right.setCurrentWidget(self._summary)
+            self._right.setCurrentWidget(self._summary_scroll)
             return
         if entry is None:
             self._right.setVisible(False)

@@ -49,6 +49,7 @@ from sok.ui.platform import (
 from sok.ui.macos_menu import MacMenuBar
 from sok.ui.components.base import parse_color
 from sok.ui.components.nav import NavBar
+from sok.ui.responsive import CenteredColumn
 from sok.ui.components.window import WindowControlButton
 from sok.ui.controllers.window_chrome import ResizeGrips, hit_test_resize
 from sok.ui.pages.home_page import HomePage
@@ -208,12 +209,20 @@ class MainWindow(QMainWindow):
         )
         self._navbar.navigate.connect(self._go)
         self._set_nav_tooltips()
-        right_layout.addWidget(self._navbar)
 
         self._pages = QStackedWidget()
         self._pages.setObjectName("Content")
         self._add_pages()
-        right_layout.addWidget(self._pages, 1)
+
+        # The navigation and the pages stop growing past MAX_CONTENT_WIDTH,
+        # centered on a very wide window.
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
+        content_layout.addWidget(self._navbar)
+        content_layout.addWidget(self._pages, 1)
+        right_layout.addWidget(CenteredColumn(content), 1)
 
         self._status = self.statusBar()
         if self._status:

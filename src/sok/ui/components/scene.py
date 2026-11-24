@@ -309,6 +309,10 @@ class _Sheet(QWidget):
             p.setPen(parse_color(c["ink-muted"]))
             p.drawText(0, baseline, label)
             label_w = QFontMetrics(label_font).horizontalAdvance(label)
+            # A value too long for the line is shortened in the middle.
+            value = QFontMetrics(value_font).elidedText(
+                value, Qt.TextElideMode.ElideMiddle, max(0, self.width() - label_w - 24)
+            )
             value_w = QFontMetrics(value_font).horizontalAdvance(value)
             p.setFont(value_font)
             p.setPen(parse_color(c[self._tones.get(label, "ink")]))

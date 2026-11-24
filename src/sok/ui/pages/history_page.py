@@ -55,6 +55,7 @@ from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.i18n import tr, trn
 from sok.ui.pages.batch_page import KIND_TEXTS, display_path, human_size
 from sok.ui.pages.home_page import when_text
+from sok.ui.responsive import fit_display, side_width
 from sok.ui.theme import Theme, ui_font
 
 # The kind of texts of the page an operation was made on, by its kind.
@@ -641,7 +642,7 @@ class HistoryPage(QWidget):
         scene_scroll = QScrollArea()
         scene_scroll.setWidgetResizable(True)
         scene_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scene_scroll.setFixedWidth(460)
+        scene_scroll.setFixedWidth(side_width(1440))
         scene_scroll.setWidget(self._scene)
         columns.addWidget(scene_scroll)
         self._scene_scroll = scene_scroll
@@ -650,6 +651,11 @@ class HistoryPage(QWidget):
         p = QPainter(self)
         p.fillRect(self.rect(), parse_color(_palette(self)["bg"]))
         p.end()
+
+    def resizeEvent(self, e):  # noqa: N802 - Qt API
+        super().resizeEvent(e)
+        self._scene_scroll.setFixedWidth(side_width(self.width()))
+        fit_display([self._title], self.width())
 
     def _restyle(self) -> None:
         c = _palette(self)

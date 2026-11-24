@@ -76,10 +76,36 @@ class SettingsBlock(QWidget):
         self.title.setFixedWidth(TITLE_WIDTH)
         self.title.setWordWrap(True)
         self.title.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self._grid = grid
+        self._body = body
+        self._compact = False
         grid.addWidget(self.title, 0, 0, Qt.AlignmentFlag.AlignTop)
         grid.addWidget(body, 0, 1)
         grid.setColumnStretch(1, 1)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+    def set_compact(self, compact: bool) -> None:
+        """Title above the content (a narrow window) or at its left."""
+        if compact == self._compact:
+            return
+        self._compact = compact
+        self._grid.removeWidget(self.title)
+        self._grid.removeWidget(self._body)
+        if compact:
+            self.title.setMinimumWidth(0)
+            self.title.setMaximumWidth(16777215)
+            self._grid.addWidget(self.title, 0, 0)
+            self._grid.addWidget(self._body, 1, 0)
+            self._grid.setColumnStretch(0, 1)
+            self._grid.setColumnStretch(1, 0)
+            self._grid.setVerticalSpacing(14)
+        else:
+            self.title.setFixedWidth(TITLE_WIDTH)
+            self._grid.addWidget(self.title, 0, 0, Qt.AlignmentFlag.AlignTop)
+            self._grid.addWidget(self._body, 0, 1)
+            self._grid.setColumnStretch(0, 0)
+            self._grid.setColumnStretch(1, 1)
+            self._grid.setVerticalSpacing(0)
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
         # The hairline above the section (CSS: inset 0 1px 0 var(--hair)).

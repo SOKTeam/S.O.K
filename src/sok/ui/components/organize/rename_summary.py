@@ -23,11 +23,12 @@ from typing import Dict, List, Optional, Tuple
 
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPixmap, QRadialGradient
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from sok.ui.components.base import KeyButton, parse_color
 from sok.ui.components.media_visual import dominant_color, draw_fan, standin_colors
 from sok.ui.components.scene import _Sheet, paint_light
+from sok.ui.responsive import LOW_HEIGHT
 from sok.ui.theme import Theme, ui_font
 
 
@@ -121,15 +122,17 @@ class RenameSummary(QWidget):
         self._sheet = _Sheet()
         layout.addWidget(self._sheet)
         layout.addSpacing(28)
-        keys = QHBoxLayout()
+        # Side by side, or one above the other in a narrow column.
+        keys = QBoxLayout(QBoxLayout.Direction.LeftToRight)
+        self._keys = keys
         keys.setSpacing(10)
         keys.addStretch()
         self.open_btn = KeyButton("", primary=True)
         self.open_btn.clicked.connect(self.open_clicked.emit)
         self.undo_btn = KeyButton("")
         self.undo_btn.clicked.connect(self.undo_clicked.emit)
-        keys.addWidget(self.open_btn)
-        keys.addWidget(self.undo_btn)
+        keys.addWidget(self.open_btn, 0, Qt.AlignmentFlag.AlignHCenter)
+        keys.addWidget(self.undo_btn, 0, Qt.AlignmentFlag.AlignHCenter)
         keys.addStretch()
         layout.addLayout(keys)
         layout.addSpacing(16)
@@ -141,9 +144,23 @@ class RenameSummary(QWidget):
         layout.addStretch()
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
 
+    def resizeEvent(self, e):  # noqa: N802 - Qt API
+        super().resizeEvent(e)
+        self._fan.setVisible(bool(self._fan._covers) and self._room())
+        self._keys.setDirection(
+            QBoxLayout.Direction.TopToBottom
+            if self.width() < 440
+            else QBoxLayout.Direction.LeftToRight
+        )
+
+    def _room(self) -> bool:
+        """Room for the covers above the figures (the window is not low)."""
+        window = self.window()
+        return window is None or window.height() >= LOW_HEIGHT + 120
+
     def show_data(self, data: SummaryData) -> None:
         self._fan.set_covers(data.covers, data.square)
-        self._fan.setVisible(bool(data.covers))
+        self._fan.setVisible(bool(data.covers) and self._room())
         self._sheet.set_fields(data.fields, data.tones)
         self.undo_btn.setVisible(data.can_undo)
         self.note.setVisible(data.can_undo)
