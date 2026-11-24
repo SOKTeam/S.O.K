@@ -351,8 +351,12 @@ class TypeRow(QWidget):
 class HomeScene(QWidget):
     """The right of the home page: covers waiting, and the disks."""
 
+    # The covers or the size moved: the window repaints the light.
+    light_changed = Signal()
+
     def __init__(self):
         super().__init__()
+        self.inline_light = True
         self.setMinimumWidth(360)
         self._covers: List[Tuple[Optional[QPixmap], str]] = []
         self._disks: List[Disk] = []
@@ -365,6 +369,25 @@ class HomeScene(QWidget):
             pixmap, title = covers[0]
             self._color = dominant_color(pixmap) if pixmap else standin_colors(title)[0]
         self.update()
+        self.light_changed.emit()
+
+    def paint_light_into(self, p: QPainter, offset: QPointF, area: QRectF) -> None:
+        """The ambient light of the covers, painted in a widget where this
+        one is at offset."""
+        if not self._covers:
+            return
+        center = offset + QPointF(self.width() / 2, self.height() * 0.22)
+        light = QRadialGradient(center, 420)
+        tint = QColor(self._color)
+        tint.setAlphaF(0.12)
+        light.setColorAt(0, tint)
+        tint.setAlphaF(0)
+        light.setColorAt(1, tint)
+        p.fillRect(area, light)
+
+    def resizeEvent(self, e):  # noqa: N802 - Qt API
+        super().resizeEvent(e)
+        self.light_changed.emit()
 
     def set_disks(self, disks: List[Disk], room: str = "") -> None:
         self._disks = disks[:2]
@@ -376,17 +399,7 @@ class HomeScene(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect = QRectF(self.rect())
-        p.fillRect(rect, parse_color(c["bg"]))
-        if self._covers:
-            light = QRadialGradient(
-                QPointF(rect.width() / 2, rect.height() * 0.22), 420
-            )
-            tint = QColor(self._color)
-            tint.setAlphaF(0.12)
-            light.setColorAt(0, tint)
-            tint.setAlphaF(0)
-            light.setColorAt(1, tint)
-            p.fillRect(rect, light)
+        # The window paints the background and the light (see LightColumn).
         p.setPen(QPen(parse_color(c["line"]), 1))
         p.drawLine(QPointF(0.5, 0), QPointF(0.5, rect.height()))
 
@@ -498,6 +511,8 @@ class HomePage(QWidget):
 
     navigate = Signal(int)
     open_group = Signal(object, list)
+    # The light of the page moved: the window paints it again.
+    light_changed = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -610,6 +625,8 @@ class HomePage(QWidget):
 
         self._scene = HomeScene()
         self._scene.setFixedWidth(side_width(1440))
+        self._scene.inline_light = True
+        self._scene.light_changed.connect(self.light_changed.emit)
         columns.addWidget(self._scene)
 
         shortcut = QShortcut(QKeySequence("Ctrl+O"), self)
@@ -671,10 +688,10 @@ class HomePage(QWidget):
         if e.type() in (e.Type.StyleChange, e.Type.PaletteChange):
             self._restyle()
 
-    def paintEvent(self, e):  # noqa: N802 - Qt API
-        p = QPainter(self)
-        p.fillRect(self.rect(), parse_color(_palette(self)["bg"]))
-        p.end()
+    def light_source(self):
+        """The widget whose light the window paints, or None (see
+        main_window.LightColumn)."""
+        return self._scene
 
     def retranslateUi(self) -> None:
         self._choose_btn.setText(tr("batch_choose_folder", "Choose a folder"))

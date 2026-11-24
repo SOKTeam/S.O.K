@@ -115,6 +115,8 @@ class RenameSummary(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._color = QColor(128, 128, 128)
+        # True while the window paints the light (see Scene.inline_light).
+        self.inline_light = False
         layout = QVBoxLayout(self)
         layout.setContentsMargins(44, 64, 44, 36)
         layout.setSpacing(0)
@@ -197,10 +199,9 @@ class RenameSummary(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect = QRectF(self.rect())
-        p.fillRect(rect, parse_color(c["bg"]))
-        if self._fan.isVisible():
-            obj = self._fan.object_rect().translated(QPointF(self._fan.pos()))
-            paint_light(p, rect, self._color, obj)
+        if not self.inline_light:
+            p.fillRect(rect, parse_color(c["bg"]))
+            self.paint_light_into(p, QPointF(0, 0), rect)
         p.setPen(parse_color(c["line"]))
         p.drawLine(QPointF(0.5, 0), QPointF(0.5, rect.height()))
         p.end()

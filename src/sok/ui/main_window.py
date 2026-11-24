@@ -26,14 +26,19 @@ from PySide6.QtWidgets import (
     QFrame,
     QApplication,
     QSizePolicy,
+    QStyle,
+    QStyleOption,
 )
 from PySide6.QtCore import (
     Qt,
     QTimer,
     QPropertyAnimation,
     QEasingCurve,
+    QPoint,
+    QPointF,
+    QRectF,
 )
-from PySide6.QtGui import QIcon, QPalette
+from PySide6.QtGui import QIcon, QPainter, QPalette
 
 from sok.ui.theme import Theme, APP_ICON, palette, tone_stylesheet
 from sok.ui.platform import (
@@ -85,6 +90,37 @@ PAGE_BY_KIND = {
     ContentType.BOOK: 4,
     ContentType.GAME: 5,
 }
+
+
+class LightColumn(QWidget):
+    """The column of the navigation and the pages, which paints their
+    background (from the stylesheet) and the light of the page open over
+    all of it: under the navigation, the list and the margins, so the light
+    of a scene fades out instead of stopping at the edge of its column.
+
+    A page gives the widget of its light with light_source(): a widget with
+    paint_light_into(p, offset, area), or None.
+    """
+
+    def __init__(self, window: "MainWindow"):
+        super().__init__()
+        self._window = window
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+
+    def paintEvent(self, e):  # noqa: N802 - Qt API
+        option = QStyleOption()
+        option.initFrom(self)
+        p = QPainter(self)
+        self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, option, p, self)
+        pages = getattr(self._window, "_pages", None)
+        page = pages.currentWidget() if pages is not None else None
+        get_source = getattr(page, "light_source", None)
+        source = get_source() if get_source is not None else None
+        if source is not None and source.isVisible():
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            offset = QPointF(source.mapTo(self, QPoint(0, 0)))
+            source.paint_light_into(p, offset, QRectF(self.rect()))
+        p.end()
 
 
 class MainWindow(QMainWindow):
@@ -191,8 +227,9 @@ class MainWindow(QMainWindow):
         Returns:
             Widget containing header, pages stack, and status bar.
         """
-        right_col = QWidget()
+        right_col = LightColumn(self)
         right_col.setObjectName("RightCol")
+        self._right_col = right_col
         right_layout = QVBoxLayout(right_col)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
@@ -213,6 +250,12 @@ class MainWindow(QMainWindow):
         self._pages = QStackedWidget()
         self._pages.setObjectName("Content")
         self._add_pages()
+        # The pages say when their light moves; the window paints it.
+        for i in range(self._pages.count()):
+            page = self._pages.widget(i)
+            signal = getattr(page, "light_changed", None)
+            if signal is not None:
+                signal.connect(right_col.update)
 
         # The navigation and the pages stop growing past MAX_CONTENT_WIDTH,
         # centered on a very wide window.
@@ -586,6 +629,7 @@ class MainWindow(QMainWindow):
             idx: Page index to navigate to.
         """
         self._pages.setCurrentIndex(idx)
+        self._right_col.update()
         self._update_title_by_index(idx)
 
         self._navbar.set_current(idx)

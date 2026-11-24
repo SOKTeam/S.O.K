@@ -129,11 +129,13 @@ class _Holder(QWidget):
         self.back_row.hide()
         layout.addWidget(self.back_row)
         layout.addWidget(side, 1)
+        # Painted only over the list; beside it the window shows through.
+        self.opaque = False
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
         c = getattr(self.window(), "c", None)
         p = QPainter(self)
-        if c:
+        if c and self.opaque:
             p.fillRect(self.rect(), parse_color(c["bg"]))
         p.end()
 
@@ -207,6 +209,7 @@ class SidePanel(QObject):
                 self._layout.addWidget(self.holder)
                 self.holder.show()
             self.holder.back_row.setVisible(narrow)
+            self.holder.opaque = narrow
         self._place()
 
     def _target(self) -> QPoint:

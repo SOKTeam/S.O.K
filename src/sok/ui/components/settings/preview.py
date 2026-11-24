@@ -274,10 +274,7 @@ class SettingsPreview(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect = QRectF(self.rect())
-        p.fillRect(rect, parse_color(c["bg"]))
-        obj = self._stage.object_rect().translated(QPointF(self._stage.pos()))
-        if obj.isValid():
-            paint_light(p, rect, self._color, obj)
+        # The window paints the background and the light (see LightColumn).
         p.setPen(QPen(parse_color(c["line"]), 1))
         p.drawLine(QPointF(0.5, 0), QPointF(0.5, rect.height()))
         p.end()

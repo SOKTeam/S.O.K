@@ -49,7 +49,7 @@ from sok.core.history import COPY, LINK, Move, Operation, get_history
 from sok.ui import message_box
 from sok.ui.components.base import KeyButton, parse_color
 from sok.ui.components.media_visual import draw_fan, standin_colors
-from sok.ui.components.scene import _Sheet, paint_spill
+from sok.ui.components.scene import _Sheet
 from sok.ui.controllers.undo import undo_operation
 from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.i18n import tr, trn
@@ -430,6 +430,8 @@ class HistoryScene(QWidget):
 
     def __init__(self):
         super().__init__()
+        # True while the window paints the light (see Scene.inline_light).
+        self.inline_light = False
         self._color = QColor(128, 128, 128)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(44, 60, 44, 36)
@@ -577,8 +579,9 @@ class HistoryScene(QWidget):
         c = _palette(self)
         p = QPainter(self)
         rect = QRectF(self.rect())
-        p.fillRect(rect, parse_color(c["bg"]))
-        self.paint_light_into(p, QPointF(0, 0), rect)
+        if not self.inline_light:
+            p.fillRect(rect, parse_color(c["bg"]))
+            self.paint_light_into(p, QPointF(0, 0), rect)
         p.setPen(QPen(parse_color(c["line"]), 1))
         p.drawLine(QPointF(0.5, 0), QPointF(0.5, rect.height()))
         p.end()
@@ -586,6 +589,9 @@ class HistoryScene(QWidget):
 
 class HistoryPage(QWidget):
     """Page of the history of renames, newest first."""
+
+    # The light of the page moved: the window paints it again.
+    light_changed = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -662,20 +668,22 @@ class HistoryPage(QWidget):
         self._panel = SidePanel(
             self, columns, scene_scroll, lambda: tr("back_to_list", "List")
         )
-        self._scene.light_changed.connect(self.update)
-        scene_scroll.verticalScrollBar().valueChanged.connect(self.update)
+        scene_scroll.viewport().setStyleSheet("background: transparent;")
+        self._scene.light_changed.connect(self.light_changed.emit)
+        scene_scroll.verticalScrollBar().valueChanged.connect(self.light_changed.emit)
 
-    def paintEvent(self, e):  # noqa: N802 - Qt API
-        p = QPainter(self)
-        p.fillRect(self.rect(), parse_color(_palette(self)["bg"]))
-        # The light of the scene spills a little under the list.
-        if not self._panel.narrow:
-            paint_spill(p, self, self._scene, self._panel.holder)
-        p.end()
+    def light_source(self):
+        """The widget whose light the window paints, or None (see
+        main_window.LightColumn)."""
+        if self._panel.narrow or not self._scene_scroll.isVisible():
+            return None
+        return self._scene
 
     def resizeEvent(self, e):  # noqa: N802 - Qt API
         super().resizeEvent(e)
         self._panel.fit(self.width())
+        self._scene.inline_light = not self._panel.narrow
+        self.light_changed.emit()
         self._scene_scroll.setFixedWidth(self._panel.column_width(self.width()))
         fit_display([self._title], self.width())
 

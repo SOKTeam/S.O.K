@@ -21,7 +21,6 @@ from __future__ import annotations
 from typing import List, Tuple
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -33,7 +32,6 @@ from PySide6.QtWidgets import (
 
 from sok.config.config_manager import get_config_manager
 from sok.ui import message_box
-from sok.ui.components.base import parse_color
 from sok.ui.components.integrations.oauth import OAuthManager
 from sok.ui.components.settings.about_section import AboutSection
 from sok.ui.components.settings.api_section import ApiSection
@@ -43,7 +41,6 @@ from sok.ui.components.settings.formats_section import FormatsSection
 from sok.ui.components.settings.input_formats_section import InputFormatsSection
 from sok.ui.components.settings.layout import SettingsBlock, settings_stylesheet
 from sok.ui.components.settings.paths_section import PathsSection
-from sok.ui.components.scene import paint_spill
 from sok.ui.components.settings.preview import SettingsPreview
 from sok.ui.i18n import tr
 from sok.ui.responsive import fit_display, side_width
@@ -79,6 +76,8 @@ class SettingsPage(QWidget):
 
     language_changed = Signal(str)
     theme_changed = Signal(bool)
+    # The light of the page moved: the window paints it again.
+    light_changed = Signal()
 
     def __init__(self, on_toggle, parent=None):
         """Initialize the settings page.
@@ -164,8 +163,9 @@ class SettingsPage(QWidget):
         preview_scroll.setWidget(self._preview)
         columns.addWidget(preview_scroll)
         self._preview_scroll = preview_scroll
-        self._preview.light_changed.connect(self.update)
-        preview_scroll.verticalScrollBar().valueChanged.connect(self.update)
+        preview_scroll.viewport().setStyleSheet("background: transparent;")
+        self._preview.light_changed.connect(self.light_changed.emit)
+        preview_scroll.verticalScrollBar().valueChanged.connect(self.light_changed.emit)
 
         self.appearance_section.theme_changed.connect(self._on_theme_change)
         self.appearance_section.language_changed.connect(self._on_language_change)
@@ -234,14 +234,12 @@ class SettingsPage(QWidget):
         for _key, _default, block in self._blocks:
             block.set_compact(left < COMPACT_WIDTH)
         fit_display([self.lbl_title], width)
+        self.light_changed.emit()
 
-    def paintEvent(self, e):  # noqa: N802 - Qt API
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        p.fillRect(self.rect(), parse_color(_palette(self)["bg"]))
-        # The light of the preview spills a little under the settings.
-        paint_spill(p, self, self._preview, self._preview_scroll)
-        p.end()
+    def light_source(self):
+        """The widget whose light the window paints, or None (see
+        main_window.LightColumn)."""
+        return self._preview if self._preview_scroll.isVisible() else None
 
     def _restyle(self) -> None:
         c = _palette(self)

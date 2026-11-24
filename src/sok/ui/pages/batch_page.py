@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PySide6.QtCore import Qt, QUrl, Signal
-from PySide6.QtGui import QDesktopServices, QKeySequence, QPainter, QPixmap, QShortcut
+from PySide6.QtGui import QDesktopServices, QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -65,7 +65,7 @@ from sok.file_operations.artwork import image_url
 from sok.file_operations.mixins.parsing import FileParsingMixin
 from sok.media.factory import create_media_item
 from sok.ui import message_box
-from sok.ui.components.base import KeyButton, parse_color
+from sok.ui.components.base import KeyButton
 from sok.ui.components.file_row import RowData
 from sok.ui.components.organize.empty_state import EmptyFan, TagCloud
 from sok.ui.components.organize.rename_summary import RenameSummary, SummaryData
@@ -81,7 +81,7 @@ from sok.ui.components.organize.media_list import (
     one_item_per_file,
 )
 from sok.ui.components.organize.pick_panel import Choice, PickPanel
-from sok.ui.components.scene import Scene, SceneItem, Shape, paint_spill
+from sok.ui.components.scene import Scene, SceneItem, Shape
 from sok.ui.components.search import load_poster
 from sok.ui.controllers.default_paths import default_destination
 from sok.ui.controllers.file_mode import hard_link_blocked
@@ -350,28 +350,8 @@ class _Destination:
 
 
 class _Screen(QWidget):
-    """A screen of the page, painted with the window background.
-
-    With a scene beside the list, it also paints the part of the light of
-    the scene that spills out of the column, under the list, so the light
-    fades out instead of stopping at the edge of the column.
-    """
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.panel: Optional[SidePanel] = None
-        # Gives the widget whose light spills under the list, or None.
-        self.light_source: Optional[Callable[[], Any]] = None
-
-    def paintEvent(self, e):  # noqa: N802 - Qt API
-        c = getattr(self.window(), "c", None) or Theme.DARK
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        p.fillRect(self.rect(), parse_color(c["bg"]))
-        panel = self.panel
-        if panel is not None and not panel.narrow and self.light_source is not None:
-            paint_spill(p, self, self.light_source(), panel.holder)
-        p.end()
+    """A screen of the page: transparent, the window paints its background
+    and the light of the scene (see main_window.LightColumn)."""
 
 
 class BatchPage(QWidget):
@@ -400,6 +380,8 @@ class BatchPage(QWidget):
     """
 
     history_requested = Signal()
+    # The light of the page moved: the window paints it again.
+    light_changed = Signal()
 
     kind = "movies"
     scene_shape = Shape.POSTER
@@ -780,16 +762,15 @@ class BatchPage(QWidget):
             screen, columns, self._right, lambda: tr("back_to_list", "List")
         )
         self._list.row_clicked.connect(lambda _key: self._panel.open())
-        # The light of the scene spills a little under the list.
-        screen.panel = self._panel
-        screen.light_source = self._light_source
+        # The window paints the light of the scene or of the summary.
         for source, scroll in (
             (self._scene, self._scene_scroll),
             (self._summary, self._summary_scroll),
         ):
-            source.light_changed.connect(screen.update)
-            scroll.verticalScrollBar().valueChanged.connect(screen.update)
-        self._right.currentChanged.connect(lambda _i: screen.update())
+            scroll.viewport().setStyleSheet("background: transparent;")
+            source.light_changed.connect(self.light_changed.emit)
+            scroll.verticalScrollBar().valueChanged.connect(self.light_changed.emit)
+        self._right.currentChanged.connect(lambda _i: self.light_changed.emit())
         return screen
 
     @staticmethod
@@ -801,6 +782,9 @@ class BatchPage(QWidget):
         size of the page."""
         super().resizeEvent(e)
         self._panel.fit(self.width())
+        inline = not self._panel.narrow
+        self._scene.inline_light = self._summary.inline_light = inline
+        self.light_changed.emit()
         self._right.setFixedWidth(self._panel.column_width(self.width()))
         self._fit_scene()
         fit_display([self._title_lbl, self._empty_title], self.width())
@@ -837,6 +821,7 @@ class BatchPage(QWidget):
         self._screens.setCurrentWidget(
             self._work if self._list.has_rows() else self._empty
         )
+        self.light_changed.emit()
 
     # ----------------------------------------------------------------- I/O
 
@@ -1220,8 +1205,13 @@ class BatchPage(QWidget):
         )
         self._fit_scene()
 
-    def _light_source(self) -> Any:
-        """The scene or the summary, whichever the right column shows."""
+    def light_source(self) -> Any:
+        """The scene or the summary beside the list, whichever the right
+        column shows, for the window to paint its light; None otherwise."""
+        if self._panel.narrow or self._screens.currentWidget() is not self._work:
+            return None
+        if not self._right.isVisible():
+            return None
         current = self._right.currentWidget()
         if current is self._scene_scroll:
             return self._scene

@@ -21,7 +21,7 @@ muted line, a sheet of details joined by dotted leaders, the final path
 from dataclasses import dataclass, field
 from enum import Enum
 
-from PySide6.QtCore import QPoint, QPointF, QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import (
     QColor,
     QFontMetrics,
@@ -175,25 +175,6 @@ def paint_light(
     glow.setColorAt(0, _with_alpha(color, GLOW_ALPHA))
     glow.setColorAt(1, _with_alpha(color, 0))
     p.fillRect(fill, glow)
-
-
-def paint_spill(p: QPainter, host: QWidget, source, column: QWidget) -> None:
-    """Paint in host the part of the light of source that spills out of its
-    column, at the left of it, so the light fades out instead of stopping at
-    the edge of the column.
-
-    Args:
-        p: Painter of host.
-        host: The page, which paints under the list.
-        source: The widget of the light (Scene, preview, summary…), with a
-            paint_light_into(p, offset, area) method; None for nothing.
-        column: The right column holding it.
-    """
-    if source is None or not source.isVisible() or not column.isVisible():
-        return
-    offset = QPointF(source.mapTo(host, QPoint(0, 0)))
-    left = column.mapTo(host, QPoint(0, 0)).x()
-    source.paint_light_into(p, offset, QRectF(0, 0, left, host.height()))
 
 
 def paint_drop_shadow(p: QPainter, obj: QRectF, shape: Shape, color: QColor) -> None:
@@ -446,6 +427,9 @@ class Scene(QWidget):
         self._color = QColor(128, 128, 128)
         # Height of the column the scene was last fitted to (0: none).
         self._fit_to = 0
+        # True while the window paints the light (the scene beside the
+        # list); False when the scene is drawn over the list, alone.
+        self.inline_light = False
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(44, 72, 44, 36)
@@ -640,10 +624,12 @@ class Scene(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         rect = QRectF(self.rect())
-        p.fillRect(rect, parse_color(c["bg"]))
+        if not self.inline_light:
+            p.fillRect(rect, parse_color(c["bg"]))
         if self._item:
             obj = self._stage.object_rect().translated(QPointF(self._stage.pos()))
-            paint_light(p, rect, self._color, obj)
+            if not self.inline_light:
+                paint_light(p, rect, self._color, obj)
             paint_drop_shadow(
                 p, obj, self._item.shape, parse_color(c["shadow-poster-drop"])
             )
