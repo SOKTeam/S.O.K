@@ -17,7 +17,7 @@ ui/
 │   ├── inputs.py        # Input elements and Drop Zones
 │   ├── layouts.py       # Custom layouts (FlowLayout)
 │   ├── search.py        # Widgets dedicated to search results
-│   ├── sidebar.py       # Sidebar navigation components
+│   ├── nav.py           # Navigation (media types as words, icons)
 │   └── window.py        # Window controls (Custom title bar)
 ├── pages/               # Main application pages
 │   ├── home_page.py     # Dashboard

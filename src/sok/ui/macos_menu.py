@@ -30,14 +30,15 @@ if TYPE_CHECKING:
 
 DOCUMENTATION_URL = "https://sokteam.github.io/sok"
 
-# Pages reachable with Cmd+1 to Cmd+6, in sidebar order.
+# Pages reachable with Cmd+1 to Cmd+6, in the order of the navigation:
+# (translation key, default text, page index).
 PAGE_ACTIONS = [
-    ("home", "Home"),
-    ("tv_shows", "TV Shows"),
-    ("movies", "Movies"),
-    ("music", "Music"),
-    ("books", "Books"),
-    ("games", "Games"),
+    ("home", "Home", 0),
+    ("movies", "Movies", 2),
+    ("tv_shows", "TV Shows", 1),
+    ("music", "Music", 3),
+    ("books", "Books", 4),
+    ("games", "Games", 5),
 ]
 SETTINGS_PAGE = 6
 HISTORY_PAGE = 7
@@ -49,8 +50,7 @@ QT_TRANSLATION_NAMES = {"pt": "pt_BR"}
 class MacMenuBar:
     """Build and translate the native menu bar of the main window.
 
-    The window must provide _go(index), _toggle_sidebar() and
-    current_page().
+    The window must provide _go(index) and current_page().
     """
 
     def __init__(self, window: "MainWindow"):
@@ -100,21 +100,13 @@ class MacMenuBar:
         )
 
         view_menu = self._menu(menu_bar, "menu_view", "View")
-        self._action(
-            view_menu,
-            "toggle_sidebar",
-            "Show/Hide Sidebar",
-            window._toggle_sidebar,
-            QKeySequence("Ctrl+Meta+S"),
-        )
-        view_menu.addSeparator()
-        for index, (key, default) in enumerate(PAGE_ACTIONS):
+        for number, (key, default, page) in enumerate(PAGE_ACTIONS, start=1):
             self._action(
                 view_menu,
                 key,
                 default,
-                lambda _=False, i=index: window._go(i),
-                QKeySequence(f"Ctrl+{index + 1}"),
+                lambda _=False, i=page: window._go(i),
+                QKeySequence(f"Ctrl+{number}"),
             )
         self._action(
             view_menu,

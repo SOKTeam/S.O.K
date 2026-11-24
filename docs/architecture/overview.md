@@ -31,7 +31,9 @@ blocked.
 
 Built in code with PySide6; no Qt Designer file is loaded at run time.
 
-- `main_window.py`: the window, the sidebar and the page stack. On Windows and
+- `main_window.py`: the window, the navigation (`components/nav.py`: the
+  media types as words, "● S.O.K" for home, History and Settings icons) and
+  the page stack. On Windows and
   Linux the window is frameless with its own title bar; on macOS it keeps the
   native title bar.
 - `pages/`: home, TV shows (`organize_page.py`), music (an Albums and a Tracks

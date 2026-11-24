@@ -97,14 +97,16 @@ A page is a widget, usually a `QScrollArea` with the object name `Page`. The
 window places the pages in a `QStackedWidget` and selects them by **index**:
 
 1. Create the page in `sok/ui/pages/` and export it in `pages/__init__.py`.
-2. Add it in `MainWindow` (`main_window.py`) with `self._pages.addWidget()`, in
-   sidebar order. The History page is the exception: it is the last one of the
-   stack (`HISTORY_PAGE = 7`) but its button sits above Settings.
-3. Add its sidebar button (the list of `(text_key, icon_name, index)` in
-   `MainWindow`) and its title in `_nav_titles()`.
+2. Add it in `MainWindow` (`main_window.py`) with `self._pages.addWidget()`.
+   The constants `HOME_PAGE`, `SETTINGS_PAGE` and `HISTORY_PAGE` give the
+   indexes of the pages outside the navigation.
+3. Give it its place in the navigation: a media type goes in `NAV_PAGES` (the
+   order of the words, Movies first), and its title in `_nav_titles()`.
+   Anything else is an icon at the right of the `NavBar`, next to History and
+   Settings.
 4. On macOS, add it to `PAGE_ACTIONS` in `macos_menu.py` (it gives the
-   <kbd>Cmd</kbd>+<kbd>1</kbd>… shortcuts) and update `SETTINGS_PAGE` and
-   `HISTORY_PAGE`.
+   <kbd>Cmd</kbd>+<kbd>1</kbd>… shortcuts, in the order of the navigation) and
+   update `SETTINGS_PAGE` and `HISTORY_PAGE` in both files.
 5. If the home page can send files to it, add its type to `PAGE_BY_KIND`.
 
 :::caution

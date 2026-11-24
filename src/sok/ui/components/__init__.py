@@ -23,7 +23,7 @@ from sok.ui.components.search import (
     SearchResultRow,
     SelectedMediaWidget,
 )
-from sok.ui.components.sidebar import SidebarButton, MenuButton
+from sok.ui.components.nav import NavBar
 from sok.ui.components.window import WindowControlButton, StopPropagationScrollArea
 
 __all__ = [
@@ -41,8 +41,7 @@ __all__ = [
     "FileRow",
     "SearchResultRow",
     "SelectedMediaWidget",
-    "SidebarButton",
-    "MenuButton",
+    "NavBar",
     "WindowControlButton",
     "StopPropagationScrollArea",
 ]

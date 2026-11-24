@@ -22,23 +22,20 @@ from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
-    QLabel,
     QStackedWidget,
     QFrame,
     QApplication,
     QSizePolicy,
-    QGraphicsOpacityEffect,
 )
 from PySide6.QtCore import (
     Qt,
     QTimer,
-    QVariantAnimation,
     QPropertyAnimation,
     QEasingCurve,
 )
 from PySide6.QtGui import QIcon, QPalette
 
-from sok.ui.theme import Theme, APP_ICON, ASSETS_DIR, palette, tone_stylesheet
+from sok.ui.theme import Theme, APP_ICON, palette, tone_stylesheet
 from sok.ui.platform import (
     IS_LINUX,
     IS_MACOS,
@@ -51,7 +48,7 @@ from sok.ui.platform import (
 )
 from sok.ui.macos_menu import MacMenuBar
 from sok.ui.components.base import parse_color
-from sok.ui.components.sidebar import SidebarButton, SidebarToggleButton
+from sok.ui.components.nav import NavBar
 from sok.ui.components.window import WindowControlButton
 from sok.ui.controllers.window_chrome import ResizeGrips, hit_test_resize
 from sok.ui.pages.home_page import HomePage
@@ -72,7 +69,12 @@ from sok.ui.i18n import tr, reload_language
 
 # Page of the stack that organizes each kind of detected file.
 # Index of the history page in the stack.
+HOME_PAGE = 0
+SETTINGS_PAGE = 6
 HISTORY_PAGE = 7
+# Media pages in the order of the navigation: Movies, TV shows, Music,
+# Books, Games.
+NAV_PAGES = (2, 1, 3, 4, 5)
 
 PAGE_BY_KIND = {
     ContentType.EPISODE: 1,
@@ -168,34 +170,11 @@ class MainWindow(QMainWindow):
         main_layout = QHBoxLayout(central)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-        self._sidebar = self._build_sidebar()
-        main_layout.addWidget(self._sidebar)
 
         right_col = self._build_right_column()
         main_layout.addWidget(right_col, 1)
 
-        self._window_title: QLabel | None = None
-        if IS_MACOS:
-            # Replaces the native title: builds made with the macOS 26 SDK
-            # left-align it, over the sidebar button. Centered on the whole
-            # window, it lets clicks through to drag the window.
-            self._window_title = QLabel(central)
-            self._window_title.setObjectName("WindowTitle")
-            self._window_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self._window_title.setAttribute(
-                Qt.WidgetAttribute.WA_TransparentForMouseEvents
-            )
-            self._window_title.raise_()
-
-            # Stays next to the traffic lights whatever the sidebar width.
-            toggle = SidebarToggleButton(central)
-            toggle.setToolTip(tr("toggle_sidebar", "Show/Hide Sidebar"))
-            toggle.clicked.connect(self._toggle_sidebar)
-            toggle.move(74, (MACOS_TITLEBAR_HEIGHT - toggle.height()) // 2)
-            toggle.raise_()
-
-        self._nav[0].setChecked(True)
-        self._go(0)
+        self._go(HOME_PAGE)
 
         self.setMouseTracking(True)
         central.setMouseTracking(True)
@@ -204,88 +183,6 @@ class MainWindow(QMainWindow):
         self._drag_pos = None
         # Linux has no native hit test for frameless windows (see nativeEvent).
         self._resize_grips = ResizeGrips(self) if IS_LINUX else None
-
-    def _build_sidebar(self) -> QWidget:
-        """Build the navigation sidebar.
-
-        Returns:
-            Configured sidebar widget with navigation buttons.
-        """
-        sidebar = QFrame()
-        sidebar.setObjectName("Sidebar")
-        sidebar.setFixedWidth(220)
-        self._sidebar_expanded = True
-        self._sidebar_labels = []
-        self._nav = []
-
-        sb_layout = QVBoxLayout(sidebar)
-        # On macOS, leave room for the traffic lights above the menu button.
-        top_margin = MACOS_TITLEBAR_HEIGHT + 8 if IS_MACOS else 0
-        sb_layout.setContentsMargins(0, top_margin, 0, 12)
-        sb_layout.setSpacing(0)
-
-        # macOS shows a sidebar button next to the traffic lights instead
-        # (see _build).
-        self._menu_btn: SidebarButton | None = None
-        if not IS_MACOS:
-            self._menu_btn = SidebarButton("", "menu")
-            self._menu_btn.clicked.connect(self._toggle_sidebar)
-            sb_layout.addWidget(self._menu_btn)
-
-        self.lbl_library = QLabel(tr("library", "Library"))
-        self.lbl_library.setObjectName("SidebarSection")
-        section1_effect = QGraphicsOpacityEffect(self.lbl_library)
-        section1_effect.setOpacity(1.0)
-        self.lbl_library.setGraphicsEffect(section1_effect)
-        self._sidebar_labels.append(section1_effect)
-        sb_layout.addWidget(self.lbl_library)
-
-        home_btn = SidebarButton(tr("home", "Home"), "home")
-        home_btn.clicked.connect(lambda: self._go(0))
-        sb_layout.addWidget(home_btn)
-        self._nav.append(home_btn)
-
-        for text_key, icon_name, idx in [
-            ("tv_shows", "video", 1),
-            ("movies", "video", 2),
-            ("music", "music", 3),
-            ("books", "book", 4),
-            ("games", "game", 5),
-        ]:
-            default_text = {
-                "tv_shows": "TV Shows",
-                "movies": "Movies",
-                "music": "Music",
-                "books": "Books",
-                "games": "Games",
-            }[text_key]
-            btn = SidebarButton(tr(text_key, default_text), icon_name)
-            btn.clicked.connect(lambda _, i=idx: self._go(i))
-            sb_layout.addWidget(btn)
-            self._nav.append(btn)
-
-        sb_layout.addStretch()
-
-        self.lbl_general = QLabel(tr("general", "General"))
-        self.lbl_general.setObjectName("SidebarSection")
-        section2_effect = QGraphicsOpacityEffect(self.lbl_general)
-        section2_effect.setOpacity(1.0)
-        self.lbl_general.setGraphicsEffect(section2_effect)
-        self._sidebar_labels.append(section2_effect)
-        sb_layout.addWidget(self.lbl_general)
-
-        # History is the last page (7) but sits above Settings.
-        history_btn = SidebarButton(tr("history", "History"), "history")
-        history_btn.clicked.connect(lambda: self._go(HISTORY_PAGE))
-        sb_layout.addWidget(history_btn)
-
-        settings_btn = SidebarButton(tr("settings", "Settings"), "settings")
-        settings_btn.clicked.connect(lambda: self._go(6))
-        sb_layout.addWidget(settings_btn)
-        self._nav.append(settings_btn)
-        self._nav.append(history_btn)
-
-        return sidebar
 
     def _build_right_column(self) -> QWidget:
         """Build the main content column.
@@ -301,6 +198,17 @@ class MainWindow(QMainWindow):
 
         header = self._build_header()
         right_layout.addWidget(header)
+
+        # The media types in the art direction's order: Movies before TV
+        # shows, unlike the page indexes.
+        self._navbar = NavBar(
+            HOME_PAGE,
+            [(i, self._nav_titles()[i]) for i in NAV_PAGES],
+            [(HISTORY_PAGE, "history"), (SETTINGS_PAGE, "settings")],
+        )
+        self._navbar.navigate.connect(self._go)
+        self._set_nav_tooltips()
+        right_layout.addWidget(self._navbar)
 
         self._pages = QStackedWidget()
         self._pages.setObjectName("Content")
@@ -328,29 +236,6 @@ class MainWindow(QMainWindow):
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(24, 0, 0, 0)
         header_layout.setSpacing(0)
-
-        # macOS windows show no icon in their title bar.
-        if not IS_MACOS:
-            self._logo_label = QLabel()
-            logo_icon = ASSETS_DIR / "logo.ico"
-            if logo_icon.exists():
-                self._logo_label.setPixmap(QIcon(str(logo_icon)).pixmap(28, 28))
-            else:
-                logo_png = ASSETS_DIR / "logo.png"
-                if logo_png.exists():
-                    self._logo_label.setPixmap(QIcon(str(logo_png)).pixmap(28, 28))
-            self._logo_label.setFixedSize(36, 42)
-            self._logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            header_layout.addWidget(self._logo_label)
-
-        self._title_label = QLabel(f"S.O.K - {tr('videos', 'Videos')}")
-        self._title_label.setObjectName("AppTitle")
-        header_layout.addWidget(self._title_label)
-        # macOS shows the title across the whole window (see _build).
-        # Hide only once parented: showing a parentless widget opens it as
-        # a separate top-level window, which flashed at startup on Windows.
-        if IS_MACOS:
-            self._title_label.hide()
 
         self._drag_area = QWidget()
         self._drag_area.setSizePolicy(
@@ -430,15 +315,19 @@ class MainWindow(QMainWindow):
 
         Called after language changes to refresh UI strings.
         """
-        self.lbl_library.setText(tr("library", "Library"))
-        self.lbl_general.setText(tr("general", "General"))
         titles = self._nav_titles()
-
-        for i, btn in enumerate(self._nav):
-            if i < len(titles):
-                btn.setText(titles[i])
+        for index, word in self._navbar.words.items():
+            word.setText(titles[index])
+        self._set_nav_tooltips()
 
         self._update_title_by_index(self._pages.currentIndex())
+
+    def _set_nav_tooltips(self):
+        """Name the S.O.K mark and the icons of the navigation."""
+        titles = self._nav_titles()
+        self._navbar.mark.setToolTip(titles[HOME_PAGE])
+        for index, icon in self._navbar.icons.items():
+            icon.setToolTip(titles[index])
 
     def changeEvent(self, event):
         """Re-apply styles when the maximized state or the accent changes.
@@ -562,9 +451,6 @@ class MainWindow(QMainWindow):
         grips = getattr(self, "_resize_grips", None)
         if grips:
             grips.update_geometry(self.width(), self.height())
-        title = getattr(self, "_window_title", None)
-        if title:
-            title.setGeometry(0, 0, self.width(), MACOS_TITLEBAR_HEIGHT)
 
     def showEvent(self, event):
         """Hide the native macOS title once the window exists.
@@ -659,8 +545,7 @@ class MainWindow(QMainWindow):
         self._pages.setCurrentIndex(idx)
         self._update_title_by_index(idx)
 
-        for i, btn in enumerate(self._nav):
-            btn.setChecked(i == idx)
+        self._navbar.set_current(idx)
 
         # The home page reads the drives again, the history its operations.
         page = self._pages.widget(idx)
@@ -718,52 +603,9 @@ class MainWindow(QMainWindow):
         """
         titles = self._nav_titles()
         if 0 <= idx < len(titles):
-            self._title_label.setText(f"S.O.K - {titles[idx]}")
-            if self._window_title:
-                # Also used by the Window menu and Mission Control.
-                self.setWindowTitle(titles[idx])
-                self._window_title.setText(titles[idx])
-
-    def _toggle_sidebar(self):
-        """Toggle sidebar between expanded and collapsed states.
-
-        Animates the width transition and fades labels in/out.
-        """
-        if hasattr(self, "_sidebar_anim") and self._sidebar_anim:
-            self._sidebar_anim.stop()
-
-        self._sidebar_anim = QVariantAnimation(self)
-        self._sidebar_anim.setDuration(250)
-        self._sidebar_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
-
-        if self._sidebar_expanded:
-            self._sidebar_anim.setStartValue(1.0)
-            self._sidebar_anim.setEndValue(0.0)
-            self._sidebar_expanded = False
-        else:
-            self._sidebar_anim.setStartValue(0.0)
-            self._sidebar_anim.setEndValue(1.0)
-            self._sidebar_expanded = True
-
-        def on_value_changed(value):
-            """Handle sidebar animation progress update.
-
-            Args:
-                value: Animation progress value (0.0 to 1.0).
-            """
-            width = int(72 + 148 * value)
-            self._sidebar.setFixedWidth(width)
-
-            for btn in self._nav:
-                btn.set_progress(value)
-            if self._menu_btn:
-                self._menu_btn.set_progress(value)
-
-            for effect in self._sidebar_labels:
-                effect.setOpacity(value)
-
-        self._sidebar_anim.valueChanged.connect(on_value_changed)
-        self._sidebar_anim.start()
+            # Shown by the taskbar, the Window menu and Mission Control; the
+            # navigation shows the page in the window.
+            self.setWindowTitle(f"S.O.K - {titles[idx]}")
 
     def _toggle_theme(self, dark: bool):
         """Switch between light and dark themes.
@@ -880,19 +722,8 @@ class MainWindow(QMainWindow):
         """
         return f"""
             /* Window title, drawn like the native one */
-            #WindowTitle {{
-                font-size: 13px;
-                font-weight: 600;
-                color: {c["text"]};
-            }}
 
             /* Finder sidebar headings: gray, not capitalized */
-            #SidebarSection {{
-                color: {c["secondary"]};
-                padding: 18px 20px 6px 20px;
-                text-transform: none;
-                letter-spacing: 0;
-            }}
 
             /* Section headings in sentence case, like System Settings */
             #SectionLabel, #CategoryLabel {{
@@ -998,21 +829,7 @@ class MainWindow(QMainWindow):
             }}
 
             /* Sidebar */
-            #Sidebar {{
-                background: {c.get("sidebar", c["card"])};
-                border-right: 1px solid {c["separator"]};
-                border-top-left-radius: {outer_radius}px;
-                border-bottom-left-radius: {outer_radius}px;
-            }}
 
-            #SidebarSection {{
-                font-size: 11px;
-                font-weight: 600;
-                color: {c["secondary"]};
-                padding: 16px 20px 6px 20px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }}
 
             /* Right Column (Background + Radius) */
             #RightCol {{
@@ -1028,12 +845,6 @@ class MainWindow(QMainWindow):
                 /* border-bottom: 1px solid {c["separator"]}; */
             }}
 
-            #AppTitle {{
-                font-size: 13px;
-                font-weight: 600;
-                color: {c["text"]};
-                padding-left: 4px;
-            }}
 
             /* Content Area (Transparent to show RightCol background) */
             #Content {{
