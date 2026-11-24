@@ -13,19 +13,21 @@ ui/
 ├── components/          # Reusable components (Widgets)
 │   ├── integrations/    # Third-party modules (Discord RPC, Updates, OAuth)
 │   ├── base.py          # Base elements (Cards, Buttons, Toggles)
-│   ├── dialogs.py       # Custom dialog boxes
 │   ├── file_row.py      # Row of a media list (before/after, tags, gauge)
 │   ├── inputs.py        # Input elements and Drop Zones
 │   ├── layouts.py       # Custom layouts (FlowLayout)
 │   ├── media_visual.py  # Dominant color, stand-in for a missing poster
-│   ├── search.py        # Widgets dedicated to search results
+│   ├── organize/        # Parts of the media pages (list, pick panel, done screen…)
+│   ├── search.py        # Loading of posters and covers in the background
 │   ├── nav.py           # Navigation (media types as words, icons)
 │   ├── scene.py         # Scene: the selected item shown large, lit
 │   └── window.py        # Window controls (Custom title bar)
 ├── pages/               # Main application pages
 │   ├── home_page.py     # Dashboard
-│   ├── organize_page.py # One-item page (the Albums tab of Music)
+│   ├── batch_page.py    # Base of the media pages: list, scene, done screen
+│   ├── movies_page.py   # Movies (and books_page, games_page)
 │   ├── series_page.py   # TV shows, several series at once
+│   ├── music_page.py    # Music: albums and loose tracks, as a grid
 │   └── settings_page.py # Settings page
 ├── workers/             # Asynchronous tasks (QThreads)
 ├── i18n.py              # Translation system

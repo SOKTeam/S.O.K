@@ -273,15 +273,17 @@ class MediaList(QWidget):
         self._entries[key] = entry
         for f in files:
             self._owner[f] = key
-        row: Any = (CoverTile if self._grid is not None else FileRow)(
-            self._make_row(entry), self._was_label
-        )
+        data = self._make_row(entry)
+        row: CoverTile | FileRow
+        if self._grid is not None:
+            tile = CoverTile(data, self._was_label)
+            self._grid.add(tile)
+            row = tile
+        else:
+            row = FileRow(data, self._was_label)
+            self._rows_layout.insertWidget(self._rows_layout.count() - 1, row)
         row.clicked.connect(lambda k=key: self._set_current(k))
         self._rows[key] = row
-        if self._grid is not None:
-            self._grid.add(row)
-        else:
-            self._rows_layout.insertWidget(self._rows_layout.count() - 1, row)
 
     def files(self) -> List[Path]:
         """Return every file of the list."""

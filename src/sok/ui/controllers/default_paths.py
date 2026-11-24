@@ -13,7 +13,6 @@
 from pathlib import Path
 
 from sok.config import get_config_manager
-from sok.ui.components.inputs import DropZone
 
 DEFAULT_PATH_KEYS = {
     "video": "default_video_path",
@@ -37,17 +36,3 @@ def default_destination(media_type: str) -> Path | None:
     if not value or not Path(value).is_dir():
         return None
     return Path(value)
-
-
-def apply_default_destination(drop_zone: DropZone, media_type: str) -> None:
-    """Fill an empty destination drop zone with the default folder.
-
-    Args:
-        drop_zone: Destination drop zone.
-        media_type: Type of media ('video', 'music', 'book', 'game').
-    """
-    if drop_zone.get_path() is not None:
-        return
-    path = default_destination(media_type)
-    if path is not None:
-        drop_zone.set_path(path)

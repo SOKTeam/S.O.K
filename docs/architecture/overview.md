@@ -109,10 +109,11 @@ static files that it serves. See [S.O.K Server](/server/overview/).
 
 ## The path of a search
 
-1. The user types in a search field. The page starts a `SearchWorker` with a
-   `WorkerRunner`, which moves it to a `QThread`.
-2. The worker creates its own asyncio event loop and calls
-   `get_media_manager().search(query, content_type)`.
+1. The user drops files on a media page, or types a search on its pick panel.
+   The page starts a `BatchSearchWorker` with a `WorkerRunner`, which moves it
+   to a `QThread`.
+2. The worker creates its own asyncio event loop and searches each item with
+   `BatchMatcher`, through `get_media_manager().search(query, content_type)`.
 3. The manager sends the query to the API selected for that media type.
 4. The API calls the service with `aiohttp` and returns its response.
 5. The manager passes it through the adapter of the content type.

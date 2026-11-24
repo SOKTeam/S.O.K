@@ -290,7 +290,7 @@ A rename can be undone: see [Rename history](#rename-history) below.
 Each rename can be undone, from the message shown at its end ("Undo rename") or
 from the History page. `sok/core/history.py` keeps the history, without Qt.
 
-**Recording.** `BatchOrganizeWorker` and `OrganizeWorker` run the rename and the
+**Recording.** `BatchOrganizeWorker` runs the rename and the
 poster downloads inside `history.record(kind)`. While it runs, three functions
 report what they do to the active journal (`current_journal()`):
 

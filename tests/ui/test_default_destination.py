@@ -10,7 +10,10 @@
 # ===----------------------------------------------------------------------=== #
 import pytest
 
-from sok.ui.components.organize.options_panel import OptionsPanel
+from sok.ui.pages.books_page import BooksPage
+from sok.ui.pages.games_page import GamesPage
+from sok.ui.pages.movies_page import MoviesPage
+from sok.ui.pages.music_page import MusicPage
 from sok.ui.controllers import default_paths
 
 
@@ -30,42 +33,42 @@ def config(monkeypatch):
 
 
 class TestDefaultDestination:
-    def test_panel_uses_default_folder_of_its_media_type(self, qtbot, tmp_path, config):
+    def test_page_uses_default_folder_of_its_media_type(self, qtbot, tmp_path, config):
         config._values["default_music_path"] = str(tmp_path)
 
-        panel = OptionsPanel("music")
-        qtbot.addWidget(panel)
+        page = MusicPage()
+        qtbot.addWidget(page)
 
-        assert panel.get_destination_path() == tmp_path
+        assert page._dest_drop.get_path() == tmp_path
 
     def test_missing_folder_is_ignored(self, qtbot, tmp_path, config):
         config._values["default_books_path"] = str(tmp_path / "missing")
 
-        panel = OptionsPanel("book")
-        qtbot.addWidget(panel)
+        page = BooksPage()
+        qtbot.addWidget(page)
 
-        assert panel.get_destination_path() is None
+        assert page._dest_drop.get_path() is None
 
     def test_default_set_after_startup_is_applied_on_show(
         self, qtbot, tmp_path, config
     ):
-        panel = OptionsPanel("game")
-        qtbot.addWidget(panel)
-        assert panel.get_destination_path() is None
+        page = GamesPage()
+        qtbot.addWidget(page)
+        assert page._dest_drop.get_path() is None
 
         config._values["default_games_path"] = str(tmp_path)
-        panel.show()
+        page.show()
 
-        assert panel.get_destination_path() == tmp_path
+        assert page._dest_drop.get_path() == tmp_path
 
     def test_user_choice_is_kept_on_show(self, qtbot, tmp_path, config):
         chosen = tmp_path / "chosen"
         chosen.mkdir()
         config._values["default_video_path"] = str(tmp_path)
-        panel = OptionsPanel("video")
-        qtbot.addWidget(panel)
+        page = MoviesPage()
+        qtbot.addWidget(page)
 
-        panel._dest_drop.set_path(chosen)
-        panel.show()
+        page._dest_drop.set_path(chosen)
+        page.show()
 
-        assert panel.get_destination_path() == chosen
+        assert page._dest_drop.get_path() == chosen

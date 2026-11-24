@@ -9,20 +9,12 @@
 #
 # ===----------------------------------------------------------------------=== #
 """
-Modular components for the organization page.
-
-This module splits OrganizePage into reusable widgets to improve
-maintainability and testability of the code.
+Components of the media pages (BatchPage): the list, the pick panel, the
+done screen and the widgets of series and albums.
 """
 
-from sok.ui.components.organize.search_panel import SearchPanel
-from sok.ui.components.organize.options_panel import OptionsPanel
-from sok.ui.components.organize.log_widget import OrganizeLogWidget
 from sok.ui.components.organize.media_list import MediaList
 
 __all__ = [
-    "SearchPanel",
-    "OptionsPanel",
-    "OrganizeLogWidget",
     "MediaList",
 ]

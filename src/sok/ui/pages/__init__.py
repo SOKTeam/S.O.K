@@ -10,11 +10,11 @@
 # ===----------------------------------------------------------------------=== #
 """Application pages for the main content area.
 
-Contains the main page widgets: HomePage, OrganizePage, SettingsPage.
+Contains the main page widgets: HomePage and SettingsPage; the media pages
+are the subclasses of BatchPage.
 """
 
 from sok.ui.pages.home_page import HomePage
-from sok.ui.pages.organize_page import OrganizePage
 from sok.ui.pages.settings_page import SettingsPage
 
-__all__ = ["HomePage", "OrganizePage", "SettingsPage"]
+__all__ = ["HomePage", "SettingsPage"]
