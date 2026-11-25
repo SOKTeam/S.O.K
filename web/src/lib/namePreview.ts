@@ -14,6 +14,22 @@ export const FORMAT_KEYS: Record<string, string> = {
   games: "game_format",
 };
 
+/** The colors of the stand-in poster of each example, and of its light. */
+export const EXAMPLE_COLORS: Record<string, [string, string]> = {
+  movies: ["#9fae55", "#2c3410"],
+  tv: ["#5f8fb0", "#14273a"],
+  music: ["#c0607e", "#3a1220"],
+  books: ["#c99a5b", "#3d2a12"],
+  games: ["#5fae9d", "#0f3029"],
+};
+export const EXAMPLE_LIGHTS: Record<string, string> = {
+  movies: "150, 170, 80",
+  tv: "95, 143, 176",
+  music: "192, 96, 126",
+  books: "201, 154, 91",
+  games: "95, 174, 157",
+};
+
 // Marks around a filled value.
 const OPEN = "\x01";
 const CLOSE = "\x02";

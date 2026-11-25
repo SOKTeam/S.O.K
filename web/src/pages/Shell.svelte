@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
 
+  import SceneLight from "../components/layout/SceneLight.svelte";
   import NavBar from "../components/nav/NavBar.svelte";
-  import { light } from "../lib/light.svelte";
   import { t } from "../lib/i18n.svelte";
   import { pageOf } from "../lib/pages";
   import { router } from "../lib/router.svelte";
@@ -23,15 +23,7 @@
   });
 </script>
 
-<!-- The light of the scene, painted by the window behind everything. -->
-<div class="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
-  <div
-    class="absolute -top-[330px] -right-[280px] size-[1100px] rounded-full transition-[background] duration-500"
-    style:background={light.color
-      ? `radial-gradient(closest-side, rgba(${light.color}, var(--halo)), transparent 72%)`
-      : "none"}
-  ></div>
-</div>
+<SceneLight />
 <div class="relative mx-auto flex h-full max-w-[1760px] flex-col">
   <div class="flex min-h-0 flex-1 flex-col">
     {#if import.meta.env.MODE === "demo"}

@@ -19,7 +19,8 @@
     /** The folder shown first; the root of the server when absent. */
     start?: string;
     onpick: (path: string) => void;
-    oncancel: () => void;
+    /** Without it, no Cancel key (the first launch assistant). */
+    oncancel?: () => void;
   } = $props();
 
   interface Listing {
@@ -149,6 +150,8 @@
     >
       {t("web_choose_this_folder", "Choose this folder")}
     </button>
-    <button type="button" class="key" onclick={oncancel}>{t("web_cancel", "Cancel")}</button>
+    {#if oncancel}
+      <button type="button" class="key" onclick={oncancel}>{t("web_cancel", "Cancel")}</button>
+    {/if}
   </div>
 </div>

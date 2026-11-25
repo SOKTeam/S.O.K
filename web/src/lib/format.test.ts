@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { daysAgo, dayKey, fill, parentFolder, pickLanguage, pluralForm, splitName } from "./format";
+import {
+  commonFolder,
+  daysAgo,
+  dayKey,
+  fill,
+  fillParts,
+  parentFolder,
+  pickLanguage,
+  pluralForm,
+  splitName,
+} from "./format";
 
 describe("fill", () => {
   it("puts the values in the placeholders", () => {
@@ -82,5 +92,33 @@ describe("pluralForm", () => {
     expect(pluralForm("ru", 21)).toBe("one");
     expect(pluralForm("ru", 22)).toBe("few");
     expect(pluralForm("ru", 11)).toBe("many");
+  });
+});
+
+describe("fillParts", () => {
+  it("cuts a text around its values", () => {
+    expect(fillParts("Files of {from} go to {to}.", { from: "/dl", to: "/media" })).toEqual([
+      { text: "Files of " },
+      { text: "/dl", value: "from" },
+      { text: " go to " },
+      { text: "/media", value: "to" },
+      { text: "." },
+    ]);
+  });
+
+  it("keeps a placeholder without a value as text", () => {
+    expect(fillParts("{a} and {b}", { a: "x" })).toEqual([
+      { text: "x", value: "a" },
+      { text: " and {b}" },
+    ]);
+  });
+});
+
+describe("commonFolder", () => {
+  it("gives the folder that holds all the paths", () => {
+    expect(commonFolder(["/media/Movies", "/media/Music"])).toBe("/media");
+    expect(commonFolder(["/media/Movies"])).toBe("/media/Movies");
+    expect(commonFolder(["/a/x", "/b/y"])).toBe("/");
+    expect(commonFolder([])).toBe("");
   });
 });

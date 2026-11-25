@@ -12,6 +12,7 @@
   import Choice from "../components/settings/Choice.svelte";
   import FolderPicker from "../components/settings/FolderPicker.svelte";
   import FolderRole from "../components/settings/FolderRole.svelte";
+  import NamePreview from "../components/settings/NamePreview.svelte";
   import KeyLine from "../components/settings/KeyLine.svelte";
   import Line from "../components/settings/Line.svelte";
   import NotifyLine from "../components/settings/NotifyLine.svelte";
@@ -23,7 +24,7 @@
   import { loadHistory, type Operation } from "../lib/history";
   import { loadTexts, t, tn } from "../lib/i18n.svelte";
   import { setLight } from "../lib/light.svelte";
-  import { EXAMPLES, FORMAT_KEYS, previewPath } from "../lib/namePreview";
+  import { EXAMPLE_LIGHTS, EXAMPLES, FORMAT_KEYS } from "../lib/namePreview";
   import { MEDIA_PAGES } from "../lib/pages";
   import { replace, router } from "../lib/router.svelte";
   import { logOut, session } from "../lib/session.svelte";
@@ -353,47 +354,12 @@
     return block === "folders" && browsing && browsing !== "sources" ? browsing : "movies";
   });
 
-  // The color of each example: its stand-in poster, and the light.
-  const COLORS: Record<string, [string, string, string]> = {
-    movies: ["#9fae55", "#2c3410", "150, 170, 80"],
-    tv: ["#5f8fb0", "#14273a", "95, 143, 176"],
-    music: ["#c0607e", "#3a1220", "192, 96, 126"],
-    books: ["#c99a5b", "#3d2a12", "201, 154, 91"],
-    games: ["#5fae9d", "#0f3029", "95, 174, 157"],
-  };
-
   $effect(() => {
-    if (view === "file") setLight(COLORS[example][2]);
+    if (view === "file") setLight(EXAMPLE_LIGHTS[example]);
     else if (view === "auto") setLight(data?.settings.auto_sort ? "251, 96, 72" : null);
     else if (view === "notify") setLight("88, 101, 242");
     else setLight(null);
   });
-
-  const after = $derived(
-    data
-      ? previewPath(
-          example,
-          modelOf(example),
-          data.folders[example]?.[0] ??
-            `/${t(MEDIA_PAGES.find((p) => p.mediaType === example)!.key, "media")}`,
-          t("season", "Season"),
-        )
-      : null,
-  );
-  const source = $derived(data?.folders.sources[0] ?? "/downloads");
-
-  function modeLine(): string {
-    switch (mode) {
-      case "link":
-        return t("web_preview_link", "Hard link: the original stays in {folder}.", {
-          folder: source,
-        });
-      case "copy":
-        return t("web_preview_copy", "Copy: the original stays in {folder}.", { folder: source });
-      case "move":
-        return t("web_preview_move", "Moved: it leaves {folder}.", { folder: source });
-    }
-  }
 
   const clock = (date: string | Date) =>
     new Date(date).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
@@ -983,56 +949,14 @@
         oncancel={() => (browsing = null)}
       />
     {:else if view === "file"}
-      {@const colors = COLORS[example]}
-      {@const shape = example === "music" ? "square" : example === "books" ? "book" : "poster"}
-      <p class="label mb-[26px] self-stretch">{t("web_live_preview", "Live preview")}</p>
-      <div
-        class={[
-          "relative flex flex-col justify-end overflow-hidden px-[18px] py-4 shadow-[0_30px_60px_var(--drop),inset_0_1px_0_rgb(255_255_255/0.25),inset_0_0_0_1px_rgb(255_255_255/0.1)]",
-          shape === "square" && "size-[230px] rounded-xl",
-          shape === "poster" && "h-[315px] w-[210px] rounded-xl",
-          shape === "book" && "h-[300px] w-[200px] rounded-[4px_10px_10px_4px]",
-        ]}
-        style:background={`linear-gradient(170deg, ${colors[0]}, ${colors[1]})`}
-        aria-hidden="true"
-      >
-        {#if shape === "book"}
-          <span class="absolute inset-y-0 left-0 w-3 bg-linear-to-r from-black/30 to-transparent"
-          ></span>
-        {/if}
-        <small class="font-mono text-[10.5px] font-semibold text-white/75"
-          >{EXAMPLES[example].year}</small
-        >
-        <b class="mt-1 text-[23px] leading-[1.1] font-[650] tracking-[-0.03em] text-white"
-          >{EXAMPLES[example].title}</b
-        >
-      </div>
-      <div
-        class="-mt-1 h-5 w-[250px] rounded-[50%] bg-[radial-gradient(closest-side,var(--drop),transparent)]"
-      ></div>
-      <div class="mt-[26px] grid gap-3.5 self-stretch">
-        <div>
-          <p class="text-[13px] text-muted">{t("web_before", "Before")}</p>
-          <p class="mt-1 font-mono text-[13px] leading-[1.45] break-all text-faint">
-            {source.replace(/\/+$/, "")}/{EXAMPLES[example].before}
-          </p>
-        </div>
-        <div>
-          <p class="text-[13px] text-muted">{t("web_after", "After")}</p>
-          <p class="mt-1 font-mono text-[13px] leading-[1.45] break-all text-ink">
-            {#if after}
-              {#each after as piece, i (i)}<span class={piece.filled ? "text-accent-text" : ""}
-                  >{piece.text}</span
-                >{/each}
-            {:else}
-              <span class="font-sans text-faint"
-                >{t("web_preview_none", "No name with this model.")}</span
-              >
-            {/if}
-          </p>
-        </div>
-        <p class="text-[13px] leading-[1.45] text-muted">{modeLine()}</p>
-      </div>
+      <NamePreview
+        label={t("web_live_preview", "Live preview")}
+        type={example}
+        model={modelOf(example)}
+        destination={data.folders[example]?.[0] ?? ""}
+        source={data.folders.sources[0] ?? ""}
+        {mode}
+      />
     {:else if view === "auto"}
       {@const status = watch.status}
       <p class="label mb-[26px] self-stretch">{t("web_live_preview", "Live preview")}</p>

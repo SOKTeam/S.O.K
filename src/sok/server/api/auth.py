@@ -21,6 +21,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from pydantic import BaseModel
 
+from sok.server.settings import MEDIA_TYPES, SOURCES
 from sok.server.auth import (
     COOKIE_NAME,
     SESSION_DAYS,
@@ -73,6 +74,12 @@ def _set_session(request: Request, response: Response) -> None:
     )
 
 
+def configured(request: Request) -> bool:
+    """Whether the server has a source folder and a destination folder."""
+    folders = request.app.state.settings.folders()
+    return bool(folders[SOURCES]) and any(folders[t] for t in MEDIA_TYPES)
+
+
 @router.get("/session")
 def session(request: Request) -> dict:
     """What the interface shows first: the setup, the login or the app."""
@@ -81,6 +88,9 @@ def session(request: Request) -> dict:
         "account": accounts(request).exists(),
         "logged_in": logged_in(request),
         "username": accounts(request).username(),
+        # At least one source and one destination: until then, the
+        # interface shows its first launch assistant (/setup).
+        "configured": configured(request),
         # The language of the interface: the one of the settings.
         "language": request.app.state.config.get("language", "en") or "en",
     }

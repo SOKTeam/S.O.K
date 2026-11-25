@@ -621,8 +621,11 @@ async function answer(method: string, path: string, query: URLSearchParams, body
         account: true,
         logged_in: loggedIn,
         username: "demo",
+        configured: true,
         language,
       };
+    case "GET /api/health":
+      return { status: "ok", version: settings.about.version, db: 0 };
     case "POST /api/login":
       loggedIn = true;
       return { username: "demo" };
