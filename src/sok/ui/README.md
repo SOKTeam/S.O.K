@@ -57,7 +57,8 @@ its big title with `fit_display()`, and shrinks its decorations around
 the title follows the width pixel by pixel, and the decorations shrink and
 fade out over `FADE_BAND`. Under `NARROW_WIDTH` the right column
 (`SidePanel`) slides out to the right while the list widens into its place,
-and slides back past `NARROW_WIDTH + NARROW_MARGIN`. Past
+and slides back past `NARROW_WIDTH + NARROW_MARGIN` (the live preview of the
+settings too, whose column of section titles narrows with the room). Past
 `MAX_CONTENT_WIDTH` the navigation and the pages are centered.
 5. **Motion**: only the moments that change the state of things move (a
 panel coming in or leaving, an item recognized or sorted, the end of a

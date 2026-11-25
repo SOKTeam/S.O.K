@@ -40,11 +40,16 @@ from sok.ui.components.settings.appearance_section import AppearanceSection
 from sok.ui.components.settings.behavior_section import BehaviorSection
 from sok.ui.components.settings.formats_section import FormatsSection
 from sok.ui.components.settings.input_formats_section import InputFormatsSection
-from sok.ui.components.settings.layout import SettingsBlock, settings_stylesheet
+from sok.ui.components.settings.layout import (
+    TITLE_MIN_WIDTH,
+    TITLE_WIDTH,
+    SettingsBlock,
+    settings_stylesheet,
+)
 from sok.ui.components.settings.paths_section import PathsSection
 from sok.ui.components.settings.preview import SettingsPreview
 from sok.ui.i18n import tr
-from sok.ui.responsive import fit_display, side_width
+from sok.ui.responsive import SidePanel, fit_display, side_width
 from sok.ui.theme import Theme, ui_font
 
 # The folder setting of the type of each name model, for the preview.
@@ -59,8 +64,6 @@ MODEL_FOLDERS = {
 
 # Narrowest page that still shows the preview, and narrowest left column
 # with the titles of the sections at the left of their settings.
-PREVIEW_MIN_WIDTH = 1000
-COMPACT_WIDTH = 760
 
 
 def _palette(widget: QWidget) -> dict[str, str]:
@@ -164,7 +167,11 @@ class SettingsPage(QWidget):
         preview_scroll.setFrameShape(QFrame.Shape.NoFrame)
         preview_scroll.setFixedWidth(side_width(1440))
         preview_scroll.setWidget(self._preview)
-        columns.addWidget(preview_scroll)
+        # Beside the settings; it slides out of a narrow window.
+        self._panel = SidePanel(
+            self, columns, preview_scroll, lambda: tr("back_to_list", "List")
+        )
+        self._panel.moved.connect(self.light_changed.emit)
         self._preview_scroll = preview_scroll
         preview_scroll.viewport().setStyleSheet("background: transparent;")
         self._preview.light_changed.connect(self.light_changed.emit)
@@ -225,24 +232,25 @@ class SettingsPage(QWidget):
     # ------------------------------------------------------------- Style
 
     def resizeEvent(self, e):  # noqa: N802 - Qt API
-        """The preview leaves a narrow window, and the titles of the sections
-        go above their settings when the room is short."""
+        """The preview slides out of a narrow window, and the column of the
+        titles of the sections narrows with the room, without a jump."""
         super().resizeEvent(e)
         width = self.width()
-        show_preview = width >= PREVIEW_MIN_WIDTH
-        self._preview_scroll.setVisible(show_preview)
-        if show_preview:
-            self._preview_scroll.setFixedWidth(side_width(width))
-        left = width - (side_width(width) if show_preview else 0)
+        self._panel.fit(width)
+        if not self._panel.narrow:
+            self._preview_scroll.setFixedWidth(self._panel.column_width(width))
+        left = width - (0 if self._panel.narrow else side_width(width))
+        share = min(1.0, max(0.0, (left - 660) / 240))
+        title = round(TITLE_MIN_WIDTH + (TITLE_WIDTH - TITLE_MIN_WIDTH) * share)
         for _key, _default, block in self._blocks:
-            block.set_compact(left < COMPACT_WIDTH)
+            block.set_title_width(title)
         fit_display([self.lbl_title], width)
         self.light_changed.emit()
 
     def light_source(self):
         """The widget whose light the window paints, or None (see
         main_window.LightColumn)."""
-        return self._preview if self._preview_scroll.isVisible() else None
+        return self._preview if self._preview.isVisible() else None
 
     def _restyle(self) -> None:
         c = _palette(self)
