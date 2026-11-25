@@ -47,6 +47,7 @@ from sok.ui.platform import (
     hide_native_title,
     is_dark_theme,
     use_native_title_bar,
+    use_srgb_windows,
 )
 from sok.ui.macos_menu import MacMenuBar
 from sok.ui.components.base import parse_color
@@ -1268,6 +1269,7 @@ def main():
 
     Creates QApplication, applies Fusion style, and shows main window.
     """
+    use_srgb_windows()
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
 

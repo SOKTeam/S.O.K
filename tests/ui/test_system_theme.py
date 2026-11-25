@@ -178,3 +178,31 @@ class TestAccentColor:
 
         assert config.get("use_system_accent") is True
         assert emitted == [True]
+
+
+class TestSrgbWindows:
+    @pytest.fixture
+    def default_format(self):
+        from PySide6.QtGui import QSurfaceFormat
+
+        saved = QSurfaceFormat.defaultFormat()
+        yield QSurfaceFormat
+        QSurfaceFormat.setDefaultFormat(saved)
+
+    def test_windows_are_tagged_srgb_on_macos(self, default_format, monkeypatch):
+        from PySide6.QtGui import QColorSpace
+
+        monkeypatch.setattr(platform, "IS_MACOS", True)
+
+        platform.use_srgb_windows()
+
+        space = default_format.defaultFormat().colorSpace()
+        assert space == QColorSpace(QColorSpace.NamedColorSpace.SRgb)
+
+    def test_nothing_changes_on_other_platforms(self, default_format, monkeypatch):
+        monkeypatch.setattr(platform, "IS_MACOS", False)
+        before = default_format.defaultFormat().colorSpace()
+
+        platform.use_srgb_windows()
+
+        assert default_format.defaultFormat().colorSpace() == before
