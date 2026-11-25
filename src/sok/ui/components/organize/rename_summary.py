@@ -35,7 +35,7 @@ from sok.ui.components.media_visual import (
 )
 from sok.ui.components.scene import _Sheet, paint_light
 from sok.ui.motion import STAGGER, cascade, rise
-from sok.ui.responsive import LOW_HEIGHT
+from sok.ui.responsive import LOW_HEIGHT, presence
 from sok.ui.theme import Theme, ui_font
 
 
@@ -69,9 +69,13 @@ class _Fan(QWidget):
     STEP = 66
     RADIUS = 12
 
+    HEIGHT = 270
+
     def __init__(self) -> None:
         super().__init__()
-        self.setFixedHeight(270)
+        self.setFixedHeight(self.HEIGHT)
+        # Share of its size the fan is drawn at (responsive.presence).
+        self.presence = 1.0
         self._covers: List[Tuple[Optional[QPixmap], str]] = []
         self._square = False
         # Covers whose picture is still travelling to the fan (motion.fly).
@@ -85,11 +89,28 @@ class _Fan(QWidget):
     def _size(self) -> Tuple[int, int]:
         return (180, 180) if self._square else (160, 240)
 
+    def set_presence(self, presence: float) -> None:
+        """Draw the fan smaller and fainter, down to nothing at 0."""
+        self.presence = presence
+        self.setFixedHeight(round(self.HEIGHT * presence))
+        self.update()
+
+    def _scaled(self, rect: QRectF) -> QRectF:
+        """A rectangle of the fan at full size, as drawn at its presence."""
+        s, center = self.presence, self.width() / 2
+        return QRectF(
+            center + (rect.x() - center) * s,
+            rect.y() * s,
+            rect.width() * s,
+            rect.height() * s,
+        )
+
     def slot_rect(self, index: int) -> QRectF:
         """Rectangle of a cover in this widget."""
         w, h = self._size()
         span = w + self.STEP * (len(self._covers) - 1)
-        return QRectF((self.width() - span) / 2 + index * self.STEP, 0, w, h)
+        x = (self.width() - span) / 2 + index * self.STEP
+        return self._scaled(QRectF(x, 0, w, h))
 
     def cover_pixmap(self, index: int) -> QPixmap:
         """A cover as the fan draws it."""
@@ -108,13 +129,18 @@ class _Fan(QWidget):
 
     def object_rect(self) -> QRectF:
         w, h = self._size()
-        return QRectF((self.width() - w) / 2, 0, w, h)
+        return self._scaled(QRectF((self.width() - w) / 2, 0, w, h))
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
         if not self._covers:
             return
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if self.presence < 1:
+            p.setOpacity(self.presence)
+            p.translate(self.width() / 2, 0)
+            p.scale(self.presence, self.presence)
+            p.translate(-self.width() / 2, 0)
         w, h = self._size()
         step = self.STEP
         span = w + step * (len(self._covers) - 1)
@@ -222,26 +248,33 @@ class RenameSummary(QWidget):
             return
         obj = self._fan.object_rect().translated(QPointF(self._fan.pos()) + offset)
         rect = QRectF(offset, QRectF(self.rect()).size())
+        p.save()
+        # The light fades out with the covers in a low window.
+        p.setOpacity(p.opacity() * self._fan.presence)
         paint_light(p, rect, self._color, obj, area)
+        p.restore()
 
     def resizeEvent(self, e):  # noqa: N802 - Qt API
         super().resizeEvent(e)
         self.light_changed.emit()
-        self._fan.setVisible(bool(self._fan._covers) and self._room())
+        self._fit_fan()
         self._keys.setDirection(
             QBoxLayout.Direction.TopToBottom
             if self.width() < 440
             else QBoxLayout.Direction.LeftToRight
         )
 
-    def _room(self) -> bool:
-        """Room for the covers above the figures (the window is not low)."""
+    def _fit_fan(self) -> None:
+        """The covers shrink and fade out in a low window, leaving room for
+        the figures, little by little as the window gets lower."""
         window = self.window()
-        return window is None or window.height() >= LOW_HEIGHT + 120
+        room = presence(window.height(), LOW_HEIGHT + 120) if window else 1.0
+        self._fan.set_presence(room)
+        self._fan.setVisible(bool(self._fan._covers) and room > 0)
 
     def show_data(self, data: SummaryData) -> None:
         self._fan.set_covers(data.covers, data.square)
-        self._fan.setVisible(bool(data.covers) and self._room())
+        self._fit_fan()
         self._sheet.set_fields(data.fields, data.tones)
         self.undo_btn.setVisible(data.can_undo)
         self.note.setVisible(data.can_undo)

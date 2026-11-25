@@ -50,9 +50,12 @@ color. Their colors come from `tokens.py`, generated from the `tokens.json` of
 the SOKTeam art direction by `scripts/make_theme_tokens.py`: never edit it by
 hand. The interface supports a dynamic dark mode.
 4. **Window sizes**: a page sizes its right column with `side_width()`,
-its big title with `fit_display()`, and hides its decorations below
-`LOW_HEIGHT`, from its `resizeEvent` (see `responsive.py`). Past
-`MAX_CONTENT_WIDTH` the navigation and the pages are centered.
+its big title with `fit_display()`, and shrinks its decorations around
+`LOW_HEIGHT` with `presence()`, from its `resizeEvent` (see
+`responsive.py`). Nothing jumps at a threshold while the window is resized:
+the title follows the width pixel by pixel, and the decorations shrink and
+fade out over `FADE_BAND`. Past `MAX_CONTENT_WIDTH` the navigation and the
+pages are centered.
 5. **Motion**: only the moments that change the state of things move (a
 panel coming in or leaving, an item recognized or sorted, the end of a
 rename, the switch to the pick panel, the press of a key), at most 250ms,

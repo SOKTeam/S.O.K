@@ -98,6 +98,7 @@ from sok.ui.responsive import (
     SidePanel,
     display_font,
     fit_display,
+    presence,
     side_width,
 )
 from sok.ui.theme import Theme, ui_font
@@ -797,7 +798,7 @@ class BatchPage(QWidget):
         self._fit_scene()
         fit_display([self._title_lbl, self._empty_title], self.width())
         self._empty_text.setFixedWidth(min(520, max(280, self.width() - 80)))
-        self._empty_fan.setVisible(self.height() >= LOW_HEIGHT)
+        self._empty_fan.set_presence(presence(self.height(), LOW_HEIGHT))
 
     def _palette(self) -> Dict[str, str]:
         return getattr(self.window(), "c", None) or Theme.DARK

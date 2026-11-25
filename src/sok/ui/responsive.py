@@ -40,9 +40,17 @@ SIDE_MIN, SIDE_MAX = 320, 520
 # column opens over the list (SidePanel).
 NARROW_WIDTH = 1000
 
-# Height under which the decorations of a screen (the empty places of the
-# empty screen, the covers of the summary) leave room for the text.
+# Height around which the decorations of a screen (the empty places of the
+# empty screen, the covers of the summary) leave room for the text. They
+# shrink and fade out over FADE_BAND px around it, following the window.
 LOW_HEIGHT = 620
+FADE_BAND = 100
+
+
+def presence(value: int, threshold: int) -> float:
+    """How much of a decoration shows for this height: 1 from FADE_BAND / 2
+    above threshold, 0 from FADE_BAND / 2 under it, in between linearly."""
+    return min(1.0, max(0.0, (value - threshold) / FADE_BAND + 0.5))
 
 
 def side_width(page_width: int) -> int:
@@ -51,12 +59,11 @@ def side_width(page_width: int) -> int:
 
 
 def display_px(page_width: int) -> int:
-    """Size of the big title of a page this wide: 52px, down to 40px."""
-    if page_width >= 1180:
-        return 52
-    if page_width >= 980:
-        return 46
-    return 40
+    """Size of the big title of a page this wide: 52px from 1180px, 40px
+    at 900px and under, following the width pixel by pixel in between (no
+    jump while the window is resized)."""
+    t = min(1.0, max(0.0, (page_width - 900) / 280))
+    return round(40 + 12 * t)
 
 
 def display_font(page_width: int) -> QFont:

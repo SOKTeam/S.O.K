@@ -28,8 +28,19 @@ def test_the_right_column_takes_a_third_within_bounds():
 
 def test_the_big_titles_get_smaller_in_a_narrow_page():
     assert display_px(1440) == 52
-    assert display_px(1000) == 46
     assert display_px(850) == 40
+    # In between, the size follows the width without a jump.
+    sizes = [display_px(w) for w in range(850, 1200)]
+    assert all(0 <= b - a <= 1 for a, b in zip(sizes, sizes[1:]))
+
+
+def test_the_decorations_fade_out_little_by_little():
+    from sok.ui.responsive import FADE_BAND, presence
+
+    assert presence(800, 620) == 1.0
+    assert presence(500, 620) == 0.0
+    assert presence(620, 620) == 0.5
+    assert 0 < presence(620 + FADE_BAND // 4, 620) < 1
 
 
 def test_the_content_is_centered_past_its_widest(qtbot):

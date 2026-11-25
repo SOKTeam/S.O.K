@@ -53,7 +53,20 @@ class EmptyFan(QWidget):
         super().__init__(parent)
         self._shape = shape
         size = PLACE_SIZES[shape]
-        self.setFixedSize(3 * size.width() + 2 * self.GAP + 60, size.height() + 70)
+        self._full_height = size.height() + 70
+        # Share of its size it is drawn at (responsive.presence).
+        self._presence = 1.0
+        self.setFixedSize(3 * size.width() + 2 * self.GAP + 60, self._full_height)
+
+    def set_presence(self, presence: float) -> None:
+        """Draw the places smaller and fainter, down to nothing at 0, so
+        that they leave room for the text little by little."""
+        if abs(presence - self._presence) < 0.005:
+            return
+        self._presence = presence
+        self.setFixedHeight(round(self._full_height * presence))
+        self.setVisible(presence > 0)
+        self.update()
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
         c = _palette(self)
@@ -63,6 +76,11 @@ class EmptyFan(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         center_x = self.width() / 2
+        if self._presence < 1:
+            p.setOpacity(self._presence)
+            p.translate(center_x, 0)
+            p.scale(self._presence, self._presence)
+            p.translate(-center_x, 0)
         shadow = _soft_shadow(size, radius, parse_color(c["shadow-poster-drop"]))
         # The outer places first, so the middle one is on top.
         for offset, tilt, drop in (
