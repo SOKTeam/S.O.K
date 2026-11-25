@@ -243,3 +243,55 @@ def test_the_events_start_with_the_state_of_the_analysis(client):
 
     assert data["type"] == "scan"
     assert data["scan"]["status"] == "done"
+
+
+def test_the_summary_gives_the_sources_and_their_files(client, downloads, tmp_path):
+    missing = tmp_path / "seedbox"
+    missing.mkdir()
+    client.patch(
+        "/api/settings", json={"folders": {"sources": [str(downloads), str(missing)]}}
+    )
+    missing.rmdir()
+
+    summary = scan(client)
+
+    # 2 movies, 2 episodes, 1 book, 1 game, and the file to check.
+    assert summary["sources"] == [
+        {"path": str(downloads), "files": 7, "missing": False},
+        {"path": str(missing), "files": 0, "missing": True},
+    ]
+
+
+def test_the_summary_gives_the_covers_of_the_matches(client, tmp_path):
+    scan(client)
+    db = Database(tmp_path / "sok.db")
+    with db.transaction() as conn:
+        conn.execute(
+            "UPDATE rows SET candidates = ?, selected = 0 WHERE kind = 'movie'",
+            (json.dumps([{"title": "Dune", "poster_path": "/dune.jpg"}]),),
+        )
+    db.close()
+
+    summary = client.get("/api/scans/current").json()
+
+    assert summary["covers"]["movies"] == ["/dune.jpg", "/dune.jpg"]
+    assert summary["covers"]["music"] == []
+
+
+def test_the_disks_of_the_folders(client, downloads, tmp_path):
+    media = tmp_path / "media"
+    media.mkdir()
+    client.patch("/api/settings", json={"folders": {"movies": [str(media)]}})
+    scan(client)
+
+    answer = client.get("/api/settings/disks").json()
+
+    # The destination and the downloads are on the same disk here: one line.
+    assert len(answer["disks"]) == 1
+    disk = answer["disks"][0]
+    assert disk["path"] == str(media)
+    assert disk["folders"] == [str(media), str(downloads)]
+    assert 0 < disk["free"] <= disk["total"]
+    # The two movies of the downloads: their names as their content.
+    sizes = [len("Dune.2021.1080p.mkv"), len("The.Matrix.1999.mkv")]
+    assert answer["movie_size"] == sum(sizes) // 2

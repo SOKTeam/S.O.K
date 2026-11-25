@@ -2,7 +2,7 @@
 // sent by GET /api/i18n.
 
 import { api } from "./api";
-import { fill } from "./format";
+import { fill, pluralForm } from "./format";
 
 interface Texts {
   language: string;
@@ -38,4 +38,29 @@ export async function loadTexts(language?: string): Promise<void> {
  */
 export function t(key: string, english: string, values?: Record<string, string | number>): string {
   return fill(state.texts[key] ?? english, values);
+}
+
+/**
+ * The text of a number: the keys "<key>_one", "_few", "_many", "_other" (as
+ * trn of the desktop app), a language without a form taking "_other", then
+ * "_many". "{n}" is the number.
+ *
+ * @param one The English text for 1.
+ * @param other The English text for any other number.
+ */
+export function tn(
+  key: string,
+  n: number,
+  one: string,
+  other: string,
+  values?: Record<string, string | number>,
+): string {
+  const form = pluralForm(state.language, n);
+  const texts = state.texts;
+  const text =
+    texts[`${key}_${form}`] ??
+    texts[`${key}_other`] ??
+    texts[`${key}_many`] ??
+    (form === "one" ? one : other);
+  return fill(text, { n, ...values });
 }

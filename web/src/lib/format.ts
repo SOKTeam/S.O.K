@@ -46,3 +46,21 @@ export function daysAgo(date: Date, today: Date): number {
   const start = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   return Math.round((start(today) - start(date)) / 86_400_000);
 }
+
+/**
+ * The plural form of a number in a language: "one", "few", "many" or
+ * "other", after the CLDR rules of the eight languages (as plural_form of the
+ * desktop app): French puts 0 with 1; Polish and Russian have a form for 2
+ * to 4.
+ */
+export function pluralForm(language: string, count: number): "one" | "few" | "many" | "other" {
+  const n = Math.abs(count);
+  if (language === "fr") return n === 0 || n === 1 ? "one" : "other";
+  if (language === "pl" || language === "ru") {
+    if (language === "ru" && n % 10 === 1 && n % 100 !== 11) return "one";
+    if (language === "pl" && n === 1) return "one";
+    if ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) return "few";
+    return "many";
+  }
+  return n === 1 ? "one" : "other";
+}

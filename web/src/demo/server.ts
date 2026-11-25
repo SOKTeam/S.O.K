@@ -8,7 +8,7 @@ import { pickLanguage } from "../lib/format";
 import type { Operation, ProcessedFile, UndoReport } from "../lib/history";
 import type { Rename } from "../lib/renames.svelte";
 import type { Row } from "../lib/rows";
-import type { Counts, Scan, Summary, ToCheck } from "../lib/scan.svelte";
+import type { Counts, Scan, Source, Summary, ToCheck } from "../lib/scan.svelte";
 import type { SettingsChange, SettingsData } from "../lib/settings.svelte";
 import type { WatchStatus } from "../lib/watch.svelte";
 import data from "./data.json";
@@ -211,8 +211,40 @@ function counts(): Record<string, Counts> {
   return all;
 }
 
+/** Up to 3 posters of the matches of each media type. */
+function covers(): Record<string, string[]> {
+  const all: Record<string, string[]> = {};
+  for (const type of MEDIA_TYPES) {
+    all[type] = rows
+      .filter((row) => row.media_type === type && row.selected !== null)
+      .map((row) => row.candidates[row.selected!]?.poster)
+      .filter((poster): poster is string => Boolean(poster))
+      .slice(0, 3);
+  }
+  return all;
+}
+
+/** The source folders and the files of each waiting. */
+function sourceFolders(): Source[] {
+  const waiting = [
+    ...rows.flatMap((row) => row.files.map((file) => file.path)),
+    ...toCheck.map((item) => item.path),
+  ];
+  return settings.folders.sources.map((path) => ({
+    path,
+    files: waiting.filter((file) => file.startsWith(`${path.replace(/\/$/, "")}/`)).length,
+    missing: false,
+  }));
+}
+
 function summary(): Summary {
-  return { scan: clone(scan), counts: counts(), to_check: clone(toCheck) };
+  return {
+    scan: clone(scan),
+    counts: counts(),
+    to_check: clone(toCheck),
+    covers: covers(),
+    sources: sourceFolders(),
+  };
 }
 
 // ------------------------------------------------------------- Events
@@ -621,6 +653,14 @@ async function answer(method: string, path: string, query: URLSearchParams, body
       return clone(settings);
     case "PATCH /api/settings":
       return changeSettings(body as SettingsChange);
+    case "GET /api/settings/disks":
+      return {
+        disks: [
+          { path: "/media", folders: ["/media"], total: 4e12, free: 1.1e12 },
+          { path: "/downloads", folders: ["/downloads"], total: 1e12, free: 0.59e12 },
+        ],
+        movie_size: 12e9,
+      };
     case "GET /api/settings/browse":
       return browse(query.get("path") ?? undefined);
     case "POST /api/settings/test-key": {

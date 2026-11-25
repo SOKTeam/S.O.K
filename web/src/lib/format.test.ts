@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { daysAgo, dayKey, fill, parentFolder, pickLanguage, splitName } from "./format";
+import { daysAgo, dayKey, fill, parentFolder, pickLanguage, pluralForm, splitName } from "./format";
 
 describe("fill", () => {
   it("puts the values in the placeholders", () => {
@@ -59,5 +59,28 @@ describe("days", () => {
 
   it("keys a date by its day", () => {
     expect(dayKey(new Date(2026, 0, 5, 18))).toBe("2026-01-05");
+  });
+});
+
+describe("pluralForm", () => {
+  it("puts 0 with 1 in French", () => {
+    expect(pluralForm("fr", 0)).toBe("one");
+    expect(pluralForm("fr", 1)).toBe("one");
+    expect(pluralForm("fr", 2)).toBe("other");
+  });
+
+  it("has one and other in English", () => {
+    expect(pluralForm("en", 1)).toBe("one");
+    expect(pluralForm("en", 0)).toBe("other");
+  });
+
+  it("has a form for 2 to 4 in Polish and Russian", () => {
+    expect(pluralForm("pl", 1)).toBe("one");
+    expect(pluralForm("pl", 3)).toBe("few");
+    expect(pluralForm("pl", 12)).toBe("many");
+    expect(pluralForm("pl", 21)).toBe("many");
+    expect(pluralForm("ru", 21)).toBe("one");
+    expect(pluralForm("ru", 22)).toBe("few");
+    expect(pluralForm("ru", 11)).toBe("many");
   });
 });

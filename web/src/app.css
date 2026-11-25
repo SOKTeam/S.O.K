@@ -39,6 +39,12 @@
   --color-danger: #ff6b6b;
 }
 
+/* The strength of the light of the scene, and the shadow under a poster. */
+:root {
+  --halo: 0.34;
+  --drop: rgb(0 0 0 / 0.78);
+}
+
 :root[data-theme="light"] {
   --color-bg: #f4f3ef;
   --color-surface: #ffffff;
@@ -56,6 +62,8 @@
   --color-accent-soft: #fce3de;
   --color-caution: #a3470f;
   --color-danger: #c62828;
+  --halo: 0.22;
+  --drop: rgb(60 40 20 / 0.32);
 }
 
 /* Geist and Geist Mono, served by the server itself: no font from the web. */
