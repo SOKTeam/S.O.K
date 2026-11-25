@@ -1,167 +1,192 @@
 @import "tailwindcss";
 
-/* The themes of the desktop app (src/sok/ui/theme.py), set on <html> by
-   lib/theme.svelte.ts: data-theme="light" (macOS: white and gray with
-   orange accents), "orange" (Windows and Linux) or "dark". The utilities
-   (bg-card, text-muted…) read these variables, so a theme only changes the
-   variables. */
+/* The SOKTeam art direction (.impeccable/refs/direction-artistique/tokens.json),
+   shared with the desktop app (src/sok/ui/tokens.py). Two themes, set on
+   <html> by lib/theme.svelte.ts: dark (the default, on which everything is
+   judged) and data-theme="light". The utilities (bg-surface, text-muted…)
+   read these variables, so a theme only changes the variables. */
 @theme {
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI Variable", "Segoe UI",
-    system-ui, sans-serif;
+  --font-sans: Geist, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  --color-bg: #ffffff;
-  --color-card: #f5f5f7;
-  --color-sidebar: #ededf0;
-  /* The page of the sidebar shown, its text and its icon. */
-  --color-selected: rgb(0 0 0 / 0.1);
-  --color-selected-fg: #1d1d1f;
-  --color-selected-icon: #fb6048;
-  --color-fg: #1d1d1f;
-  --color-muted: #6e6e73;
-  --color-faint: #c7c7cc;
-  --color-icon: #6e6e73;
+  /* The window, the panels on it, a raised (open, hovered) row or a field. */
+  --color-bg: #080808;
+  --color-surface: #121211;
+  --color-raised: #1a1a19;
+  /* The face of the secondary keys (graphite). */
+  --color-key: #2e2d2a;
+  --color-key-hover: #353431;
+  --color-key-pressed: #252422;
+  /* Hairlines: felt more than seen. The strong one rings fields and tags. */
+  --color-line: rgb(255 255 255 / 0.07);
+  --color-line-strong: rgb(255 255 255 / 0.14);
+  /* The 1px reflection at the top of panels and keys: light from above. */
+  --color-hi: rgb(255 255 255 / 0.08);
+  --color-ink: #f3f2ef;
+  --color-muted: #a9a7a1;
+  /* Labels in capitals, "was …", metadata. Never on a key. */
+  --color-faint: #8e8c86;
+  /* The coral of S.O.K: the primary key, the light, the active count. */
   --color-accent: #fb6048;
-  --color-accent-fg: #ffffff;
-  --color-line: #e3e3e8;
-  --color-hover: rgb(0 0 0 / 0.06);
-  --color-input: #ffffff;
-  /* A switch that is off. */
-  --color-track: #c7c7cc;
-  --color-ok: #248a3d;
-  --color-warn: #b25000;
-  --color-error: #d70015;
+  --color-accent-hover: #ff6a53;
+  --color-accent-pressed: #e8533c;
+  /* Text on coral: never white (3:1 only). */
+  --color-on-accent: #1f0702;
+  /* Coral as text or a thin stroke, readable on the page. */
+  --color-accent-text: #fb6048;
+  --color-accent-soft: rgb(251 96 72 / 0.16);
+  --color-caution: #ffb86c;
+  --color-danger: #ff6b6b;
 }
 
-/* Orange: the panels and the fields are darker than the page, so the white
-   text stays readable; the statuses, the errors too, are light tints. */
-:root[data-theme="orange"] {
-  --color-bg: #fb6048;
-  --color-card: #ec5942;
-  --color-sidebar: #fb6048;
-  --color-selected: #ffffff;
-  --color-selected-fg: #fb6048;
-  --color-selected-icon: #fb6048;
-  --color-fg: #ffffff;
-  --color-muted: rgb(255 255 255 / 0.85);
-  --color-faint: rgb(255 255 255 / 0.55);
-  --color-icon: #ffffff;
-  --color-accent: #ffffff;
-  --color-accent-fg: #fb6048;
-  --color-line: rgb(255 255 255 / 0.22);
-  --color-hover: rgb(0 0 0 / 0.07);
-  --color-input: #dd513f;
-  --color-track: rgb(0 0 0 / 0.2);
-  --color-ok: #d9ffe2;
-  --color-warn: #ffe9c7;
-  --color-error: #ffd3cb;
+:root[data-theme="light"] {
+  --color-bg: #f4f3ef;
+  --color-surface: #ffffff;
+  --color-raised: #ecebe6;
+  --color-key: #e6e5e0;
+  --color-key-hover: #deddd7;
+  --color-key-pressed: #d4d3cd;
+  --color-line: rgb(27 27 25 / 0.08);
+  --color-line-strong: rgb(27 27 25 / 0.18);
+  --color-hi: rgb(255 255 255 / 0.7);
+  --color-ink: #1b1b19;
+  --color-muted: #5d5c57;
+  --color-faint: #6b6a64;
+  --color-accent-text: #c2381f;
+  --color-accent-soft: #fce3de;
+  --color-caution: #a3470f;
+  --color-danger: #c62828;
 }
 
-:root[data-theme="dark"] {
-  --color-bg: #121212;
-  --color-card: #1e1e1e;
-  --color-sidebar: #181818;
-  --color-selected: #fb6048;
-  --color-selected-fg: #ffffff;
-  --color-selected-icon: #ffffff;
-  --color-fg: #ffffff;
-  --color-muted: #b3b3b3;
-  --color-faint: #404040;
-  --color-icon: #b3b3b3;
-  --color-line: #333333;
-  --color-hover: rgb(255 255 255 / 0.08);
-  --color-input: #2c2c2e;
-  --color-track: #48484a;
-  --color-ok: #30d158;
-  --color-warn: #ffb86c;
-  --color-error: #ff6b6b;
-}
-
-/* Inter, where the system font is not SF Pro or Segoe UI (Linux). */
+/* Geist and Geist Mono, served by the server itself: no font from the web. */
 @font-face {
-  font-family: Inter;
-  font-weight: 400;
+  font-family: Geist;
+  font-weight: 100 900;
   font-display: swap;
-  src: url("/fonts/Inter-Regular.woff2") format("woff2");
+  src: url("/fonts/Geist-Variable.woff2") format("woff2");
 }
 @font-face {
-  font-family: Inter;
-  font-weight: 600;
+  font-family: "Geist Mono";
+  font-weight: 100 900;
   font-display: swap;
-  src: url("/fonts/Inter-SemiBold.woff2") format("woff2");
-}
-@font-face {
-  font-family: Inter;
-  font-weight: 700;
-  font-display: swap;
-  src: url("/fonts/Inter-Bold.woff2") format("woff2");
+  src: url("/fonts/GeistMono-Variable.woff2") format("woff2");
 }
 
 @layer base {
-  /* The native controls (lists, scroll bars) follow the theme chosen. */
+  /* The native controls (scroll bars, fields) follow the theme. */
   :root {
-    color-scheme: light;
-  }
-  :root[data-theme="dark"] {
     color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
   }
   html,
   body {
-    @apply bg-bg font-sans text-fg antialiased;
+    @apply bg-bg font-sans text-ink antialiased;
     height: 100%;
+    font-size: 15px;
+    line-height: 22px;
   }
   #app {
     height: 100%;
   }
   ::placeholder {
-    @apply text-muted opacity-70;
+    @apply text-faint;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
   }
 }
 
 @layer components {
-  .field {
-    @apply w-full rounded-lg border border-line bg-input px-3 py-2 text-sm text-fg outline-none;
-    @apply focus:border-accent focus:ring-2 focus:ring-accent/30;
-  }
-  /* The buttons of the desktop app: pills. One filled button per page, for
-     its main action; the others are outlined. */
-  .button {
-    @apply inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-4 py-1.5;
-    @apply bg-accent text-sm font-semibold text-accent-fg hover:brightness-105;
-    @apply disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100;
-  }
+  /* The keys of the art direction: a graphite face lit from above, 1px of
+     reflection on top and 1px of shadow below. One primary (coral) key per
+     screen. A count follows after a hairline, in Geist Mono (.legend). */
+  .key,
+  .button,
   .button-outline {
-    @apply inline-flex shrink-0 items-center justify-center gap-2 rounded-full px-4 py-1.5;
-    @apply text-sm font-semibold text-accent ring-[1.5px] ring-accent ring-inset hover:bg-hover;
-    @apply disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent;
+    @apply inline-flex h-11 shrink-0 items-center justify-center gap-3 rounded-xl px-[18px];
+    @apply bg-key text-[15px] font-semibold tracking-[-0.01em] whitespace-nowrap text-ink;
+    @apply cursor-pointer transition-[background-color,transform] duration-[90ms];
+    @apply hover:bg-key-hover active:scale-[0.985] active:bg-key-pressed;
+    box-shadow:
+      inset 0 1px 0 var(--color-hi),
+      0 1px 0 rgb(0 0 0 / 0.55);
   }
-  /* A link-like action in a row: "Get a key", "Put back". */
-  .link {
-    @apply text-sm font-semibold text-accent hover:underline disabled:opacity-50;
+  :root[data-theme="light"] :is(.key, .button, .button-outline) {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.7),
+      0 1px 0 rgb(0 0 0 / 0.18);
   }
-  /* The title of a section, in small capitals, as in the desktop app. */
+  .key-primary,
+  .button {
+    @apply bg-accent text-on-accent hover:bg-accent-hover active:bg-accent-pressed;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.22),
+      0 1px 0 rgb(0 0 0 / 0.55) !important;
+  }
+  .key-sm,
+  .button,
+  .button-outline {
+    @apply h-8 gap-2 rounded-lg px-3 text-[13px];
+  }
+  /* A key that cannot be used: neutral, its text faint (a disabled coral
+     looks muddy). */
+  :is(.key, .button, .button-outline):disabled {
+    @apply cursor-default bg-key text-faint active:scale-100;
+  }
+  .legend {
+    @apply font-mono text-[11px] font-medium tracking-normal opacity-60;
+    padding-left: 12px;
+    box-shadow: inset 1px 0 0 currentColor;
+  }
+  .key-primary .legend {
+    @apply opacity-55;
+  }
+  /* A field: the raised ground, a strong hairline, coral when it has the
+     focus. */
+  .field {
+    @apply h-10 w-full rounded-[10px] border border-line-strong bg-raised px-3 text-[14px] text-ink;
+    @apply outline-none focus:border-accent;
+  }
+  /* The label of a section, in small capitals. */
   .label {
-    @apply text-[11px] font-semibold tracking-[0.06em] text-muted uppercase;
+    @apply text-[11px] leading-4 font-semibold tracking-[0.08em] text-faint uppercase;
   }
-  /* A rounded checkbox, with the check of the desktop icons (check.svg). */
+  /* A link-like action. */
+  .link {
+    @apply cursor-pointer font-semibold text-accent-text hover:text-ink disabled:opacity-50;
+  }
+  /* A small tag (EPUB, auto): mono, a strong hairline around. */
+  .tag {
+    @apply rounded-[5px] px-1.5 font-mono text-[11px] leading-[18px] font-medium text-muted;
+    box-shadow: inset 0 0 0 1px var(--color-line-strong);
+  }
+}
+
+/* TEMPORARY, while the screens move to the art direction one by one on this
+   branch: the names of the old theme, mapped onto the new colors, and its
+   checkbox; its .button / .button-outline are listed with the keys above. Removed with the last old screen. */
+@theme {
+  --color-card: var(--color-surface);
+  --color-sidebar: var(--color-surface);
+  --color-selected: var(--color-raised);
+  --color-selected-fg: var(--color-ink);
+  --color-selected-icon: var(--color-accent-text);
+  --color-fg: var(--color-ink);
+  --color-icon: var(--color-muted);
+  --color-accent-fg: var(--color-on-accent);
+  --color-hover: var(--color-raised);
+  --color-input: var(--color-raised);
+  --color-track: var(--color-line-strong);
+  --color-ok: var(--color-ink);
+  --color-warn: var(--color-caution);
+  --color-error: var(--color-danger);
+}
+@layer components {
   .check {
     @apply relative size-4.5 shrink-0 cursor-pointer appearance-none rounded-[5px] border-[1.5px];
-    @apply border-faint bg-input transition-colors hover:border-accent;
-    @apply checked:border-accent checked:bg-accent indeterminate:border-accent indeterminate:bg-accent;
-    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
-    @apply disabled:cursor-not-allowed disabled:border-dashed disabled:bg-transparent;
-    @apply disabled:opacity-70 disabled:hover:border-faint;
-  }
-  .check:checked::after,
-  .check:indeterminate::after {
-    content: "";
-    position: absolute;
-    inset: 1px;
-    background: var(--color-accent-fg);
-    mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M2.75 8.75L6 12L13.25 4.75' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>")
-      center / 12px no-repeat;
-  }
-  .check:indeterminate::after {
-    mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M4 8H12' stroke='black' stroke-width='2.2' stroke-linecap='round'/></svg>");
+    @apply border-line-strong bg-raised checked:border-accent checked:bg-accent;
+    @apply indeterminate:border-accent indeterminate:bg-accent;
   }
 }

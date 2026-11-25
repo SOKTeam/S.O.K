@@ -148,8 +148,6 @@
         return t("web_theme_system", "System");
       case "light":
         return t("web_theme_light", "Light");
-      case "orange":
-        return t("web_theme_orange", "Orange");
       case "dark":
         return t("web_theme_dark", "Dark");
     }

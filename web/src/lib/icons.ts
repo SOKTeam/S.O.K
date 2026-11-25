@@ -1,6 +1,19 @@
 // The icons of the desktop app (src/sok/resources/assets), every color
 // replaced by the one of the text (currentColor).
 export const ICONS: Record<string, { viewBox: string; body: string }> = {
+  // The thin icons of the navigation (art direction, 1.3px strokes).
+  "nav-history": {
+    viewBox: "0 0 16 16",
+    body: '<path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2.5v2.2h2.2M8 5v3.2l2 1.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>',
+  },
+  "nav-settings": {
+    viewBox: "0 0 16 16",
+    body: '<circle cx="8" cy="8" r="2.2" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>',
+  },
+  "nav-logout": {
+    viewBox: "0 0 16 16",
+    body: '<path d="M6 2.5H3.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1H6M10.5 11 13.5 8l-3-3M13.5 8H6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>',
+  },
   home: {
     viewBox: "0 0 16 16",
     body: '<path d="M8 1L1.5 6.5V14.5H5.5V10.5C5.5 9.67157 6.17157 9 7 9H9C9.82843 9 10.5 9.67157 10.5 10.5V14.5H14.5V6.5L8 1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',

@@ -482,5 +482,6 @@
     "web_demo_mobile_title": "Demo de S.O.K Server",
     "web_demo_mobile_text": "S.O.K Server no ha sido pensado para un uso móvil. No te aconsejamos usarlo en un teléfono.",
     "web_demo_mobile_continue": "Continuar de todos modos",
-    "web_demo_mobile_back": "Volver al sitio"
+    "web_demo_mobile_back": "Volver al sitio",
+    "web_navigation": "Navegación"
 }
