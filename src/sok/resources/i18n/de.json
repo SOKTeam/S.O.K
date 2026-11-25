@@ -459,10 +459,6 @@
     "web_demo": "Demo: Keine Datei wird wirklich umbenannt. Lade die Seite neu, um von vorn zu beginnen.",
     "web_demo_install": "S.O.K Server installieren",
     "web_demo_tmdb": "Film- und Seriendaten: TMDB. Dieses Produkt nutzt die TMDB-API, wird aber nicht von TMDB unterstützt oder zertifiziert.",
-    "web_demo_mobile_title": "Demo von S.O.K Server",
-    "web_demo_mobile_text": "S.O.K Server wurde nicht für die mobile Nutzung entwickelt. Wir raten davon ab, ihn auf einem Telefon zu verwenden.",
-    "web_demo_mobile_continue": "Trotzdem fortfahren",
-    "web_demo_mobile_back": "Zurück zur Website",
     "web_navigation": "Navigation",
     "web_today_at": "Heute um {time}",
     "web_yesterday_at": "Gestern um {time}",
@@ -655,7 +651,7 @@
     "web_history_note": "Der Verlauf wird auf dem Server gespeichert. Die letzten 100 Ordnungen bleiben erhalten.",
     "web_put_as": "geordnet als",
     "web_analyze_again": "Erneut analysieren",
-    "web_processed_hint": "Wähle die Dateien zum Zurücknehmen: der Punkt eines Vorschaubilds oder Cmd/Strg-Klick.",
+    "web_processed_hint": "Wähle die Dateien, die du zurücknehmen willst: die Markierung eines Vorschaubilds, ⌘/Strg-Klick oder langes Drücken.",
     "web_stayed": "geblieben",
     "web_op_undone": "Rückgängig gemacht: die Dateien sind wieder, wo sie waren.",
     "web_undo_rest": "Den Rest rückgängig machen",
@@ -796,5 +792,10 @@
     "web_setup_steps": "Schritte",
     "web_setup_summary": "Die Dateien aus {from} kommen nach {to}, {how}.",
     "web_setup_tv": "Serien",
-    "web_version_n": "Version {version}"
+    "web_version_n": "Version {version}",
+    "web_list": "Liste",
+    "web_menu": "Menü",
+    "web_menu_nothing": "nichts",
+    "web_menu_waiting": "{n} zu sortieren",
+    "web_touch_to_toggle": "Tippe auf eine Zeile, um sie hinzuzufügen oder zu entfernen."
 }

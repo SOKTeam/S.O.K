@@ -459,10 +459,6 @@
     "web_demo": "Demo: żaden plik nie jest naprawdę zmieniany. Odśwież stronę, aby zacząć od nowa.",
     "web_demo_install": "Zainstaluj S.O.K Server",
     "web_demo_tmdb": "Dane filmów i seriali: TMDB. Ten produkt korzysta z API TMDB, ale nie jest wspierany ani certyfikowany przez TMDB.",
-    "web_demo_mobile_title": "Demo S.O.K Server",
-    "web_demo_mobile_text": "S.O.K Server nie został zaprojektowany do użytku mobilnego. Odradzamy korzystanie z niego na telefonie.",
-    "web_demo_mobile_continue": "Kontynuuj mimo to",
-    "web_demo_mobile_back": "Powrót do strony",
     "web_navigation": "Nawigacja",
     "web_today_at": "Dziś o {time}",
     "web_yesterday_at": "Wczoraj o {time}",
@@ -691,7 +687,7 @@
     "web_history_note": "Historia jest przechowywana na serwerze. Zostaje ostatnie 100 porządkowań.",
     "web_put_as": "jako",
     "web_analyze_again": "Analizuj ponownie",
-    "web_processed_hint": "Wybierz pliki do ponownej analizy: znacznik miniatury albo Cmd/Ctrl-klik.",
+    "web_processed_hint": "Wybierz pliki do ponownego wzięcia: znacznik miniatury, ⌘/Ctrl-klik lub długie przytrzymanie.",
     "web_stayed": "został",
     "web_op_undone": "Cofnięto: pliki wróciły tam, gdzie były.",
     "web_undo_rest": "Cofnij resztę",
@@ -846,5 +842,10 @@
     "web_setup_steps": "Kroki",
     "web_setup_summary": "Pliki z {from} trafią do {to}, {how}.",
     "web_setup_tv": "Seriale",
-    "web_version_n": "wersja {version}"
+    "web_version_n": "wersja {version}",
+    "web_list": "Lista",
+    "web_menu": "Menu",
+    "web_menu_nothing": "nic",
+    "web_menu_waiting": "do uporządkowania: {n}",
+    "web_touch_to_toggle": "Dotknij wiersza, aby go dodać lub usunąć."
 }

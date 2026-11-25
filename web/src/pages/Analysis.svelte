@@ -481,7 +481,7 @@
   {/if}
 
   <div class="flex-1"></div>
-  <div class="flex flex-wrap items-center gap-3.5 pt-4">
+  <div class="dock flex flex-wrap items-center gap-3.5 pt-4">
     {#if running}
       <button type="button" class="key" disabled>{t("web_analyzing", "Analyzing…")}</button>
     {:else}

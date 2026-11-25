@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, type Component } from "svelte";
+  import { onMount } from "svelte";
 
   import { pickLanguage } from "./lib/format";
   import { i18n, loadTexts } from "./lib/i18n.svelte";
@@ -10,9 +10,6 @@
   import Shell from "./pages/Shell.svelte";
 
   let ready = $state(false);
-
-  /** In the demo on a small screen: a notice first (demo/MobileNotice). */
-  let Notice = $state<Component<{ onContinue: () => void }> | null>(null);
 
   // The step of the first launch assistant, kept for a reload: it stays
   // open after its folders are set, until its last step.
@@ -49,10 +46,6 @@
         await loadTexts(browser);
       }
     }
-    if (import.meta.env.MODE === "demo") {
-      const notice = await import("./demo/MobileNotice.svelte");
-      if (notice.needed()) Notice = notice.default;
-    }
     ready = true;
   }
 
@@ -87,9 +80,7 @@
 </script>
 
 {#if ready && view}
-  {#if Notice}
-    <Notice onContinue={() => (Notice = null)} />
-  {:else if view === "app"}
+  {#if view === "app"}
     <Shell />
   {:else if view === "setup"}
     <Setup bind:step onDone={setupDone} />

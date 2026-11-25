@@ -20,6 +20,7 @@
   import { commonFolder, fillParts, parentFolder } from "../lib/format";
   import { i18n, t } from "../lib/i18n.svelte";
   import { setLight } from "../lib/light.svelte";
+  import { screen } from "../lib/screen.svelte";
   import { MEDIA_PAGES } from "../lib/pages";
   import { startScan } from "../lib/scan.svelte";
   import { refreshSession, session } from "../lib/session.svelte";
@@ -133,7 +134,15 @@
     return known ? parentFolder(known) : sources[0] ? parentFolder(sources[0]) : undefined;
   });
 
+  // Under 1000px, the folder browser is a sheet opened by a path.
+  let browsing = $state(false);
+  function browse(type?: string) {
+    if (type) target = type;
+    browsing = true;
+  }
+
   function pick(path: string) {
+    browsing = false;
     if (!data) return;
     if (step === 2) {
       if (!sources.includes(path)) save({ folders: { sources: [...sources, path] } });
@@ -307,7 +316,7 @@
 <SceneLight strength={0.5} />
 <div class="relative mx-auto flex h-full max-w-[1760px] flex-col">
   <nav
-    class="flex h-[76px] shrink-0 items-center overflow-x-auto px-9"
+    class="flex h-[76px] shrink-0 items-center overflow-x-auto px-9 max-[999px]:px-8 max-[699px]:h-[52px] max-[699px]:[mask-image:linear-gradient(90deg,#000_80%,transparent)] max-[699px]:px-5"
     aria-label={t("web_setup_steps", "Steps")}
   >
     <Mark />
@@ -319,7 +328,7 @@
         disabled={!canOpen(index)}
         aria-current={on ? "step" : undefined}
         class={[
-          "mr-6 shrink-0 text-[22px] leading-[30px] font-semibold tracking-[-0.035em] whitespace-nowrap",
+          "mr-6 shrink-0 text-[22px] leading-[30px] font-semibold tracking-[-0.035em] whitespace-nowrap max-[699px]:mr-4 max-[699px]:text-[18px]",
           on ? "text-ink" : done ? "text-muted" : "text-faint",
           canOpen(index) ? "cursor-pointer hover:text-ink" : "cursor-default",
         ]}
@@ -335,7 +344,7 @@
     {/each}
   </nav>
   <main class="min-h-0 flex-1">
-    <Split>
+    <Split open={browsing && (step === 2 || step === 3)} onclose={() => (browsing = false)} sheet>
       <div class="my-auto w-full max-w-[760px] py-8 pb-12 lg:ml-[84px]">
         {#if step === 1}
           {@render question(t("web_setup_title", "Welcome"), ".")}
@@ -402,7 +411,7 @@
                   ? t("web_setup_other_folder", "+ another folder")
                   : t("web_setup_pick_folder", "pick a folder"),
                 true,
-                () => {},
+                () => browse(),
               )}
             </div>
           </div>
@@ -433,7 +442,7 @@
                     >{verb}</span
                   >
                   <span class="min-w-0 truncate text-[22px] font-normal">
-                    {@render path(folder, target === type, () => (target = type))}
+                    {@render path(folder, target === type, () => browse(type))}
                   </span>
                 {:else}
                   <button
@@ -442,7 +451,7 @@
                       "col-span-1 cursor-pointer text-left text-[15px] font-normal tracking-normal sm:col-span-2",
                       target === type ? "text-accent-text" : "text-faint hover:text-muted",
                     ]}
-                    onclick={() => (target = type)}
+                    onclick={() => browse(type)}
                   >
                     {stay}
                   </button>
@@ -585,6 +594,7 @@
               })}
               {start}
               onpick={pick}
+              oncancel={screen.narrow ? () => (browsing = false) : undefined}
             />
           {/key}
         {:else if data && step === 4}

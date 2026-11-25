@@ -459,10 +459,6 @@
     "web_demo": "Demo: no file is really renamed. Reload the page to start again.",
     "web_demo_install": "Install S.O.K Server",
     "web_demo_tmdb": "Movie and TV data: TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.",
-    "web_demo_mobile_title": "S.O.K Server demo",
-    "web_demo_mobile_text": "S.O.K Server was not designed for mobile use. We advise against using it on a phone.",
-    "web_demo_mobile_continue": "Continue anyway",
-    "web_demo_mobile_back": "Back to the site",
     "web_navigation": "Navigation",
     "web_today_at": "Today at {time}",
     "web_yesterday_at": "Yesterday at {time}",
@@ -655,7 +651,7 @@
     "web_history_note": "The history is kept on the server. The last 100 renames are kept.",
     "web_put_as": "put away as",
     "web_analyze_again": "Analyze again",
-    "web_processed_hint": "Choose the files to take back: the mark of a thumbnail, or Cmd/Ctrl-click.",
+    "web_processed_hint": "Choose the files to take back: the mark of a thumbnail, Cmd/Ctrl-click, or a long press.",
     "web_stayed": "stayed",
     "web_op_undone": "Undone: the files are back where they were.",
     "web_undo_rest": "Undo the rest",
@@ -796,5 +792,10 @@
     "web_setup_steps": "Steps",
     "web_setup_summary": "The files of {from} will go to {to}, {how}.",
     "web_setup_tv": "TV shows",
-    "web_version_n": "version {version}"
+    "web_version_n": "version {version}",
+    "web_list": "List",
+    "web_menu": "Menu",
+    "web_menu_nothing": "nothing",
+    "web_menu_waiting": "{n} to sort",
+    "web_touch_to_toggle": "Touch a row to add or remove it."
 }

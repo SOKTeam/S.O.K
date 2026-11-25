@@ -4,6 +4,7 @@
   // files waiting in superscript, then History, Settings and Log out.
   import Icon from "../Icon.svelte";
   import Cube from "./Cube.svelte";
+  import PhoneNav from "./PhoneNav.svelte";
   import { t } from "../../lib/i18n.svelte";
   import { MEDIA_PAGES, OTHER_PAGES } from "../../lib/pages";
   import { follow, href, router } from "../../lib/router.svelte";
@@ -17,8 +18,9 @@
   }
 </script>
 
+<div class="min-[700px]:hidden"><PhoneNav /></div>
 <nav
-  class="flex h-[76px] shrink-0 items-center px-9"
+  class="flex h-[76px] shrink-0 items-center px-9 max-[999px]:px-8 max-[699px]:hidden"
   aria-label={t("web_navigation", "Navigation")}
 >
   <a
@@ -26,7 +28,7 @@
     onclick={follow}
     aria-current={router.path === "/" ? "page" : undefined}
     class={[
-      "mr-11 flex items-center gap-2 text-[17px] font-bold",
+      "mr-11 flex shrink-0 items-center gap-2 text-[17px] font-bold max-[999px]:mr-7",
       router.path === "/" ? "text-ink" : "text-ink hover:text-muted",
     ]}
   >
@@ -41,7 +43,7 @@
       onclick={follow}
       aria-current={on ? "page" : undefined}
       class={[
-        "mr-[30px] text-[26px] leading-[30px] font-semibold tracking-[-0.035em]",
+        "mr-[30px] shrink-0 text-[26px] leading-[30px] font-semibold tracking-[-0.035em] max-[999px]:mr-5 max-[999px]:text-[22px]",
         on ? "text-ink" : "text-faint hover:text-muted",
       ]}
     >

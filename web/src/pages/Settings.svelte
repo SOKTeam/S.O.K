@@ -24,7 +24,13 @@
   import { loadHistory, type Operation } from "../lib/history";
   import { loadTexts, t, tn } from "../lib/i18n.svelte";
   import { setLight } from "../lib/light.svelte";
-  import { EXAMPLE_LIGHTS, EXAMPLES, FORMAT_KEYS } from "../lib/namePreview";
+  import {
+    EXAMPLE_COLORS,
+    EXAMPLE_LIGHTS,
+    EXAMPLES,
+    FORMAT_KEYS,
+    previewPath,
+  } from "../lib/namePreview";
   import { MEDIA_PAGES } from "../lib/pages";
   import { replace, router } from "../lib/router.svelte";
   import { logOut, session } from "../lib/session.svelte";
@@ -354,6 +360,17 @@
     return block === "folders" && browsing && browsing !== "sources" ? browsing : "movies";
   });
 
+  // The preview of the File names block, under 1000px.
+  const small = $derived(
+    data
+      ? previewPath(
+          example,
+          modelOf(example),
+          data.folders[example]?.[0] ?? "",
+          t("season", "Season"),
+        )
+      : null,
+  );
   $effect(() => {
     if (view === "file") setLight(EXAMPLE_LIGHTS[example]);
     else if (view === "auto") setLight(data?.settings.auto_sort ? "251, 96, 72" : null);
@@ -446,7 +463,7 @@
   <p class="mt-0.5 mb-2 max-w-[600px] text-[13px] leading-[1.5] text-faint">{text}</p>
 {/snippet}
 
-<Split bind:pane onscroll={follow}>
+<Split bind:pane onscroll={follow} open={browsing !== null} onclose={() => (browsing = null)} sheet>
   <h1 class="m-0 mb-[18px] text-[50px] leading-[1.04] font-[650] tracking-[-0.04em]">
     {t("settings", "Settings")}<span class="text-muted">.</span>
   </h1>
@@ -465,7 +482,7 @@
       <!-- Folders -->
       <section
         data-block="folders"
-        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6"
+        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6 max-[699px]:grid-cols-1 max-[699px]:gap-y-3 max-[699px]:py-[18px]"
       >
         {@render head(
           t("web_folders", "Folders"),
@@ -497,7 +514,7 @@
       <!-- Behavior -->
       <section
         data-block="behavior"
-        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6"
+        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6 max-[699px]:grid-cols-1 max-[699px]:gap-y-3 max-[699px]:py-[18px]"
       >
         {@render head(t("behavior", "Behavior"))}
         <div>
@@ -561,7 +578,7 @@
       <!-- Automatic sorting -->
       <section
         data-block="auto"
-        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6"
+        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6 max-[699px]:grid-cols-1 max-[699px]:gap-y-3 max-[699px]:py-[18px]"
       >
         {@render head(
           t("web_auto_sort", "Automatic sorting"),
@@ -620,7 +637,7 @@
       <!-- Notifications -->
       <section
         data-block="notifications"
-        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6"
+        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6 max-[699px]:grid-cols-1 max-[699px]:gap-y-3 max-[699px]:py-[18px]"
       >
         {@render head(
           t("web_notifications", "Notifications"),
@@ -745,10 +762,30 @@
       <!-- File names -->
       <section
         data-block="names"
-        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6"
+        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6 max-[699px]:grid-cols-1 max-[699px]:gap-y-3 max-[699px]:py-[18px]"
       >
         {@render head(t("web_file_names", "File names"))}
         <div>
+          <!-- Under 1000px the scene is gone: the preview is a card here. -->
+          <div
+            class="mb-3 grid grid-cols-[54px_minmax(0,1fr)] items-center gap-3 rounded-xl bg-surface p-2.5 shadow-[inset_0_1px_0_var(--color-hi),0_0_0_1px_var(--color-line)] min-[1000px]:hidden"
+          >
+            <div
+              class="h-20 w-[54px] rounded-md"
+              style:background={`linear-gradient(170deg, ${EXAMPLE_COLORS[example][0]}, ${EXAMPLE_COLORS[example][1]})`}
+              aria-hidden="true"
+            ></div>
+            <div class="min-w-0 font-mono text-[11.5px] leading-[1.4] break-all">
+              <p class="text-faint">{EXAMPLES[example].before}</p>
+              <p class="mt-1.5 text-ink">
+                {#if small}{#each small as piece, i (i)}<span
+                      class={piece.filled ? "text-accent-text" : ""}>{piece.text}</span
+                    >{/each}{:else}<span class="font-sans text-faint"
+                    >{t("web_preview_none", "No name with this model.")}</span
+                  >{/if}
+              </p>
+            </div>
+          </div>
           {#each MEDIA_PAGES as page (page.path)}
             {@const type = page.mediaType!}
             {@const line = `format:${type}`}
@@ -811,7 +848,7 @@
       <!-- Sources -->
       <section
         data-block="sources"
-        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6"
+        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6 max-[699px]:grid-cols-1 max-[699px]:gap-y-3 max-[699px]:py-[18px]"
       >
         {@render head(
           t("web_sources", "Sources"),
@@ -858,7 +895,7 @@
       <!-- Appearance -->
       <section
         data-block="appearance"
-        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6"
+        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6 max-[699px]:grid-cols-1 max-[699px]:gap-y-3 max-[699px]:py-[18px]"
       >
         {@render head(t("appearance", "Appearance"))}
         <div>
@@ -892,7 +929,7 @@
       <!-- Account -->
       <section
         data-block="account"
-        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6"
+        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6 max-[699px]:grid-cols-1 max-[699px]:gap-y-3 max-[699px]:py-[18px]"
       >
         {@render head(t("web_account", "Account"))}
         <div>
@@ -920,7 +957,7 @@
       <!-- About -->
       <section
         data-block="about"
-        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6"
+        class="grid grid-cols-[200px_minmax(0,1fr)] gap-x-6 border-t border-line py-6 max-[699px]:grid-cols-1 max-[699px]:gap-y-3 max-[699px]:py-[18px]"
       >
         {@render head(t("about", "About"))}
         <div>

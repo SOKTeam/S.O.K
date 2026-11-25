@@ -5,6 +5,8 @@
   import { onMount, untrack } from "svelte";
 
   import Split from "../components/layout/Split.svelte";
+  import { longpress } from "../lib/longpress";
+  import { screen } from "../lib/screen.svelte";
   import Gauge from "../components/media/Gauge.svelte";
   import Thumb from "../components/media/Thumb.svelte";
   import Facts, { type Fact } from "../components/scene/Facts.svelte";
@@ -28,6 +30,7 @@
     platformOf,
     loadRows,
     matchOf,
+    posterUrl,
     searchRow,
     titleOf,
     type Row,
@@ -46,6 +49,8 @@
   let error = $state("");
   // The row open on the scene, and what the scene shows.
   let openId = $state<number | null>(null);
+  // Under 1000px, whether the scene is over the list.
+  let sceneOpen = $state(false);
   let view = $state<"scene" | "pick">("scene");
   // The selection: its mode, the rows chosen, the row of a Shift range.
   let picking = $state(false);
@@ -255,6 +260,7 @@
     searchMessage = "";
     query = row.query ?? titleOf(row);
     view = row.status === "ok" ? "scene" : "pick";
+    sceneOpen = true;
   }
 
   /** "That's not it": the results and the search, for the open row. */
@@ -332,6 +338,7 @@
     try {
       await startRename(mediaType, selection.length ? selection.map((row) => row.id) : undefined);
       endPicking();
+      sceneOpen = true;
     } catch (exc) {
       error = errorText(exc);
     }
@@ -549,7 +556,7 @@
     {/if}
   </div>
 {:else}
-  <Split>
+  <Split open={sceneOpen} onclose={() => (sceneOpen = false)}>
     <div class="mb-2 text-[11px] leading-4 font-semibold tracking-[0.08em] text-faint uppercase">
       {#if scan?.finished}
         {t("web_analyzed_at", "Analyzed at {time}", { time: time(scan.finished) })}
@@ -619,7 +626,9 @@
     {#if error}<p class="mt-3 text-[14px] text-danger" role="alert">{error}</p>{/if}
 
     {#if rows?.length}
-      <div class="mt-[22px] mb-2.5 flex items-baseline gap-5 text-[14px] font-semibold text-faint">
+      <div
+        class="mt-[22px] mb-2.5 flex items-baseline gap-5 text-[14px] font-semibold whitespace-nowrap text-faint max-[699px]:gap-4"
+      >
         {#each FILTERS as [value, label] (value)}
           {@const n = value === "all" ? units(rows) : count(value)}
           <button
@@ -632,7 +641,11 @@
           </button>
         {/each}
         {#if picking}
-          <button type="button" class="key key-sm -my-2 ml-auto" onclick={endPicking}>
+          <button
+            type="button"
+            class="key key-sm -my-2 ml-auto max-[699px]:hidden"
+            onclick={endPicking}
+          >
             {t("web_done", "Done")}
           </button>
         {/if}
@@ -640,7 +653,9 @@
 
       {#if music}
         <!-- The music: a grid of covers. -->
-        <div class="-mx-2.5 grid grid-cols-4 content-start gap-1 pt-0.5">
+        <div
+          class="-mx-2.5 grid grid-cols-4 content-start gap-1 pt-0.5 max-[999px]:grid-cols-3 max-[699px]:grid-cols-2"
+        >
           {#each shown as row (row.id)}
             {@const isChosen = chosen.includes(row.id)}
             {@const match = matchOf(row)}
@@ -658,6 +673,7 @@
               ]}
               onclick={(event) => click(row, event)}
               onkeydown={(event) => event.key === "Enter" && openRow(row)}
+              use:longpress={() => row.status === "ok" && mark(row)}
             >
               <Thumb
                 tile
@@ -708,6 +724,7 @@
               ]}
               onclick={(event) => click(row, event)}
               onkeydown={(event) => event.key === "Enter" && openRow(row)}
+              use:longpress={() => row.status === "ok" && mark(row)}
               tabindex="0"
             >
               <Thumb
@@ -793,30 +810,80 @@
     {/if}
 
     <div class="flex-1"></div>
-    <div class="flex flex-wrap items-center gap-2.5 pt-4">
-      {#if renaming}
-        <button type="button" class="key" disabled>{t("web_putting_away", "Putting away…")}</button>
-      {:else if selection.length}
-        <button type="button" class="key key-primary" onclick={renameNow}>
-          {t("web_rename_selection", "Put away the selection")}<span class="legend"
-            >{selection.length}</span
-          >
-        </button>
-      {:else if rows?.length}
-        <button
-          type="button"
-          class="key key-primary"
-          disabled={!ready.length || renames.running}
-          onclick={renameNow}
+    {#if screen.phone && picking}
+      <!-- The selection of a phone: a bar at the bottom. -->
+      <div class="dock">
+        <div
+          class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3.5 gap-y-2.5 rounded-[18px] bg-surface p-3 shadow-[inset_0_1px_0_var(--color-hi),0_0_0_1px_var(--color-line),0_20px_50px_var(--drop)]"
         >
-          {t(`web_rename_all_${mediaType}`, "Put away the movies")}<span class="legend"
-            >{units(ready)}</span
+          <div
+            class="relative h-[54px]"
+            style:width={`${36 + Math.max(0, Math.min(selection.length, 3) - 1) * 20}px`}
           >
-        </button>
-      {/if}
-    </div>
+            {#each selection.slice(0, 3) as row, i (row.id)}
+              <img
+                src={posterUrl(matchOf(row)?.poster ?? null) ?? ""}
+                alt=""
+                class="absolute top-0 h-[54px] w-9 rounded-[4px] bg-key object-cover shadow-[0_4px_10px_rgb(0_0_0/0.4),inset_0_0_0_1px_rgb(255_255_255/0.1)]"
+                style:left={`${i * 20}px`}
+                style:z-index={5 - i}
+              />
+            {/each}
+          </div>
+          <div class="min-w-0 text-[15px] font-semibold">
+            {tn(
+              `web_chosen_${mediaType}`,
+              selection.length,
+              "{n} movie chosen",
+              "{n} movies chosen",
+            )}
+            <small class="mt-0.5 block text-[12px] font-normal text-muted">
+              {t("web_touch_to_toggle", "Touch a row to add or remove it.")}
+            </small>
+          </div>
+          <div class="col-span-2 flex gap-2">
+            <button type="button" class="key" onclick={endPicking}>{t("web_done", "Done")}</button>
+            <button
+              type="button"
+              class="key key-primary flex-1"
+              disabled={!selection.length || renames.running}
+              onclick={renameNow}
+            >
+              {t("web_rename_selection", "Put away the selection")}<span class="legend"
+                >{selection.length}</span
+              >
+            </button>
+          </div>
+        </div>
+      </div>
+    {:else}
+      <div class="dock flex flex-wrap items-center gap-2.5 pt-4">
+        {#if renaming}
+          <button type="button" class="key" disabled
+            >{t("web_putting_away", "Putting away…")}</button
+          >
+        {:else if selection.length}
+          <button type="button" class="key key-primary" onclick={renameNow}>
+            {t("web_rename_selection", "Put away the selection")}<span class="legend"
+              >{selection.length}</span
+            >
+          </button>
+        {:else if rows?.length}
+          <button
+            type="button"
+            class="key key-primary"
+            disabled={!ready.length || renames.running}
+            onclick={renameNow}
+          >
+            {t(`web_rename_all_${mediaType}`, "Put away the movies")}<span class="legend"
+              >{units(ready)}</span
+            >
+          </button>
+        {/if}
+      </div>
+    {/if}
     {#if rows?.length}
-      <p class="mt-3 text-[13px] text-muted">
+      <p class="mt-3 text-[13px] text-muted max-[699px]:pb-4">
         {#if books && count("missing")}
           {tn(
             "web_books_missing_stay",

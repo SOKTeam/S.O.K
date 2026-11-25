@@ -459,10 +459,6 @@
     "web_demo": "Демо: ни один файл на самом деле не переименовывается. Перезагрузи страницу, чтобы начать заново.",
     "web_demo_install": "Установить S.O.K Server",
     "web_demo_tmdb": "Данные о фильмах и сериалах: TMDB. Этот продукт использует API TMDB, но не одобрен и не сертифицирован TMDB.",
-    "web_demo_mobile_title": "Демо S.O.K Server",
-    "web_demo_mobile_text": "S.O.K Server не предназначен для мобильных устройств. Мы не рекомендуем использовать его на телефоне.",
-    "web_demo_mobile_continue": "Всё равно продолжить",
-    "web_demo_mobile_back": "Назад на сайт",
     "web_navigation": "Навигация",
     "web_today_at": "Сегодня в {time}",
     "web_yesterday_at": "Вчера в {time}",
@@ -691,7 +687,7 @@
     "web_history_note": "История хранится на сервере. Сохраняются последние 100 сортировок.",
     "web_put_as": "как",
     "web_analyze_again": "Проанализировать снова",
-    "web_processed_hint": "Выбери файлы: отметка на миниатюре или Cmd/Ctrl-клик.",
+    "web_processed_hint": "Выбери файлы, которые взять снова: отметка на миниатюре, ⌘/Ctrl-клик или долгое нажатие.",
     "web_stayed": "остался",
     "web_op_undone": "Отменено: файлы вернулись на место.",
     "web_undo_rest": "Отменить остальное",
@@ -846,5 +842,10 @@
     "web_setup_steps": "Шаги",
     "web_setup_summary": "Файлы из {from} попадут в {to}, {how}.",
     "web_setup_tv": "Сериалы",
-    "web_version_n": "версия {version}"
+    "web_version_n": "версия {version}",
+    "web_list": "Список",
+    "web_menu": "Меню",
+    "web_menu_nothing": "пусто",
+    "web_menu_waiting": "разложить: {n}",
+    "web_touch_to_toggle": "Коснись строки, чтобы добавить или убрать её."
 }

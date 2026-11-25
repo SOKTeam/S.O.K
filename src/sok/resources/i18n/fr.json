@@ -459,10 +459,6 @@
     "web_demo": "Démo : aucun fichier n'est vraiment renommé. Recharge la page pour recommencer.",
     "web_demo_install": "Installer S.O.K Server",
     "web_demo_tmdb": "Données des films et séries : TMDB. Ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB.",
-    "web_demo_mobile_title": "Démo de S.O.K Server",
-    "web_demo_mobile_text": "S.O.K Server n'a pas été pensé pour un usage mobile. On te déconseille de l'utiliser sur téléphone.",
-    "web_demo_mobile_continue": "Continuer quand même",
-    "web_demo_mobile_back": "Retour au site",
     "web_navigation": "Navigation",
     "web_today_at": "Aujourd'hui à {time}",
     "web_yesterday_at": "Hier à {time}",
@@ -655,7 +651,7 @@
     "web_history_note": "L'historique est gardé sur le serveur. Les 100 derniers rangements restent.",
     "web_put_as": "rangé en",
     "web_analyze_again": "Analyser à nouveau",
-    "web_processed_hint": "Choisis les fichiers à reprendre : la pastille de la vignette, ou ⌘/Ctrl-clic.",
+    "web_processed_hint": "Choisis les fichiers à reprendre : la pastille de la vignette, ⌘/Ctrl-clic, ou un appui long.",
     "web_stayed": "resté là",
     "web_op_undone": "Annulé : les fichiers sont revenus là où ils étaient.",
     "web_undo_rest": "Annuler le reste",
@@ -796,5 +792,10 @@
     "web_setup_steps": "Étapes",
     "web_setup_summary": "Les fichiers de {from} iront dans {to}, {how}.",
     "web_setup_tv": "Les séries",
-    "web_version_n": "version {version}"
+    "web_version_n": "version {version}",
+    "web_list": "Liste",
+    "web_menu": "Menu",
+    "web_menu_nothing": "rien",
+    "web_menu_waiting": "{n} à ranger",
+    "web_touch_to_toggle": "Touche une ligne pour l'ajouter ou l'enlever."
 }

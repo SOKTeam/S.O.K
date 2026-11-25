@@ -459,10 +459,6 @@
     "web_demo": "Demo: ningún archivo se renombra de verdad. Recarga la página para empezar de nuevo.",
     "web_demo_install": "Instalar S.O.K Server",
     "web_demo_tmdb": "Datos de películas y series: TMDB. Este producto utiliza la API de TMDB, pero no está respaldado ni certificado por TMDB.",
-    "web_demo_mobile_title": "Demo de S.O.K Server",
-    "web_demo_mobile_text": "S.O.K Server no ha sido pensado para un uso móvil. No te aconsejamos usarlo en un teléfono.",
-    "web_demo_mobile_continue": "Continuar de todos modos",
-    "web_demo_mobile_back": "Volver al sitio",
     "web_navigation": "Navegación",
     "web_today_at": "Hoy a las {time}",
     "web_yesterday_at": "Ayer a las {time}",
@@ -655,7 +651,7 @@
     "web_history_note": "El historial se guarda en el servidor. Se conservan las últimas 100 ordenaciones.",
     "web_put_as": "ordenado como",
     "web_analyze_again": "Analizar de nuevo",
-    "web_processed_hint": "Elige los archivos que retomar: la marca de la miniatura o Cmd/Ctrl-clic.",
+    "web_processed_hint": "Elige los archivos que retomar: la marca de la miniatura, ⌘/Ctrl-clic o una pulsación larga.",
     "web_stayed": "se quedó",
     "web_op_undone": "Deshecho: los archivos han vuelto a donde estaban.",
     "web_undo_rest": "Deshacer el resto",
@@ -796,5 +792,10 @@
     "web_setup_steps": "Pasos",
     "web_setup_summary": "Los archivos de {from} irán a {to}, {how}.",
     "web_setup_tv": "Las series",
-    "web_version_n": "versión {version}"
+    "web_version_n": "versión {version}",
+    "web_list": "Lista",
+    "web_menu": "Menú",
+    "web_menu_nothing": "nada",
+    "web_menu_waiting": "{n} por ordenar",
+    "web_touch_to_toggle": "Toca una fila para añadirla o quitarla."
 }

@@ -47,7 +47,11 @@
 
 <SceneLight strength={0.55} />
 <div class="relative mx-auto flex h-full max-w-[1760px] flex-col">
-  <nav class="flex h-[76px] shrink-0 items-center px-9"><Mark /></nav>
+  <nav
+    class="flex h-[76px] shrink-0 items-center px-9 max-[999px]:px-8 max-[699px]:h-[52px] max-[699px]:px-5"
+  >
+    <Mark />
+  </nav>
   <main class="min-h-0 flex-1">
     <Split>
       <div class="my-auto w-full max-w-[470px] py-8 lg:ml-[120px]">

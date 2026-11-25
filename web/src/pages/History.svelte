@@ -5,6 +5,7 @@
   import { onMount, untrack } from "svelte";
 
   import Split from "../components/layout/Split.svelte";
+  import { longpress } from "../lib/longpress";
   import Thumb from "../components/media/Thumb.svelte";
   import Facts, { type Fact } from "../components/scene/Facts.svelte";
   import { posterColor } from "../lib/color";
@@ -32,6 +33,8 @@
   let processed = $state<ProcessedFile[] | null>(null);
   let error = $state("");
   let openId = $state<string | null>(null);
+  // Under 1000px, whether the scene is over the list.
+  let sceneOpen = $state(false);
   let unfolded = $state<string[]>([]);
   // The undo: what is asked (the operation, or one of its files), its
   // report.
@@ -100,6 +103,7 @@
 
   function openOperation(op: Operation) {
     openId = op.id;
+    sceneOpen = true;
     asking = null;
     report = null;
   }
@@ -448,7 +452,7 @@
     </div>
   </div>
 {:else}
-  <Split>
+  <Split open={sceneOpen && tab === "operations"} onclose={() => (sceneOpen = false)}>
     {#if tab === "operations"}
       <h1 class="m-0 text-[50px] leading-[1.04] font-[650] tracking-[-0.04em]">
         {t("history", "History")}<span class="text-muted">.</span>
@@ -580,6 +584,10 @@
               isChosen ? "bg-accent-soft" : "hover:bg-raised/60",
             ]}
             onclick={(event) => clickFile(file, event)}
+            use:longpress={() => {
+              picking = true;
+              toggle(file.path);
+            }}
             onkeydown={(event) => event.key === " " && toggle(file.path)}
           >
             <Thumb
@@ -614,7 +622,7 @@
         {/each}
       </div>
       <div class="flex-1"></div>
-      <div class="pt-4">
+      <div class="dock flex items-center gap-2.5 pt-4">
         {#if chosen.length}
           <button type="button" class="key key-primary" onclick={analyzeAgain}>
             {t("web_analyze_again", "Analyze again")}<span class="legend">{chosen.length}</span>
@@ -623,7 +631,7 @@
           <p class="text-[13px] text-muted">
             {t(
               "web_processed_hint",
-              "Choose the files to take back: the mark of a thumbnail, or Cmd/Ctrl-click.",
+              "Choose the files to take back: the mark of a thumbnail, Cmd/Ctrl-click, or a long press.",
             )}
           </p>
         {/if}

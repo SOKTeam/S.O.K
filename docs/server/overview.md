@@ -235,6 +235,22 @@ interface at each change and sends the `/api` requests to the server.
   keys in the translation files of the desktop app (see
   [Translations](/guides/translations/)). The keys of the desktop app can be
   reused (`movies`, `settings`); the new ones start with `web_`.
+- **Narrow screens.** `lib/screen.svelte.ts` follows the width (`narrow`
+  under 1000px, `phone` under 700px). Under 1000px `Split` gives the list
+  the whole width and the scene slides over it when a row is opened (its
+  `open` and `onclose`): 62% of the width with a shadow on a tablet, the
+  whole width on a phone, with "← List", Escape or a swipe to the right to
+  close it; with `sheet`, the scene of a phone is a sheet from the bottom
+  (the folder browser of the Settings and of the assistant). The Analysis
+  and the login have no scene there. On a phone, `nav/PhoneNav` replaces the
+  navigation (menu D: the cube, the word of the page with its count and a
+  thin arrow are one toggle; it opens a full-screen menu of every screen
+  with its count, then History, Settings and Log out); the keys of a screen
+  dock at the bottom over a fade (`.dock` in `app.css`); a long press on a
+  row (`lib/longpress.ts`) starts the selection, summed up in a bar at the
+  bottom (the covers, "3 movies chosen", Done, Put away the selection). The
+  blocks of the Settings put their title above their lines, and the preview
+  of a name becomes a card in the File names block (under 1000px).
 - **Login and first launch.** The login (`Login`) shows only the mark: the
   form at the left ("Log in.", one coral key, an error in caution, how to
   reset a forgotten password), the S.O.K cube lit at the right with the
@@ -392,9 +408,7 @@ interface at each change and sends the `/api` requests to the server.
   check, the history, the settings, and a file that arrives 40 seconds after
   the opening for the automatic sorting to rename. The other searches find
   nothing. The language is the one of `?lang=` (the links of the website give it), else the browser's; the banner of `Shell` says that
-  nothing is renamed and credits TMDB. Below 768 pixels,
-  `demo/MobileNotice.svelte` first fills the screen: S.O.K Server is not
-  made for a phone, "Continue anyway" (once per tab) or back to the site. The
+  nothing is renamed and credits TMDB. The
   `demoPreview` plugin of `vite.config.ts` gives its page the preview of a
   shared link (Open Graph and Twitter tags, with the image `/og-demo.png` of
   the website, whose address is the `SITE` constant). The normal build holds
