@@ -342,7 +342,7 @@
             {stopText(other)}
           {/each}
           {#if scan.error.code === "missing_key" || scan.error.code === "key_refused"}
-            <a href={href("/settings/keys")} onclick={follow} class="link ml-1">
+            <a href={href("/settings/sources")} onclick={follow} class="link ml-1">
               {t("settings", "Settings")}
             </a>
           {/if}

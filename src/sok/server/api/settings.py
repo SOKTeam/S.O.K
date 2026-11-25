@@ -22,8 +22,10 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 
+from sok.__version__ import __version__
 from sok.apis.key_check import check_key
 from sok.config.api_registry import get_service
+from sok.config.config_manager import data_dir
 from sok.core.history import LINK
 from sok.core.media_manager import reset_media_manager
 from sok.server.api.auth import require_login
@@ -89,6 +91,8 @@ def _read(request: Request) -> dict:
             if values["file_mode"] == LINK
             else []
         ),
+        # The About block: the version, and the folder of the database.
+        "about": {"version": __version__, "data": str(data_dir())},
     }
 
 

@@ -34,6 +34,15 @@ export function navigate(path: string): void {
   }
 }
 
+/** Change the address without a new step in the history: the Settings
+ * follow the block read (/settings/auto). */
+export function replace(path: string): void {
+  if (path !== state.path) {
+    history.replaceState(null, "", href(path));
+    state.path = path;
+  }
+}
+
 /** onclick of a link: navigate without loading the page again, unless the
  * user opens it elsewhere (Cmd/Ctrl click, middle button). */
 export function follow(event: MouseEvent): void {

@@ -12,6 +12,7 @@ import type { Counts, Scan, Source, Summary, ToCheck } from "../lib/scan.svelte"
 import type { SettingsChange, SettingsData } from "../lib/settings.svelte";
 import type { WatchStatus } from "../lib/watch.svelte";
 import data from "./data.json";
+import VERSION_FILE from "../../../src/sok/__version__.py?raw";
 
 /** The new names of the files of a row, for each of its candidates. */
 type Names = Record<string, { new_names: (string | null)[]; episodes_found: number | null }>;
@@ -82,6 +83,11 @@ let loggedIn = true;
 
 const settings = clone(data.settings) as unknown as SettingsData;
 settings.settings.language = language;
+// The version of the server the demo shows (src/sok/__version__.py).
+settings.about = {
+  version: VERSION_FILE.match(/__version__ = "([^"]+)"/)?.[1] ?? "",
+  data: "/config",
+};
 
 const watch: WatchStatus = {
   enabled: data.watch.enabled,
