@@ -266,8 +266,8 @@ interface at each change and sends the `/api` requests to the server.
   analysis runs, its title and a bar say where it is. Its scene shows the
   covers waiting, the source folders with their files (a missing one in
   caution) and the disks with the room left.
-  The Movies screen (`MediaScreen`; the other media types
-  keep the old tab, `MediaTab`, until they are redrawn) says how many movies
+  The Movies and TV Shows screens (`MediaScreen`; the other media
+  types keep the old tab, `MediaTab`, until they are redrawn) says how many movies
   wait, where they were found and how many are recognized, to pick or not
   found; the filters are words with their counts. A row: poster, title and
   year, "was <file name>", and the 5-notch gauge, or "to pick" / "not found".
@@ -281,6 +281,14 @@ interface at each change and sends the `/api` requests to the server.
   Cmd/Ctrl-click or a Shift-click enter the selection mode, where every mark
   shows and a click toggles a row (Shift: a range); only Ready rows can be
   chosen. The scene then fans the covers chosen. "Done" or Escape leave it.
+  On TV Shows, a row is a series: the screen counts its episodes ("23
+  episodes to sort.", "In 4 series."), the row says its seasons and episodes,
+  the open series unfolds its episodes under its row (code, title, "was …",
+  the first 4 then "+ N other episodes"), and its scene shows "Series · year",
+  the title, the seasons and the titles found, a grid of the episodes (faint
+  without a title) and the folder of the season. `episodeCode()`,
+  `episodeTitle()` and `seasonsOf()` (`lib/rows.ts`) read them from the new
+  names, else the file names.
 - **Renames and history.** The primary key of a media screen puts away its
   Ready rows ("Put away the movies N"), or the selection ("Put away the
   selection N"), at once (`POST /api/renames`); a note under the list says

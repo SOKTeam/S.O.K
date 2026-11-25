@@ -20,6 +20,9 @@
   import {
     bigPosterUrl,
     changeRow,
+    episodeCode,
+    episodeTitle,
+    seasonsOf,
     loadRows,
     matchOf,
     searchRow,
@@ -111,9 +114,20 @@
   const renaming = $derived(rename?.status === "running");
   const scan = $derived(analysis.summary?.scan ?? null);
 
-  function count(status: RowStatus): number {
-    return rows?.filter((row) => row.status === status).length ?? 0;
+  // A series counts its episodes; the other rows count one.
+  const episodic = $derived(mediaType === "tv");
+
+  function units(list: Row[]): number {
+    return episodic ? list.reduce((sum, row) => sum + row.files.length, 0) : list.length;
   }
+
+  function count(status: RowStatus): number {
+    return units(rows?.filter((row) => row.status === status) ?? []);
+  }
+
+  // The episodes of the open series: all of them, or the first ones.
+  let allEpisodes = $state(false);
+  const EPISODES_SHOWN = 4;
 
   // ------------------------------------------------------------- Light
 
@@ -192,6 +206,7 @@
   }
 
   function openRow(row: Row) {
+    if (row.id !== openId) allEpisodes = false;
     openId = row.id;
     anchor = row.id;
     searchMessage = "";
@@ -307,6 +322,32 @@
     return settings.data?.services[category]?.find((one) => one.id === id)?.name ?? "";
   }
 
+  /** "Season 1 · 7 episodes", "Seasons 1–2 · 12 episodes". */
+  function seasonLine(row: Row): string {
+    const seasons = seasonsOf(row);
+    const episodes = tn("web_n_episodes", row.files.length, "{n} episode", "{n} episodes");
+    if (!seasons.length) return episodes;
+    const season =
+      seasons.length === 1
+        ? t("web_season_n", "Season {n}", { n: seasons[0] })
+        : t("web_seasons_range", "Seasons {from}–{to}", {
+            from: seasons[0],
+            to: seasons[seasons.length - 1],
+          });
+    return `${season} · ${episodes}`;
+  }
+
+  /** The folder a row goes to: its destination, and the folders of its new
+   * name ("…/Breaking Bad/Season 1/"). */
+  function targetOf(row: Row): string {
+    const name = row.files[0]?.new_name;
+    if (!name) return "";
+    const folder = folderOf(row);
+    if (!episodic) return `${folder}/${name}`;
+    const parts = name.split("/").slice(0, -1);
+    return `${folder}/${parts.join("/")}/`;
+  }
+
   function folderOf(row: Row): string {
     return destinations[row.destination < destinations.length ? row.destination : 0] ?? "";
   }
@@ -419,7 +460,7 @@
     {#if renaming}
       {t("web_title_renaming", "Putting away")}<span class="text-muted">…</span>
     {:else if rows?.length}
-      {tn(`web_title_${mediaType}`, rows.length, "{n} movie", "{n} movies")}
+      {tn(`web_title_${mediaType}`, units(rows), "{n} movie", "{n} movies")}
       <span class="text-muted">{t("web_title_to_sort", "to sort.")}</span>
     {:else}
       {t(`web_title_no_${mediaType}`, "No movie to sort")}<span class="text-muted">.</span>
@@ -432,7 +473,11 @@
         total: rename.progress.total,
       })}
     {:else if rows?.length}
-      {t("web_found_in", "Found in {sources}.", { sources: sourcesText })}
+      {#if episodic}
+        {tn("web_in_series", rows.length, "In {n} series.", "In {n} series.")}
+      {:else}
+        {t("web_found_in", "Found in {sources}.", { sources: sourcesText })}
+      {/if}
       {#if count("ok")}<b class="font-medium text-ink"
           >{tn("web_n_ready", count("ok"), "{n} recognized", "{n} recognized")}</b
         >{/if}{#if count("ambiguous")}{count("ok") ? ", " : ""}{tn(
@@ -457,7 +502,7 @@
   {#if rows?.length}
     <div class="mt-[22px] mb-2.5 flex items-baseline gap-5 text-[14px] font-semibold text-faint">
       {#each FILTERS as [value, label] (value)}
-        {@const n = value === "all" ? rows.length : count(value)}
+        {@const n = value === "all" ? units(rows) : count(value)}
         <button
           type="button"
           class={["cursor-pointer", filter === value ? "text-ink" : "hover:text-muted"]}
@@ -513,10 +558,44 @@
                   >{match.year}</small
                 >{/if}
             </div>
-            <div class="mt-[3px] truncate font-mono text-[12px] text-faint">{was(row)}</div>
+            {#if episodic}
+              <div class="mt-[3px] truncate text-[13px] text-faint">{seasonLine(row)}</div>
+            {:else}
+              <div class="mt-[3px] truncate font-mono text-[12px] text-faint">{was(row)}</div>
+            {/if}
           </div>
           {@render status(row)}
         </div>
+        {#if episodic && row.id === openId && !picking}
+          <!-- The episodes of the open series, under its row. -->
+          <div class="mt-0.5 mb-2 ml-16 grid">
+            {#each allEpisodes ? row.files : row.files.slice(0, EPISODES_SHOWN) as file (file.path)}
+              <div class="grid grid-cols-[62px_minmax(0,1fr)] gap-3 border-t border-line py-[7px]">
+                <span class="font-mono text-[12.5px] text-faint">{episodeCode(file) ?? "—"}</span>
+                <div class="min-w-0">
+                  <div class="truncate text-[14px]">{episodeTitle(file) ?? "—"}</div>
+                  <div class="mt-0.5 truncate font-mono text-[11.5px] text-faint">
+                    {t("web_was", "was {name}", { name: file.name })}
+                  </div>
+                </div>
+              </div>
+            {/each}
+            {#if !allEpisodes && row.files.length > EPISODES_SHOWN}
+              <button
+                type="button"
+                class="cursor-pointer border-t border-line py-[7px] text-left text-[13px] text-muted hover:text-ink"
+                onclick={() => (allEpisodes = true)}
+              >
+                {tn(
+                  "web_more_episodes",
+                  row.files.length - EPISODES_SHOWN,
+                  "+ {n} other episode",
+                  "+ {n} other episodes",
+                )}
+              </button>
+            {/if}
+          </div>
+        {/if}
       {:else}
         <p class="px-3.5 py-6 text-[14px] text-muted">
           {t("web_no_rows_filter", "No row with this status.")}
@@ -543,7 +622,7 @@
         onclick={renameNow}
       >
         {t(`web_rename_all_${mediaType}`, "Put away the movies")}<span class="legend"
-          >{ready.length}</span
+          >{units(ready)}</span
         >
       </button>
     {/if}
@@ -688,7 +767,7 @@
                   {[candidate.year, candidate.by].filter(Boolean).join(" · ")}
                 </span>
                 {#if candidate.overview}
-                  <span class="mt-1 line-clamp-2 block text-[12.5px] leading-[1.4] text-faint"
+                  <span class="mt-1 line-clamp-2 text-[12.5px] leading-[1.4] text-faint"
                     >{candidate.overview}</span
                   >
                 {/if}
@@ -719,20 +798,51 @@
       <div
         class="mt-[18px] h-5 w-[170px] rounded-[50%] bg-[radial-gradient(closest-side,var(--drop),transparent)]"
       ></div>
-      <p class="mt-[26px] text-center text-[30px] leading-[1.1] font-[650] tracking-[-0.035em]">
-        {titleOf(open)}
-      </p>
-      {#if match?.year || match?.by}
-        <p class="mt-1.5 text-center text-[15px] text-muted">
-          {[match?.year, match?.by].filter(Boolean).join(" · ")}
+      {#if episodic}
+        <p class="mt-[22px] text-center text-[15px] text-muted">
+          {[t("web_series", "Series"), match?.year].filter(Boolean).join(" · ")}
         </p>
+        <p class="mt-1 text-center text-[30px] leading-[1.1] font-[650] tracking-[-0.035em]">
+          {titleOf(open)}
+        </p>
+        <p class="mt-2.5 text-center text-[14px] text-muted">
+          {seasonLine(open)} · {tn(
+            "web_titles_found",
+            open.files.filter((file) => episodeTitle(file)).length,
+            "{n} title found",
+            "{n} titles found",
+          )}
+        </p>
+        <div class="mt-[18px] grid w-full grid-cols-7 gap-1.5">
+          {#each open.files as file (file.path)}
+            {@const code = episodeCode(file)}
+            <span
+              class={[
+                "rounded-[7px] bg-raised py-[7px] text-center font-mono text-[12px] shadow-[inset_0_1px_0_var(--color-hi)]",
+                !episodeTitle(file) && "text-faint",
+              ]}
+              title={episodeTitle(file) ?? file.name}
+            >
+              {code ? (seasonsOf(open).length > 1 ? code : code.slice(3)) : "?"}
+            </span>
+          {/each}
+        </div>
+      {:else}
+        <p class="mt-[26px] text-center text-[30px] leading-[1.1] font-[650] tracking-[-0.035em]">
+          {titleOf(open)}
+        </p>
+        {#if match?.year || match?.by}
+          <p class="mt-1.5 text-center text-[15px] text-muted">
+            {[match?.year, match?.by].filter(Boolean).join(" · ")}
+          </p>
+        {/if}
+        <div class="mt-[26px] w-full"><Facts {facts} /></div>
       {/if}
-      <div class="mt-[26px] w-full"><Facts {facts} /></div>
       {#if open.files[0]?.new_name && folderOf(open)}
         <div class="mt-[22px] w-full">
           <p class="text-[13px] text-muted">{t("web_will_go_here", "Will be put here")}</p>
           <p class="mt-1.5 font-mono text-[13px] leading-[1.4] break-all">
-            {folderOf(open)}/{open.files[0].new_name}
+            {targetOf(open)}
           </p>
           {#if destinations.length > 1}
             <div class="mt-2.5 flex flex-wrap gap-3.5 font-mono text-[13px] text-faint">

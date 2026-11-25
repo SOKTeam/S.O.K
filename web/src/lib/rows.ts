@@ -85,3 +85,35 @@ export function bigPosterUrl(poster: string | null): string | null {
   if (!poster) return null;
   return poster.startsWith("/") ? `https://image.tmdb.org/t/p/w500${poster}` : poster;
 }
+
+/** "S01E04" of an episode file, read from its new name, else its name. */
+export function episodeCode(file: RowFile): string | null {
+  for (const text of [file.new_name, file.name]) {
+    const name = text?.split("/").pop() ?? "";
+    const se = name.match(/S(\d{1,2})E(\d{1,3})/i);
+    if (se) return `S${se[1].padStart(2, "0")}E${se[2].padStart(2, "0")}`;
+    const x = name.match(/\b(\d{1,2})x(\d{2,3})\b/);
+    if (x) return `S${x[1].padStart(2, "0")}E${x[2].padStart(2, "0")}`;
+  }
+  return null;
+}
+
+/** The title of an episode in its new name ("Pilot"), or null. */
+export function episodeTitle(file: RowFile): string | null {
+  const name =
+    file.new_name
+      ?.split("/")
+      .pop()
+      ?.replace(/\.[^.]+$/, "") ?? "";
+  const found = name.match(/S\d+E\d+\s+(.+)$/i);
+  return found ? found[1] : null;
+}
+
+/** The seasons of the episodes of a row, in order. */
+export function seasonsOf(row: Row): number[] {
+  const seasons = row.files
+    .map((file) => episodeCode(file))
+    .filter((code): code is string => code !== null)
+    .map((code) => Number(code.slice(1, 3)));
+  return [...new Set(seasons)].sort((a, b) => a - b);
+}
