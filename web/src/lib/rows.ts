@@ -139,3 +139,10 @@ export function formatOf(file: RowFile): string {
   const found = file.name.match(/\.([a-z0-9]+)$/i);
   return found ? found[1].toUpperCase() : "";
 }
+
+/** The console of a game, the first folder of its new name ("Super
+ * Nintendo"), or null. */
+export function platformOf(row: Row): string | null {
+  const parts = row.files[0]?.new_name?.split("/") ?? [];
+  return parts.length > 1 ? parts[0] : null;
+}

@@ -633,5 +633,20 @@
     "web_chosen_books_one": "{n} libro scelto",
     "web_chosen_books_other": "{n} libri scelti",
     "web_books_missing_stay_one": "Il libro non riconosciuto resta dov'è.",
-    "web_books_missing_stay_other": "I {n} libri non riconosciuti restano dove sono."
+    "web_books_missing_stay_other": "I {n} libri non riconosciuti restano dove sono.",
+    "web_title_no_games": "Nessun gioco da sistemare",
+    "web_rename_all_games": "Sistema i giochi",
+    "web_which_games": "Che gioco è?",
+    "web_how_it_works": "Come funziona",
+    "web_empty_movies": "I film di {sources} compaiono qui dopo un'analisi. S.O.K ritrova titolo, anno e locandina, poi sistema ognuno al suo posto.",
+    "web_empty_tv": "Gli episodi di {sources} compaiono qui dopo un'analisi. S.O.K li raggruppa per serie e stagione, ritrova i titoli e li sistema nelle loro cartelle.",
+    "web_empty_music": "Le tracce di {sources} compaiono qui dopo un'analisi. S.O.K le riunisce in album, ritrova artista e copertina, poi sistema ogni album al suo posto.",
+    "web_empty_books": "I libri di {sources} compaiono qui dopo un'analisi. S.O.K ritrova autore e copertina, poi li ordina per autore.",
+    "web_empty_games": "Le ROM e le ISO di {sources} compaiono qui dopo un'analisi. S.O.K riconosce la console, ritrova titolo e copertina, poi sistema ogni gioco al suo posto.",
+    "web_title_games_one": "{n} gioco",
+    "web_title_games_other": "{n} giochi",
+    "web_chosen_games_one": "{n} gioco scelto",
+    "web_chosen_games_other": "{n} giochi scelti",
+    "web_n_consoles_one": "{n} console riconosciuta",
+    "web_n_consoles_other": "{n} console riconosciute"
 }

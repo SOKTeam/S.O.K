@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   episodeCode,
   episodeTitle,
+  platformOf,
   posterUrl,
   seasonsOf,
   trackOf,
@@ -65,5 +66,13 @@ describe("trackOf", () => {
       number: null,
       title: "Queen - Bohemian Rhapsody",
     });
+  });
+});
+
+describe("platformOf", () => {
+  it("reads the console of a game from the folder of its new name", () => {
+    const row = { files: [file("Chrono Trigger (USA).smc", "Super Nintendo/Chrono Trigger.smc")] };
+    expect(platformOf(row as Row)).toBe("Super Nintendo");
+    expect(platformOf({ files: [file("x.smc")] } as Row)).toBeNull();
   });
 });

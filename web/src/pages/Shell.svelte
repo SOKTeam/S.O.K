@@ -12,7 +12,6 @@
   import Analysis from "./Analysis.svelte";
   import History from "./History.svelte";
   import MediaScreen from "./MediaScreen.svelte";
-  import MediaTab from "./MediaTab.svelte";
   import Settings from "./Settings.svelte";
 
   const page = $derived(pageOf(router.path));
@@ -61,7 +60,7 @@
     <main class="min-h-0 flex-1">
       {#if page.path === "/"}
         <Analysis />
-      {:else if ["movies", "tv", "music", "books"].includes(page.mediaType ?? "")}
+      {:else if page.mediaType}
         <MediaScreen {page} />
       {:else}
         <!-- TEMPORARY: the old screens, until each is redrawn. -->
@@ -70,8 +69,6 @@
             <Settings />
           {:else if page.path === "/history"}
             <History />
-          {:else if page.mediaType}
-            <MediaTab {page} />
           {:else}
             <h1 class="text-2xl font-bold">{t(page.key, page.english)}</h1>
           {/if}

@@ -25,6 +25,7 @@
     seasonsOf,
     trackOf,
     formatOf,
+    platformOf,
     loadRows,
     matchOf,
     searchRow,
@@ -33,9 +34,10 @@
   } from "../lib/rows";
   import { undo } from "../lib/history";
   import { renames, startRename } from "../lib/renames.svelte";
-  import { analysis, refreshSummary, type RowStatus } from "../lib/scan.svelte";
+  import { analysis, refreshSummary, startScan, type RowStatus } from "../lib/scan.svelte";
   import { loadSettings, settings } from "../lib/settings.svelte";
   import { loadWatch, watch } from "../lib/watch.svelte";
+  import { SITE_URL } from "../lib/site";
 
   let { page }: { page: Page } = $props();
 
@@ -124,6 +126,33 @@
   // Music: a grid of covers, an album or a track per tile, counted in tracks.
   const music = $derived(mediaType === "music");
   const books = $derived(mediaType === "books");
+  const games = $derived(mediaType === "games");
+  // The consoles the games are recognized on, for the empty screen.
+  const CONSOLES = [
+    "NES",
+    "SNES",
+    "N64",
+    "GameCube",
+    "Wii",
+    "Game Boy",
+    "GBA",
+    "DS",
+    "Switch",
+    "PlayStation",
+    "PS2",
+    "PSP",
+    "Mega Drive",
+    "Dreamcast",
+  ];
+
+  async function analyze() {
+    error = "";
+    try {
+      await startScan();
+    } catch (exc) {
+      error = errorText(exc);
+    }
+  }
 
   function units(list: Row[]): number {
     return episodic || music ? list.reduce((sum, row) => sum + row.files.length, 0) : list.length;
@@ -472,558 +501,618 @@
   {/if}
 {/snippet}
 
-<Split>
-  <div class="mb-2 text-[11px] leading-4 font-semibold tracking-[0.08em] text-faint uppercase">
-    {#if scan?.finished}
-      {t("web_analyzed_at", "Analyzed at {time}", { time: time(scan.finished) })}
-    {/if}
-    {#if watch.status?.enabled}
-      · {t("web_auto_every", "automatic sorting every {minutes} min", {
-        minutes: watch.status.minutes,
-      })}
-    {/if}
-  </div>
-  <h1 class="m-0 text-[50px] leading-[1.04] font-[650] tracking-[-0.04em]">
-    {#if renaming}
-      {t("web_title_renaming", "Putting away")}<span class="text-muted">…</span>
-    {:else if rows?.length}
-      {tn(`web_title_${mediaType}`, units(rows), "{n} movie", "{n} movies")}
-      <span class="text-muted">{t("web_title_to_sort", "to sort.")}</span>
-    {:else}
-      {t(`web_title_no_${mediaType}`, "No movie to sort")}<span class="text-muted">.</span>
-    {/if}
-  </h1>
-  <p class="mt-3 text-[15px] leading-[1.45] text-muted">
-    {#if renaming && rename?.progress?.total}
-      {t("web_putting_away_progress", "Putting away… {done} / {total}", {
-        done: rename.progress.done,
-        total: rename.progress.total,
-      })}
-    {:else if rows?.length}
-      {#if episodic}
-        {tn("web_in_series", rows.length, "In {n} series.", "In {n} series.")}
-      {:else if music}
-        {tn(
-          "web_in_albums",
-          rows.filter((row) => row.kind === "album").length,
-          "In {n} album.",
-          "In {n} albums.",
-        )}
-        {#if rows.some((row) => row.kind === "track")}
-          {tn(
-            "web_single_tracks",
-            rows.filter((row) => row.kind === "track").length,
-            "And {n} single track.",
-            "And {n} single tracks.",
-          )}
-        {/if}
-      {:else}
-        {t("web_found_in", "Found in {sources}.", { sources: sourcesText })}
-      {/if}
-      {#if count("ok")}<b class="font-medium text-ink"
-          >{tn("web_n_ready", count("ok"), "{n} recognized", "{n} recognized")}</b
-        >{/if}{#if count("ambiguous")}{count("ok") ? ", " : ""}{tn(
-          "web_n_wait_you",
-          count("ambiguous"),
-          "{n} waits for you",
-          "{n} wait for you",
-        )}{/if}{#if count("missing")}{count("ok") || count("ambiguous") ? ", " : ""}{tn(
-          "web_n_not_found",
-          count("missing"),
-          "{n} not found",
-          "{n} not found",
-        )}{/if}.
-    {:else}
-      {t("web_empty_media", "The files of {sources} show here after an analysis.", {
-        sources: sourcesText,
-      })}
-    {/if}
-  </p>
-  {#if error}<p class="mt-3 text-[14px] text-danger" role="alert">{error}</p>{/if}
-
-  {#if rows?.length}
-    <div class="mt-[22px] mb-2.5 flex items-baseline gap-5 text-[14px] font-semibold text-faint">
-      {#each FILTERS as [value, label] (value)}
-        {@const n = value === "all" ? units(rows) : count(value)}
-        <button
-          type="button"
-          class={["cursor-pointer", filter === value ? "text-ink" : "hover:text-muted"]}
-          aria-pressed={filter === value}
-          onclick={() => (filter = value)}
-        >
-          {label}<small class="ml-1 font-mono text-[11.5px] font-medium">{n}</small>
-        </button>
+{#if rows !== null && !rows.length && !rename}
+  <!-- Nothing to sort: the empty screen, centered. -->
+  <div class="flex h-full flex-col items-center justify-center px-[120px] pb-10 text-center">
+    <div class="relative mb-[18px] h-[190px] w-[270px]" aria-hidden="true">
+      {#each [0, 1, 2] as i (i)}
+        <div
+          class="absolute top-3.5 h-[150px] w-[110px] rounded-xl bg-linear-135 from-key to-surface shadow-[inset_0_0_0_1px_var(--color-line),0_20px_40px_rgb(0_0_0/0.3)]"
+          style:left="{i * 80}px"
+          style:transform="rotate({(i - 1) * 8}deg) translateY({i === 1 ? 0 : 14}px)"
+          style:z-index={i === 1 ? 3 : 1}
+        ></div>
       {/each}
-      {#if picking}
-        <button type="button" class="key key-sm -my-2 ml-auto" onclick={endPicking}>
-          {t("web_done", "Done")}
+    </div>
+    <h1 class="m-0 text-[52px] leading-[1.04] font-[650] tracking-[-0.04em]">
+      {t(`web_title_no_${mediaType}`, "No movie to sort")}<span class="text-muted">.</span>
+    </h1>
+    <p class="mt-3 max-w-[640px] text-[16px] leading-[1.45] text-muted">
+      {t(
+        `web_empty_${mediaType}`,
+        "The movies of {sources} show here after an analysis. S.O.K finds their title, year and poster, then puts each one in its place.",
+        { sources: sourcesText },
+      )}
+    </p>
+    {#if error}<p class="mt-3 text-[14px] text-danger" role="alert">{error}</p>{/if}
+    <div class="mt-[26px] flex justify-center gap-2.5">
+      {#if analysis.running}
+        <button type="button" class="key" disabled>{t("web_analyzing", "Analyzing…")}</button>
+      {:else}
+        <button type="button" class="key key-primary" onclick={analyze}>
+          {t("web_analyze", "Analyze")}
         </button>
       {/if}
+      <a class="key" href="{SITE_URL}/guide" target="_blank" rel="noopener">
+        {t("web_how_it_works", "How it works")}
+      </a>
     </div>
-
-    {#if music}
-      <!-- The music: a grid of covers. -->
-      <div class="-mx-2.5 grid grid-cols-4 content-start gap-1 pt-0.5">
-        {#each shown as row (row.id)}
-          {@const isChosen = chosen.includes(row.id)}
-          {@const match = matchOf(row)}
-          <div
-            role="button"
-            tabindex="0"
-            aria-current={row.id === openId && !picking ? "true" : undefined}
-            class={[
-              "min-w-0 cursor-pointer rounded-[14px] p-2.5 transition-colors",
-              isChosen
-                ? "bg-accent-soft"
-                : row.id === openId && !picking
-                  ? "bg-raised shadow-[inset_0_1px_0_var(--color-hi)]"
-                  : "hover:bg-raised/60",
-            ]}
-            onclick={(event) => click(row, event)}
-            onkeydown={(event) => event.key === "Enter" && openRow(row)}
-          >
-            <Thumb
-              tile
-              poster={match?.poster ?? null}
-              chosen={isChosen}
-              marks={picking}
-              selectable={row.status === "ok"}
-              label={t("web_choose_row", "Choose {title}", { title: titleOf(row) })}
-              onmark={() => mark(row)}
-            />
-            <div
-              class={[
-                "mt-2.5 truncate text-[14.5px] font-semibold",
-                row.status === "missing" && "text-caution",
-              ]}
-            >
-              {row.status === "missing" ? t("web_unknown_title", "Unknown title") : titleOf(row)}
-            </div>
-            <div class="mt-0.5 truncate text-[12.5px] text-muted">
-              {#if row.status === "ok"}
-                {match?.by ?? ""}{#if match?.year}{match?.by ? " · " : ""}<span
-                    class="font-mono text-[12px] text-faint">{match.year}</span
-                  >{/if}
-              {:else if row.status === "ambiguous"}
-                <span class="text-accent-text">{t("web_status_to_pick", "to pick")}</span>
-              {:else}
-                {tn("web_n_tracks", row.files.length, "{n} track", "{n} tracks")}
-              {/if}
-            </div>
-          </div>
+    {#if games}
+      <p class="label mt-[34px]">
+        {tn("web_n_consoles", CONSOLES.length, "{n} console recognized", "{n} consoles recognized")}
+      </p>
+      <div class="mt-3 flex max-w-[560px] flex-wrap justify-center gap-1.5">
+        {#each CONSOLES as name (name)}
+          <span class="tag px-[7px] py-[3px]">{name}</span>
         {/each}
       </div>
-    {:else}
-      <div class="-mx-2.5 grid content-start gap-0.5">
-        {#each shown as row (row.id)}
-          {@const isChosen = chosen.includes(row.id)}
-          {@const match = matchOf(row)}
-          <div
-            role="button"
-            aria-current={row.id === openId && !picking ? "true" : undefined}
-            class={[
-              "relative grid h-[66px] cursor-pointer grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-x-3.5 rounded-xl px-3.5 transition-colors",
-              isChosen
-                ? "bg-accent-soft"
-                : row.id === openId && !picking
-                  ? "bg-raised shadow-[inset_0_1px_0_var(--color-hi)]"
-                  : "hover:bg-raised/60",
-            ]}
-            onclick={(event) => click(row, event)}
-            onkeydown={(event) => event.key === "Enter" && openRow(row)}
-            tabindex="0"
+    {/if}
+  </div>
+{:else}
+  <Split>
+    <div class="mb-2 text-[11px] leading-4 font-semibold tracking-[0.08em] text-faint uppercase">
+      {#if scan?.finished}
+        {t("web_analyzed_at", "Analyzed at {time}", { time: time(scan.finished) })}
+      {/if}
+      {#if watch.status?.enabled}
+        · {t("web_auto_every", "automatic sorting every {minutes} min", {
+          minutes: watch.status.minutes,
+        })}
+      {/if}
+    </div>
+    <h1 class="m-0 text-[50px] leading-[1.04] font-[650] tracking-[-0.04em]">
+      {#if renaming}
+        {t("web_title_renaming", "Putting away")}<span class="text-muted">…</span>
+      {:else if rows?.length}
+        {tn(`web_title_${mediaType}`, units(rows), "{n} movie", "{n} movies")}
+        <span class="text-muted">{t("web_title_to_sort", "to sort.")}</span>
+      {:else}
+        {t(`web_title_no_${mediaType}`, "No movie to sort")}<span class="text-muted">.</span>
+      {/if}
+    </h1>
+    <p class="mt-3 text-[15px] leading-[1.45] text-muted">
+      {#if renaming && rename?.progress?.total}
+        {t("web_putting_away_progress", "Putting away… {done} / {total}", {
+          done: rename.progress.done,
+          total: rename.progress.total,
+        })}
+      {:else if rows?.length}
+        {#if episodic}
+          {tn("web_in_series", rows.length, "In {n} series.", "In {n} series.")}
+        {:else if music}
+          {tn(
+            "web_in_albums",
+            rows.filter((row) => row.kind === "album").length,
+            "In {n} album.",
+            "In {n} albums.",
+          )}
+          {#if rows.some((row) => row.kind === "track")}
+            {tn(
+              "web_single_tracks",
+              rows.filter((row) => row.kind === "track").length,
+              "And {n} single track.",
+              "And {n} single tracks.",
+            )}
+          {/if}
+        {:else}
+          {t("web_found_in", "Found in {sources}.", { sources: sourcesText })}
+        {/if}
+        {#if count("ok")}<b class="font-medium text-ink"
+            >{tn("web_n_ready", count("ok"), "{n} recognized", "{n} recognized")}</b
+          >{/if}{#if count("ambiguous")}{count("ok") ? ", " : ""}{tn(
+            "web_n_wait_you",
+            count("ambiguous"),
+            "{n} waits for you",
+            "{n} wait for you",
+          )}{/if}{#if count("missing")}{count("ok") || count("ambiguous") ? ", " : ""}{tn(
+            "web_n_not_found",
+            count("missing"),
+            "{n} not found",
+            "{n} not found",
+          )}{/if}.
+      {:else}
+        {t("web_empty_media", "The files of {sources} show here after an analysis.", {
+          sources: sourcesText,
+        })}
+      {/if}
+    </p>
+    {#if error}<p class="mt-3 text-[14px] text-danger" role="alert">{error}</p>{/if}
+
+    {#if rows?.length}
+      <div class="mt-[22px] mb-2.5 flex items-baseline gap-5 text-[14px] font-semibold text-faint">
+        {#each FILTERS as [value, label] (value)}
+          {@const n = value === "all" ? units(rows) : count(value)}
+          <button
+            type="button"
+            class={["cursor-pointer", filter === value ? "text-ink" : "hover:text-muted"]}
+            aria-pressed={filter === value}
+            onclick={() => (filter = value)}
           >
-            <Thumb
-              book={books}
-              poster={match?.poster ?? null}
-              chosen={isChosen}
-              marks={picking}
-              selectable={row.status === "ok"}
-              label={t("web_choose_row", "Choose {title}", { title: titleOf(row) })}
-              onmark={() => mark(row)}
-            />
-            <div class="min-w-0">
+            {label}<small class="ml-1 font-mono text-[11.5px] font-medium">{n}</small>
+          </button>
+        {/each}
+        {#if picking}
+          <button type="button" class="key key-sm -my-2 ml-auto" onclick={endPicking}>
+            {t("web_done", "Done")}
+          </button>
+        {/if}
+      </div>
+
+      {#if music}
+        <!-- The music: a grid of covers. -->
+        <div class="-mx-2.5 grid grid-cols-4 content-start gap-1 pt-0.5">
+          {#each shown as row (row.id)}
+            {@const isChosen = chosen.includes(row.id)}
+            {@const match = matchOf(row)}
+            <div
+              role="button"
+              tabindex="0"
+              aria-current={row.id === openId && !picking ? "true" : undefined}
+              class={[
+                "min-w-0 cursor-pointer rounded-[14px] p-2.5 transition-colors",
+                isChosen
+                  ? "bg-accent-soft"
+                  : row.id === openId && !picking
+                    ? "bg-raised shadow-[inset_0_1px_0_var(--color-hi)]"
+                    : "hover:bg-raised/60",
+              ]}
+              onclick={(event) => click(row, event)}
+              onkeydown={(event) => event.key === "Enter" && openRow(row)}
+            >
+              <Thumb
+                tile
+                poster={match?.poster ?? null}
+                chosen={isChosen}
+                marks={picking}
+                selectable={row.status === "ok"}
+                label={t("web_choose_row", "Choose {title}", { title: titleOf(row) })}
+                onmark={() => mark(row)}
+              />
               <div
                 class={[
-                  "truncate text-[16px] font-semibold tracking-[-0.01em]",
+                  "mt-2.5 truncate text-[14.5px] font-semibold",
                   row.status === "missing" && "text-caution",
                 ]}
               >
                 {row.status === "missing" ? t("web_unknown_title", "Unknown title") : titleOf(row)}
-                {#if books}
-                  {#if match?.by}<span class="ml-2 text-[14px] font-normal text-muted"
-                      >{match.by}</span
-                    >{/if}{#if formatOf(row.files[0])}<span class="tag ml-2"
-                      >{formatOf(row.files[0])}</span
-                    >{/if}
-                {:else if match?.year}<small
-                    class="ml-2 font-mono text-[12.5px] font-normal text-faint">{match.year}</small
-                  >{/if}
               </div>
-              {#if episodic}
-                <div class="mt-[3px] truncate text-[13px] text-faint">{seasonLine(row)}</div>
-              {:else}
-                <div class="mt-[3px] truncate font-mono text-[12px] text-faint">{was(row)}</div>
-              {/if}
-            </div>
-            {@render status(row)}
-          </div>
-          {#if episodic && row.id === openId && !picking}
-            <!-- The episodes of the open series, under its row. -->
-            <div class="mt-0.5 mb-2 ml-16 grid">
-              {#each allEpisodes ? row.files : row.files.slice(0, EPISODES_SHOWN) as file (file.path)}
-                <div
-                  class="grid grid-cols-[62px_minmax(0,1fr)] gap-3 border-t border-line py-[7px]"
-                >
-                  <span class="font-mono text-[12.5px] text-faint">{episodeCode(file) ?? "—"}</span>
-                  <div class="min-w-0">
-                    <div class="truncate text-[14px]">{episodeTitle(file) ?? "—"}</div>
-                    <div class="mt-0.5 truncate font-mono text-[11.5px] text-faint">
-                      {t("web_was", "was {name}", { name: file.name })}
-                    </div>
-                  </div>
-                </div>
-              {/each}
-              {#if !allEpisodes && row.files.length > EPISODES_SHOWN}
-                <button
-                  type="button"
-                  class="cursor-pointer border-t border-line py-[7px] text-left text-[13px] text-muted hover:text-ink"
-                  onclick={() => (allEpisodes = true)}
-                >
-                  {tn(
-                    "web_more_episodes",
-                    row.files.length - EPISODES_SHOWN,
-                    "+ {n} other episode",
-                    "+ {n} other episodes",
-                  )}
-                </button>
-              {/if}
-            </div>
-          {/if}
-        {:else}
-          <p class="px-3.5 py-6 text-[14px] text-muted">
-            {t("web_no_rows_filter", "No row with this status.")}
-          </p>
-        {/each}
-      </div>
-    {/if}
-  {/if}
-
-  <div class="flex-1"></div>
-  <div class="flex flex-wrap items-center gap-2.5 pt-4">
-    {#if renaming}
-      <button type="button" class="key" disabled>{t("web_putting_away", "Putting away…")}</button>
-    {:else if selection.length}
-      <button type="button" class="key key-primary" onclick={renameNow}>
-        {t("web_rename_selection", "Put away the selection")}<span class="legend"
-          >{selection.length}</span
-        >
-      </button>
-    {:else if rows?.length}
-      <button
-        type="button"
-        class="key key-primary"
-        disabled={!ready.length || renames.running}
-        onclick={renameNow}
-      >
-        {t(`web_rename_all_${mediaType}`, "Put away the movies")}<span class="legend"
-          >{units(ready)}</span
-        >
-      </button>
-    {/if}
-  </div>
-  {#if rows?.length}
-    <p class="mt-3 text-[13px] text-muted">
-      {#if books && count("missing")}
-        {tn(
-          "web_books_missing_stay",
-          count("missing"),
-          "The book not recognized stays where it is.",
-          "The {n} books not recognized stay where they are.",
-        )}
-      {/if}
-      {modeNote}
-    </p>
-  {/if}
-
-  {#snippet scene()}
-    {#if rename && !renaming && rename.status !== "running"}
-      <!-- The end of a rename. -->
-      <div class="flex w-full flex-1 flex-col">
-        <p class="label">{t("web_rename_over", "Put away")}</p>
-        <p class="mt-2 text-[30px] leading-[34px] font-[650] tracking-[-0.035em]">
-          {#if rename.status === "failed"}
-            {t("web_rename_failed_short", "The rename failed")}<span class="text-muted">.</span>
-          {:else}
-            {tn(
-              "web_files_put_away",
-              rename.result?.renamed ?? 0,
-              "{n} file put away",
-              "{n} files put away",
-            )}<span class="text-muted">.</span>
-          {/if}
-        </p>
-        {#if rename.status === "failed"}
-          <p class="mt-3 text-[14px] text-danger">{rename.error?.message ?? rename.error?.code}</p>
-        {/if}
-        {#if rename.result?.subtitles}
-          <p class="mt-2 text-[14px] text-muted">
-            {tn(
-              "web_with_subtitles",
-              rename.result.subtitles,
-              "With {n} subtitle.",
-              "With {n} subtitles.",
-            )}
-          </p>
-        {/if}
-        {#if left.length}
-          <p class="label mt-6 mb-2">
-            {tn("web_left_in_place", left.length, "{n} left in place", "{n} left in place")}
-          </p>
-          {#each left as item (item.file)}
-            <div class="border-t border-line py-2">
-              <p class="truncate font-mono text-[12.5px]">{item.file.split("/").pop()}</p>
-              <p class="mt-0.5 text-[12.5px] text-caution">{item.why}</p>
-            </div>
-          {/each}
-        {/if}
-        {#if undone === rename.id}
-          <p class="mt-6 text-[14px] text-muted">
-            {t(
-              "web_rename_undone",
-              "Undone: the files are back where they were. The next analysis shows them here again.",
-            )}
-          </p>
-        {:else if askUndo}
-          <p class="mt-6 text-[14px] text-muted">
-            {tn(
-              "web_undo_ask",
-              rename.result?.renamed ?? 0,
-              "Put this file back where it was?",
-              "Put these {n} files back where they were?",
-            )}
-          </p>
-          <div class="mt-3 flex gap-2.5">
-            <button type="button" class="key key-sm key-primary" onclick={undoRename}>
-              {t("web_undo_yes", "Yes, undo")}
-            </button>
-            <button type="button" class="key key-sm" onclick={() => (askUndo = false)}>
-              {t("web_keep", "Keep")}
-            </button>
-          </div>
-        {/if}
-        {#if !askUndo}
-          <div class="mt-6 flex flex-wrap gap-2.5">
-            {#if rename.result?.operation && undone !== rename.id}
-              <button type="button" class="key key-sm" onclick={() => (askUndo = true)}>
-                {t("web_undo_this", "Undo this")}
-              </button>
-            {/if}
-            {#if rename.result?.renamed}
-              <a href={href("/history")} onclick={follow} class="key key-sm">
-                {t("web_see_history_short", "See the history")}
-              </a>
-            {/if}
-            <button type="button" class="key key-sm" onclick={() => (dismissed = rename.id)}>
-              {t("web_close", "Close")}
-            </button>
-          </div>
-        {/if}
-      </div>
-    {:else if selection.length}
-      <!-- The covers chosen. -->
-      <div class="mt-3.5"></div>
-      <Fan posters={selection.map((row) => matchOf(row)?.poster ?? "").filter(Boolean)} />
-      <p class="mt-6 text-center text-[30px] leading-[34px] font-[650] tracking-[-0.035em]">
-        {tn(`web_chosen_${mediaType}`, selection.length, "{n} movie chosen", "{n} movies chosen")}
-      </p>
-      <div class="mt-[26px] w-full"><Facts facts={selectionFacts} /></div>
-    {:else if open && view === "pick"}
-      <!-- What is it? The results, and a search. -->
-      <div class="flex w-full flex-1 flex-col self-stretch">
-        <p class="text-[30px] leading-[1.1] font-[650] tracking-[-0.035em]">
-          {t(whichKey, "Which movie is it?")}
-        </p>
-        <p class="mt-2 truncate font-mono text-[12.5px] text-faint">{was(open)}</p>
-        <form class="mt-[18px]" onsubmit={search}>
-          <input
-            class="field h-[42px] border-accent text-[15px]"
-            bind:value={query}
-            aria-label={t("web_search_title", "Search a title")}
-          />
-        </form>
-        {#if searching}
-          <p class="mt-4 text-[14px] text-muted">{t("searching", "Searching...")}</p>
-        {:else if searchMessage}
-          <p class="mt-4 text-[14px] text-muted">{searchMessage}</p>
-        {:else if !open.candidates.length}
-          <p class="mt-4 text-[14px] text-muted">
-            {t(
-              "web_pick_none",
-              "Nothing found for “{query}”. Search another title, or leave the file where it is.",
-              { query: open.query ?? "" },
-            )}
-          </p>
-        {/if}
-        <div class="-mx-2.5 mt-4 grid gap-0.5">
-          {#each open.candidates as candidate, index (index)}
-            <button
-              type="button"
-              class={[
-                "grid cursor-pointer grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-3.5 rounded-[9px] px-2.5 py-2 text-left hover:bg-raised",
-                index === open.selected && "bg-raised",
-              ]}
-              onclick={() => pick(index)}
-            >
-              <Thumb poster={candidate.poster} selectable={false} label="" />
-              <span class="min-w-0">
-                <span class="block truncate text-[15px] font-semibold">{candidate.title}</span>
-                <span class="mt-[3px] block font-mono text-[12px] text-muted">
-                  {[candidate.year, candidate.by].filter(Boolean).join(" · ")}
-                </span>
-                {#if candidate.overview}
-                  <span class="mt-1 line-clamp-2 text-[12.5px] leading-[1.4] text-faint"
-                    >{candidate.overview}</span
-                  >
+              <div class="mt-0.5 truncate text-[12.5px] text-muted">
+                {#if row.status === "ok"}
+                  {match?.by ?? ""}{#if match?.year}{match?.by ? " · " : ""}<span
+                      class="font-mono text-[12px] text-faint">{match.year}</span
+                    >{/if}
+                {:else if row.status === "ambiguous"}
+                  <span class="text-accent-text">{t("web_status_to_pick", "to pick")}</span>
+                {:else}
+                  {tn("web_n_tracks", row.files.length, "{n} track", "{n} tracks")}
                 {/if}
-              </span>
-              {#if index === open.selected}
-                <span class="h-[18px] w-0.5 rounded-[1px] bg-accent"></span>
-              {/if}
-            </button>
-          {/each}
-        </div>
-        <div class="flex-1"></div>
-        {#if open.status === "ok"}
-          <div class="flex justify-center pt-4">
-            <button type="button" class="key key-sm" onclick={() => (view = "scene")}>
-              {t("web_cancel", "Cancel")}
-            </button>
-          </div>
-        {/if}
-      </div>
-    {:else if open}
-      <!-- The scene of the open row. -->
-      {@const match = matchOf(open)}
-      {@const poster = bigPosterUrl(match?.poster ?? null)}
-      <div
-        class={[
-          "shrink-0 rounded-xl bg-raised bg-cover bg-center shadow-[0_30px_60px_var(--drop),inset_0_1px_0_rgb(255_255_255/0.25)]",
-          music ? "size-[240px]" : "h-[285px] w-[190px]",
-          books && "rounded-[3px_8px_8px_3px]",
-        ]}
-        style:background-image={poster ? `url("${poster}")` : undefined}
-      ></div>
-      <div
-        class={[
-          "mt-[18px] h-5 rounded-[50%] bg-[radial-gradient(closest-side,var(--drop),transparent)]",
-          music ? "w-[210px]" : "w-[170px]",
-        ]}
-      ></div>
-      {#if episodic}
-        <p class="mt-[22px] text-center text-[15px] text-muted">
-          {[t("web_series", "Series"), match?.year].filter(Boolean).join(" · ")}
-        </p>
-        <p class="mt-1 text-center text-[30px] leading-[1.1] font-[650] tracking-[-0.035em]">
-          {titleOf(open)}
-        </p>
-        <p class="mt-2.5 text-center text-[14px] text-muted">
-          {seasonLine(open)} · {tn(
-            "web_titles_found",
-            open.files.filter((file) => episodeTitle(file)).length,
-            "{n} title found",
-            "{n} titles found",
-          )}
-        </p>
-        <div class="mt-[18px] grid w-full grid-cols-7 gap-1.5">
-          {#each open.files as file (file.path)}
-            {@const code = episodeCode(file)}
-            <span
-              class={[
-                "rounded-[7px] bg-raised py-[7px] text-center font-mono text-[12px] shadow-[inset_0_1px_0_var(--color-hi)]",
-                !episodeTitle(file) && "text-faint",
-              ]}
-              title={episodeTitle(file) ?? file.name}
-            >
-              {code ? (seasonsOf(open).length > 1 ? code : code.slice(3)) : "?"}
-            </span>
-          {/each}
-        </div>
-      {:else if music}
-        <p class="mt-[26px] text-center text-[30px] leading-[1.1] font-[650] tracking-[-0.035em]">
-          {titleOf(open)}
-        </p>
-        <p class="mt-1.5 text-center text-[15px] text-muted">
-          {[
-            match?.by,
-            match?.year,
-            tn("web_n_tracks", open.files.length, "{n} track", "{n} tracks"),
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
-        <div class="mt-[18px] grid w-full">
-          {#each open.files.slice(0, TRACKS_SHOWN) as file (file.path)}
-            {@const track = trackOf(file)}
-            <div
-              class="grid grid-cols-[30px_minmax(0,1fr)] gap-2 border-t border-line py-[7px] text-[14px]"
-            >
-              <span class="font-mono text-[12.5px] text-faint">{track.number ?? "·"}</span>
-              <span class="truncate">{track.title}</span>
+              </div>
             </div>
           {/each}
-          {#if open.files.length > TRACKS_SHOWN}
-            <div class="border-t border-line py-[7px] text-[13px] text-muted">
-              {tn(
-                "web_more_tracks",
-                open.files.length - TRACKS_SHOWN,
-                "+ {n} track",
-                "+ {n} tracks",
-              )}
-            </div>
-          {/if}
         </div>
       {:else}
-        <p class="mt-[26px] text-center text-[30px] leading-[1.1] font-[650] tracking-[-0.035em]">
-          {titleOf(open)}
-        </p>
-        {#if match?.year || match?.by}
-          <p class="mt-1.5 text-center text-[15px] text-muted">
-            {[match?.year, match?.by].filter(Boolean).join(" · ")}
-          </p>
-        {/if}
-        <div class="mt-[26px] w-full"><Facts {facts} /></div>
-      {/if}
-      {#if open.files[0]?.new_name && folderOf(open)}
-        <div class="mt-[22px] w-full">
-          <p class="text-[13px] text-muted">{t("web_will_go_here", "Will be put here")}</p>
-          <p class="mt-1.5 font-mono text-[13px] leading-[1.4] break-all">
-            {targetOf(open)}
-          </p>
-          {#if destinations.length > 1}
-            <div class="mt-2.5 flex flex-wrap gap-3.5 font-mono text-[13px] text-faint">
-              {#each destinations as folder, index (folder)}
-                {@const on =
-                  index === (open.destination < destinations.length ? open.destination : 0)}
-                <button
-                  type="button"
-                  class={["flex cursor-pointer items-center", on ? "text-ink" : "hover:text-muted"]}
-                  aria-pressed={on}
-                  onclick={() => choose(index)}
+        <div class="-mx-2.5 grid content-start gap-0.5">
+          {#each shown as row (row.id)}
+            {@const isChosen = chosen.includes(row.id)}
+            {@const match = matchOf(row)}
+            <div
+              role="button"
+              aria-current={row.id === openId && !picking ? "true" : undefined}
+              class={[
+                "relative grid h-[66px] cursor-pointer grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-x-3.5 rounded-xl px-3.5 transition-colors",
+                isChosen
+                  ? "bg-accent-soft"
+                  : row.id === openId && !picking
+                    ? "bg-raised shadow-[inset_0_1px_0_var(--color-hi)]"
+                    : "hover:bg-raised/60",
+              ]}
+              onclick={(event) => click(row, event)}
+              onkeydown={(event) => event.key === "Enter" && openRow(row)}
+              tabindex="0"
+            >
+              <Thumb
+                book={books}
+                poster={match?.poster ?? null}
+                chosen={isChosen}
+                marks={picking}
+                selectable={row.status === "ok"}
+                label={t("web_choose_row", "Choose {title}", { title: titleOf(row) })}
+                onmark={() => mark(row)}
+              />
+              <div class="min-w-0">
+                <div
+                  class={[
+                    "truncate text-[16px] font-semibold tracking-[-0.01em]",
+                    row.status === "missing" && "text-caution",
+                  ]}
                 >
-                  {#if on}<span class="mr-[7px] size-1.5 rounded-full bg-accent"></span>{/if}
-                  {folder}
+                  {row.status === "missing"
+                    ? t("web_unknown_title", "Unknown title")
+                    : titleOf(row)}
+                  {#if books}
+                    {#if match?.by}<span class="ml-2 text-[14px] font-normal text-muted"
+                        >{match.by}</span
+                      >{/if}{#if formatOf(row.files[0])}<span class="tag ml-2"
+                        >{formatOf(row.files[0])}</span
+                      >{/if}
+                  {:else if games && platformOf(row)}<span class="tag ml-2">{platformOf(row)}</span>
+                  {:else if match?.year}<small
+                      class="ml-2 font-mono text-[12.5px] font-normal text-faint"
+                      >{match.year}</small
+                    >{/if}
+                </div>
+                {#if episodic}
+                  <div class="mt-[3px] truncate text-[13px] text-faint">{seasonLine(row)}</div>
+                {:else}
+                  <div class="mt-[3px] truncate font-mono text-[12px] text-faint">{was(row)}</div>
+                {/if}
+              </div>
+              {@render status(row)}
+            </div>
+            {#if episodic && row.id === openId && !picking}
+              <!-- The episodes of the open series, under its row. -->
+              <div class="mt-0.5 mb-2 ml-16 grid">
+                {#each allEpisodes ? row.files : row.files.slice(0, EPISODES_SHOWN) as file (file.path)}
+                  <div
+                    class="grid grid-cols-[62px_minmax(0,1fr)] gap-3 border-t border-line py-[7px]"
+                  >
+                    <span class="font-mono text-[12.5px] text-faint"
+                      >{episodeCode(file) ?? "—"}</span
+                    >
+                    <div class="min-w-0">
+                      <div class="truncate text-[14px]">{episodeTitle(file) ?? "—"}</div>
+                      <div class="mt-0.5 truncate font-mono text-[11.5px] text-faint">
+                        {t("web_was", "was {name}", { name: file.name })}
+                      </div>
+                    </div>
+                  </div>
+                {/each}
+                {#if !allEpisodes && row.files.length > EPISODES_SHOWN}
+                  <button
+                    type="button"
+                    class="cursor-pointer border-t border-line py-[7px] text-left text-[13px] text-muted hover:text-ink"
+                    onclick={() => (allEpisodes = true)}
+                  >
+                    {tn(
+                      "web_more_episodes",
+                      row.files.length - EPISODES_SHOWN,
+                      "+ {n} other episode",
+                      "+ {n} other episodes",
+                    )}
+                  </button>
+                {/if}
+              </div>
+            {/if}
+          {:else}
+            <p class="px-3.5 py-6 text-[14px] text-muted">
+              {t("web_no_rows_filter", "No row with this status.")}
+            </p>
+          {/each}
+        </div>
+      {/if}
+    {/if}
+
+    <div class="flex-1"></div>
+    <div class="flex flex-wrap items-center gap-2.5 pt-4">
+      {#if renaming}
+        <button type="button" class="key" disabled>{t("web_putting_away", "Putting away…")}</button>
+      {:else if selection.length}
+        <button type="button" class="key key-primary" onclick={renameNow}>
+          {t("web_rename_selection", "Put away the selection")}<span class="legend"
+            >{selection.length}</span
+          >
+        </button>
+      {:else if rows?.length}
+        <button
+          type="button"
+          class="key key-primary"
+          disabled={!ready.length || renames.running}
+          onclick={renameNow}
+        >
+          {t(`web_rename_all_${mediaType}`, "Put away the movies")}<span class="legend"
+            >{units(ready)}</span
+          >
+        </button>
+      {/if}
+    </div>
+    {#if rows?.length}
+      <p class="mt-3 text-[13px] text-muted">
+        {#if books && count("missing")}
+          {tn(
+            "web_books_missing_stay",
+            count("missing"),
+            "The book not recognized stays where it is.",
+            "The {n} books not recognized stay where they are.",
+          )}
+        {/if}
+        {modeNote}
+      </p>
+    {/if}
+
+    {#snippet scene()}
+      {#if rename && !renaming && rename.status !== "running"}
+        <!-- The end of a rename. -->
+        <div class="flex w-full flex-1 flex-col">
+          <p class="label">{t("web_rename_over", "Put away")}</p>
+          <p class="mt-2 text-[30px] leading-[34px] font-[650] tracking-[-0.035em]">
+            {#if rename.status === "failed"}
+              {t("web_rename_failed_short", "The rename failed")}<span class="text-muted">.</span>
+            {:else}
+              {tn(
+                "web_files_put_away",
+                rename.result?.renamed ?? 0,
+                "{n} file put away",
+                "{n} files put away",
+              )}<span class="text-muted">.</span>
+            {/if}
+          </p>
+          {#if rename.status === "failed"}
+            <p class="mt-3 text-[14px] text-danger">
+              {rename.error?.message ?? rename.error?.code}
+            </p>
+          {/if}
+          {#if rename.result?.subtitles}
+            <p class="mt-2 text-[14px] text-muted">
+              {tn(
+                "web_with_subtitles",
+                rename.result.subtitles,
+                "With {n} subtitle.",
+                "With {n} subtitles.",
+              )}
+            </p>
+          {/if}
+          {#if left.length}
+            <p class="label mt-6 mb-2">
+              {tn("web_left_in_place", left.length, "{n} left in place", "{n} left in place")}
+            </p>
+            {#each left as item (item.file)}
+              <div class="border-t border-line py-2">
+                <p class="truncate font-mono text-[12.5px]">{item.file.split("/").pop()}</p>
+                <p class="mt-0.5 text-[12.5px] text-caution">{item.why}</p>
+              </div>
+            {/each}
+          {/if}
+          {#if undone === rename.id}
+            <p class="mt-6 text-[14px] text-muted">
+              {t(
+                "web_rename_undone",
+                "Undone: the files are back where they were. The next analysis shows them here again.",
+              )}
+            </p>
+          {:else if askUndo}
+            <p class="mt-6 text-[14px] text-muted">
+              {tn(
+                "web_undo_ask",
+                rename.result?.renamed ?? 0,
+                "Put this file back where it was?",
+                "Put these {n} files back where they were?",
+              )}
+            </p>
+            <div class="mt-3 flex gap-2.5">
+              <button type="button" class="key key-sm key-primary" onclick={undoRename}>
+                {t("web_undo_yes", "Yes, undo")}
+              </button>
+              <button type="button" class="key key-sm" onclick={() => (askUndo = false)}>
+                {t("web_keep", "Keep")}
+              </button>
+            </div>
+          {/if}
+          {#if !askUndo}
+            <div class="mt-6 flex flex-wrap gap-2.5">
+              {#if rename.result?.operation && undone !== rename.id}
+                <button type="button" class="key key-sm" onclick={() => (askUndo = true)}>
+                  {t("web_undo_this", "Undo this")}
                 </button>
-              {/each}
+              {/if}
+              {#if rename.result?.renamed}
+                <a href={href("/history")} onclick={follow} class="key key-sm">
+                  {t("web_see_history_short", "See the history")}
+                </a>
+              {/if}
+              <button type="button" class="key key-sm" onclick={() => (dismissed = rename.id)}>
+                {t("web_close", "Close")}
+              </button>
             </div>
           {/if}
         </div>
+      {:else if selection.length}
+        <!-- The covers chosen. -->
+        <div class="mt-3.5"></div>
+        <Fan posters={selection.map((row) => matchOf(row)?.poster ?? "").filter(Boolean)} />
+        <p class="mt-6 text-center text-[30px] leading-[34px] font-[650] tracking-[-0.035em]">
+          {tn(`web_chosen_${mediaType}`, selection.length, "{n} movie chosen", "{n} movies chosen")}
+        </p>
+        <div class="mt-[26px] w-full"><Facts facts={selectionFacts} /></div>
+      {:else if open && view === "pick"}
+        <!-- What is it? The results, and a search. -->
+        <div class="flex w-full flex-1 flex-col self-stretch">
+          <p class="text-[30px] leading-[1.1] font-[650] tracking-[-0.035em]">
+            {t(whichKey, "Which movie is it?")}
+          </p>
+          <p class="mt-2 truncate font-mono text-[12.5px] text-faint">{was(open)}</p>
+          <form class="mt-[18px]" onsubmit={search}>
+            <input
+              class="field h-[42px] border-accent text-[15px]"
+              bind:value={query}
+              aria-label={t("web_search_title", "Search a title")}
+            />
+          </form>
+          {#if searching}
+            <p class="mt-4 text-[14px] text-muted">{t("searching", "Searching...")}</p>
+          {:else if searchMessage}
+            <p class="mt-4 text-[14px] text-muted">{searchMessage}</p>
+          {:else if !open.candidates.length}
+            <p class="mt-4 text-[14px] text-muted">
+              {t(
+                "web_pick_none",
+                "Nothing found for “{query}”. Search another title, or leave the file where it is.",
+                { query: open.query ?? "" },
+              )}
+            </p>
+          {/if}
+          <div class="-mx-2.5 mt-4 grid gap-0.5">
+            {#each open.candidates as candidate, index (index)}
+              <button
+                type="button"
+                class={[
+                  "grid cursor-pointer grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-3.5 rounded-[9px] px-2.5 py-2 text-left hover:bg-raised",
+                  index === open.selected && "bg-raised",
+                ]}
+                onclick={() => pick(index)}
+              >
+                <Thumb poster={candidate.poster} selectable={false} label="" />
+                <span class="min-w-0">
+                  <span class="block truncate text-[15px] font-semibold">{candidate.title}</span>
+                  <span class="mt-[3px] block font-mono text-[12px] text-muted">
+                    {[candidate.year, candidate.by].filter(Boolean).join(" · ")}
+                  </span>
+                  {#if candidate.overview}
+                    <span class="mt-1 line-clamp-2 text-[12.5px] leading-[1.4] text-faint"
+                      >{candidate.overview}</span
+                    >
+                  {/if}
+                </span>
+                {#if index === open.selected}
+                  <span class="h-[18px] w-0.5 rounded-[1px] bg-accent"></span>
+                {/if}
+              </button>
+            {/each}
+          </div>
+          <div class="flex-1"></div>
+          {#if open.status === "ok"}
+            <div class="flex justify-center pt-4">
+              <button type="button" class="key key-sm" onclick={() => (view = "scene")}>
+                {t("web_cancel", "Cancel")}
+              </button>
+            </div>
+          {/if}
+        </div>
+      {:else if open}
+        <!-- The scene of the open row. -->
+        {@const match = matchOf(open)}
+        {@const poster = bigPosterUrl(match?.poster ?? null)}
+        <div
+          class={[
+            "shrink-0 rounded-xl bg-raised bg-cover bg-center shadow-[0_30px_60px_var(--drop),inset_0_1px_0_rgb(255_255_255/0.25)]",
+            music ? "size-[240px]" : "h-[285px] w-[190px]",
+            books && "rounded-[3px_8px_8px_3px]",
+          ]}
+          style:background-image={poster ? `url("${poster}")` : undefined}
+        ></div>
+        <div
+          class={[
+            "mt-[18px] h-5 rounded-[50%] bg-[radial-gradient(closest-side,var(--drop),transparent)]",
+            music ? "w-[210px]" : "w-[170px]",
+          ]}
+        ></div>
+        {#if episodic}
+          <p class="mt-[22px] text-center text-[15px] text-muted">
+            {[t("web_series", "Series"), match?.year].filter(Boolean).join(" · ")}
+          </p>
+          <p class="mt-1 text-center text-[30px] leading-[1.1] font-[650] tracking-[-0.035em]">
+            {titleOf(open)}
+          </p>
+          <p class="mt-2.5 text-center text-[14px] text-muted">
+            {seasonLine(open)} · {tn(
+              "web_titles_found",
+              open.files.filter((file) => episodeTitle(file)).length,
+              "{n} title found",
+              "{n} titles found",
+            )}
+          </p>
+          <div class="mt-[18px] grid w-full grid-cols-7 gap-1.5">
+            {#each open.files as file (file.path)}
+              {@const code = episodeCode(file)}
+              <span
+                class={[
+                  "rounded-[7px] bg-raised py-[7px] text-center font-mono text-[12px] shadow-[inset_0_1px_0_var(--color-hi)]",
+                  !episodeTitle(file) && "text-faint",
+                ]}
+                title={episodeTitle(file) ?? file.name}
+              >
+                {code ? (seasonsOf(open).length > 1 ? code : code.slice(3)) : "?"}
+              </span>
+            {/each}
+          </div>
+        {:else if music}
+          <p class="mt-[26px] text-center text-[30px] leading-[1.1] font-[650] tracking-[-0.035em]">
+            {titleOf(open)}
+          </p>
+          <p class="mt-1.5 text-center text-[15px] text-muted">
+            {[
+              match?.by,
+              match?.year,
+              tn("web_n_tracks", open.files.length, "{n} track", "{n} tracks"),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+          <div class="mt-[18px] grid w-full">
+            {#each open.files.slice(0, TRACKS_SHOWN) as file (file.path)}
+              {@const track = trackOf(file)}
+              <div
+                class="grid grid-cols-[30px_minmax(0,1fr)] gap-2 border-t border-line py-[7px] text-[14px]"
+              >
+                <span class="font-mono text-[12.5px] text-faint">{track.number ?? "·"}</span>
+                <span class="truncate">{track.title}</span>
+              </div>
+            {/each}
+            {#if open.files.length > TRACKS_SHOWN}
+              <div class="border-t border-line py-[7px] text-[13px] text-muted">
+                {tn(
+                  "web_more_tracks",
+                  open.files.length - TRACKS_SHOWN,
+                  "+ {n} track",
+                  "+ {n} tracks",
+                )}
+              </div>
+            {/if}
+          </div>
+        {:else}
+          <p class="mt-[26px] text-center text-[30px] leading-[1.1] font-[650] tracking-[-0.035em]">
+            {titleOf(open)}
+          </p>
+          {#if match?.year || match?.by}
+            <p class="mt-1.5 text-center text-[15px] text-muted">
+              {[match?.year, match?.by].filter(Boolean).join(" · ")}
+            </p>
+          {/if}
+          <div class="mt-[26px] w-full"><Facts {facts} /></div>
+        {/if}
+        {#if open.files[0]?.new_name && folderOf(open)}
+          <div class="mt-[22px] w-full">
+            <p class="text-[13px] text-muted">{t("web_will_go_here", "Will be put here")}</p>
+            <p class="mt-1.5 font-mono text-[13px] leading-[1.4] break-all">
+              {targetOf(open)}
+            </p>
+            {#if destinations.length > 1}
+              <div class="mt-2.5 flex flex-wrap gap-3.5 font-mono text-[13px] text-faint">
+                {#each destinations as folder, index (folder)}
+                  {@const on =
+                    index === (open.destination < destinations.length ? open.destination : 0)}
+                  <button
+                    type="button"
+                    class={[
+                      "flex cursor-pointer items-center",
+                      on ? "text-ink" : "hover:text-muted",
+                    ]}
+                    aria-pressed={on}
+                    onclick={() => choose(index)}
+                  >
+                    {#if on}<span class="mr-[7px] size-1.5 rounded-full bg-accent"></span>{/if}
+                    {folder}
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
+        <div class="mt-6 flex gap-2.5">
+          <button type="button" class="key key-sm" onclick={() => openPicker(open)}>
+            {t("web_not_it", "That's not it")}
+          </button>
+        </div>
       {/if}
-      <div class="mt-6 flex gap-2.5">
-        <button type="button" class="key key-sm" onclick={() => openPicker(open)}>
-          {t("web_not_it", "That's not it")}
-        </button>
-      </div>
-    {/if}
-  {/snippet}
-</Split>
+    {/snippet}
+  </Split>
+{/if}
