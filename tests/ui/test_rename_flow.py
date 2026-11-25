@@ -109,6 +109,9 @@ def page(qtbot, tmp_path):
     widget._on_batch_search_done(results)
     runs = []
     widget._organize_runner.run = lambda *args, **kwargs: runs.append(args)
+    # No search on the internet: without API keys (the CI), it fails and
+    # shows a modal warning that nobody closes.
+    widget._search_runner.run = lambda *args, **kwargs: None
     widget.runs = runs
     widget.files = files
     widget.dest = dest
