@@ -771,6 +771,7 @@ class BatchPage(QWidget):
             screen, columns, self._right, lambda: tr("back_to_list", "List")
         )
         self._list.row_clicked.connect(lambda _key: self._panel.open())
+        self._panel.moved.connect(self.light_changed.emit)
         # The window paints the light of the scene or of the summary.
         for source, scroll in (
             (self._scene, self._scene_scroll),

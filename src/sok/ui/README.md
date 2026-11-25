@@ -54,8 +54,10 @@ its big title with `fit_display()`, and shrinks its decorations around
 `LOW_HEIGHT` with `presence()`, from its `resizeEvent` (see
 `responsive.py`). Nothing jumps at a threshold while the window is resized:
 the title follows the width pixel by pixel, and the decorations shrink and
-fade out over `FADE_BAND`. Past `MAX_CONTENT_WIDTH` the navigation and the
-pages are centered.
+fade out over `FADE_BAND`. Under `NARROW_WIDTH` the right column
+(`SidePanel`) slides out to the right while the list widens into its place,
+and slides back past `NARROW_WIDTH + NARROW_MARGIN`. Past
+`MAX_CONTENT_WIDTH` the navigation and the pages are centered.
 5. **Motion**: only the moments that change the state of things move (a
 panel coming in or leaving, an item recognized or sorted, the end of a
 rename, the switch to the pick panel, the press of a key), at most 250ms,

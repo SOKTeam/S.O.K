@@ -44,6 +44,8 @@ SLIDE_OUT = 180
 SLIDE_IN = 220
 SUMMARY = 240
 GAUGE = 250
+# The right column going out of a page that got narrow, or coming back.
+DOCK = 260
 # A poster travelling to its new place, and the lines that come in around it.
 MOVE = 400
 RISE = 220

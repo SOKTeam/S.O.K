@@ -10,6 +10,7 @@
 # ===----------------------------------------------------------------------=== #
 """Sizes that follow the size of the window."""
 
+import pytest
 from PySide6.QtWidgets import QWidget
 
 from sok.ui.responsive import (
@@ -55,3 +56,59 @@ def test_the_content_is_centered_past_its_widest(qtbot):
     column.resize(5120, 600)
     assert child.width() == MAX_CONTENT_WIDTH
     assert child.geometry().x() == (5120 - MAX_CONTENT_WIDTH) // 2
+
+
+class TestSidePanel:
+    @pytest.fixture
+    def screen(self, qtbot):
+        from PySide6.QtWidgets import QHBoxLayout, QLabel
+
+        from sok.ui.responsive import SidePanel
+
+        host = QWidget()
+        qtbot.addWidget(host)
+        columns = QHBoxLayout(host)
+        columns.setContentsMargins(0, 0, 0, 0)
+        columns.setSpacing(0)
+        columns.addWidget(QLabel("list"), 1)
+        side = QLabel("scene")
+        panel = SidePanel(host, columns, side, lambda: "List")
+        host.resize(1200, 700)
+        host.show()
+        panel.fit(1200)
+        return host, columns, panel
+
+    def test_the_column_slides_out_then_the_list_has_the_page(self, qtbot, screen):
+        host, columns, panel = screen
+
+        host.resize(960, 700)
+        panel.fit(960)
+
+        assert panel.narrow
+        assert panel.holder.isVisible()  # still going out
+        qtbot.waitUntil(lambda: not panel.holder.isVisible(), timeout=1000)
+        assert columns.indexOf(panel.holder) == -1
+
+    def test_the_column_slides_back_beside_the_list(self, qtbot, screen):
+        host, columns, panel = screen
+        host.resize(960, 700)
+        panel.fit(960)
+        qtbot.waitUntil(lambda: not panel.holder.isVisible(), timeout=1000)
+
+        host.resize(1200, 700)
+        panel.fit(1200)
+
+        assert not panel.narrow
+        qtbot.waitUntil(lambda: columns.indexOf(panel.holder) != -1, timeout=1000)
+        assert panel.holder.isVisible()
+
+    def test_it_does_not_come_back_just_past_the_limit(self, qtbot, screen):
+        from sok.ui.responsive import NARROW_MARGIN, NARROW_WIDTH
+
+        host, columns, panel = screen
+        panel.fit(NARROW_WIDTH - 5)
+        assert panel.narrow
+
+        panel.fit(NARROW_WIDTH + NARROW_MARGIN // 2)
+
+        assert panel.narrow
