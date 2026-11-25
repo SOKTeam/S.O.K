@@ -370,7 +370,9 @@ class Scans:
                 " GROUP BY media_type, status"
             ):
                 counts[row["media_type"]][row["status"]] = row["n"]
-            covers: Dict[str, List[str]] = {media_type: [] for media_type in MEDIA_TYPES}
+            covers: Dict[str, List[str]] = {
+                media_type: [] for media_type in MEDIA_TYPES
+            }
             files: List[str] = []
             for row in conn.execute(
                 "SELECT media_type, files, candidates, selected FROM rows ORDER BY id"
@@ -432,7 +434,9 @@ class Scans:
         without one: what "room for about N movies" counts with."""
         sizes = []
         with self._db.transaction() as conn:
-            for row in conn.execute("SELECT files FROM rows WHERE media_type = 'movies'"):
+            for row in conn.execute(
+                "SELECT files FROM rows WHERE media_type = 'movies'"
+            ):
                 for path in json.loads(row["files"]):
                     try:
                         sizes.append(Path(path).stat().st_size)

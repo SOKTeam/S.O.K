@@ -34,5 +34,10 @@ def disks(folders: List[str]) -> List[Dict[str, Any]]:
             total, _used, free = shutil.disk_usage(folder)
         except OSError:
             continue
-        volumes[device] = {"path": folder, "folders": [folder], "total": total, "free": free}
+        volumes[device] = {
+            "path": folder,
+            "folders": [folder],
+            "total": total,
+            "free": free,
+        }
     return list(volumes.values())
