@@ -606,5 +606,21 @@
     "web_titles_found_one": "{n} Titel gefunden",
     "web_titles_found_other": "{n} Titel gefunden",
     "web_chosen_tv_one": "{n} Serie ausgewählt",
-    "web_chosen_tv_other": "{n} Serien ausgewählt"
+    "web_chosen_tv_other": "{n} Serien ausgewählt",
+    "web_title_no_music": "Keine Titel zu ordnen",
+    "web_rename_all_music": "Titel ordnen",
+    "web_which_album": "Welches Album ist das?",
+    "web_which_track": "Welcher Titel ist das?",
+    "web_title_music_one": "{n} Titel",
+    "web_title_music_other": "{n} Titel",
+    "web_in_albums_one": "In {n} Album.",
+    "web_in_albums_other": "In {n} Alben.",
+    "web_single_tracks_one": "Und {n} einzelner Titel.",
+    "web_single_tracks_other": "Und {n} einzelne Titel.",
+    "web_n_tracks_one": "{n} Titel",
+    "web_n_tracks_other": "{n} Titel",
+    "web_more_tracks_one": "+ {n} Titel",
+    "web_more_tracks_other": "+ {n} Titel",
+    "web_chosen_music_one": "{n} Album ausgewählt",
+    "web_chosen_music_other": "{n} Alben ausgewählt"
 }

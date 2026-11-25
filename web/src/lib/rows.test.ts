@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { episodeCode, episodeTitle, posterUrl, seasonsOf, type Row, type RowFile } from "./rows";
+import {
+  episodeCode,
+  episodeTitle,
+  posterUrl,
+  seasonsOf,
+  trackOf,
+  type Row,
+  type RowFile,
+} from "./rows";
 
 describe("posterUrl", () => {
   it("makes an address of a TMDB path", () => {
@@ -41,5 +49,21 @@ describe("episodes", () => {
       files: [file("A.S02E01.mkv"), file("A.S01E03.mkv"), file("A.S02E02.mkv")],
     } as Row;
     expect(seasonsOf(row)).toEqual([1, 2]);
+  });
+});
+
+describe("trackOf", () => {
+  it("reads the number and the title of a track", () => {
+    expect(trackOf(file("x.flac", "Daft Punk - Discovery/1 - One More Time.flac"))).toEqual({
+      number: "01",
+      title: "One More Time",
+    });
+  });
+
+  it("keeps the name of a track without a number", () => {
+    expect(trackOf(file("Queen - Bohemian Rhapsody.mp3"))).toEqual({
+      number: null,
+      title: "Queen - Bohemian Rhapsody",
+    });
   });
 });

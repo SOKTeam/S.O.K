@@ -606,5 +606,21 @@
     "web_titles_found_one": "{n} title found",
     "web_titles_found_other": "{n} titles found",
     "web_chosen_tv_one": "{n} series chosen",
-    "web_chosen_tv_other": "{n} series chosen"
+    "web_chosen_tv_other": "{n} series chosen",
+    "web_title_no_music": "No track to sort",
+    "web_rename_all_music": "Put away the tracks",
+    "web_which_album": "Which album is it?",
+    "web_which_track": "Which track is it?",
+    "web_title_music_one": "{n} track",
+    "web_title_music_other": "{n} tracks",
+    "web_in_albums_one": "In {n} album.",
+    "web_in_albums_other": "In {n} albums.",
+    "web_single_tracks_one": "And {n} single track.",
+    "web_single_tracks_other": "And {n} single tracks.",
+    "web_n_tracks_one": "{n} track",
+    "web_n_tracks_other": "{n} tracks",
+    "web_more_tracks_one": "+ {n} track",
+    "web_more_tracks_other": "+ {n} tracks",
+    "web_chosen_music_one": "{n} album chosen",
+    "web_chosen_music_other": "{n} albums chosen"
 }

@@ -10,6 +10,7 @@
     marks = false,
     selectable = true,
     square = false,
+    tile = false,
     label,
     onmark,
   }: {
@@ -19,6 +20,8 @@
     marks?: boolean;
     selectable?: boolean;
     square?: boolean;
+    /** A cover of the music grid: as wide as its tile, the mark inside. */
+    tile?: boolean;
     label: string;
     onmark?: (event: MouseEvent) => void;
   } = $props();
@@ -26,13 +29,21 @@
   const url = $derived(posterUrl(poster));
 </script>
 
-<div class={["group/thumb relative shrink-0", square ? "size-11" : "h-[54px] w-9"]}>
+<div
+  class={[
+    "group/thumb relative shrink-0",
+    tile ? "aspect-square w-full" : square ? "size-11" : "h-[54px] w-9",
+  ]}
+>
   <div
     class={[
-      "size-full rounded bg-raised bg-cover bg-center",
+      "size-full bg-raised bg-cover bg-center",
+      tile ? "rounded-[10px]" : "rounded",
       chosen
         ? "shadow-[0_0_0_2px_var(--color-bg),0_0_0_4px_var(--color-accent)]"
-        : "shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1)]",
+        : tile
+          ? "shadow-[0_14px_28px_rgb(0_0_0/0.35),inset_0_1px_0_rgb(255_255_255/0.2)]"
+          : "shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1)]",
     ]}
     style:background-image={url ? `url("${url}")` : undefined}
   ></div>
@@ -46,7 +57,9 @@
         onmark?.(event);
       }}
       class={[
-        "absolute -top-1.5 -left-1.5 size-[18px] cursor-pointer rounded-full transition-[opacity,transform] duration-150",
+        "absolute size-[18px] cursor-pointer",
+        tile ? "top-2 left-2" : "-top-1.5 -left-1.5",
+        " rounded-full transition-[opacity,transform] duration-150",
         chosen
           ? "bg-accent opacity-100 shadow-[0_0_0_2px_var(--color-bg)]"
           : "bg-black/55 shadow-[inset_0_0_0_1.5px_rgb(255_255_255/0.85)]",

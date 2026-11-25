@@ -117,3 +117,16 @@ export function seasonsOf(row: Row): number[] {
     .map((code) => Number(code.slice(1, 3)));
   return [...new Set(seasons)].sort((a, b) => a - b);
 }
+
+/** The number and title of a track, read from its new name ("01 - One
+ * More Time"), else its name. */
+export function trackOf(file: RowFile): { number: string | null; title: string } {
+  const name = (file.new_name ?? file.name)
+    .split("/")
+    .pop()!
+    .replace(/\.[^.]+$/, "");
+  const found = name.match(/^(\d{1,3})\s*[-.]\s*(.+)$/);
+  return found
+    ? { number: found[1].padStart(2, "0"), title: found[2] }
+    : { number: null, title: name };
+}
