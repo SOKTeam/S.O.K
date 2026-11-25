@@ -74,8 +74,20 @@ class FakeManager:
             }
         ],
         "dune frank herbert": [
-            {"id": "B1", "title": "Dune", "authors": ["Frank Herbert"]},
-            {"id": "B2", "title": "Dune", "authors": ["Frank Herbert"]},
+            {
+                "id": "B1",
+                "title": "Dune",
+                "authors": ["Frank Herbert"],
+                "publisher": "Pocket",
+                "isbn13": "9782266320481",
+            },
+            {
+                "id": "B2",
+                "title": "Dune",
+                "authors": ["Frank Herbert"],
+                "publishers": ["Laffont"],
+                "isbn": ["2221252306"],
+            },
         ],
         "chrono trigger": [
             {"id": 4205, "title": "Chrono Trigger", "release_date": "1995-03-11"}

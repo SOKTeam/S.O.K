@@ -61,7 +61,7 @@
     <main class="min-h-0 flex-1">
       {#if page.path === "/"}
         <Analysis />
-      {:else if ["movies", "tv", "music"].includes(page.mediaType ?? "")}
+      {:else if ["movies", "tv", "music", "books"].includes(page.mediaType ?? "")}
         <MediaScreen {page} />
       {:else}
         <!-- TEMPORARY: the old screens, until each is redrawn. -->

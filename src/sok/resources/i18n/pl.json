@@ -652,5 +652,19 @@
     "web_more_tracks_many": "+ {n} utworów",
     "web_chosen_music_one": "{n} album wybrany",
     "web_chosen_music_few": "{n} albumy wybrane",
-    "web_chosen_music_many": "{n} albumów wybranych"
+    "web_chosen_music_many": "{n} albumów wybranych",
+    "web_title_no_books": "Brak książek do uporządkowania",
+    "web_rename_all_books": "Uporządkuj książki",
+    "web_which_books": "Jaka to książka?",
+    "web_fact_publisher": "Wydawca",
+    "web_fact_format": "Format",
+    "web_title_books_one": "{n} książka",
+    "web_title_books_few": "{n} książki",
+    "web_title_books_many": "{n} książek",
+    "web_chosen_books_one": "{n} książka wybrana",
+    "web_chosen_books_few": "{n} książki wybrane",
+    "web_chosen_books_many": "{n} książek wybranych",
+    "web_books_missing_stay_one": "Nierozpoznana książka zostaje na miejscu.",
+    "web_books_missing_stay_few": "{n} nierozpoznane książki zostają na miejscu.",
+    "web_books_missing_stay_many": "{n} nierozpoznanych książek zostaje na miejscu."
 }

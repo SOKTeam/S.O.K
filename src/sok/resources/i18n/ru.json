@@ -652,5 +652,19 @@
     "web_more_tracks_many": "+ {n} треков",
     "web_chosen_music_one": "выбран {n} альбом",
     "web_chosen_music_few": "выбрано {n} альбома",
-    "web_chosen_music_many": "выбрано {n} альбомов"
+    "web_chosen_music_many": "выбрано {n} альбомов",
+    "web_title_no_books": "Нет книг для сортировки",
+    "web_rename_all_books": "Разложить книги",
+    "web_which_books": "Какая это книга?",
+    "web_fact_publisher": "Издатель",
+    "web_fact_format": "Формат",
+    "web_title_books_one": "{n} книга",
+    "web_title_books_few": "{n} книги",
+    "web_title_books_many": "{n} книг",
+    "web_chosen_books_one": "выбрана {n} книга",
+    "web_chosen_books_few": "выбрано {n} книги",
+    "web_chosen_books_many": "выбрано {n} книг",
+    "web_books_missing_stay_one": "Нераспознанная книга остаётся на месте.",
+    "web_books_missing_stay_few": "{n} нераспознанные книги остаются на месте.",
+    "web_books_missing_stay_many": "{n} нераспознанных книг остаются на месте."
 }

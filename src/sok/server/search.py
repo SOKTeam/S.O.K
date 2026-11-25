@@ -515,7 +515,17 @@ def _candidate(candidate: Dict[str, Any]) -> Dict[str, Any]:
         "year": candidate_year(candidate),
         "poster": candidate.get("poster_path") or candidate.get("image_url"),
         "overview": overview[:OVERVIEW_LENGTH],
+        # Of a book, when its service gives them.
+        "publisher": _first(candidate.get("publisher") or candidate.get("publishers")),
+        "isbn": candidate.get("isbn13") or _first(candidate.get("isbn")),
     }
+
+
+def _first(value: Any) -> Optional[str]:
+    """A text, or the first text of a list (Open Library gives lists)."""
+    if isinstance(value, list):
+        value = next((v for v in value if isinstance(v, str) and v), None)
+    return value if isinstance(value, str) and value else None
 
 
 def _by(candidate: Dict[str, Any]) -> Optional[str]:

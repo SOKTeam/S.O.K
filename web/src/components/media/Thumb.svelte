@@ -11,6 +11,7 @@
     selectable = true,
     square = false,
     tile = false,
+    book = false,
     label,
     onmark,
   }: {
@@ -22,6 +23,8 @@
     square?: boolean;
     /** A cover of the music grid: as wide as its tile, the mark inside. */
     tile?: boolean;
+    /** A book: the corners of a spine on the left, and its shade. */
+    book?: boolean;
     label: string;
     onmark?: (event: MouseEvent) => void;
   } = $props();
@@ -38,7 +41,7 @@
   <div
     class={[
       "size-full bg-raised bg-cover bg-center",
-      tile ? "rounded-[10px]" : "rounded",
+      tile ? "rounded-[10px]" : book ? "relative rounded-[3px_6px_6px_3px]" : "rounded",
       chosen
         ? "shadow-[0_0_0_2px_var(--color-bg),0_0_0_4px_var(--color-accent)]"
         : tile
@@ -46,7 +49,13 @@
           : "shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1)]",
     ]}
     style:background-image={url ? `url("${url}")` : undefined}
-  ></div>
+  >
+    {#if book}
+      <span
+        class="absolute inset-y-0 left-0 w-[12%] rounded-l-[3px] bg-linear-to-r from-black/35 to-transparent"
+      ></span>
+    {/if}
+  </div>
   {#if selectable}
     <button
       type="button"

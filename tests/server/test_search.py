@@ -287,6 +287,12 @@ def test_a_result_names_its_artist_or_its_authors(client, library):
 
     assert [c["by"] for c in album["candidates"]] == ["Daft Punk", "Data Punk"]
     assert book["candidates"][0]["by"] == "Frank Herbert"
+    # The publisher and the ISBN of a book, from a text or a list.
+    assert [(c["publisher"], c["isbn"]) for c in book["candidates"]] == [
+        ("Pocket", "9782266320481"),
+        ("Laffont", "2221252306"),
+    ]
+    assert album["candidates"][0]["publisher"] is None
 
 
 def test_a_missing_key_names_the_service_of_each_type(client, library, media_manager):

@@ -24,6 +24,7 @@
     episodeTitle,
     seasonsOf,
     trackOf,
+    formatOf,
     loadRows,
     matchOf,
     searchRow,
@@ -82,8 +83,11 @@
         rows = found;
         untrack(() => {
           if (openId === null || !found.some((row) => row.id === openId)) {
-            openId = found[0]?.id ?? null;
-            view = "scene";
+            // The first Ready row; else the first one, on its results.
+            const first = found.find((row) => row.status === "ok") ?? found[0];
+            openId = first?.id ?? null;
+            view = first && first.status !== "ok" ? "pick" : "scene";
+            query = first ? (first.query ?? titleOf(first)) : "";
           }
         });
       })
@@ -119,6 +123,7 @@
   const episodic = $derived(mediaType === "tv");
   // Music: a grid of covers, an album or a track per tile, counted in tracks.
   const music = $derived(mediaType === "music");
+  const books = $derived(mediaType === "books");
 
   function units(list: Row[]): number {
     return episodic || music ? list.reduce((sum, row) => sum + row.files.length, 0) : list.length;
@@ -378,12 +383,25 @@
   const facts = $derived.by<Fact[]>(() => {
     if (!open) return [];
     const list: Fact[] = [];
-    if (open.quality) list.push({ label: t("web_fact_quality", "Quality"), value: open.quality });
-    if (open.size) list.push({ label: t("web_fact_size", "Size"), value: size(open.size) });
-    if (open.files.length > 1) {
-      list.push({ label: t("web_fact_files", "Files"), value: String(open.files.length) });
+    const match = matchOf(open);
+    if (books) {
+      if (match?.publisher) {
+        list.push({ label: t("web_fact_publisher", "Publisher"), value: match.publisher });
+      }
+      const format = formatOf(open.files[0]);
+      list.push({
+        label: t("web_fact_format", "Format"),
+        value: [format, size(open.size)].filter(Boolean).join(" · "),
+      });
+      if (match?.isbn) list.push({ label: "ISBN", value: match.isbn });
+    } else {
+      if (open.quality) list.push({ label: t("web_fact_quality", "Quality"), value: open.quality });
+      if (open.size) list.push({ label: t("web_fact_size", "Size"), value: size(open.size) });
+      if (open.files.length > 1) {
+        list.push({ label: t("web_fact_files", "Files"), value: String(open.files.length) });
+      }
+      list.push({ label: t("web_mode", "Mode"), value: modeWord() });
     }
-    list.push({ label: t("web_mode", "Mode"), value: modeWord() });
     if (service())
       list.push({ label: t("web_fact_found_via", "Recognized via"), value: service() });
     return list;
@@ -616,6 +634,7 @@
             tabindex="0"
           >
             <Thumb
+              book={books}
               poster={match?.poster ?? null}
               chosen={isChosen}
               marks={picking}
@@ -631,8 +650,14 @@
                 ]}
               >
                 {row.status === "missing" ? t("web_unknown_title", "Unknown title") : titleOf(row)}
-                {#if match?.year}<small class="ml-2 font-mono text-[12.5px] font-normal text-faint"
-                    >{match.year}</small
+                {#if books}
+                  {#if match?.by}<span class="ml-2 text-[14px] font-normal text-muted"
+                      >{match.by}</span
+                    >{/if}{#if formatOf(row.files[0])}<span class="tag ml-2"
+                      >{formatOf(row.files[0])}</span
+                    >{/if}
+                {:else if match?.year}<small
+                    class="ml-2 font-mono text-[12.5px] font-normal text-faint">{match.year}</small
                   >{/if}
               </div>
               {#if episodic}
@@ -708,7 +733,17 @@
     {/if}
   </div>
   {#if rows?.length}
-    <p class="mt-3 text-[13px] text-muted">{modeNote}</p>
+    <p class="mt-3 text-[13px] text-muted">
+      {#if books && count("missing")}
+        {tn(
+          "web_books_missing_stay",
+          count("missing"),
+          "The book not recognized stays where it is.",
+          "The {n} books not recognized stay where they are.",
+        )}
+      {/if}
+      {modeNote}
+    </p>
   {/if}
 
   {#snippet scene()}
@@ -875,6 +910,7 @@
         class={[
           "shrink-0 rounded-xl bg-raised bg-cover bg-center shadow-[0_30px_60px_var(--drop),inset_0_1px_0_rgb(255_255_255/0.25)]",
           music ? "size-[240px]" : "h-[285px] w-[190px]",
+          books && "rounded-[3px_8px_8px_3px]",
         ]}
         style:background-image={poster ? `url("${poster}")` : undefined}
       ></div>

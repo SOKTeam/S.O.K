@@ -622,5 +622,16 @@
     "web_more_tracks_one": "+ {n} piste",
     "web_more_tracks_other": "+ {n} pistes",
     "web_chosen_music_one": "{n} album choisi",
-    "web_chosen_music_other": "{n} albums choisis"
+    "web_chosen_music_other": "{n} albums choisis",
+    "web_title_no_books": "Aucun livre à ranger",
+    "web_rename_all_books": "Ranger les livres",
+    "web_which_books": "Quel livre est-ce ?",
+    "web_fact_publisher": "Éditeur",
+    "web_fact_format": "Format",
+    "web_title_books_one": "{n} livre",
+    "web_title_books_other": "{n} livres",
+    "web_chosen_books_one": "{n} livre choisi",
+    "web_chosen_books_other": "{n} livres choisis",
+    "web_books_missing_stay_one": "Le livre non reconnu reste où il est.",
+    "web_books_missing_stay_other": "Les {n} livres non reconnus restent où ils sont."
 }

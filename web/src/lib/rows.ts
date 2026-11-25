@@ -13,6 +13,9 @@ export interface Candidate {
   /** A path of TMDB (/abc.jpg) or a full address. */
   poster: string | null;
   overview: string;
+  /** Of a book, when its service gives them. */
+  publisher?: string | null;
+  isbn?: string | null;
 }
 
 export interface RowFile {
@@ -129,4 +132,10 @@ export function trackOf(file: RowFile): { number: string | null; title: string }
   return found
     ? { number: found[1].padStart(2, "0"), title: found[2] }
     : { number: null, title: name };
+}
+
+/** The format of a file, from its extension: "EPUB", "PDF". */
+export function formatOf(file: RowFile): string {
+  const found = file.name.match(/\.([a-z0-9]+)$/i);
+  return found ? found[1].toUpperCase() : "";
 }
