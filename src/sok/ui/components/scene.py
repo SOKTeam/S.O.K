@@ -21,7 +21,7 @@ muted line, a sheet of details joined by dotted leaders, the final path
 from dataclasses import dataclass, field
 from enum import Enum
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QEasingCurve, QPointF, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import (
     QColor,
     QFontMetrics,
@@ -42,6 +42,7 @@ from sok.ui.components.media_visual import (
     standin_colors,
     standin_pixmap,
 )
+from sok.ui.motion import RISE, RISE_PX, STAGGER, animate, cascade, rise
 from sok.ui.theme import Theme, ui_font
 from sok.ui.tokens import RADIUS
 
@@ -199,6 +200,8 @@ class _Stage(QWidget):
         self._color = QColor(128, 128, 128)
         # Below 1, the object is drawn smaller (a low window).
         self._scale = 1.0
+        # True while a picture of the object travels to it (motion.fly).
+        self.object_hidden = False
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
     def _size(self) -> QSize:
@@ -235,6 +238,10 @@ class _Stage(QWidget):
         size = self._size()
         return QRectF((self.width() - size.width()) / 2, 0, size.width(), size.height())
 
+    def object_pixmap(self) -> QPixmap:
+        """The poster, cover or book as drawn, rounded."""
+        return self._object()
+
     def _object(self) -> QPixmap:
         assert self._item is not None
         size = self._size()
@@ -248,7 +255,7 @@ class _Stage(QWidget):
         return self._visual
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
-        if not self._item:
+        if not self._item or self.object_hidden:
             return
         size = self._size()
         x = (self.width() - size.width()) / 2
@@ -322,7 +329,33 @@ class _Sheet(QWidget):
         super().__init__(parent)
         self._fields: list[tuple[str, str]] = []
         self._tones: dict[str, str] = {}
+        # While the rows come in one after the other (reveal()): the time
+        # since the start, the delay of the first row and the gap between
+        # two rows, in ms.
+        self._elapsed: float | None = None
+        self._first = 0
+        self._step = STAGGER
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+    def reveal(self, delay: int = 0, step: int = STAGGER) -> int:
+        """Bring the rows in one after the other, each rising 6px; returns
+        the delay after the last one."""
+        if not self._fields or self.isHidden():
+            return delay
+        self._first, self._step = delay, step
+        total = delay + step * (len(self._fields) - 1) + RISE
+        self._elapsed = 0.0
+
+        def tick(ms: float) -> None:
+            self._elapsed = ms
+            self.update()
+
+        def done() -> None:
+            self._elapsed = None
+            self.update()
+
+        animate(self, total, tick, 0, total, done, QEasingCurve.Type.Linear)
+        return delay + step * len(self._fields)
 
     def set_fields(
         self, fields: list[tuple[str, str]], tones: dict[str, str] | None = None
@@ -339,8 +372,14 @@ class _Sheet(QWidget):
         c = _palette(self)
         label_font, value_font = ui_font(14), ui_font(13, 400, mono=True)
         p = QPainter(self)
+        ease = QEasingCurve(QEasingCurve.Type.OutCubic)
         for i, (label, value) in enumerate(self._fields):
             baseline = i * self.ROW + 15
+            if self._elapsed is not None:
+                t = (self._elapsed - self._first - i * self._step) / RISE
+                t = min(1.0, max(0.0, t))
+                p.setOpacity(t)
+                baseline += round(RISE_PX * (1 - ease.valueForProgress(t)))
             p.setFont(label_font)
             p.setPen(parse_color(c["ink-muted"]))
             p.drawText(0, baseline, label)
@@ -579,6 +618,42 @@ class Scene(QWidget):
         self.update()
         self.light_changed.emit()
 
+    def poster(self) -> tuple[QPixmap, QRectF] | None:
+        """The object as drawn and its rectangle in this widget (None
+        without an item)."""
+        if self._item is None:
+            return None
+        rect = self._stage.object_rect().translated(QPointF(self._stage.pos()))
+        return self._stage.object_pixmap(), rect
+
+    def hide_poster(self, hidden: bool) -> None:
+        """Leave the place of the object empty while its picture travels."""
+        self._stage.object_hidden = hidden
+        self._stage.update()
+        self.update()
+
+    def arrive(self, delay: int = 0, with_object: bool = False) -> None:
+        """Bring the texts, the details and the keys in, one after the
+        other; the object too with with_object (else it comes by itself,
+        see motion.fly)."""
+        delay = cascade(
+            [
+                self._stage if with_object else None,
+                self._label,
+                self._title,
+                self._subtitle,
+                self._warning,
+                self._extra,
+            ],
+            delay,
+        )
+        delay = self._sheet.reveal(delay)
+        delay = cascade([self._destination], delay)
+        for i in range(self._actions.count()):
+            widget = self._actions.itemAt(i).widget()
+            if widget is not None:
+                rise(widget, delay)
+
     def light(self) -> tuple[QColor, QRectF] | None:
         """Color of the light and rectangle of the object, in this widget
         (None without an item)."""
@@ -630,6 +705,7 @@ class Scene(QWidget):
             obj = self._stage.object_rect().translated(QPointF(self._stage.pos()))
             if not self.inline_light:
                 paint_light(p, rect, self._color, obj)
+        if self._item and not self._stage.object_hidden:
             paint_drop_shadow(
                 p, obj, self._item.shape, parse_color(c["shadow-poster-drop"])
             )

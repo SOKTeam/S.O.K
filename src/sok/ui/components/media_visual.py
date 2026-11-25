@@ -18,7 +18,7 @@ the title written on it.
 
 import zlib
 
-from typing import Optional, Sequence, Tuple
+from typing import Collection, Optional, Sequence, Tuple
 
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import (
@@ -164,10 +164,14 @@ def draw_fan(
     step: float,
     radius: float,
     ratio: float,
+    skip: Collection[int] = (),
 ) -> None:
-    """Draw covers overlapping from left to right, the first on top."""
+    """Draw covers overlapping from left to right, the first on top; the
+    covers at the indexes in skip are left out."""
     w, h = size
     for index in reversed(range(len(covers))):
+        if index in skip:
+            continue
         pixmap, title = covers[index]
         source = pixmap or standin_pixmap(title, "", w, h, ratio, text=False)
         p.drawPixmap(QPointF(x + index * step, y), rounded(source, w, h, radius))

@@ -31,12 +31,14 @@ import re
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtCore import QEvent, QPoint, QPointF, QRectF, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import (
+    QApplication,
     QFileDialog,
     QFrame,
     QScrollArea,
@@ -90,7 +92,7 @@ from sok.ui.controllers.undo import undo_operation
 from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.i18n import tr, trn
 from sok.ui.platform import IS_MACOS, request_attention
-from sok.ui.motion import CROSSFADE, SUMMARY, crossfade, fade_in
+from sok.ui.motion import CROSSFADE, MOVE, SUMMARY, crossfade, fly
 from sok.ui.responsive import (
     LOW_HEIGHT,
     SidePanel,
@@ -424,6 +426,8 @@ class BatchPage(QWidget):
         # The light of the view leaving the right column, and how far the
         # crossfade is (0 to 1), while the view changes.
         self._light_fade: Optional[Tuple[Any, float]] = None
+        # The item the scene shows (its poster lands on the summary).
+        self._scene_key: Optional[Path] = None
         self._searching: set[Path] = set()
         self._last_report: Optional[Dict[str, Any]] = None
         # "idle", "running" (a rename is going on) or "end" (it is over and
@@ -1177,6 +1181,7 @@ class BatchPage(QWidget):
             self._show_scene(entry.key)
 
     def _show_scene(self, key: Path) -> None:
+        self._scene_key = key
         entry = self._list.entry(key)
         if entry is None:
             return
@@ -1287,8 +1292,14 @@ class BatchPage(QWidget):
             self._right.setCurrentWidget(self._picker)
             self._refresh_picker()
 
-        self._swap_right(show)
-        fade_in(self._picker)
+        # The poster leaves the scene and lands on its line in the results.
+        poster = self._scene_poster()
+        self._scene.hide_poster(poster is not None)
+        self._swap_right(show, CROSSFADE)
+        self._scene.hide_poster(False)
+        self._picker.arrive(80)
+        if poster is not None:
+            self._fly_to_choice(*poster)
         self._picker.focus_search()
 
     def _close_picker(self) -> None:
@@ -1296,11 +1307,141 @@ class BatchPage(QWidget):
         self._picking = None
         entry = self._list.entry(key)
         if entry is not None and entry.status == STATUS_OK:
-            self._swap_right(lambda: self._show_scene_column(entry.key))
-            fade_in(self._scene_scroll)
+            self._back_to_scene(entry.key, self._picker.current_index())
         else:
             # Nothing chosen yet: go to the next item.
             self._list.select_next()
+
+    # ----------------------------------------------------------- Motion
+
+    def _flights_on(self) -> bool:
+        """Pictures can travel over the screen: the right column is beside
+        the list (in a narrow window it slides over it, and only fades)."""
+        return (
+            not self._panel.narrow
+            and self._right.isVisible()
+            and self._screens.currentWidget() is self._work
+        )
+
+    def _in_work(self, widget: QWidget, rect: QRectF) -> QRectF:
+        """A rectangle of widget, in the screen the pictures travel over."""
+        return rect.translated(QPointF(widget.mapTo(self._work, QPoint(0, 0))))
+
+    @staticmethod
+    def _settle() -> None:
+        """Lay out what was just shown, to know where things are."""
+        QApplication.sendPostedEvents(None, QEvent.Type.LayoutRequest)
+
+    def _scene_poster(self) -> Optional[Tuple[QPixmap, QRectF]]:
+        """The poster of the scene shown now and its place, if it can
+        travel."""
+        if (
+            not self._flights_on()
+            or self._right.currentWidget() is not self._scene_scroll
+        ):
+            return None
+        poster = self._scene.poster()
+        if poster is None:
+            return None
+        return poster[0], self._in_work(self._scene, poster[1])
+
+    def _fly_to_choice(self, pixmap: QPixmap, start: QRectF) -> None:
+        """The poster of the scene lands on the result chosen now, or fades
+        out if none is in view."""
+        self._settle()
+        index = self._picker.current_index()
+        found = self._picker.thumb(index) if index is not None else None
+        if index is None or found is None:
+            fly(self._work, pixmap, start, start, CROSSFADE, fade=True)
+            return
+        row, rect = found
+        self._picker.set_thumb_hidden(index, True)
+        fly(
+            self._work,
+            pixmap,
+            start,
+            self._in_work(row, rect),
+            MOVE - 20,
+            on_done=partial(self._picker.set_thumb_hidden, index, False),
+        )
+
+    def _back_to_scene(
+        self,
+        key: Path,
+        index: Optional[int],
+        first: Optional[Callable[[], None]] = None,
+    ) -> None:
+        """From the results to the scene: the thumbnail of the result grows
+        into the poster, then the texts come in. first() is done with the
+        change of view."""
+        start = None
+        if self._flights_on() and index is not None:
+            found = self._picker.thumb(index)
+            if found is not None:
+                row, rect = found
+                start = self._in_work(row, rect)
+
+        def change() -> None:
+            if first is not None:
+                first()
+            self._show_scene_column(key)
+
+        self._swap_right(change, CROSSFADE)
+        self._scene.arrive(120, with_object=start is None)
+        if start is None:
+            return
+        self._settle()
+        poster = self._scene.poster()
+        if poster is None:
+            return
+        self._scene.hide_poster(True)
+        fly(
+            self._work,
+            poster[0],
+            start,
+            self._in_work(self._scene, poster[1]),
+            MOVE + 20,
+            on_done=partial(self._scene.hide_poster, False),
+        )
+
+    def _fly_to_fan(
+        self,
+        keys: List[Path],
+        scene_poster: Optional[Tuple[QPixmap, QRectF]],
+    ) -> None:
+        """At the end of a rename, the poster of the scene and the covers of
+        the list land on the fan of the summary."""
+        self._settle()
+        count = self._summary.cover_count()
+        landed = False
+        delay = 60
+        for index, key in enumerate(keys[:count]):
+            cover, slot = self._summary.cover_slot(index)
+            slot = self._in_work(self._summary, slot)
+            if scene_poster is not None and key == self._scene_key:
+                pixmap, start = scene_poster
+                wait, duration = 0, MOVE
+                landed = True
+            else:
+                found = self._list.thumb_rect(key, self._work)
+                if found is None:
+                    continue
+                pixmap, start = cover, found
+                wait, duration = delay, MOVE + 40
+                delay += 40
+            self._summary.set_cover_hidden(index, True)
+            fly(
+                self._work,
+                pixmap,
+                start,
+                slot,
+                duration,
+                wait,
+                partial(self._summary.set_cover_hidden, index, False),
+            )
+        if scene_poster is not None and not landed:
+            pixmap, start = scene_poster
+            fly(self._work, pixmap, start, start, CROSSFADE, fade=True)
 
     def _show_scene_column(self, key: Path) -> None:
         self._right.setCurrentWidget(self._scene_scroll)
@@ -1362,9 +1503,9 @@ class BatchPage(QWidget):
         if key is None:
             return
         self._picking = None
-        self._list.choose(key, index)
-        self._swap_right(lambda: self._show_scene_column(key))
-        fade_in(self._scene_scroll)
+        # Chosen inside the change: the list then shows the scene at once,
+        # and the crossfade must start from the results.
+        self._back_to_scene(key, index, partial(self._list.choose, key, index))
 
     def _leave_current(self) -> None:
         """Take the item out of the list; its files stay where they are."""
@@ -1765,10 +1906,16 @@ class BatchPage(QWidget):
                 can_undo=bool(report.get("operation")),
             )
         )
-        # The summary comes in once, at the end: the scene fades out while
-        # the summary fades in and rises a little.
+        # The summary comes in once, at the end: the scene fades out, its
+        # poster and the covers of the list land on the fan, then the
+        # figures and the keys come in.
+        poster = self._scene_poster()
+        self._scene.hide_poster(poster is not None)
         self._swap_right(lambda: self._list.set_current(None), SUMMARY)
+        self._scene.hide_poster(False)
         self._summary.arrive()
+        if self._flights_on():
+            self._fly_to_fan(sorted_keys[:3], poster)
         # In a narrow window the summary comes over the list.
         self._panel.open()
         self._update_destination()

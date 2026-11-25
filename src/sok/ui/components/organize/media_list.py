@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QPoint, QPointF, QRectF, Qt, Signal
 from PySide6.QtWidgets import QFrame, QScrollArea, QVBoxLayout, QWidget
 
 from sok.core.batch import (
@@ -324,6 +324,18 @@ class MediaList(QWidget):
 
     def has_rows(self) -> bool:
         return bool(self._entries)
+
+    def thumb_rect(self, key: Path, to: QWidget) -> Optional[QRectF]:
+        """Rectangle of the thumbnail of an item in the widget to, if its
+        row is fully in view."""
+        row = self._rows.get(key)
+        if row is None or row.isHidden():
+            return None
+        viewport = self._scroll.viewport()
+        top = row.mapTo(viewport, QPoint(0, 0)).y()
+        if top < 0 or top + row.height() > viewport.height():
+            return None
+        return row.thumb_rect().translated(QPointF(row.mapTo(to, QPoint(0, 0))))
 
     def refresh_row(self, key: Path) -> None:
         """Draw a row again from its entry, and its detail if selected."""

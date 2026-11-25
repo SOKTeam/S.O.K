@@ -340,6 +340,10 @@ class FileRow(QWidget):
                 self._thumb = book_cover(self._thumb, w, h)
         return self._thumb
 
+    def thumb_rect(self) -> QRectF:
+        """Rectangle of the thumbnail in this row."""
+        return QRectF(self.PAD_X, self.PAD_Y, self.THUMB.width(), self.THUMB.height())
+
     def paintEvent(self, e):  # noqa: N802 - Qt API
         c = getattr(self.window(), "c", None) or Theme.DARK
         d = self._data
@@ -578,6 +582,11 @@ class CoverTile(QWidget):
             self._cover = rounded(source, size, size, 10)
             self._cover_size = size
         return self._cover
+
+    def thumb_rect(self) -> QRectF:
+        """Rectangle of the cover in this tile."""
+        size = max(1, self.width() - 2 * self.RING)
+        return QRectF(self.RING, self.RING, size, size)
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
         c = getattr(self.window(), "c", None) or Theme.DARK

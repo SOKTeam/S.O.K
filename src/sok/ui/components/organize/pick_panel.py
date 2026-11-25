@@ -18,9 +18,9 @@ rows (thumbnail, title, detail) and a Cancel key.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
-from PySide6.QtCore import QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QPoint, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QFontMetrics, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QFrame,
@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
 from sok.ui.components.base import KeyButton, parse_color
 from sok.ui.components.media_visual import rounded, standin_pixmap
 from sok.ui.components.search import load_poster
+from sok.ui.motion import cascade
 from sok.ui.theme import Theme, ui_font
 from sok.ui.tokens import RADIUS
 
@@ -72,11 +73,26 @@ class _ChoiceRow(QWidget):
         self._choice = choice
         self._hovered = False
         self._thumb: Optional[QPixmap] = None
+        # True while a picture of the thumbnail travels (motion.fly).
+        self.thumb_hidden = False
         self.setFixedHeight(self.HEIGHT)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         if choice.image_url:
             load_poster(choice.image_url, 56, 84, self, self._on_image)
+
+    @property
+    def current(self) -> bool:
+        return self._choice.current
+
+    def thumb_rect(self) -> QRectF:
+        """Rectangle of the thumbnail in this row."""
+        top = (self.HEIGHT - self.THUMB.height()) // 2
+        return QRectF(10, top, self.THUMB.width(), self.THUMB.height())
+
+    def set_thumb_hidden(self, hidden: bool) -> None:
+        self.thumb_hidden = hidden
+        self.update()
 
     def _on_image(self, pixmap: QPixmap) -> None:
         self._thumb = rounded(pixmap, self.THUMB.width(), self.THUMB.height(), 4)
@@ -120,7 +136,8 @@ class _ChoiceRow(QWidget):
                 42,
                 4,
             )
-        p.drawPixmap(10, (self.HEIGHT - 42) // 2, self._thumb)
+        if not self.thumb_hidden:
+            p.drawPixmap(10, (self.HEIGHT - 42) // 2, self._thumb)
         left = 10 + 28 + 14
         width = int(self.width() - left - 12)
         title_font, detail_font = ui_font(15, 600), ui_font(12, 400, mono=True)
@@ -196,6 +213,7 @@ class PickPanel(QWidget):
         layout.addWidget(self._status)
 
         scroll = QScrollArea()
+        self._scroll = scroll
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -208,6 +226,7 @@ class PickPanel(QWidget):
         self._list.setContentsMargins(0, 0, 0, 0)
         self._list.setSpacing(2)
         self._list.addStretch()
+        self._rows: List[_ChoiceRow] = []
         scroll.setWidget(inner)
         layout.addWidget(scroll, 1)
 
@@ -241,6 +260,7 @@ class PickPanel(QWidget):
         self._field.setText(query)
         self._status.setText(status)
         self._status.setVisible(bool(status))
+        self._rows = []
         while self._list.count() > 1:
             item = self._list.takeAt(0)
             widget = item.widget() if item else None
@@ -250,7 +270,47 @@ class PickPanel(QWidget):
             row = _ChoiceRow(choice)
             row.clicked.connect(lambda i=index: self.chosen.emit(i))
             self._list.insertWidget(self._list.count() - 1, row)
+            self._rows.append(row)
         self._restyle()
+
+    def current_index(self) -> Optional[int]:
+        """Index of the result chosen now, if there is one."""
+        for index, row in enumerate(self._rows):
+            if row.current:
+                return index
+        return None
+
+    def thumb(self, index: int) -> Optional[Tuple[QWidget, QRectF]]:
+        """The row of a result and the rectangle of its thumbnail in it, if
+        the row is in view."""
+        if not 0 <= index < len(self._rows):
+            return None
+        row = self._rows[index]
+        viewport = self._scroll.viewport()
+        top = row.mapTo(viewport, QPoint(0, 0)).y()
+        if top < 0 or top + row.height() > viewport.height():
+            return None
+        return row, row.thumb_rect()
+
+    def set_thumb_hidden(self, index: int, hidden: bool) -> None:
+        if 0 <= index < len(self._rows):
+            self._rows[index].set_thumb_hidden(hidden)
+
+    def arrive(self, delay: int = 0) -> None:
+        """Bring the title, the field, the results and Cancel in, one
+        after the other."""
+        cascade(
+            [
+                self._title,
+                self._was,
+                self._field,
+                self._status,
+                *self._rows,
+                self._cancel,
+            ],
+            delay,
+            40,
+        )
 
     def focus_search(self) -> None:
         self._field.setFocus()

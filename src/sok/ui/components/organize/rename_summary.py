@@ -19,16 +19,22 @@ shows each file.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPixmap, QRadialGradient
 from PySide6.QtWidgets import QBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from sok.ui.components.base import KeyButton, parse_color
-from sok.ui.components.media_visual import dominant_color, draw_fan, standin_colors
+from sok.ui.components.media_visual import (
+    dominant_color,
+    draw_fan,
+    rounded,
+    standin_colors,
+    standin_pixmap,
+)
 from sok.ui.components.scene import _Sheet, paint_light
-from sok.ui.motion import SUMMARY, animate, fade_in
+from sok.ui.motion import STAGGER, cascade, rise
 from sok.ui.responsive import LOW_HEIGHT
 from sok.ui.theme import Theme, ui_font
 
@@ -60,19 +66,48 @@ class SummaryData:
 class _Fan(QWidget):
     """Three covers fanned out on the floor."""
 
+    STEP = 66
+    RADIUS = 12
+
     def __init__(self) -> None:
         super().__init__()
         self.setFixedHeight(270)
         self._covers: List[Tuple[Optional[QPixmap], str]] = []
         self._square = False
+        # Covers whose picture is still travelling to the fan (motion.fly).
+        self.hidden: Set[int] = set()
 
     def set_covers(self, covers, square: bool) -> None:
         self._covers = covers
         self._square = square
         self.update()
 
+    def _size(self) -> Tuple[int, int]:
+        return (180, 180) if self._square else (160, 240)
+
+    def slot_rect(self, index: int) -> QRectF:
+        """Rectangle of a cover in this widget."""
+        w, h = self._size()
+        span = w + self.STEP * (len(self._covers) - 1)
+        return QRectF((self.width() - span) / 2 + index * self.STEP, 0, w, h)
+
+    def cover_pixmap(self, index: int) -> QPixmap:
+        """A cover as the fan draws it."""
+        w, h = self._size()
+        pixmap, title = self._covers[index]
+        ratio = self.devicePixelRatioF()
+        source = pixmap or standin_pixmap(title, "", w, h, ratio, text=False)
+        return rounded(source, w, h, self.RADIUS)
+
+    def set_hidden(self, index: int, hidden: bool) -> None:
+        if hidden:
+            self.hidden.add(index)
+        else:
+            self.hidden.discard(index)
+        self.update()
+
     def object_rect(self) -> QRectF:
-        w, h = (180, 180) if self._square else (160, 240)
+        w, h = self._size()
         return QRectF((self.width() - w) / 2, 0, w, h)
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
@@ -80,8 +115,8 @@ class _Fan(QWidget):
             return
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        w, h = (180, 180) if self._square else (160, 240)
-        step = 66
+        w, h = self._size()
+        step = self.STEP
         span = w + step * (len(self._covers) - 1)
         x = (self.width() - span) / 2
         floor_y = h + 18
@@ -96,7 +131,17 @@ class _Fan(QWidget):
         p.setBrush(floor)
         p.drawEllipse(QPointF(self.width() / 2, floor_y), span / 2, span / 2)
         p.restore()
-        draw_fan(p, self._covers, x, 0, (w, h), step, 12, self.devicePixelRatioF())
+        draw_fan(
+            p,
+            self._covers,
+            x,
+            0,
+            (w, h),
+            step,
+            self.RADIUS,
+            self.devicePixelRatioF(),
+            skip=self.hidden,
+        )
         p.end()
 
 
@@ -149,25 +194,27 @@ class RenameSummary(QWidget):
         layout.addStretch()
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
 
-    def arrive(self) -> None:
-        """Come in: fade in while rising 12px (240ms), once per rename."""
-        layout = self.layout()
-        if layout is None:
-            return
-        margins = layout.contentsMargins()
-        top = margins.top()
+    def arrive(self, delay: int = 0) -> None:
+        """Come in, once per rename: the covers land on the fan (moved by
+        the page, see cover_slot()), then the figures, the keys and the
+        note come in one after the other."""
+        rise(self._fan, delay + 120)
+        after = self._sheet.reveal(delay + 260)
+        cascade([self.open_btn, self.undo_btn], after, 0)
+        rise(self.note, after + STAGGER)
 
-        def step(t: float) -> None:
-            layout.setContentsMargins(
-                margins.left(),
-                round(top + 12 * (1 - t)),
-                margins.right(),
-                margins.bottom(),
-            )
-            self.light_changed.emit()
+    def cover_count(self) -> int:
+        """Number of covers on the fan (0 when it is not shown)."""
+        return len(self._fan._covers) if not self._fan.isHidden() else 0
 
-        fade_in(self, SUMMARY)
-        animate(self, SUMMARY, step)
+    def cover_slot(self, index: int) -> Tuple[QPixmap, QRectF]:
+        """A cover as drawn and its rectangle in this widget."""
+        rect = self._fan.slot_rect(index).translated(QPointF(self._fan.pos()))
+        return self._fan.cover_pixmap(index), rect
+
+    def set_cover_hidden(self, index: int, hidden: bool) -> None:
+        """Leave a cover out while its picture travels to the fan."""
+        self._fan.set_hidden(index, hidden)
 
     def paint_light_into(self, p: QPainter, offset: QPointF, area: QRectF) -> None:
         """Paint this light in another widget, this one at offset there."""

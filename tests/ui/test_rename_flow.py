@@ -272,3 +272,60 @@ class TestMotion:
 
         assert stack.currentWidget() is second
         assert steps == []
+
+    def test_a_flight_goes_away_and_calls_back_when_landed(self, qtbot):
+        from PySide6.QtCore import QRectF
+        from PySide6.QtGui import QPixmap
+        from PySide6.QtWidgets import QWidget
+
+        from sok.ui.motion import _Flight, fly
+
+        host = QWidget()
+        qtbot.addWidget(host)
+        host.resize(300, 200)
+        landed = []
+        pixmap = QPixmap(20, 30)
+
+        fly(
+            host,
+            pixmap,
+            QRectF(0, 0, 20, 30),
+            QRectF(200, 100, 40, 60),
+            60,
+            on_done=lambda: landed.append(1),
+        )
+
+        assert len(host.findChildren(_Flight)) == 1
+        qtbot.waitUntil(lambda: landed == [1], timeout=1000)
+        qtbot.waitUntil(lambda: not host.findChildren(_Flight), timeout=1000)
+
+    def test_rise_skips_what_is_hidden_on_purpose_only(self, qtbot):
+        from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+
+        from sok.ui.motion import cascade
+
+        host = QWidget()
+        qtbot.addWidget(host)
+        layout = QVBoxLayout(host)
+        host.show()
+        hidden, fresh = QLabel("hidden"), QLabel("fresh")
+        layout.addWidget(hidden)
+        hidden.hide()
+        layout.addWidget(fresh)  # Qt shows it a moment later
+
+        cascade([hidden, fresh])
+
+        assert hidden.graphicsEffect() is None
+        assert fresh.graphicsEffect() is not None
+
+    def test_the_scene_is_whole_again_after_a_choice(self, page):
+        dune = next(
+            e for e in page._list.entries() if e.files[0].name.startswith("Dune")
+        )
+        page._list.set_current(dune.key)
+        page._open_picker()
+
+        page._on_picker_chosen(0)
+
+        assert page._right.currentWidget() is page._scene_scroll
+        assert not page._scene._stage.object_hidden
