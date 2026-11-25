@@ -47,6 +47,7 @@ from PySide6.QtWidgets import (
 from sok.config import get_config_manager
 from sok.core.history import COPY, LINK, Move, Operation, get_history
 from sok.ui import message_box
+from sok.ui.components.thin_scroll_bar import thin_scroll_bar
 from sok.ui.components.base import KeyButton, parse_color
 from sok.ui.components.media_visual import draw_fan, standin_colors
 from sok.ui.components.scene import _Sheet
@@ -610,6 +611,7 @@ class HistoryPage(QWidget):
         columns.setContentsMargins(0, 0, 0, 0)
         columns.setSpacing(0)
         scroll = QScrollArea()
+        thin_scroll_bar(scroll)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -659,6 +661,7 @@ class HistoryPage(QWidget):
         self._scene.undo_file.connect(self._undo_file)
         self._scene.open_clicked.connect(self._open_folder)
         scene_scroll = QScrollArea()
+        thin_scroll_bar(scene_scroll)
         scene_scroll.setWidgetResizable(True)
         scene_scroll.setFrameShape(QFrame.Shape.NoFrame)
         scene_scroll.setFixedWidth(side_width(1440))

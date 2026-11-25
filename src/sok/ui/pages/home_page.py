@@ -59,6 +59,7 @@ from sok.file_operations.detection import (
     DetectionReport,
     MediaTypeDetector,
 )
+from sok.ui.components.thin_scroll_bar import thin_scroll_bar
 from sok.ui.components.base import KeyButton, parse_color
 from sok.ui.components.media_drop import CheckRow
 from sok.ui.components.media_visual import (
@@ -538,6 +539,7 @@ class HomePage(QWidget):
         columns.setSpacing(0)
 
         scroll = QScrollArea()
+        thin_scroll_bar(scroll)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)

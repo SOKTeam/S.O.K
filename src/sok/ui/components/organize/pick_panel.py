@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from sok.ui.components.thin_scroll_bar import thin_scroll_bar
 from sok.ui.components.base import KeyButton, parse_color
 from sok.ui.components.media_visual import rounded, standin_pixmap
 from sok.ui.components.search import load_poster
@@ -213,6 +214,7 @@ class PickPanel(QWidget):
         layout.addWidget(self._status)
 
         scroll = QScrollArea()
+        thin_scroll_bar(scroll)
         self._scroll = scroll
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)

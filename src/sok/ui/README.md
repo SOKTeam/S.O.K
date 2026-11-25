@@ -21,6 +21,7 @@ ui/
 │   ├── settings/        # Sections of the settings, their blocks and the live preview
 │   ├── nav.py           # Navigation (media types as words, icons)
 │   ├── scene.py         # Scene: the selected item shown large, lit
+│   ├── thin_scroll_bar.py # Thin scroll bar, shown only while scrolling
 │   └── window.py        # Window controls (Custom title bar)
 ├── pages/               # Main application pages
 │   ├── home_page.py     # Dashboard
@@ -73,7 +74,12 @@ view gives `lights()` (each light with its opacity) instead of
 a lambda: freeing its widget right after the end then crashes Qt. What is
 done over and over (moving in a list, changing page, typing, scrolling,
 hovering) never moves.
-6. **Modularity**: Prefer creating new components in `components/` rather than
+6. **Scroll bars**: every scroll area gets `thin_scroll_bar()` in place of
+the bar of the system, which stays hidden and keeps doing the scrolling: a
+thin bar over the content, invisible at rest, shown while the content
+scrolls or when the mouse nears the right edge, wider under the mouse.
+Leave 14px free at the right of the content for it.
+7. **Modularity**: Prefer creating new components in `components/` rather than
 overloading page files.
 
 ## Graphic Style

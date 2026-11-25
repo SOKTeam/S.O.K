@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
 
 from sok.config.config_manager import get_config_manager
 from sok.ui import message_box
+from sok.ui.components.thin_scroll_bar import thin_scroll_bar
 from sok.ui.components.integrations.oauth import OAuthManager
 from sok.ui.components.settings.about_section import AboutSection
 from sok.ui.components.settings.api_section import ApiSection
@@ -100,6 +101,7 @@ class SettingsPage(QWidget):
         columns.setSpacing(0)
 
         scroll = QScrollArea()
+        thin_scroll_bar(scroll)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -157,6 +159,7 @@ class SettingsPage(QWidget):
 
         self._preview = SettingsPreview()
         preview_scroll = QScrollArea()
+        thin_scroll_bar(preview_scroll)
         preview_scroll.setWidgetResizable(True)
         preview_scroll.setFrameShape(QFrame.Shape.NoFrame)
         preview_scroll.setFixedWidth(side_width(1440))

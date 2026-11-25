@@ -32,6 +32,7 @@ from sok.core.batch import (
     BatchMatch,
     candidate_year,
 )
+from sok.ui.components.thin_scroll_bar import thin_scroll_bar
 from sok.ui.components.file_row import CoverTile, FileRow, RowData
 from sok.ui.i18n import tr
 
@@ -215,6 +216,7 @@ class MediaList(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self._scroll = QScrollArea()
+        thin_scroll_bar(self._scroll)
         self._scroll.setWidgetResizable(True)
         self._scroll.setFrameShape(QFrame.Shape.NoFrame)
         self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)

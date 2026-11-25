@@ -67,6 +67,7 @@ from sok.file_operations.artwork import image_url
 from sok.file_operations.mixins.parsing import FileParsingMixin
 from sok.media.factory import create_media_item
 from sok.ui import message_box
+from sok.ui.components.thin_scroll_bar import thin_scroll_bar
 from sok.ui.components.base import KeyButton
 from sok.ui.components.file_row import RowData
 from sok.ui.components.organize.empty_state import EmptyFan, TagCloud
@@ -746,6 +747,7 @@ class BatchPage(QWidget):
         self._picker.cancelled.connect(self._close_picker)
         # Scrolls when the window is too low for the poster and the details.
         self._scene_scroll = QScrollArea()
+        thin_scroll_bar(self._scene_scroll)
         self._scene_scroll.setWidgetResizable(True)
         self._scene_scroll.setFrameShape(QFrame.Shape.NoFrame)
         self._scene_scroll.setHorizontalScrollBarPolicy(
@@ -757,6 +759,7 @@ class BatchPage(QWidget):
         self._summary.undo_clicked.connect(self._undo_last)
         # Scrolls when the window is too low for the covers and the figures.
         self._summary_scroll = QScrollArea()
+        thin_scroll_bar(self._summary_scroll)
         self._summary_scroll.setWidgetResizable(True)
         self._summary_scroll.setFrameShape(QFrame.Shape.NoFrame)
         self._summary_scroll.setHorizontalScrollBarPolicy(
