@@ -561,3 +561,14 @@ def _quality(path: str) -> Optional[str]:
     info = FileParsingMixin.extract_quality_metadata(Path(path).name)
     parts = [info.get(part) for part in ("quality", "codec", "audio")]
     return " · ".join(part for part in parts if part) or None
+
+
+def poster_of(row: Any) -> Optional[str]:
+    """The poster of the result picked for a row, if it has one."""
+    if row["selected"] is None:
+        return None
+    candidates = json.loads(row["candidates"])
+    if not 0 <= row["selected"] < len(candidates):
+        return None
+    candidate = candidates[row["selected"]]
+    return candidate.get("poster_path") or candidate.get("image_url")

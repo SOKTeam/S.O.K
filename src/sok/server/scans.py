@@ -52,7 +52,7 @@ from sok.server.db import Database
 from sok.server.events import EventBus
 from sok.server.history import unchanged
 from sok.server.jobs import SCAN, Busy, Jobs
-from sok.server.search import Searcher, SearchStopped, search_error
+from sok.server.search import Searcher, SearchStopped, poster_of, search_error
 from sok.server.settings import MEDIA_TYPES, SOURCES, Settings
 
 logger = logging.getLogger(__name__)
@@ -378,7 +378,7 @@ class Scans:
                 "SELECT media_type, files, candidates, selected FROM rows ORDER BY id"
             ):
                 files.extend(json.loads(row["files"]))
-                poster = _poster(row)
+                poster = poster_of(row)
                 if poster and len(covers[row["media_type"]]) < COVERS:
                     covers[row["media_type"]].append(poster)
             to_check = [
@@ -517,14 +517,3 @@ class Scans:
         finally:
             self._publish()
         return None
-
-
-def _poster(row: Any) -> Optional[str]:
-    """The poster of the result picked for a row, if it has one."""
-    if row["selected"] is None:
-        return None
-    candidates = json.loads(row["candidates"])
-    if not 0 <= row["selected"] < len(candidates):
-        return None
-    candidate = candidates[row["selected"]]
-    return candidate.get("poster_path") or candidate.get("image_url")

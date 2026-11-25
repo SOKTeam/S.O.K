@@ -62,13 +62,13 @@
         <Analysis />
       {:else if page.mediaType}
         <MediaScreen {page} />
+      {:else if page.path === "/history"}
+        <History />
       {:else}
         <!-- TEMPORARY: the old screens, until each is redrawn. -->
         <div class="h-full overflow-y-auto px-9 pt-2 pb-8">
           {#if page.path === "/settings"}
             <Settings />
-          {:else if page.path === "/history"}
-            <History />
           {:else}
             <h1 class="text-2xl font-bold">{t(page.key, page.english)}</h1>
           {/if}

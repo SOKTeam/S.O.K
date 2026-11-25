@@ -41,7 +41,7 @@ from sok.server.events import EventBus
 from sok.server.history import History
 from sok.server.jobs import RENAME, Busy, Jobs
 from sok.server.notify import Notifier
-from sok.server.search import Searcher
+from sok.server.search import Searcher, poster_of
 from sok.server.settings import (
     DIFFERENT_DRIVES,
     MEDIA_TYPES,
@@ -225,6 +225,7 @@ class Renamer:
                 ]
             plans = [self._plan(row) for row in rows if row is not None]
             result = await asyncio.to_thread(self._rename, media_type, plans)
+            result["covers"] = _covers(plans, result)
             self._apply(plans, result)
         except Exception as exc:  # noqa: BLE001 - the rename must end
             logger.exception("Rename %s failed", rename_id, exc_info=exc)
@@ -360,6 +361,8 @@ class Renamer:
                 "skipped": result["skipped"],
                 "errors": result["errors"],
                 "operation": result["operation"],
+                # The posters of the rows renamed, for the history.
+                "covers": result.get("covers", []),
             }
         with self._db.transaction() as conn:
             conn.execute(
@@ -442,3 +445,22 @@ def _spread_errors(report: Dict[str, Any], files: List[Path]) -> None:
                 for source in sorted(sources - moved)
             )
     report["errors"] = errors
+
+
+# The covers an operation of the history keeps.
+COVERS = 3
+
+
+def _covers(
+    plans: List[Tuple[Any, Any, str, List[Path]]], result: Dict[str, Any]
+) -> List[str]:
+    """The posters of the rows that had files renamed, at most COVERS."""
+    moved = {str(m["from"]) for m in result["moved"]}
+    covers: List[str] = []
+    for row, _item, _destination, files in plans:
+        poster = poster_of(row)
+        if poster and poster not in covers and any(str(f) in moved for f in files):
+            covers.append(poster)
+        if len(covers) >= COVERS:
+            break
+    return covers

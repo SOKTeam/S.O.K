@@ -316,13 +316,23 @@ interface at each change and sends the `/api` requests to the server.
   progress; at the end, the scene says how many files were put away, the
   subtitles, the files left in place and why, with "Undo this" (confirmed in
   place), "See the history" and "Close". The renamed rows leave the list at
-  the `rename` event that ends it. (The old tabs still confirm first.) The History page lists the operations by day ("Today", "Yesterday",
-  then the date), one table per day: time, tab, files, file mode (and
-  "automatic"), status, and Undo. A row unfolds its files, old name and new
-  name with its folder, each with "Put back" (a subtitle follows its video);
-  every undo asks first. Its "Already processed" tab (`/history/processed`,
-  linked from the analysis page) lists the files the analyses leave out, with
-  boxes and "Analyze the selection again". Both tabs show their count.
+  the `rename` event that ends it. (The old tabs still confirm first.) The History page (`History`, sections from `sectionsOf()` in
+  `lib/historyGroups.ts`) lists the renames newest first: "Today",
+  "Yesterday · <date>", "Earlier in <month>" for the month of the newest
+  one, then one folded line per older month ("14 renames in October, 611
+  files", **Show**). A row: time (or day), the covers its rename kept,
+  "6 movies put away", from where to where, the tag `auto` and "Undone" /
+  "Partly undone". Its scene: the covers fanned out, when, the title, a
+  dotted sheet (put away by you or the automatic sorting, from, to, the
+  transfer), the first files with "was …" (a subtitle "follows its video")
+  and ↺ to put one back, then **Undo this** (or **Undo the rest**). Every
+  undo is confirmed in the scene, then the scene says what came back and
+  what stayed, and why. **Already processed** (`/history/processed`, linked
+  from the analysis page) lists the files the analyses leave out (cover of
+  their operation, name, new name and mode, date, size), chosen with the
+  selection of the media screens; **Analyze again N** forgets them and starts
+  an analysis. Its scene counts them per source folder, hard links and
+  copies. Without any rename, the page is the empty screen.
 - **Automatic sorting.** The settings turn it on after a confirmation (the
   Ready rows will be renamed on their own, with the file mode named) and set
   the minutes between two checks. The strip of the analysis page shows
@@ -705,7 +715,9 @@ newest), with its `media_type`.
 
 `GET /api/history` lists the operations: `id`, `date`, `kind`, `media_type`,
 `undone`, `partly_undone`, `auto` (made by the automatic sorting: the
-`renames` row whose result names the operation is automatic), and `files`:
+`renames` row whose result names the operation is automatic), `covers` (up
+to 3 posters of the rows it renamed, kept in the result of its rename by
+`Renamer`; `[]` before 1.6), and `files`:
 `index`, `source`, `target`, `mode`, `undone`, `follows` (the new path of the
 video of a subtitle).
 

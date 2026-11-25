@@ -141,6 +141,8 @@ def test_a_rename_is_one_operation_of_the_history(client, downloads, folders):
 
     assert [op["id"] for op in history] == [operation_id]
     assert history[0]["media_type"] == "movies"
+    # The poster of the movie renamed, kept by its rename.
+    assert history[0]["covers"] == ["/dune.jpg"]
     assert history[0]["auto"] is False
     assert [f["mode"] for f in history[0]["files"]] == ["move", "move"]
     assert history[0]["files"][1]["follows"] == history[0]["files"][0]["target"]

@@ -93,9 +93,24 @@ const watch: WatchStatus = {
   },
 };
 
+/** The posters of the recorded rows whose new names an operation wrote. */
+function recordedCovers(op: Operation): string[] {
+  const all = Object.values(data.rows as unknown as Record<string, Row[]>).flat();
+  const covers: string[] = [];
+  for (const row of all) {
+    const poster = row.selected === null ? null : row.candidates[row.selected]?.poster;
+    const wrote = row.files.some(
+      (file) => file.new_name && op.files.some((one) => one.target.endsWith(file.new_name!)),
+    );
+    if (poster && wrote && !covers.includes(poster)) covers.push(poster);
+  }
+  return covers.slice(0, 3);
+}
+
 const history: Operation[] = (clone(data.history) as unknown as Operation[]).map((op) => ({
   ...op,
   date: local(before(op.date as unknown as number)),
+  covers: op.covers ?? recordedCovers(op),
 }));
 const processed: ProcessedFile[] = (clone(data.processed) as unknown as ProcessedFile[]).map(
   (file) => ({ ...file, date: local(before(file.date as unknown as number)) }),
@@ -373,6 +388,10 @@ async function runRename(mediaType: string, chosen: Row[], auto: boolean): Promi
     undone: false,
     partly_undone: false,
     auto,
+    covers: chosen
+      .map((row) => (row.selected === null ? null : row.candidates[row.selected]?.poster))
+      .filter((poster): poster is string => Boolean(poster))
+      .slice(0, 3),
     files: moves.map((move, index) => ({ index, ...move, mode, undone: false })),
   };
   history.unshift(operation);

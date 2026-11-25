@@ -50,7 +50,12 @@ class FakeManager:
 
     RESULTS = {
         "dune": [
-            {"id": 438631, "title": "Dune", "release_date": "2021-09-15"},
+            {
+                "id": 438631,
+                "title": "Dune",
+                "release_date": "2021-09-15",
+                "poster_path": "/dune.jpg",
+            },
             {"id": 841, "title": "Dune", "release_date": "1984-12-14"},
         ],
         "the matrix": [

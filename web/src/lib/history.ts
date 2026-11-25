@@ -21,6 +21,8 @@ export interface Operation {
   partly_undone: boolean;
   /** Made by the automatic sorting. */
   auto: boolean;
+  /** The posters its rename kept, up to 3. */
+  covers: string[];
   files: HistoryFile[];
 }
 
