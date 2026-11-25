@@ -21,7 +21,7 @@ from functools import partial
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QFontMetrics, QPainter, QPainterPath, QPen
-from PySide6.QtWidgets import QHBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QSpacerItem, QWidget
 
 from sok.ui.components.base import parse_color
 from sok.ui.theme import Theme, svg_icon, ui_font
@@ -292,12 +292,15 @@ class NavBar(QWidget):
         self.mark = NavMark()
         self._connect(self.mark, home)
         layout.addWidget(self.mark)
-        layout.addSpacing(40)
+        # The gaps after the mark and between the words narrow with the
+        # window (fit()).
+        self._gaps: list[tuple[QSpacerItem, int, int]] = []
+        self._add_gap(layout, *self.MARK_GAP)
 
         self.words: dict[int, NavWord] = {}
         for i, (index, text) in enumerate(words):
             if i:
-                layout.addSpacing(30)
+                self._add_gap(layout, *self.WORD_GAP)
             word = NavWord(text)
             self.words[index] = word
             self._connect(word, index)
@@ -310,6 +313,31 @@ class NavBar(QWidget):
             self.icons[index] = icon
             self._connect(icon, index)
             layout.addWidget(icon)
+
+    # (narrowest, widest) gap, in px, after the mark and between two words.
+    MARK_GAP = (24, 40)
+    WORD_GAP = (18, 30)
+
+    def _add_gap(self, layout: QHBoxLayout, low: int, high: int) -> None:
+        gap = QSpacerItem(high, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        layout.addItem(gap)
+        self._gaps.append((gap, low, high))
+
+    def fit(self, width: int) -> None:
+        """Narrow the gaps between the words in a narrow window, from 1200px
+        down to 850px, following the width without a jump."""
+        share = min(1.0, max(0.0, (width - 850) / 350))
+        changed = False
+        for gap, low, high in self._gaps:
+            size = round(low + (high - low) * share)
+            if gap.sizeHint().width() != size:
+                gap.changeSize(
+                    size, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum
+                )
+                changed = True
+        layout = self.layout()
+        if changed and layout is not None:
+            layout.invalidate()
 
     def _connect(self, item, index: int) -> None:
         self._items[index] = item

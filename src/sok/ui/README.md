@@ -22,7 +22,7 @@ ui/
 │   ├── nav.py           # Navigation (media types as words, icons)
 │   ├── scene.py         # Scene: the selected item shown large, lit
 │   ├── thin_scroll_bar.py # Thin scroll bar, shown only while scrolling
-│   └── window.py        # Window controls (Custom title bar)
+│   └── window.py        # Window keys of Windows and Linux (in the nav row)
 ├── pages/               # Main application pages
 │   ├── home_page.py     # Dashboard
 │   ├── batch_page.py    # Base of the media pages: list, scene, rename run

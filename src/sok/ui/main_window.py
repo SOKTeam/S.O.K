@@ -16,6 +16,7 @@ Frameless / Modern Style
 import sys
 from ctypes.wintypes import MSG
 from pathlib import Path
+from typing import Optional
 
 from PySide6.QtWidgets import (
     QMainWindow,
@@ -54,8 +55,9 @@ from sok.ui.platform import (
 from sok.ui.macos_menu import MacMenuBar
 from sok.ui.components.base import parse_color
 from sok.ui.components.nav import NavBar
-from sok.ui.responsive import CenteredColumn
+from sok.ui.responsive import MAX_CONTENT_WIDTH, CenteredColumn
 from sok.ui.components.window import WindowControlButton
+from sok.ui.tokens import SPACE
 from sok.ui.controllers.window_chrome import ResizeGrips, hit_test_resize
 from sok.ui.pages.home_page import HomePage
 from sok.ui.pages.batch_page import BatchPage
@@ -90,6 +92,10 @@ PAGE_BY_KIND = {
     ContentType.BOOK: 4,
     ContentType.GAME: 5,
 }
+
+
+# Width of each window key (minimize, maximize, close) on Windows and Linux.
+WINDOW_KEY_WIDTH = 46
 
 
 class LightColumn(QWidget):
@@ -243,8 +249,12 @@ class MainWindow(QMainWindow):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
 
-        header = self._build_header()
-        right_layout.addWidget(header)
+        # macOS: a title row for the traffic lights. Windows and Linux: no
+        # row, the window keys sit in the top right corner, on the line of
+        # the navigation (see _place_window_keys).
+        self._window_keys: Optional[QWidget] = None
+        if IS_MACOS:
+            right_layout.addWidget(self._build_header())
 
         # The media types in the art direction's order: Movies before TV
         # shows, unlike the page indexes.
@@ -275,6 +285,8 @@ class MainWindow(QMainWindow):
         content_layout.addWidget(self._navbar)
         content_layout.addWidget(self._pages, 1)
         right_layout.addWidget(CenteredColumn(content), 1)
+        if not IS_MACOS:
+            self._window_keys = self._build_window_keys(right_col)
 
         self._status = self.statusBar()
         if self._status:
@@ -285,11 +297,60 @@ class MainWindow(QMainWindow):
 
         return right_col
 
+    def _build_window_keys(self, parent: QWidget) -> QWidget:
+        """Minimize, maximize and close, in the top right corner of the
+        window (Windows and Linux), as high as the navigation row: their
+        signs line up with its icons, and the corner closes the window."""
+        keys = QWidget(parent)
+        keys.setObjectName("WindowKeys")
+        layout = QHBoxLayout(keys)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        min_btn = WindowControlButton("minimize")
+        min_btn.clicked.connect(self.showMinimized)
+        self._max_btn = WindowControlButton("square")
+        self._max_btn.clicked.connect(self._toggle_maximize)
+        self._close_btn = WindowControlButton("cross", "#FF5555")
+        self._close_btn.top_right_radius = 12
+        self._close_btn.clicked.connect(self.close)
+        for button in (min_btn, self._max_btn, self._close_btn):
+            button.setFixedWidth(WINDOW_KEY_WIDTH)
+            layout.addWidget(button)
+        keys.setFixedSize(3 * WINDOW_KEY_WIDTH, self._navbar.sizeHint().height())
+        keys.raise_()
+        return keys
+
+    def _place_window_keys(self) -> None:
+        """Keep the window keys in the corner, and keep the icons of the
+        navigation clear of them when it reaches the right edge."""
+        keys = self._window_keys
+        if keys is None:
+            return
+        width = self._right_col.width()
+        keys.move(width - keys.width(), 0)
+        keys.raise_()
+        # The navigation is centered past MAX_CONTENT_WIDTH: its margin
+        # beside the keys.
+        margin = max(0, (width - MAX_CONTENT_WIDTH) // 2)
+        room = max(0, keys.width() + SPACE["4"] - margin)
+        nav = self._navbar.layout()
+        if nav is not None:
+            m = nav.contentsMargins()
+            if m.right() != SPACE["6"] + room:
+                nav.setContentsMargins(m.left(), m.top(), SPACE["6"] + room, m.bottom())
+
+    def _title_bottom(self) -> int:
+        """Bottom of the area that moves the window: the macOS title row,
+        or the navigation row elsewhere (outside its words and icons)."""
+        if IS_MACOS:
+            return self._header_height()
+        return self._navbar.mapTo(self, QPoint(0, self._navbar.height())).y()
+
     def _build_header(self) -> QWidget:
-        """Build the window header bar.
+        """Build the macOS title row, under the native traffic lights.
 
         Returns:
-            Header widget with logo, title, and window controls.
+            The empty row, which moves the window.
         """
         header = QFrame()
         header.setObjectName("Header")
@@ -304,22 +365,6 @@ class MainWindow(QMainWindow):
         )
         self._drag_area.setStyleSheet("background: transparent;")
         header_layout.addWidget(self._drag_area)
-
-        # macOS provides the native traffic lights instead.
-        if not IS_MACOS:
-            min_btn = WindowControlButton("minimize")
-            min_btn.clicked.connect(self.showMinimized)
-            header_layout.addWidget(min_btn)
-
-            self._max_btn = WindowControlButton("square")
-            self._max_btn.clicked.connect(self._toggle_maximize)
-            header_layout.addWidget(self._max_btn)
-
-            self._close_btn = WindowControlButton("cross", "#FF5555")
-            self._close_btn.top_right_radius = 12
-            self._close_btn.clicked.connect(self.close)
-            header_layout.addWidget(self._close_btn)
-
         return header
 
     @staticmethod
@@ -546,6 +591,8 @@ class MainWindow(QMainWindow):
         grips = getattr(self, "_resize_grips", None)
         if grips:
             grips.update_geometry(self.width(), self.height())
+        self._navbar.fit(self.width())
+        self._place_window_keys()
 
     def showEvent(self, event):
         """Hide the native macOS title once the window exists.
@@ -563,7 +610,7 @@ class MainWindow(QMainWindow):
             event: Mouse event.
         """
         if event.button() == Qt.MouseButton.LeftButton:
-            if event.position().y() < self._header_height():
+            if event.position().y() < self._title_bottom():
                 if IS_MACOS:
                     # Native zoom, like double-clicking a macOS title bar.
                     if self.isMaximized():
@@ -580,7 +627,7 @@ class MainWindow(QMainWindow):
             event: Mouse event.
         """
         if event.button() == Qt.MouseButton.LeftButton:
-            if event.position().y() < self._header_height():
+            if event.position().y() < self._title_bottom():
                 if IS_MACOS or IS_LINUX:
                     # Native move: keeps the system snapping (macOS Spaces,
                     # GNOME/KDE tiling); Wayland forbids moving it ourselves.

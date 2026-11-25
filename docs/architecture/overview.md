@@ -34,7 +34,9 @@ Built in code with PySide6; no Qt Designer file is loaded at run time.
 - `main_window.py`: the window, the navigation (`components/nav.py`: the
   media types as words, "● S.O.K" for home, History and Settings icons) and
   the page stack. On Windows and
-  Linux the window is frameless with its own title bar; on macOS it keeps the
+  Linux the window is frameless, with no title row: its keys (minimize,
+  maximize, close) sit in the top right corner on the line of the
+  navigation, whose empty parts move the window. On macOS it keeps the
   native title bar.
 - `pages/`: home, the batch pages (`batch_page.py` and its movies, TV shows,
   music, books and games subclasses), settings and the history of renames
