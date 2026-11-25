@@ -37,7 +37,10 @@ Built in code with PySide6; no Qt Designer file is loaded at run time.
   Linux the window is frameless, with no title row: its keys (minimize,
   maximize, close) sit in the top right corner on the line of the
   navigation, whose empty parts move the window. On macOS it keeps the
-  native title bar.
+  native title bar, and the windows are tagged sRGB (`use_srgb_windows()` in
+  `platform.py`, called before the application is created) so that macOS
+  converts the theme colors for each screen instead of showing them raw on a
+  wide-gamut one.
 - `pages/`: home, the batch pages (`batch_page.py` and its movies, TV shows,
   music, books and games subclasses), settings and the history of renames
   (`history_page.py`).

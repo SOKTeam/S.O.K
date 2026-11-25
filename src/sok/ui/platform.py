@@ -20,7 +20,7 @@ import sys
 import warnings
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QColorSpace, QGuiApplication, QSurfaceFormat
 from PySide6.QtWidgets import QApplication, QWidget
 
 IS_MACOS = sys.platform == "darwin"
@@ -48,6 +48,21 @@ def is_dark_theme(theme: str) -> bool:
     if theme == SYSTEM_THEME:
         return system_prefers_dark()
     return theme == "dark"
+
+
+def use_srgb_windows() -> None:
+    """Tell macOS that the windows are drawn in sRGB (call before the first one).
+
+    Without a color space, Qt hands its pixels to macOS untagged, and macOS
+    shows them in the color space of the screen: on a wide-gamut external
+    screen the coral of S.O.K turned a vivid red, while the other apps,
+    tagged sRGB, kept their colors. The colors of the theme are sRGB values.
+    """
+    if not IS_MACOS:
+        return
+    surface = QSurfaceFormat.defaultFormat()
+    surface.setColorSpace(QColorSpace(QColorSpace.NamedColorSpace.SRgb))
+    QSurfaceFormat.setDefaultFormat(surface)
 
 
 def apply_color_scheme(theme: str) -> None:
