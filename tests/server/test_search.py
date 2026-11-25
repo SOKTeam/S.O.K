@@ -89,6 +89,18 @@ def test_the_analysis_searches_the_movies(client):
     assert movies["Unknown.Thing.2003.mkv"]["files"][0]["new_name"] is None
 
 
+def test_a_row_gives_its_size_and_quality(client):
+    scan(client)
+
+    movies = rows(client, "movies")
+    # The files hold their own name.
+    assert movies["Dune.2021.1080p.mkv"]["size"] == len("Dune.2021.1080p.mkv")
+    assert movies["Dune.2021.1080p.mkv"]["quality"] == "1080p"
+    assert movies["Dune.mkv"]["quality"] is None
+    series = client.get("/api/rows?type=tv").json()["rows"][0]
+    assert series["size"] == 2 * len("Severance/Season 1/Severance.S01E01.mkv")
+
+
 def test_a_ready_series_gets_its_episode_titles(client):
     scan(client)
 

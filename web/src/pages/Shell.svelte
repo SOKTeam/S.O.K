@@ -11,6 +11,7 @@
   import { session } from "../lib/session.svelte";
   import Analysis from "./Analysis.svelte";
   import History from "./History.svelte";
+  import MediaScreen from "./MediaScreen.svelte";
   import MediaTab from "./MediaTab.svelte";
   import Settings from "./Settings.svelte";
 
@@ -60,6 +61,8 @@
     <main class="min-h-0 flex-1">
       {#if page.path === "/"}
         <Analysis />
+      {:else if page.mediaType === "movies"}
+        <MediaScreen {page} />
       {:else}
         <!-- TEMPORARY: the old screens, until each is redrawn. -->
         <div class="h-full overflow-y-auto px-9 pt-2 pb-8">

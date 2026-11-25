@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from sok.config.config_manager import ConfigManager
+from sok.file_operations.mixins.parsing import FileParsingMixin
 from sok.core.batch import (
     STATUS_READY,
     BatchMatch,
@@ -416,6 +417,9 @@ class Searcher:
                 for path, name in zip(files, names)
             ],
             "episodes_found": len(details["episodes"]) if details else None,
+            # What the scene shows without opening the files.
+            "size": _size(files),
+            "quality": _quality(files[0]) if files else None,
         }
 
     def destination(self, row: Any) -> Optional[str]:
@@ -529,3 +533,21 @@ def search_error(exc: SearchStopped) -> Dict[str, Any]:
     if exc.others:
         error["others"] = [{"code": o.code, "service": o.service} for o in exc.others]
     return error
+
+
+def _size(files: List[str]) -> int:
+    """The size of the files of a row in bytes, those still there."""
+    size = 0
+    for path in files:
+        try:
+            size += os.stat(path).st_size
+        except OSError:
+            continue
+    return size
+
+
+def _quality(path: str) -> Optional[str]:
+    """The quality read from a file name: "2160p · x265 · DTS", or None."""
+    info = FileParsingMixin.extract_quality_metadata(Path(path).name)
+    parts = [info.get(part) for part in ("quality", "codec", "audio")]
+    return " · ".join(part for part in parts if part) or None

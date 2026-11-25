@@ -266,21 +266,29 @@ interface at each change and sends the `/api` requests to the server.
   analysis runs, its title and a bar say where it is. Its scene shows the
   covers waiting, the source folders with their files (a missing one in
   caution) and the disks with the room left.
-  A tab
-  shows the file mode and the destination under its title, the filters as
-  tabs, then a table: box, poster, title and file, new name (green and bold
-  when Ready) with its folders, status. A row opens its results to pick
-  (poster, title, year, artist or authors, overview) and a search with
-  another text; a series or an album unfolds its files with their new names
-  in the same columns. The destination folder is a list only when its media
-  type has several.
-- **Renames and history.** A tab renames its Ready rows (the button of its
-  title), or the rows ticked (the box of the header ticks them all; "Rename
-  the selection" under the table), after a confirmation that gives the number of files, the file mode and the
-  rows still to pick left out (`POST /api/renames`). The progress and the
-  result (files renamed, subtitles, files left on their row and why) show above
-  the rows; the renamed rows leave the table at the `rename` event that ends
-  it. The History page lists the operations by day ("Today", "Yesterday",
+  The Movies screen (`MediaScreen`; the other media types
+  keep the old tab, `MediaTab`, until they are redrawn) says how many movies
+  wait, where they were found and how many are recognized, to pick or not
+  found; the filters are words with their counts. A row: poster, title and
+  year, "was <file name>", and the 5-notch gauge, or "to pick" / "not found".
+  Clicking a row opens its scene: the poster (its color lights the scene),
+  title, year, a dotted sheet (quality and size from the row, file mode, the
+  preferred service of the settings), "Will be put here" with the new path
+  and, when the media type has several, the destination folders as words.
+  "That's not it" (or a row to pick or not found) opens the results to pick
+  (poster, title, year and artist or authors, overview) and a search field.
+  **Selection**: the round mark at the top-left of a poster (on hover), a
+  Cmd/Ctrl-click or a Shift-click enter the selection mode, where every mark
+  shows and a click toggles a row (Shift: a range); only Ready rows can be
+  chosen. The scene then fans the covers chosen. "Done" or Escape leave it.
+- **Renames and history.** The primary key of a media screen puts away its
+  Ready rows ("Put away the movies N"), or the selection ("Put away the
+  selection N"), at once (`POST /api/renames`); a note under the list says
+  what the file mode does. While it runs, the title and the lead give the
+  progress; at the end, the scene says how many files were put away, the
+  subtitles, the files left in place and why, with "Undo this" (confirmed in
+  place), "See the history" and "Close". The renamed rows leave the list at
+  the `rename` event that ends it. (The old tabs still confirm first.) The History page lists the operations by day ("Today", "Yesterday",
   then the date), one table per day: time, tab, files, file mode (and
   "automatic"), status, and Undo. A row unfolds its files, old name and new
   name with its folder, each with "Put back" (a subtitle follows its video);
@@ -527,6 +535,8 @@ analysis only searches the new rows.
 | `files`                               | `path`, `name` and `new_name` of each file, or `null` before a match: for movies the file name the formats give (`generate_new_filename`); for episodes the series and season folders with that name (`Severance/Season 1/Severance S01E01 Good News About Hell.mkv`, or a season folder that already exists in the destination: `episode_folder`); for the other kinds the path under the destination, as the desktop batches move them (`batch_target`): `Daft Punk - Discovery/01 - One More Time.mp3`, `Frank Herbert/Frank Herbert - Dune (1965)/Frank Herbert - Dune (1965).epub`, `Super Nintendo/Chrono Trigger (USA).smc` |
 | `files[].error`                       | Why the last rename left the file: `{"code": "already_exists" or "failed", "message"}`, or `null`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `destination`                         | Index of the destination folder of its type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `size`                                | The size of its files still there, in bytes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `quality`                             | The quality read from the first file name (`"2160p · x265 · DTS"`), or `null`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `episodes_found`                      | For a series: how many episode titles were found, or `null`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 `PATCH /api/rows/{id}` with `selected` makes the row Ready, as picking a match

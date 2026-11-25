@@ -39,6 +39,20 @@ export interface Row {
   candidates: Candidate[];
   files: RowFile[];
   episodes_found: number | null;
+  /** The size of its files in bytes, and the quality read from the first
+   * file name ("2160p · x265"); absent in the recorded demo. */
+  size?: number;
+  quality?: string | null;
+}
+
+/** The result picked for a row, or null. */
+export function matchOf(row: Row): Candidate | null {
+  return row.selected === null ? null : (row.candidates[row.selected] ?? null);
+}
+
+/** The title shown for a row: its match, else what was read from the file. */
+export function titleOf(row: Row): string {
+  return matchOf(row)?.title ?? row.title ?? row.query ?? row.files[0]?.name ?? "";
 }
 
 export async function loadRows(mediaType: string): Promise<Row[]> {
@@ -64,4 +78,10 @@ export function posterUrl(poster: string | null): string | null {
     return null;
   }
   return poster.startsWith("/") ? `https://image.tmdb.org/t/p/w154${poster}` : poster;
+}
+
+/** A larger poster, for the scene. */
+export function bigPosterUrl(poster: string | null): string | null {
+  if (!poster) return null;
+  return poster.startsWith("/") ? `https://image.tmdb.org/t/p/w500${poster}` : poster;
 }
