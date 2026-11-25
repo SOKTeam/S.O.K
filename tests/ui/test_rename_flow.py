@@ -204,6 +204,18 @@ class TestPage:
         assert any(e.status == STATUS_OK for e in page._list.entries())
 
 
+def test_scrolling_the_right_column_moves_its_light(page):
+    lights = []
+    page.light_changed.connect(lambda: lights.append(1))
+
+    for scroll in (page._scene_scroll, page._summary_scroll):
+        bar = scroll.verticalScrollBar()
+        bar.setRange(0, 100)
+        bar.setValue(10)
+
+    assert len(lights) >= 2
+
+
 def test_durations():
     assert duration_text(38) == "38 s"
     assert duration_text(130) == "2 min 10"

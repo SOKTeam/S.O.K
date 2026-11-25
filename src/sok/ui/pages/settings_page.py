@@ -165,7 +165,7 @@ class SettingsPage(QWidget):
         self._preview_scroll = preview_scroll
         preview_scroll.viewport().setStyleSheet("background: transparent;")
         self._preview.light_changed.connect(self.light_changed.emit)
-        preview_scroll.verticalScrollBar().valueChanged.connect(self.light_changed.emit)
+        preview_scroll.verticalScrollBar().valueChanged.connect(self.light_changed)
 
         self.appearance_section.theme_changed.connect(self._on_theme_change)
         self.appearance_section.language_changed.connect(self._on_language_change)

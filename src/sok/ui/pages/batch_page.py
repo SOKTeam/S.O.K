@@ -779,7 +779,7 @@ class BatchPage(QWidget):
         ):
             scroll.viewport().setStyleSheet("background: transparent;")
             source.light_changed.connect(self.light_changed.emit)
-            scroll.verticalScrollBar().valueChanged.connect(self.light_changed.emit)
+            scroll.verticalScrollBar().valueChanged.connect(self.light_changed)
         self._right.currentChanged.connect(lambda _i: self.light_changed.emit())
         return screen
 

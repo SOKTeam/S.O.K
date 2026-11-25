@@ -671,7 +671,7 @@ class HistoryPage(QWidget):
         scene_scroll.viewport().setStyleSheet("background: transparent;")
         self._scene.light_changed.connect(self.light_changed.emit)
         self._panel.moved.connect(self.light_changed.emit)
-        scene_scroll.verticalScrollBar().valueChanged.connect(self.light_changed.emit)
+        scene_scroll.verticalScrollBar().valueChanged.connect(self.light_changed)
 
     def light_source(self):
         """The widget whose light the window paints, or None (see
