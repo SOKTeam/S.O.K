@@ -21,8 +21,9 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 
-from PySide6.QtCore import QEasingCurve, QObject, QVariantAnimation
-from PySide6.QtWidgets import QGraphicsOpacityEffect, QWidget
+from PySide6.QtCore import QEasingCurve, QObject, QPoint, Qt, QVariantAnimation
+from PySide6.QtGui import QPixmap, QRegion
+from PySide6.QtWidgets import QGraphicsOpacityEffect, QLabel, QWidget
 
 # Durations, in milliseconds.
 PRESS = 90
@@ -70,3 +71,46 @@ def fade_in(widget: QWidget, duration: int = CROSSFADE) -> None:
         effect.setEnabled(False)
 
     animate(widget, duration, effect.setOpacity, on_done=done)
+
+
+def crossfade(
+    host: QWidget,
+    change: Callable[[], None],
+    duration: int = CROSSFADE,
+    on_value: Optional[Callable[[float], None]] = None,
+) -> None:
+    """Swap what host shows with change(), the old view fading out while
+    the new one fades in, so the place is never empty.
+
+    The old view is a picture of host laid over it, which lets the clicks
+    through and goes away at the end. on_value(t) follows the fade, from 0
+    (old view) to 1 (new view), for what host does not draw itself, like
+    the light the window paints behind it.
+    """
+    if not host.isVisible() or host.width() <= 0 or host.height() <= 0:
+        change()
+        return
+    # Drawn without the background, which is the window's light: a grab()
+    # would fill it with a flat grey.
+    ratio = host.devicePixelRatioF()
+    picture = QPixmap(round(host.width() * ratio), round(host.height() * ratio))
+    picture.setDevicePixelRatio(ratio)
+    picture.fill(Qt.GlobalColor.transparent)
+    host.render(picture, QPoint(0, 0), QRegion(), QWidget.RenderFlag.DrawChildren)
+    change()
+    old = QLabel(host)
+    old.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+    old.setStyleSheet("background: transparent;")
+    old.setPixmap(picture)
+    old.setGeometry(host.rect())
+    effect = QGraphicsOpacityEffect(old)
+    old.setGraphicsEffect(effect)
+    old.show()
+    old.raise_()
+
+    def step(t: float) -> None:
+        effect.setOpacity(1.0 - t)
+        if on_value is not None:
+            on_value(t)
+
+    animate(old, duration, step, on_done=old.deleteLater)

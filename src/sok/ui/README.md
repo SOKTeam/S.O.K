@@ -56,8 +56,13 @@ its big title with `fit_display()`, and hides its decorations below
 5. **Motion**: only the moments that change the state of things move (a
 panel coming in or leaving, an item recognized or sorted, the end of a
 rename, the switch to the pick panel, the press of a key), at most 250ms,
-with the helpers of `motion.py`. What is done over and over (moving in a
-list, changing page, typing, scrolling, hovering) never moves.
+with the helpers of `motion.py`. A view that replaces another goes through
+`crossfade()`, so the place is never empty; a page whose light follows the
+view gives `lights()` (each light with its opacity) instead of
+`light_source()`. Connect a callback to an animation directly, never through
+a lambda: freeing its widget right after the end then crashes Qt. What is
+done over and over (moving in a list, changing page, typing, scrolling,
+hovering) never moves.
 6. **Modularity**: Prefer creating new components in `components/` rather than
 overloading page files.
 

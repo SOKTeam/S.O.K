@@ -231,3 +231,44 @@ class TestMotion:
 
         assert row._gauge < 5
         qtbot.waitUntil(lambda: row._gauge == 5.0, timeout=1000)
+
+    def test_a_crossfade_swaps_at_once_and_fades_the_old_view(self, qtbot):
+        from PySide6.QtWidgets import QLabel, QStackedWidget
+
+        from sok.ui.motion import crossfade
+
+        stack = QStackedWidget()
+        qtbot.addWidget(stack)
+        first, second = QLabel("first"), QLabel("second")
+        stack.addWidget(first)
+        stack.addWidget(second)
+        stack.resize(200, 100)
+        stack.show()
+        steps = []
+
+        crossfade(stack, lambda: stack.setCurrentWidget(second), 60, steps.append)
+
+        # The new view is there at once; the old one is a picture over it.
+        assert stack.currentWidget() is second
+        pictures = [w for w in stack.findChildren(QLabel) if w.pixmap() is not None]
+        pictures = [w for w in pictures if not w.pixmap().isNull()]
+        assert len(pictures) == 1
+        qtbot.waitUntil(lambda: bool(steps) and steps[-1] == 1.0, timeout=1000)
+        qtbot.waitUntil(lambda: pictures[0] not in stack.findChildren(QLabel))
+
+    def test_a_hidden_place_changes_without_a_fade(self, qtbot):
+        from PySide6.QtWidgets import QLabel, QStackedWidget
+
+        from sok.ui.motion import crossfade
+
+        stack = QStackedWidget()
+        qtbot.addWidget(stack)
+        second = QLabel("second")
+        stack.addWidget(QLabel("first"))
+        stack.addWidget(second)
+        steps = []
+
+        crossfade(stack, lambda: stack.setCurrentWidget(second), 60, steps.append)
+
+        assert stack.currentWidget() is second
+        assert steps == []

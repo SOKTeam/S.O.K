@@ -90,7 +90,7 @@ from sok.ui.controllers.undo import undo_operation
 from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.i18n import tr, trn
 from sok.ui.platform import IS_MACOS, request_attention
-from sok.ui.motion import fade_in
+from sok.ui.motion import CROSSFADE, SUMMARY, crossfade, fade_in
 from sok.ui.responsive import (
     LOW_HEIGHT,
     SidePanel,
@@ -421,6 +421,9 @@ class BatchPage(QWidget):
         self._images: Dict[str, QPixmap] = {}
         # Key of the item shown in the pick panel, or None for the scene.
         self._picking: Optional[Path] = None
+        # The light of the view leaving the right column, and how far the
+        # crossfade is (0 to 1), while the view changes.
+        self._light_fade: Optional[Tuple[Any, float]] = None
         self._searching: set[Path] = set()
         self._last_report: Optional[Dict[str, Any]] = None
         # "idle", "running" (a rename is going on) or "end" (it is over and
@@ -1220,6 +1223,22 @@ class BatchPage(QWidget):
             return self._summary
         return None
 
+    def lights(self) -> List[Tuple[Any, float]]:
+        """The lights the window paints, with their opacity: the one of
+        light_source(), and during a crossfade the one leaving."""
+        current = self.light_source()
+        if current is not None and not current.isVisible():
+            current = None
+        if self._light_fade is None:
+            return [(current, 1.0)] if current is not None else []
+        old, t = self._light_fade
+        if old is current:
+            return [(current, 1.0)] if current is not None else []
+        lights = [(old, 1.0 - t)] if old is not None else []
+        if current is not None:
+            lights.append((current, t))
+        return lights
+
     def _fit_scene(self) -> None:
         """The poster of the scene gets smaller in a low window."""
         self._scene.fit_height(self._scene_scroll.viewport().height())
@@ -1263,9 +1282,13 @@ class BatchPage(QWidget):
         if key is None:
             return
         self._picking = key
-        self._right.setCurrentWidget(self._picker)
+
+        def show() -> None:
+            self._right.setCurrentWidget(self._picker)
+            self._refresh_picker()
+
+        self._swap_right(show)
         fade_in(self._picker)
-        self._refresh_picker()
         self._picker.focus_search()
 
     def _close_picker(self) -> None:
@@ -1273,12 +1296,28 @@ class BatchPage(QWidget):
         self._picking = None
         entry = self._list.entry(key)
         if entry is not None and entry.status == STATUS_OK:
-            self._right.setCurrentWidget(self._scene_scroll)
+            self._swap_right(lambda: self._show_scene_column(entry.key))
             fade_in(self._scene_scroll)
-            self._show_scene(entry.key)
         else:
             # Nothing chosen yet: go to the next item.
             self._list.select_next()
+
+    def _show_scene_column(self, key: Path) -> None:
+        self._right.setCurrentWidget(self._scene_scroll)
+        self._show_scene(key)
+
+    def _swap_right(
+        self, change: Callable[[], None], duration: int = CROSSFADE
+    ) -> None:
+        """Change the view of the right column with change(), in a crossfade
+        of the views and of their light."""
+        old_light = self.light_source()
+
+        def follow(t: float) -> None:
+            self._light_fade = (old_light, t) if t < 1.0 else None
+            self.light_changed.emit()
+
+        crossfade(self._right, change, duration, follow)
 
     def _refresh_picker(self) -> None:
         entry = self._list.entry(self._picking)
@@ -1324,9 +1363,8 @@ class BatchPage(QWidget):
             return
         self._picking = None
         self._list.choose(key, index)
-        self._right.setCurrentWidget(self._scene_scroll)
+        self._swap_right(lambda: self._show_scene_column(key))
         fade_in(self._scene_scroll)
-        self._show_scene(key)
 
     def _leave_current(self) -> None:
         """Take the item out of the list; its files stay where they are."""
@@ -1727,8 +1765,9 @@ class BatchPage(QWidget):
                 can_undo=bool(report.get("operation")),
             )
         )
-        self._list.set_current(None)
-        # The summary comes in once, at the end: a fade and a small rise.
+        # The summary comes in once, at the end: the scene fades out while
+        # the summary fades in and rises a little.
+        self._swap_right(lambda: self._list.set_current(None), SUMMARY)
         self._summary.arrive()
         # In a narrow window the summary comes over the list.
         self._panel.open()

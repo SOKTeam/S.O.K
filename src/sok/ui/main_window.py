@@ -99,7 +99,8 @@ class LightColumn(QWidget):
     of a scene fades out instead of stopping at the edge of its column.
 
     A page gives the widget of its light with light_source(): a widget with
-    paint_light_into(p, offset, area), or None.
+    paint_light_into(p, offset, area), or None. A page whose light can
+    crossfade gives instead lights(): (widget, opacity) pairs.
     """
 
     def __init__(self, window: "MainWindow"):
@@ -114,10 +115,18 @@ class LightColumn(QWidget):
         self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, option, p, self)
         pages = getattr(self._window, "_pages", None)
         page = pages.currentWidget() if pages is not None else None
-        get_source = getattr(page, "light_source", None)
-        source = get_source() if get_source is not None else None
-        if source is not None and source.isVisible():
-            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        get_lights = getattr(page, "lights", None)
+        if get_lights is not None:
+            lights = get_lights()
+        else:
+            get_source = getattr(page, "light_source", None)
+            source = get_source() if get_source is not None else None
+            lights = []
+            if source is not None and source.isVisible():
+                lights.append((source, 1.0))
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        for source, opacity in lights:
+            p.setOpacity(opacity)
             offset = QPointF(source.mapTo(self, QPoint(0, 0)))
             source.paint_light_into(p, offset, QRectF(self.rect()))
         p.end()
