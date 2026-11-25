@@ -44,13 +44,15 @@ def animate(
     curve: QEasingCurve.Type = QEasingCurve.Type.OutCubic,
 ) -> QVariantAnimation:
     """Run on_value(t) from start to end over duration, kept alive by
-    owner, and replace the animation of the same owner and callback."""
+    owner, which also stops it if it goes away."""
     animation = QVariantAnimation(owner)
     animation.setDuration(duration)
     animation.setStartValue(float(start))
     animation.setEndValue(float(end))
     animation.setEasingCurve(curve)
-    animation.valueChanged.connect(lambda value: on_value(float(value)))
+    # on_value is connected as it is: a lambda around it here crashes Qt
+    # when owner is freed just after the animation ends (seen offscreen).
+    animation.valueChanged.connect(on_value)
     if on_done is not None:
         animation.finished.connect(on_done)
     animation.start(QVariantAnimation.DeletionPolicy.DeleteWhenStopped)
