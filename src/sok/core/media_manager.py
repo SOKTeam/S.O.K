@@ -194,7 +194,11 @@ class UniversalMediaManager:
                                 client_id = config.get("igdb_client_id", "")
                                 access_token = get_igdb_token(config)
                                 if client_id and access_token:
-                                    api_instance = api_class(client_id, access_token)
+                                    api_instance = api_class(
+                                        client_id,
+                                        access_token,
+                                        lambda: get_igdb_token(config, renew=True),
+                                    )
                             else:
                                 key = get_api_key(config, service.id)
                                 if key:
