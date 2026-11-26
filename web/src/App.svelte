@@ -71,8 +71,10 @@
   });
 
   async function setupDone() {
-    step = 0;
+    // The session first: the one read at the start still says "not
+    // configured", which would open the assistant again at its step 2.
     await refreshSession();
+    step = 0;
     navigate("/");
   }
 
