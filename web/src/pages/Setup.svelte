@@ -296,21 +296,24 @@
   auto: "username" | "new-password",
   hint?: string,
 )}
-  <label
-    class="grid gap-1.5 pb-2.5 shadow-[inset_0_-1px_0_var(--color-line-strong)] focus-within:shadow-[inset_0_-2px_0_var(--color-accent)]"
-  >
-    <span class="text-[13px] text-faint">{label}</span>
-    <input
-      class="bg-transparent text-[24px] font-medium tracking-[-0.02em] text-ink outline-none"
-      {type}
-      {value}
-      oninput={(event) => set(event.currentTarget.value)}
-      autocomplete={auto}
-      required
-      minlength={type === "password" ? 8 : undefined}
-    />
+  <div class="grid gap-2">
+    <label
+      class="grid gap-1.5 pb-2.5 shadow-[inset_0_-1px_0_var(--color-line-strong)] focus-within:shadow-[inset_0_-2px_0_var(--color-accent)]"
+    >
+      <span class="text-[13px] text-faint">{label}</span>
+      <input
+        class="bg-transparent text-[24px] font-medium tracking-[-0.02em] text-ink outline-none"
+        {type}
+        {value}
+        oninput={(event) => set(event.currentTarget.value)}
+        autocomplete={auto}
+        required
+        minlength={type === "password" ? 8 : undefined}
+      />
+    </label>
+    <!-- Under the line of the field, not inside it. -->
     {#if hint}<small class="text-[12.5px] text-faint">{hint}</small>{/if}
-  </label>
+  </div>
 {/snippet}
 
 <SceneLight strength={0.5} />
