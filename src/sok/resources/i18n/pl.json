@@ -601,6 +601,7 @@
     "web_more_episodes_one": "+ {n} inny odcinek",
     "web_more_episodes_few": "+ {n} inne odcinki",
     "web_more_episodes_many": "+ {n} innych odcinków",
+    "web_hide_episodes": "Ukryj odcinki",
     "web_titles_found_one": "{n} tytuł znaleziony",
     "web_titles_found_few": "{n} tytuły znalezione",
     "web_titles_found_many": "{n} tytułów znalezionych",

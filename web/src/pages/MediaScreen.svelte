@@ -186,6 +186,8 @@
 
   // The episodes of the open series: all of them, or the first ones.
   let allEpisodes = $state(false);
+  // The episodes of the open series folded away (a click on its row again).
+  let folded = $state(false);
   const EPISODES_SHOWN = 4;
 
   // ------------------------------------------------------------- Light
@@ -265,7 +267,14 @@
   }
 
   function openRow(row: Row) {
-    if (row.id !== openId) allEpisodes = false;
+    if (row.id !== openId) {
+      allEpisodes = false;
+      folded = false;
+    } else if (episodic && !screen.narrow) {
+      // The open series again: fold or unfold its episodes. Narrow, a click
+      // opens the scene over the list, so the fold is the word under them.
+      folded = !folded;
+    }
     openId = row.id;
     anchor = row.id;
     searchMessage = "";
@@ -725,6 +734,7 @@
             <div
               role="button"
               aria-current={row.id === openId && !picking ? "true" : undefined}
+              aria-expanded={episodic ? row.id === openId && !picking && !folded : undefined}
               class={[
                 "relative grid h-[66px] cursor-pointer grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-x-3.5 rounded-xl px-3.5 transition-colors",
                 isChosen
@@ -777,7 +787,7 @@
               </div>
               {@render status(row)}
             </div>
-            {#if episodic && row.id === openId && !picking}
+            {#if episodic && row.id === openId && !picking && !folded}
               <!-- The episodes of the open series, under its row. -->
               <div class="mt-0.5 mb-2 ml-16 grid">
                 {#each allEpisodes ? row.files : row.files.slice(0, EPISODES_SHOWN) as file (file.path)}
@@ -795,20 +805,33 @@
                     </div>
                   </div>
                 {/each}
-                {#if !allEpisodes && row.files.length > EPISODES_SHOWN}
+                <div
+                  class="flex items-baseline justify-between gap-4 border-t border-line py-[7px]"
+                >
+                  {#if !allEpisodes && row.files.length > EPISODES_SHOWN}
+                    <button
+                      type="button"
+                      class="cursor-pointer text-left text-[13px] text-muted hover:text-ink"
+                      onclick={() => (allEpisodes = true)}
+                    >
+                      {tn(
+                        "web_more_episodes",
+                        row.files.length - EPISODES_SHOWN,
+                        "+ {n} other episode",
+                        "+ {n} other episodes",
+                      )}
+                    </button>
+                  {:else}
+                    <span></span>
+                  {/if}
                   <button
                     type="button"
-                    class="cursor-pointer border-t border-line py-[7px] text-left text-[13px] text-muted hover:text-ink"
-                    onclick={() => (allEpisodes = true)}
+                    class="cursor-pointer text-[13px] text-faint hover:text-ink"
+                    onclick={() => (folded = true)}
                   >
-                    {tn(
-                      "web_more_episodes",
-                      row.files.length - EPISODES_SHOWN,
-                      "+ {n} other episode",
-                      "+ {n} other episodes",
-                    )}
+                    {t("web_hide_episodes", "Hide the episodes")}
                   </button>
-                {/if}
+                </div>
               </div>
             {/if}
           {:else}

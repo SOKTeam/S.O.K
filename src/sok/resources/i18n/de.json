@@ -579,6 +579,7 @@
     "web_n_episodes_other": "{n} Episoden",
     "web_more_episodes_one": "+ {n} weitere Episode",
     "web_more_episodes_other": "+ {n} weitere Episoden",
+    "web_hide_episodes": "Folgen ausblenden",
     "web_titles_found_one": "{n} Titel gefunden",
     "web_titles_found_other": "{n} Titel gefunden",
     "web_chosen_tv_one": "{n} Serie ausgewählt",

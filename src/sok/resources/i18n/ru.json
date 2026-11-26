@@ -601,6 +601,7 @@
     "web_more_episodes_one": "+ ещё {n} эпизод",
     "web_more_episodes_few": "+ ещё {n} эпизода",
     "web_more_episodes_many": "+ ещё {n} эпизодов",
+    "web_hide_episodes": "Скрыть эпизоды",
     "web_titles_found_one": "найдено {n} название",
     "web_titles_found_few": "найдено {n} названия",
     "web_titles_found_many": "найдено {n} названий",
