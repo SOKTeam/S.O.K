@@ -18,7 +18,7 @@
   import { i18n, t, tn } from "../lib/i18n.svelte";
   import { setLight } from "../lib/light.svelte";
   import type { Page } from "../lib/pages";
-  import { follow, href } from "../lib/router.svelte";
+  import { decoded, follow, hold, href } from "../lib/router.svelte";
   import {
     bigPosterUrl,
     changeRow,
@@ -84,9 +84,10 @@
   $effect(() => {
     void analysis.changes;
     const wanted = mediaType;
+    const release = hold();
     loadRows(wanted)
       .then((found) => {
-        if (wanted !== mediaType) return;
+        if (wanted !== mediaType) return release();
         rows = found;
         untrack(() => {
           if (openId === null || !found.some((row) => row.id === openId)) {
@@ -97,13 +98,23 @@
             query = first ? (first.query ?? titleOf(first)) : "";
           }
         });
+        const lit = found.find((row) => row.id === openId);
+        decoded([
+          ...found.slice(0, 16).map((row) => posterUrl(matchOf(row)?.poster ?? null)),
+          bigPosterUrl(lit ? (matchOf(lit)?.poster ?? null) : null),
+        ]).then(release);
       })
-      .catch((exc) => (error = errorText(exc)));
+      .catch((exc) => {
+        error = errorText(exc);
+        release();
+      });
   });
 
   $effect(() => {
     void mediaType;
     untrack(() => {
+      // No rows of the type before: they would be drawn in this one's layout.
+      rows = null;
       filter = "all";
       endPicking();
       openId = null;

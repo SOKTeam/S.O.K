@@ -31,10 +31,46 @@ function show(path: string, animate = true): void {
     state.path = path;
     return;
   }
-  document.startViewTransition(() => {
+  document.startViewTransition(async () => {
+    holds = [];
     state.path = path;
     flushSync();
+    const waits = holds;
+    holds = null;
+    // The old page stays on screen while the new one reads its rows and
+    // its first pictures: the fade then goes to the finished page, not to a
+    // page still filling (the movies drawn in the grid of the music).
+    if (waits.length) await Promise.race([Promise.all(waits), wait(HOLD_MS)]);
   });
+}
+
+/** How long a page may keep the old one on screen, at most. */
+const HOLD_MS = 300;
+
+// The pages that asked to be waited for, while a transition starts.
+let holds: Promise<void>[] | null = null;
+
+const wait = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));
+
+/** Called by a page as it starts showing (an effect): during a transition,
+ * the fade waits until the release returned is called. Outside a
+ * transition the release does nothing. */
+export function hold(): () => void {
+  if (!holds) return () => {};
+  let release = () => {};
+  holds.push(new Promise<void>((done) => (release = done)));
+  return release;
+}
+
+/** Wait until these pictures are loaded and decoded (failures are fine). */
+export function decoded(urls: (string | null)[]): Promise<void> {
+  return Promise.all(
+    urls.filter(Boolean).map((url) => {
+      const image = new Image();
+      image.src = url!;
+      return image.decode().catch(() => {});
+    }),
+  ).then(() => {});
 }
 
 window.addEventListener("popstate", (event) => {

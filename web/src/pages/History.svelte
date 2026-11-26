@@ -23,7 +23,7 @@
   import { sectionsOf, type Section } from "../lib/historyGroups";
   import { i18n, t, tn } from "../lib/i18n.svelte";
   import { setLight } from "../lib/light.svelte";
-  import { follow, href, router } from "../lib/router.svelte";
+  import { decoded, follow, hold, href, router } from "../lib/router.svelte";
   import { bigPosterUrl, posterUrl } from "../lib/rows";
   import { renames } from "../lib/renames.svelte";
   import { refreshSummary, startScan } from "../lib/scan.svelte";
@@ -63,14 +63,20 @@
   // Both lists, for their counts; read again after each rename.
   $effect(() => {
     void renames.current?.status;
+    const release = hold();
     loadHistory()
       .then((found) => {
         operations = found;
         untrack(() => {
           if (!openId || !found.some((op) => op.id === openId)) openId = found[0]?.id ?? null;
         });
+        const covers = found.slice(0, 8).flatMap((op) => op.covers?.slice(0, 3) ?? []);
+        decoded(covers.map((cover) => posterUrl(cover))).then(release);
       })
-      .catch((exc) => (error = errorText(exc)));
+      .catch((exc) => {
+        error = errorText(exc);
+        release();
+      });
     loadProcessed()
       .then((found) => (processed = found))
       .catch((exc) => (error = errorText(exc)));
