@@ -69,15 +69,35 @@
         "absolute size-[18px] cursor-pointer",
         tile ? "top-2 left-2" : "-top-1.5 -left-1.5",
         " rounded-full transition-[opacity,transform] duration-150",
-        chosen
-          ? "bg-accent opacity-100 shadow-[0_0_0_2px_var(--color-bg)]"
-          : "bg-black/55 shadow-[inset_0_0_0_1.5px_rgb(255_255_255/0.85)]",
+        chosen ? "bg-accent opacity-100 shadow-[0_0_0_2px_var(--color-bg)]" : "",
         chosen || marks
           ? "scale-100 opacity-100"
           : "scale-90 opacity-0 group-hover/thumb:scale-100 group-hover/thumb:opacity-100 focus-visible:opacity-100",
       ]}
     >
-      {#if chosen}
+      {#if !chosen}
+        <!-- A drawn circle: a 1.5px inset shadow on a half pixel came out
+             thicker on one side. The faint dark edge keeps the white ring
+             whole where the mark leaves the poster for a light ground. -->
+        <svg viewBox="0 0 18 18" class="absolute inset-0 size-full" aria-hidden="true">
+          <circle
+            cx="9"
+            cy="9"
+            r="8.6"
+            fill="rgb(0 0 0 / 0.55)"
+            stroke="rgb(0 0 0 / 0.3)"
+            stroke-width="0.8"
+          />
+          <circle
+            cx="9"
+            cy="9"
+            r="7.45"
+            fill="none"
+            stroke="rgb(255 255 255 / 0.85)"
+            stroke-width="1.5"
+          />
+        </svg>
+      {:else}
         <span
           class="absolute top-[5.5px] left-[5px] h-1 w-[7px] -rotate-45 border-b-[1.8px] border-l-[1.8px] border-on-accent"
         ></span>
