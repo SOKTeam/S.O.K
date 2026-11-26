@@ -187,3 +187,35 @@
     flex: 1;
   }
 }
+
+/* Going to another page (lib/router.svelte.ts): the old page fades out
+   quickly, the new one fades in rising 6px. The nav is outside the "page"
+   and stays still; the rest of the window crossfades (the light). */
+::view-transition-old(page) {
+  animation: page-out 120ms ease-out both;
+}
+::view-transition-new(page) {
+  animation: page-in 220ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+}
+@keyframes page-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

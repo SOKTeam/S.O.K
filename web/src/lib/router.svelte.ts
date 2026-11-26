@@ -1,5 +1,9 @@
 // The page shown is the path of the address: /movies, /settings…, under the
 // base of the build ("/", or "/demo/" for the demo on the website).
+// Going to another page plays a short transition (app.css, "page"): the old
+// page fades out, the new one fades in rising a little; the nav stays still.
+
+import { flushSync } from "svelte";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -11,8 +15,33 @@ function pathOf(pathname: string): string {
 
 const state = $state({ path: pathOf(location.pathname) });
 
-window.addEventListener("popstate", () => {
-  state.path = pathOf(location.pathname);
+/** The page of a path: "/settings/auto" is still the Settings. */
+const pageKey = (path: string) => path.split("/")[1] ?? "";
+
+const still = matchMedia("(prefers-reduced-motion: reduce)");
+
+/** Show a path, with the transition when it is another page. */
+function show(path: string, animate = true): void {
+  if (
+    !animate ||
+    still.matches ||
+    pageKey(path) === pageKey(state.path) ||
+    !document.startViewTransition
+  ) {
+    state.path = path;
+    return;
+  }
+  document.startViewTransition(() => {
+    state.path = path;
+    flushSync();
+  });
+}
+
+window.addEventListener("popstate", (event) => {
+  // A swipe back of the browser already moves the page: no second motion.
+  const swiped = (event as PopStateEvent & { hasUAVisualTransition?: boolean })
+    .hasUAVisualTransition;
+  show(pathOf(location.pathname), !swiped);
 });
 
 export const router = {
@@ -30,7 +59,7 @@ export function href(path: string): string {
 export function navigate(path: string): void {
   if (path !== state.path) {
     history.pushState(null, "", href(path));
-    state.path = path;
+    show(path);
   }
 }
 

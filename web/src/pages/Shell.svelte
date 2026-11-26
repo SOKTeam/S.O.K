@@ -49,7 +49,7 @@
       </p>
     {/if}
     <NavBar />
-    <main class="min-h-0 flex-1">
+    <main class="min-h-0 flex-1 [view-transition-name:page]">
       {#if page.path === "/"}
         <Analysis />
       {:else if page.mediaType}
