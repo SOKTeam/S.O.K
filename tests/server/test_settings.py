@@ -13,6 +13,7 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
+from sok.__version__ import __version__
 from sok.config.config_manager import get_config_manager
 from sok.file_operations import base_operations
 from sok.server.app import create_app
@@ -59,6 +60,12 @@ def test_the_settings_need_a_login(client):
 
 def test_a_new_server_links_by_default(client):
     assert client.get("/api/settings").json()["settings"]["file_mode"] == "link"
+
+
+def test_the_settings_give_the_version_and_the_data_folder(client, config_folder):
+    about = client.get("/api/settings").json()["about"]
+
+    assert about == {"version": __version__, "data": str(config_folder)}
 
 
 def test_settings_are_changed_and_saved(client, config_folder):

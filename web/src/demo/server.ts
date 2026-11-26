@@ -8,10 +8,11 @@ import { pickLanguage } from "../lib/format";
 import type { Operation, ProcessedFile, UndoReport } from "../lib/history";
 import type { Rename } from "../lib/renames.svelte";
 import type { Row } from "../lib/rows";
-import type { Counts, Scan, Summary, ToCheck } from "../lib/scan.svelte";
+import type { Counts, Scan, Source, Summary, ToCheck } from "../lib/scan.svelte";
 import type { SettingsChange, SettingsData } from "../lib/settings.svelte";
 import type { WatchStatus } from "../lib/watch.svelte";
 import data from "./data.json";
+import VERSION_FILE from "../../../src/sok/__version__.py?raw";
 
 /** The new names of the files of a row, for each of its candidates. */
 type Names = Record<string, { new_names: (string | null)[]; episodes_found: number | null }>;
@@ -82,6 +83,11 @@ let loggedIn = true;
 
 const settings = clone(data.settings) as unknown as SettingsData;
 settings.settings.language = language;
+// The version of the server the demo shows (src/sok/__version__.py).
+settings.about = {
+  version: VERSION_FILE.match(/__version__ = "([^"]+)"/)?.[1] ?? "",
+  data: "/config",
+};
 
 const watch: WatchStatus = {
   enabled: data.watch.enabled,
@@ -93,9 +99,24 @@ const watch: WatchStatus = {
   },
 };
 
+/** The posters of the recorded rows whose new names an operation wrote. */
+function recordedCovers(op: Operation): string[] {
+  const all = Object.values(data.rows as unknown as Record<string, Row[]>).flat();
+  const covers: string[] = [];
+  for (const row of all) {
+    const poster = row.selected === null ? null : row.candidates[row.selected]?.poster;
+    const wrote = row.files.some(
+      (file) => file.new_name && op.files.some((one) => one.target.endsWith(file.new_name!)),
+    );
+    if (poster && wrote && !covers.includes(poster)) covers.push(poster);
+  }
+  return covers.slice(0, 3);
+}
+
 const history: Operation[] = (clone(data.history) as unknown as Operation[]).map((op) => ({
   ...op,
   date: local(before(op.date as unknown as number)),
+  covers: op.covers ?? recordedCovers(op),
 }));
 const processed: ProcessedFile[] = (clone(data.processed) as unknown as ProcessedFile[]).map(
   (file) => ({ ...file, date: local(before(file.date as unknown as number)) }),
@@ -211,8 +232,40 @@ function counts(): Record<string, Counts> {
   return all;
 }
 
+/** Up to 3 posters of the matches of each media type. */
+function covers(): Record<string, string[]> {
+  const all: Record<string, string[]> = {};
+  for (const type of MEDIA_TYPES) {
+    all[type] = rows
+      .filter((row) => row.media_type === type && row.selected !== null)
+      .map((row) => row.candidates[row.selected!]?.poster)
+      .filter((poster): poster is string => Boolean(poster))
+      .slice(0, 3);
+  }
+  return all;
+}
+
+/** The source folders and the files of each waiting. */
+function sourceFolders(): Source[] {
+  const waiting = [
+    ...rows.flatMap((row) => row.files.map((file) => file.path)),
+    ...toCheck.map((item) => item.path),
+  ];
+  return settings.folders.sources.map((path) => ({
+    path,
+    files: waiting.filter((file) => file.startsWith(`${path.replace(/\/$/, "")}/`)).length,
+    missing: false,
+  }));
+}
+
 function summary(): Summary {
-  return { scan: clone(scan), counts: counts(), to_check: clone(toCheck) };
+  return {
+    scan: clone(scan),
+    counts: counts(),
+    to_check: clone(toCheck),
+    covers: covers(),
+    sources: sourceFolders(),
+  };
 }
 
 // ------------------------------------------------------------- Events
@@ -341,6 +394,10 @@ async function runRename(mediaType: string, chosen: Row[], auto: boolean): Promi
     undone: false,
     partly_undone: false,
     auto,
+    covers: chosen
+      .map((row) => (row.selected === null ? null : row.candidates[row.selected]?.poster))
+      .filter((poster): poster is string => Boolean(poster))
+      .slice(0, 3),
     files: moves.map((move, index) => ({ index, ...move, mode, undone: false })),
   };
   history.unshift(operation);
@@ -564,8 +621,11 @@ async function answer(method: string, path: string, query: URLSearchParams, body
         account: true,
         logged_in: loggedIn,
         username: "demo",
+        configured: true,
         language,
       };
+    case "GET /api/health":
+      return { status: "ok", version: settings.about.version, db: 0 };
     case "POST /api/login":
       loggedIn = true;
       return { username: "demo" };
@@ -621,6 +681,14 @@ async function answer(method: string, path: string, query: URLSearchParams, body
       return clone(settings);
     case "PATCH /api/settings":
       return changeSettings(body as SettingsChange);
+    case "GET /api/settings/disks":
+      return {
+        disks: [
+          { path: "/media", folders: ["/media"], total: 4e12, free: 1.1e12 },
+          { path: "/downloads", folders: ["/downloads"], total: 1e12, free: 0.59e12 },
+        ],
+        movie_size: 12e9,
+      };
     case "GET /api/settings/browse":
       return browse(query.get("path") ?? undefined);
     case "POST /api/settings/test-key": {

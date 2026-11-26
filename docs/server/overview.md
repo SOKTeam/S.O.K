@@ -106,38 +106,43 @@ the server (the desktop app moves).
 
 JSON under `/api`. FastAPI's own `/docs` page is turned off.
 
-| Route                                  | Login | Does                                                                                                 |
-| -------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------- |
-| `GET /api/health`                      | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker                                  |
-| `GET /api/session`                     | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`                                       |
-| `POST /api/setup`                      | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)                          |
-| `POST /api/login`                      | No    | Opens a session (`401` for a wrong login, `429` while waiting)                                       |
-| `POST /api/logout`                     | Yes   | Closes the session                                                                                   |
-| `GET /api/i18n?lang=fr`                | No    | The texts of the interface (see [Interface](#interface))                                             |
-| `GET /api/settings`                    | Yes   | The settings, the keys, the folders and the link checks (see below)                                  |
-| `PATCH /api/settings`                  | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`                             |
-| `POST /api/settings/test-link`         | Yes   | `{source, destination}`: whether a hard link works between them                                      |
-| `GET /api/settings/browse?path=`       | Yes   | The subfolders of a folder of the server, for the folder browser (`404` `unreadable_folder`)         |
-| `POST /api/settings/test-key`          | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key))                |
-| `POST /api/settings/test-notification` | Yes   | `{target}`: sends a test (see [Notifications](#notifications)); answers `{"ok", "error"}`            |
-| `POST /api/scans`                      | Yes   | Starts an analysis (`202`, `{"id"}`); `409` with `already_running`, `rename_running` or `no_sources` |
-| `GET /api/scans/current`               | Yes   | The last analysis, the counts of the rows and the files to check (see [Analyses](#analyses))         |
-| `POST /api/to-check`                   | Yes   | `{path, kind}`: gives a file to check its type and searches its row; answers the summary             |
-| `GET /api/events`                      | Yes   | Server-sent events (see [Live events](#live-events))                                                 |
-| `GET /api/watch`                       | Yes   | The automatic sorting: on or off, last check, last run (see [Automatic sorting](#automatic-sorting)) |
-| `GET /api/rows?type=movies`            | Yes   | The rows of a tab (see [Rows](#rows))                                                                |
-| `GET /api/rows/{id}`                   | Yes   | One row                                                                                              |
-| `PATCH /api/rows/{id}`                 | Yes   | `{selected?, destination?}`: picks a candidate (the row is then Ready) or a destination folder       |
-| `POST /api/rows/{id}/search`           | Yes   | `{query?}`: searches the row again, with the text typed; `409` when a key stops it                   |
-| `POST /api/renames`                    | Yes   | `{type, rows?}`: renames the Ready rows of a tab (`202`, `{"id"}`); see [Renames](#renames)          |
-| `GET /api/renames/current`             | Yes   | The last rename: its progress, then its result                                                       |
-| `GET /api/history`                     | Yes   | The operations of the history, newest first (see [History](#history))                                |
-| `POST /api/history/{id}/undo`          | Yes   | `{index?}`: undoes the operation, or one of its files; answers what was put back                     |
-| `GET /api/processed`                   | Yes   | The files already processed (see [Files already processed](#files-already-processed))                |
-| `POST /api/processed/forget`           | Yes   | `{paths}`: the next analysis takes these files again; answers `{"forgotten"}`                        |
+| Route                                  | Login | Does                                                                                                              |
+| -------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------- |
+| `GET /api/health`                      | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker                                               |
+| `GET /api/session`                     | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`, `configured` (a source and a destination are set) |
+| `POST /api/setup`                      | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)                                       |
+| `POST /api/login`                      | No    | Opens a session (`401` for a wrong login, `429` while waiting)                                                    |
+| `POST /api/logout`                     | Yes   | Closes the session                                                                                                |
+| `GET /api/i18n?lang=fr`                | No    | The texts of the interface (see [Interface](#interface))                                                          |
+| `GET /api/settings`                    | Yes   | The settings, the keys, the folders and the link checks (see below)                                               |
+| `PATCH /api/settings`                  | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`                                          |
+| `POST /api/settings/test-link`         | Yes   | `{source, destination}`: whether a hard link works between them                                                   |
+| `GET /api/settings/disks`              | Yes   | The disks of the folders and the average size of the movies waiting (see [Analyses](#analyses))                   |
+| `GET /api/settings/browse?path=`       | Yes   | The subfolders of a folder of the server, for the folder browser (`404` `unreadable_folder`)                      |
+| `POST /api/settings/test-key`          | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key))                             |
+| `POST /api/settings/test-notification` | Yes   | `{target}`: sends a test (see [Notifications](#notifications)); answers `{"ok", "error"}`                         |
+| `POST /api/scans`                      | Yes   | Starts an analysis (`202`, `{"id"}`); `409` with `already_running`, `rename_running` or `no_sources`              |
+| `GET /api/scans/current`               | Yes   | The last analysis, the counts of the rows and the files to check (see [Analyses](#analyses))                      |
+| `POST /api/to-check`                   | Yes   | `{path, kind}`: gives a file to check its type and searches its row; answers the summary                          |
+| `GET /api/events`                      | Yes   | Server-sent events (see [Live events](#live-events))                                                              |
+| `GET /api/watch`                       | Yes   | The automatic sorting: on or off, last check, last run (see [Automatic sorting](#automatic-sorting))              |
+| `GET /api/rows?type=movies`            | Yes   | The rows of a tab (see [Rows](#rows))                                                                             |
+| `GET /api/rows/{id}`                   | Yes   | One row                                                                                                           |
+| `PATCH /api/rows/{id}`                 | Yes   | `{selected?, destination?}`: picks a candidate (the row is then Ready) or a destination folder                    |
+| `POST /api/rows/{id}/search`           | Yes   | `{query?}`: searches the row again, with the text typed; `409` when a key stops it                                |
+| `POST /api/renames`                    | Yes   | `{type, rows?}`: renames the Ready rows of a tab (`202`, `{"id"}`); see [Renames](#renames)                       |
+| `GET /api/renames/current`             | Yes   | The last rename: its progress, then its result                                                                    |
+| `GET /api/history`                     | Yes   | The operations of the history, newest first (see [History](#history))                                             |
+| `POST /api/history/{id}/undo`          | Yes   | `{index?}`: undoes the operation, or one of its files; answers what was put back                                  |
+| `GET /api/processed`                   | Yes   | The files already processed (see [Files already processed](#files-already-processed))                             |
+| `POST /api/processed/forget`           | Yes   | `{paths}`: the next analysis takes these files again; answers `{"forgotten"}`                                     |
 
-The interface starts with `GET /api/session`: no account → the setup page; an
-account and no session → the login page; otherwise the app.
+The interface starts with `GET /api/session`: no account → the first launch
+assistant; an account and no session → the login page; a session on a server
+that is not `configured` → the assistant too; otherwise the app. Every address
+shows the assistant at `/setup` while it is open (its step is kept in
+`sessionStorage`, so it stays open after its folders are set, until its last
+step).
 
 A route that needs a session declares `dependencies=[Depends(require_login)]`;
 without one, it answers `401` with `"not_logged_in"`. The errors give a code in
@@ -182,111 +187,212 @@ npm run build:demo  # web/dist-demo; release.yml puts it on the website
 During development, run `sok-server` next to `npm run dev`: Vite reloads the
 interface at each change and sends the `/api` requests to the server.
 
-| File                         | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/App.svelte`             | The first page: setup without an account, login without a session, else the app (directly with `SOK_AUTH=none`)                                                                                                                                                                                                                                                                                                                             |
-| `src/pages/`                 | `Setup`, `Login`, `Shell` (the sidebar and the page of the address), `Analysis`, `MediaTab` (the tab of a media type), `History` (with `/history/processed`), `Settings`                                                                                                                                                                                                                                                                    |
-| `src/components/`            | `Sidebar`, `AuthCard`, `Icon`, `Section` (a titled card), `Tabs` (underlined tabs), `Toggle` (a switch row), `FolderList`, `FolderBrowser` (the folders of the server), `LinkProblems`, `KeyRow` (a service and its keys), `NotifyRow` (a target of the notifications), `RowItem` (a row of a tab and its results), `Poster`, `StatusText` (the status of a row, in color only when it asks for something), `RenameStatus`, `ConfirmDialog` |
-| `src/lib/api.ts`             | `api()`: calls `/api` with the session cookie; an error is an `ApiError` with the `code` of `detail`; `openEvents()`: `GET /api/events`; in the demo build, both go to `src/demo/server.ts`                                                                                                                                                                                                                                                 |
-| `src/lib/errors.ts`          | The texts of the errors of the API, of a stopped analysis, of a hard link problem and of an automatic sorting                                                                                                                                                                                                                                                                                                                               |
-| `src/lib/format.ts`          | `fill()`, `pickLanguage()`, `parentFolder()`, `splitName()`, `dayKey()`, `daysAgo()`                                                                                                                                                                                                                                                                                                                                                        |
-| `src/lib/i18n.svelte.ts`     | `loadTexts()` and `t(key, english, values)`                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `src/lib/router.svelte.ts`   | The page is the path of the address (`/movies`), under the base of the build (`/demo/` for the demo); `navigate()`, `follow` and `href()` for the links                                                                                                                                                                                                                                                                                     |
-| `src/lib/session.svelte.ts`  | `GET /api/session`, `logOut()`                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `src/lib/scan.svelte.ts`     | The summary of the analysis, kept live by `listen()` (`GET /api/events`); `startScan()`, `confirmType()`                                                                                                                                                                                                                                                                                                                                    |
-| `src/lib/rows.ts`            | `loadRows()`, `changeRow()`, `searchRow()`, `posterUrl()`                                                                                                                                                                                                                                                                                                                                                                                   |
-| `src/lib/renames.svelte.ts`  | The last rename, kept live by the `rename` and `progress` events; `startRename()`                                                                                                                                                                                                                                                                                                                                                           |
-| `src/lib/history.ts`         | `loadHistory()`, `undo()`, `loadProcessed()`, `forgetProcessed()`                                                                                                                                                                                                                                                                                                                                                                           |
-| `src/lib/settings.svelte.ts` | `loadSettings()`, `saveSettings(change)`, `testKey(service)`                                                                                                                                                                                                                                                                                                                                                                                |
-| `src/lib/theme.svelte.ts`    | The theme of the browser (`light`, `orange`, `dark` or `system`, in `localStorage`), set as `data-theme` on `<html>`; `startTheme()`, `chooseTheme()`                                                                                                                                                                                                                                                                                       |
-| `src/lib/watch.svelte.ts`    | The state of the automatic sorting (`GET /api/watch`), kept live by the `watch` events; `loadWatch()`                                                                                                                                                                                                                                                                                                                                       |
-| `src/lib/columns.ts`         | The columns shared by the header and the rows of a table: the keys and notifications of the settings, the rows of a tab, the history                                                                                                                                                                                                                                                                                                        |
-| `src/lib/pages.ts`           | The pages of the sidebar                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `src/lib/icons.ts`           | The icons of the desktop app (`src/sok/resources/assets`), in the color of the text                                                                                                                                                                                                                                                                                                                                                         |
-| `src/app.css`                | Tailwind, the three themes of the desktop app as Tailwind colors (`bg-card`, `text-muted`…), and the shared classes (`button`, `button-outline`, `link`, `label`, `field`, `check`)                                                                                                                                                                                                                                                         |
+| File                         | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/App.svelte`             | The first page: the assistant without an account or until the server is configured, the login without a session, else the app (directly with `SOK_AUTH=none`)                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `src/pages/`                 | `Setup` (the first launch assistant), `Login`, `Shell` (the navigation, the light of the scene and the page of the address), `Analysis`, `MediaScreen` (the screen of a media type), `History` (with `/history/processed`), `Settings`                                                                                                                                                                                                                                                                                                                                         |
+| `src/components/`            | `nav/NavBar` (the typographic navigation) and `nav/Cube` (the logo cube), `layout/Split` (a screen: the list, then the scene), `scene/Fan` (covers fanned out) and `scene/Facts` (a dotted sheet), `media/Thumb` (a poster, a cover, a book or a tile, with the mark of the selection) and `media/Gauge` (the 5 notches), `settings/*` (the lines of the Settings, the folder browser `FolderPicker`, the dial `SortDial`, the name preview `NamePreview`), `layout/Mark` (the mark alone) and `layout/SceneLight` (the light of the scene, painted behind everything), `Icon` |
+| `src/lib/api.ts`             | `api()`: calls `/api` with the session cookie; an error is an `ApiError` with the `code` of `detail`; `openEvents()`: `GET /api/events`; in the demo build, both go to `src/demo/server.ts`                                                                                                                                                                                                                                                                                                                                                                                    |
+| `src/lib/errors.ts`          | The texts of the errors of the API, of a stopped analysis, of a hard link problem and of an automatic sorting                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `src/lib/format.ts`          | `fill()`, `pickLanguage()`, `parentFolder()`, `splitName()`, `dayKey()`, `daysAgo()`, `pluralForm()` (the plural rules of the desktop app)                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `src/lib/i18n.svelte.ts`     | `loadTexts()`, `t(key, english, values)`, and `tn(key, n, one, other, values)` for a text with a number (keys `<key>_one`, `_few`, `_many`, `_other`)                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `src/lib/router.svelte.ts`   | The page is the path of the address (`/movies`), under the base of the build (`/demo/` for the demo); `navigate()`, `follow` and `href()` for the links; going to another page plays a short View Transition (`page` in `app.css`: the old page fades out, the new one fades in rising 6px, the nav stays still; none when the system asks for less motion); a page calls `hold()` as it starts showing so the fade waits (300 ms at most) for its rows and first pictures (`decoded()`)                                                                                       |
+| `src/lib/session.svelte.ts`  | `GET /api/session`, `logOut()`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `src/lib/scan.svelte.ts`     | The summary of the analysis, kept live by `listen()` (`GET /api/events`); `startScan()`, `confirmType()`                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `src/lib/rows.ts`            | `loadRows()`, `changeRow()`, `searchRow()`, `posterUrl()`, `bigPosterUrl()`, `matchOf()`, `titleOf()`, and what the screens read from the names: `episodeCode()`, `episodeTitle()`, `seasonsOf()`, `trackOf()`, `formatOf()`, `platformOf()`                                                                                                                                                                                                                                                                                                                                   |
+| `src/lib/renames.svelte.ts`  | The last rename, kept live by the `rename` and `progress` events; `startRename()`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `src/lib/history.ts`         | `loadHistory()`, `undo()`, `loadProcessed()`, `forgetProcessed()`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `src/lib/settings.svelte.ts` | `loadSettings()`, `saveSettings(change)`, `testKey(service, key?, secret?)`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `src/lib/theme.svelte.ts`    | The theme of the browser (`dark`, the default, `light` or `system`, in `localStorage`; the old `orange` becomes `light`), set as `data-theme` on `<html>`; `startTheme()`, `chooseTheme()`                                                                                                                                                                                                                                                                                                                                                                                     |
+| `src/lib/watch.svelte.ts`    | The state of the automatic sorting (`GET /api/watch`), kept live by the `watch` events; `loadWatch()`                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `src/lib/namePreview.ts`     | `previewPath()`: the path an example file gets with a name model, for the preview of the Settings (tested)                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `src/lib/pages.ts`           | The pages of the navigation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `src/lib/icons.ts`           | The icons of the desktop app (`src/sok/resources/assets`), in the color of the text                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `src/lib/light.svelte.ts`    | The color of the light of the scene; `setLight()`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `src/lib/color.ts`           | `posterColor()`: the color of a poster, for the light (when its server allows reading it)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `src/lib/disks.ts`           | `loadDisks()`, `sizeText()`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `src/lib/site.ts`            | `SITE_URL`, the website of the help links                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `src/app.css`                | Tailwind, the colors of the art direction (`bg-surface`, `text-muted`…), Geist and Geist Mono (`public/fonts`), and the shared classes (`key`, `key-primary`, `key-sm`, `legend`, `field`, `label`, `link`, `tag`)                                                                                                                                                                                                                                                                                                                                                             |
 
-- **Colors.** `app.css` declares the colors of `src/sok/ui/theme.py` in
-  `@theme` (the macOS light theme); `:root[data-theme="orange"]` (Windows and
-  Linux) and `:root[data-theme="dark"]` only change the variables. On orange,
-  the cards and fields are darker than the page so the white text stays
-  readable. `theme.svelte.ts` sets `data-theme` before the first page:
-  the choice of the browser, or for "System" the dark theme in dark mode, else
-  white on a Mac and orange elsewhere, as the desktop app does. Use the theme
-  colors (`bg-bg`, `bg-card`, `bg-sidebar`, `text-fg`, `text-muted`,
-  `border-line`, `bg-accent`, `text-accent-fg`, `bg-track`, `text-ok`,
-  `text-warn`, `text-error`…), never a color of Tailwind's palette: the accent
-  is white on orange.
-- **Style.** The look of the desktop app: small-capital section titles
-  (`label`), cards with one row per item, pill buttons. A page has one filled
-  button (`button`) for its main action; the others are outlined
-  (`button-outline`) or links (`link`). Color only marks what needs an action
-  or a problem.
+- **Colors.** `app.css` declares the colors of the SOKTeam art direction
+  (`.impeccable/refs/direction-artistique/tokens.json`, the same as
+  `src/sok/ui/tokens.py`) in `@theme`, the dark theme being the default;
+  `:root[data-theme="light"]` only changes the variables. Use these colors
+  (`bg-bg`, `bg-surface`, `bg-raised`, `bg-key`, `text-ink`, `text-muted`,
+  `text-faint`, `border-line`, `bg-accent`, `text-on-accent`,
+  `text-accent-text`, `text-caution`, `text-danger`…), never a color of
+  Tailwind's palette. The coral is for the primary key, the counts of the open
+  page and what asks for a choice; caution for what is missing.
+- **Style.** The look of the desktop app: a typographic navigation at the top
+  (`NavBar`), a title that is a sentence ending with a period, the list on the
+  left and the lit scene on the right (`Split`), dotted sheets (`Facts`), keys
+  lit from above. A screen has one primary key (`key key-primary`); the others
+  are `key`, `key-sm` in rows. The light of the scene (`setLight()`) takes the
+  color of the poster shown, painted by `Shell` behind the whole window. While
+  the screens move to this look one by one, `app.css` keeps the old names
+  (`bg-card`, `text-fg`, `button`…) as aliases of the new colors.
 - **Texts.** Every text goes through `t("web_key", "English text")`, with the
   keys in the translation files of the desktop app (see
   [Translations](/guides/translations/)). The keys of the desktop app can be
   reused (`movies`, `settings`); the new ones start with `web_`.
-- **Settings page.** Five tabs, each at its address: **Folders**
-  (`/settings/folders`, also `/settings`: the folders and the file mode),
-  **Automation** (`/settings/auto`: the automatic sorting and the
-  notifications), **Renaming** (`/settings/rename`: the behavior and the
-  formats), **API Keys** (`/settings/keys`) and **Appearance**
-  (`/settings/look`: the language and the theme of the browser). The links of
-  the analysis page open the right tab. Each change is saved at once, as in
-  the desktop app: a switch, a file mode or a preferred service when it is
-  picked, a format when its field is left, a folder, a key or an address with
-  its Save link, shown once something is typed (`PATCH /api/settings`; the
-  answer replaces the settings shown). A refused change shows its error at
-  the top of the page (a folder: under its role). The folders are rows of one
-  card, a role per group; "Add a folder…" opens a field for a path as the
-  server sees it, and **Browse…** (`FolderBrowser`), which opens next to the
-  last folder of the role, or next to the sources. In `link` mode, a change
-  that makes a hard link impossible (a folder added, the mode picked) opens
-  `LinkProblems`: for each pair of folders, the problem, why, and what to
-  change, with "Use Copy instead"; while a problem stays, a line under the
-  file modes opens it again; when the links work, the hard link mode says so.
-  The keys and the notifications are tables (service, fields, status, test),
-  with the columns of `lib/columns.ts`. A key is never shown: only whether it
-  is set, or set by an environment variable (then it cannot be changed), with
-  a test of the saved key. A new language loads its texts at once.
+- **Narrow screens.** `lib/screen.svelte.ts` follows the width (`narrow`
+  under 1000px, `phone` under 700px). Under 1000px `Split` gives the list
+  the whole width and the scene slides over it when a row is opened (its
+  `open` and `onclose`): 62% of the width with a shadow on a tablet, the
+  whole width on a phone, with "← List", Escape or a swipe to the right to
+  close it; with `sheet`, the scene of a phone is a sheet from the bottom
+  (the folder browser of the Settings and of the assistant). The Analysis
+  and the login have no scene there. On a phone, `nav/PhoneNav` replaces the
+  navigation (menu D: the cube, the word of the page with its count and a
+  thin arrow are one toggle; it opens a full-screen menu of every screen
+  with its count, then History, Settings and Log out); the keys of a screen
+  dock at the bottom over a fade (`.dock` in `app.css`); a long press on a
+  row (`lib/longpress.ts`) starts the selection, summed up in a bar at the
+  bottom (the covers, "3 movies chosen", Done, Put away the selection). The
+  blocks of the Settings put their title above their lines, and the preview
+  of a name becomes a card in the File names block (under 1000px).
+- **Login and first launch.** The login (`Login`) shows only the mark: the
+  form at the left ("Log in.", one coral key, an error in caution, how to
+  reset a forgotten password), the S.O.K cube lit at the right with the
+  version (`GET /api/health`). The first launch assistant (`Setup`) puts its
+  steps in place of the navigation (a step done keeps a coral ✓ and can be
+  opened again, except the account) and asks one question at a time:
+  1 the account (`POST /api/setup`, only without one), 2 where the downloads
+  arrive, 3 where each type goes (a row per type, "stay where they are"
+  without a folder), 4 the file mode (with the hard link checks and the
+  preview of a name), 5 the automatic sorting (No / every N min), then
+  "Ready." with a sentence that sums it up and **Start the first analysis**.
+  Steps 2 and 3 pick the folders with the browser of the scene
+  (`FolderPicker`); each answer is saved at once (`PATCH /api/settings`).
+  Continue lights once the step is filled (a source, a destination).
+- **Settings page.** One page that scrolls, as the Settings of the desktop
+  app: a block per part, its title at the left and dotted lines at the right
+  (`components/settings/`: `Line`, `Choice` for words to pick, `Switch`,
+  `OpenBox` for what an open line sets). The blocks: **Folders** (the
+  sources, then the destinations of each type, the first one "default";
+  `FolderRole`), **Behavior** (the file mode, the hard link problems, the
+  switches), **Automatic sorting**, **Notifications**, **File names**,
+  **Sources** (per media type: "Searched first", then each service and the
+  state of its key: free, set, to set up, set by an environment variable),
+  **Appearance** (theme of the browser, language), **Account** and
+  **About** (version, data folder, documentation). Each block has its
+  address (`/settings/auto`, `/settings/sources`…; `/settings` is Folders):
+  the page goes to the block of the address, and while it scrolls it
+  replaces the address with the block read (`replace()` in
+  `router.svelte.ts`). The addresses of the tabs of before 1.6 still work
+  (`/settings/rename`, `/keys`, `/look`). Each change is saved at once
+  (`PATCH /api/settings`; the answer replaces the settings shown): a switch,
+  a word, a folder, a model or a key with its Save key. One line opens at a
+  time: a key (its fields, Save, Test, Remove, "Get a key"; Test tries the
+  key typed, else the saved one), a target of the notifications (its fields,
+  Save, Test once set, Remove), a name model (its field and its fields
+  `{title}`…). A refused change shows its error at the top (a folder: under
+  its role). **Browse…** opens the folder browser in the scene
+  (`FolderPicker`: the folders of the server, its path can be typed), next
+  to the last folder of the role, or next to the sources. In `link` mode,
+  each hard link that cannot be made shows under the file mode, in a caution
+  box (the problem, why, what to change, **Use Copy**, **Got it**; a problem
+  read comes back only if it is new); when the links work, the page says so.
+  A new language loads its texts at once. The scene is a live preview that
+  follows the block read: the example file of a type, before and after, the
+  parts filled by S.O.K in coral (`previewPath()` in `lib/namePreview.ts`,
+  as `fill_format` and `format_name`; the type of the model open, or of the
+  folder browsed); the rhythm of the automatic sorting (`SortDial`: an hour,
+  the looks marked, the minutes before the next one, the last automatic
+  renames); the message Discord gets after the last rename (as `_message()`
+  in `notify.py`) and the apps told; the account.
 - **Analysis and tabs.** `Shell` listens to `GET /api/events` for every page:
-  a `scan` event replaces the summary (the counts of the sidebar, the
+  a `scan` event replaces the summary (the counts of the navigation, the
   analysis page) and makes the open tab read its rows again; `progress`
   events move the progress bar, and the counts are read again once the files
-  are sorted. The analysis page has one strip for the source folders, the last
-  analysis (its progress while it runs) and the automatic sorting, the
-  problems below it, a table of the counts of each tab (zeros as a dash, the
-  counts to act on in color) with a total, and the files to check. A tab
-  shows the file mode and the destination under its title, the filters as
-  tabs, then a table: box, poster, title and file, new name (green and bold
-  when Ready) with its folders, status. A row opens its results to pick
-  (poster, title, year, artist or authors, overview) and a search with
-  another text; a series or an album unfolds its files with their new names
-  in the same columns. The destination folder is a list only when its media
-  type has several.
-- **Renames and history.** A tab renames its Ready rows (the button of its
-  title), or the rows ticked (the box of the header ticks them all; "Rename
-  the selection" under the table), after a confirmation that gives the number of files, the file mode and the
-  rows still to pick left out (`POST /api/renames`). The progress and the
-  result (files renamed, subtitles, files left on their row and why) show above
-  the rows; the renamed rows leave the table at the `rename` event that ends
-  it. The History page lists the operations by day ("Today", "Yesterday",
-  then the date), one table per day: time, tab, files, file mode (and
-  "automatic"), status, and Undo. A row unfolds its files, old name and new
-  name with its folder, each with "Put back" (a subtitle follows its video);
-  every undo asks first. Its "Already processed" tab (`/history/processed`,
-  linked from the analysis page) lists the files the analyses leave out, with
-  boxes and "Analyze the selection again". Both tabs show their count.
-- **Automatic sorting.** The settings turn it on after a confirmation (the
-  Ready rows will be renamed on their own, with the file mode named) and set
+  are sorted. The analysis page says hello and when the last analysis ran,
+  how many files wait ("20 files to sort."), where and how often the
+  automatic sorting looks, then a row per media type with files (its covers,
+  its count, recognized / to pick / not found, **See**), the files to check
+  with a key per type they hesitate between, the last rename with its undo
+  (confirmed in place), **Analyze** and the files already processed. While an
+  analysis runs, its title and a bar say where it is. Its scene shows the
+  covers waiting, the source folders with their files (a missing one in
+  caution) and the disks with the room left.
+  Every media type has its screen (`MediaScreen`) says how many movies
+  wait, where they were found and how many are recognized, to pick or not
+  found; the filters are words with their counts. A row: poster, title and
+  year, "was <file name>", and the 5-notch gauge, or "to pick" / "not found".
+  Clicking a row opens its scene: the poster (its color lights the scene),
+  title, year, a dotted sheet (quality and size from the row, file mode, the
+  preferred service of the settings), "Will be put here" with the new path
+  and, when the media type has several, the destination folders as words.
+  "That's not it" (or a row to pick or not found) opens the results to pick
+  (poster, title, year and artist or authors, overview) and a search field.
+  **Selection**: the round mark at the top-left of a poster (on hover), a
+  Cmd/Ctrl-click or a Shift-click enter the selection mode, where every mark
+  shows and a click toggles a row (Shift: a range); only Ready rows can be
+  chosen. The scene then fans the covers chosen. "Done" or Escape leave it.
+  On TV Shows, a row is a series: the screen counts its episodes ("23
+  episodes to sort.", "In 4 series."), the row says its seasons and episodes,
+  the open series unfolds its episodes under its row (code, title, "was …",
+  the first 4 then "+ N other episodes"), and its scene shows "Series · year",
+  the title, the seasons and the titles found, a grid of the episodes (faint
+  without a title) and the folder of the season. `episodeCode()`,
+  `episodeTitle()` and `seasonsOf()` (`lib/rows.ts`) read them from the new
+  names, else the file names.
+  On Music, the screen counts tracks ("In 24 albums.", "And 3 single
+  tracks."), the rows are a grid of square covers (title, artist · year; the
+  open album on the raised ground, the chosen ones ringed in coral), and the
+  scene shows the cover, "artist · year · N tracks", the first 6 tracks
+  (`trackOf()` reads their number and title) then "+ N tracks", and the
+  folder of the album. "Which album is it?" or "Which track is it?" follows
+  the kind of the row.
+  On Books, the thumbnails have the corners of a spine and its shade; a row
+  gives the authors and the format (EPUB, PDF) as a tag; the sheet of the
+  scene gives the publisher, the format and size, the ISBN (`publisher` and
+  `isbn` of the result, when its service gives them) and the service; a note
+  says that the books not recognized stay where they are.
+  A screen opens its first Ready row; without one, the first row on its
+  results.
+  On Games, a row gives the console as a tag (`platformOf()`: the first
+  folder of the new name). A media type with nothing to sort shows the empty
+  screen: three empty slots, "No game to sort.", what S.O.K does with these
+  files, **Analyze** and **How it works** (the guide of the website,
+  `SITE_URL` of `lib/site.ts`), and for Games the consoles recognized. The
+  end of a rename stays on its scene even when it empties the list.
+- **Renames and history.** The primary key of a media screen puts away its
+  Ready rows ("Put away the movies N"), or the selection ("Put away the
+  selection N"), at once (`POST /api/renames`); a note under the list says
+  what the file mode does. While it runs, the title and the lead give the
+  progress; at the end, the scene says how many files were put away, the
+  subtitles, the files left in place and why, with "Undo this" (confirmed in
+  place), "See the history" and "Close". The renamed rows leave the list at
+  the `rename` event that ends it.
+  The History page (`History`, sections from `sectionsOf()` in
+  `lib/historyGroups.ts`) lists the renames newest first: "Today",
+  "Yesterday · <date>", "Earlier in <month>" for the month of the newest
+  one, then one folded line per older month ("14 renames in October, 611
+  files", **Show**). A row: time (or day), the covers its rename kept,
+  "6 movies put away", from where to where, the tag `auto` and "Undone" /
+  "Partly undone". Its scene: the covers fanned out, when, the title, a
+  dotted sheet (put away by you or the automatic sorting, from, to, the
+  transfer), the first files with "was …" (a subtitle "follows its video")
+  and ↺ to put one back, then **Undo this** (or **Undo the rest**). Every
+  undo is confirmed in the scene, then the scene says what came back and
+  what stayed, and why. **Already processed** (`/history/processed`, linked
+  from the analysis page) lists the files the analyses leave out (cover of
+  their operation, name, new name and mode, date, size), chosen with the
+  selection of the media screens; **Analyze again N** forgets them and starts
+  an analysis. Its scene counts them per source folder, hard links and
+  copies. Without any rename, the page is the empty screen.
+- **Automatic sorting.** The settings turn it on after a confirmation in
+  place (the ready files will be sorted on their own, with the file mode
+  named) and set
   the minutes between two checks. The strip of the analysis page shows
   whether it is on, its last run (files renamed) and its last check (on hover);
   each problem shows with the others (`watchProblemText` in `errors.ts`: the
   stop of the analysis, or the tab and why its rename was refused). An
   automatic analysis says so after its date.
-- **Notifications.** One row per target: its fields (an address is shown
-  again, a secret only as saved), a Remove link, its status, and a test once
-  it is set (`POST /api/settings/test-notification`). The script row only
-  says whether `SOK_AFTER_RENAME` is set.
+- **Notifications.** One line per target, on or off; open, its fields (an
+  address is shown again, a secret only as saved), Save, Remove, and a test
+  once it is set (`POST /api/settings/test-notification`). The script line
+  only says whether `SOK_AFTER_RENAME` is set.
 - **Language at startup.** Without an account, the interface asks
   `GET /api/i18n` for the languages, then loads the first language of the
   browser that S.O.K has (`pickLanguage`); the setup sends it to the server.
@@ -302,9 +408,7 @@ interface at each change and sends the `/api` requests to the server.
   check, the history, the settings, and a file that arrives 40 seconds after
   the opening for the automatic sorting to rename. The other searches find
   nothing. The language is the one of `?lang=` (the links of the website give it), else the browser's; the banner of `Shell` says that
-  nothing is renamed and credits TMDB. Below 768 pixels,
-  `demo/MobileNotice.svelte` first fills the screen: S.O.K Server is not
-  made for a phone, "Continue anyway" (once per tab) or back to the site. The
+  nothing is renamed and credits TMDB. The
   `demoPreview` plugin of `vite.config.ts` gives its page the preview of a
   shared link (Open Graph and Twitter tags, with the image `/og-demo.png` of
   the website, whose address is the `SITE` constant). The normal build holds
@@ -351,6 +455,7 @@ interface at each change and sends the `/api` requests to the server.
 | `folders`       | `sources`, and the destination folders of `movies`, `tv`, `music`, `books`, `games`, in order                                                                                                                                  |
 | `link_checks`   | In `link` mode, one check per source and destination: `ok`, `problem`, `tested`                                                                                                                                                |
 | `notifications` | `discord`, `webhook`: `{"set"}`; `jellyfin`, `plex`: `{"url", "set"}`; `script`: whether `SOK_AFTER_RENAME` is set (see [Notifications](#notifications))                                                                       |
+| `about`         | `version` of the server, and `data`: the folder of its database (`SOK_CONFIG_DIR`, `/config` in Docker)                                                                                                                        |
 
 - **Where they are kept.** The settings and the keys shared with the desktop
   app stay in `config.json`, through the `ConfigManager`: the core reads them
@@ -447,11 +552,19 @@ are deleted. A new row is `pending` until it is searched.
 | `scan`     | The last analysis: `id`, `status` (`running`, `done`, `failed`, `interrupted`), `started`, `finished`, `error`, `missing_sources`, `processed`; `null` before the first |
 | `counts`   | For each media type (`movies`, `tv`, `music`, `books`, `games`): the rows per status, and `total`                                                                       |
 | `to_check` | The files whose type is a guess: `path`, `kind` suggested, its `media_type`, `title`, `reason`                                                                          |
+| `covers`   | For each media type, up to 3 posters of the results picked (`poster_path` or `image_url`)                                                                               |
+| `sources`  | Each source folder: `path`, the `files` of it waiting (rows and files to check), and whether it is `missing`                                                            |
 
 - A source folder that is gone is skipped and listed in `missing_sources`.
 - The files already processed are left out and counted in `scan.processed`
   (see [Files already processed](#files-already-processed)).
 - An analysis cut by a restart of the server is `interrupted` at the next start.
+- `GET /api/settings/disks` gives the disks of the destination folders, then of
+  the source folders (`server/disks.py`): one entry per volume, named after
+  its first folder, with its `folders`, `total` and `free` bytes; a missing
+  folder is left out. `movie_size` is the average size of the movie files
+  waiting (`Scans.movie_size()`), or `null`: the analysis page says how many
+  movies of that size the first disk still holds.
 - `POST /api/to-check` gives a file to check its type (`kind`: `movie`,
   `episode`, `album`, `track`, `book`, `game`): it becomes a row, or joins its
   series or album. The choice goes into `type_choices`, which the next
@@ -504,10 +617,12 @@ analysis only searches the new rows.
 | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`, `media_type`, `kind`, `title`   | The row; `title` is the one of a series or an album                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `query`, `year`, `status`, `selected` | The search                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `candidates`                          | `id`, `title`, `original_title`, `by` (the artist of an album or a track, the authors of a book), `year`, `poster`, `overview` (300 characters) of each result                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `candidates`                          | `id`, `title`, `original_title`, `by` (the artist of an album or a track, the authors of a book), `year`, `poster`, `overview` (300 characters), and for a book `publisher` and `isbn` (or `null`) of each result                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `files`                               | `path`, `name` and `new_name` of each file, or `null` before a match: for movies the file name the formats give (`generate_new_filename`); for episodes the series and season folders with that name (`Severance/Season 1/Severance S01E01 Good News About Hell.mkv`, or a season folder that already exists in the destination: `episode_folder`); for the other kinds the path under the destination, as the desktop batches move them (`batch_target`): `Daft Punk - Discovery/01 - One More Time.mp3`, `Frank Herbert/Frank Herbert - Dune (1965)/Frank Herbert - Dune (1965).epub`, `Super Nintendo/Chrono Trigger (USA).smc` |
 | `files[].error`                       | Why the last rename left the file: `{"code": "already_exists" or "failed", "message"}`, or `null`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `destination`                         | Index of the destination folder of its type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `size`                                | The size of its files still there, in bytes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `quality`                             | The quality read from the first file name (`"2160p · x265 · DTS"`), or `null`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `episodes_found`                      | For a series: how many episode titles were found, or `null`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 `PATCH /api/rows/{id}` with `selected` makes the row Ready, as picking a match
@@ -648,7 +763,9 @@ newest), with its `media_type`.
 
 `GET /api/history` lists the operations: `id`, `date`, `kind`, `media_type`,
 `undone`, `partly_undone`, `auto` (made by the automatic sorting: the
-`renames` row whose result names the operation is automatic), and `files`:
+`renames` row whose result names the operation is automatic), `covers` (up
+to 3 posters of the rows it renamed, kept in the result of its rename by
+`Renamer`; `[]` before 1.6), and `files`:
 `index`, `source`, `target`, `mode`, `undone`, `follows` (the new path of the
 video of a subtitle).
 

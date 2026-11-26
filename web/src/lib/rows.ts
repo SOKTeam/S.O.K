@@ -13,6 +13,9 @@ export interface Candidate {
   /** A path of TMDB (/abc.jpg) or a full address. */
   poster: string | null;
   overview: string;
+  /** Of a book, when its service gives them. */
+  publisher?: string | null;
+  isbn?: string | null;
 }
 
 export interface RowFile {
@@ -39,6 +42,20 @@ export interface Row {
   candidates: Candidate[];
   files: RowFile[];
   episodes_found: number | null;
+  /** The size of its files in bytes, and the quality read from the first
+   * file name ("2160p · x265"); absent in the recorded demo. */
+  size?: number;
+  quality?: string | null;
+}
+
+/** The result picked for a row, or null. */
+export function matchOf(row: Row): Candidate | null {
+  return row.selected === null ? null : (row.candidates[row.selected] ?? null);
+}
+
+/** The title shown for a row: its match, else what was read from the file. */
+export function titleOf(row: Row): string {
+  return matchOf(row)?.title ?? row.title ?? row.query ?? row.files[0]?.name ?? "";
 }
 
 export async function loadRows(mediaType: string): Promise<Row[]> {
@@ -64,4 +81,68 @@ export function posterUrl(poster: string | null): string | null {
     return null;
   }
   return poster.startsWith("/") ? `https://image.tmdb.org/t/p/w154${poster}` : poster;
+}
+
+/** A larger poster, for the scene. */
+export function bigPosterUrl(poster: string | null): string | null {
+  if (!poster) return null;
+  return poster.startsWith("/") ? `https://image.tmdb.org/t/p/w500${poster}` : poster;
+}
+
+/** "S01E04" of an episode file, read from its new name, else its name. */
+export function episodeCode(file: RowFile): string | null {
+  for (const text of [file.new_name, file.name]) {
+    const name = text?.split("/").pop() ?? "";
+    const se = name.match(/S(\d{1,2})E(\d{1,3})/i);
+    if (se) return `S${se[1].padStart(2, "0")}E${se[2].padStart(2, "0")}`;
+    const x = name.match(/\b(\d{1,2})x(\d{2,3})\b/);
+    if (x) return `S${x[1].padStart(2, "0")}E${x[2].padStart(2, "0")}`;
+  }
+  return null;
+}
+
+/** The title of an episode in its new name ("Pilot"), or null. */
+export function episodeTitle(file: RowFile): string | null {
+  const name =
+    file.new_name
+      ?.split("/")
+      .pop()
+      ?.replace(/\.[^.]+$/, "") ?? "";
+  const found = name.match(/S\d+E\d+\s+(.+)$/i);
+  return found ? found[1] : null;
+}
+
+/** The seasons of the episodes of a row, in order. */
+export function seasonsOf(row: Row): number[] {
+  const seasons = row.files
+    .map((file) => episodeCode(file))
+    .filter((code): code is string => code !== null)
+    .map((code) => Number(code.slice(1, 3)));
+  return [...new Set(seasons)].sort((a, b) => a - b);
+}
+
+/** The number and title of a track, read from its new name ("01 - One
+ * More Time"), else its name. */
+export function trackOf(file: RowFile): { number: string | null; title: string } {
+  const name = (file.new_name ?? file.name)
+    .split("/")
+    .pop()!
+    .replace(/\.[^.]+$/, "");
+  const found = name.match(/^(\d{1,3})\s*[-.]\s*(.+)$/);
+  return found
+    ? { number: found[1].padStart(2, "0"), title: found[2] }
+    : { number: null, title: name };
+}
+
+/** The format of a file, from its extension: "EPUB", "PDF". */
+export function formatOf(file: RowFile): string {
+  const found = file.name.match(/\.([a-z0-9]+)$/i);
+  return found ? found[1].toUpperCase() : "";
+}
+
+/** The console of a game, the first folder of its new name ("Super
+ * Nintendo"), or null. */
+export function platformOf(row: Row): string | null {
+  const parts = row.files[0]?.new_name?.split("/") ?? [];
+  return parts.length > 1 ? parts[0] : null;
 }

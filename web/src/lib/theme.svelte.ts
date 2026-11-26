@@ -1,43 +1,43 @@
-// The theme of the interface, chosen in each browser: the light theme of
-// macOS (white and gray), the orange one of Windows and Linux, the dark one,
-// or the one of the system, as the desktop app does.
+// The theme of the interface, chosen in each browser: dark (the default of
+// the art direction), light, or the one of the system.
 
-export type Theme = "light" | "orange" | "dark";
+export type Theme = "light" | "dark";
 export type ThemeChoice = Theme | "system";
 
-export const THEME_CHOICES: ThemeChoice[] = ["system", "light", "orange", "dark"];
+export const THEME_CHOICES: ThemeChoice[] = ["dark", "light", "system"];
 
 const STORAGE_KEY = "sok-theme";
 
-/**
- * The theme shown for a choice: the system one is dark in dark mode, else
- * white on a Mac and orange elsewhere.
- */
-export function resolveTheme(choice: ThemeChoice, dark: boolean, mac: boolean): Theme {
+/** The theme shown for a choice: the system one follows its dark mode. */
+export function resolveTheme(choice: ThemeChoice, dark: boolean): Theme {
   if (choice !== "system") return choice;
-  if (dark) return "dark";
-  return mac ? "light" : "orange";
+  return dark ? "dark" : "light";
+}
+
+/** A saved choice; "orange", the bright theme of before 1.6, becomes light. */
+export function savedChoice(saved: string | null): ThemeChoice {
+  if (saved === "orange") return "light";
+  return THEME_CHOICES.includes(saved as ThemeChoice) ? (saved as ThemeChoice) : "dark";
 }
 
 function readChoice(): ThemeChoice {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (THEME_CHOICES.includes(saved as ThemeChoice)) return saved as ThemeChoice;
+    return savedChoice(localStorage.getItem(STORAGE_KEY));
   } catch {
-    // No storage (private window): the system theme.
+    // No storage (private window): the default.
+    return "dark";
   }
-  return "system";
 }
 
 // Read from the browser by startTheme().
-const state = $state({ choice: "system" as ThemeChoice, dark: false, mac: false });
+const state = $state({ choice: "dark" as ThemeChoice, dark: true });
 
 export const theme = {
   get choice() {
     return state.choice;
   },
   get current(): Theme {
-    return resolveTheme(state.choice, state.dark, state.mac);
+    return resolveTheme(state.choice, state.dark);
   },
 };
 
@@ -50,7 +50,6 @@ export function startTheme(): void {
   const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
   state.choice = readChoice();
   state.dark = darkQuery.matches;
-  state.mac = /Mac/.test(navigator.platform || navigator.userAgent);
   apply();
   darkQuery.addEventListener("change", (event) => {
     state.dark = event.matches;

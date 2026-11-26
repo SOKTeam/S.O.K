@@ -36,6 +36,8 @@ export interface SettingsData {
   folders: Record<string, string[]>;
   link_checks: LinkCheck[];
   notifications: Notifications;
+  /** The version of the server, and the folder of its database. */
+  about: { version: string; data: string };
 }
 
 /** The notification targets: addresses, and whether the secrets are set. */
@@ -85,9 +87,13 @@ export interface KeyTest {
     | "unsupported";
 }
 
-/** Test the saved key of a service. */
-export function testKey(service: string): Promise<KeyTest> {
-  return api<KeyTest>("/api/settings/test-key", { method: "POST", body: { service } });
+/** Test a key of a service: the one typed (and its secret), else the one
+ * saved. */
+export function testKey(service: string, key?: string, secret?: string): Promise<KeyTest> {
+  return api<KeyTest>("/api/settings/test-key", {
+    method: "POST",
+    body: { service, key: key || undefined, secret: secret || undefined },
+  });
 }
 
 export interface NotificationTest {

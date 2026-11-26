@@ -46,6 +46,21 @@ def setup(client, username="william", password=PASSWORD):
     return client.post("/api/setup", json={"username": username, "password": password})
 
 
+def test_the_server_is_configured_with_a_source_and_a_destination(
+    client, tmp_path
+):
+    setup(client)
+    downloads, movies = tmp_path / "downloads", tmp_path / "movies"
+    downloads.mkdir()
+    movies.mkdir()
+
+    client.patch("/api/settings", json={"folders": {"sources": [str(downloads)]}})
+    assert client.get("/api/session").json()["configured"] is False
+
+    client.patch("/api/settings", json={"folders": {"movies": [str(movies)]}})
+    assert client.get("/api/session").json()["configured"] is True
+
+
 def test_health_answers_without_login(client):
     answer = client.get("/api/health")
 
@@ -60,6 +75,7 @@ def test_the_first_visit_creates_the_account_and_logs_in(client):
         "account": False,
         "logged_in": False,
         "username": None,
+        "configured": False,
         "language": "en",
     }
 

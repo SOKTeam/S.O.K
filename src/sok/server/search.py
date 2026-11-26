@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from sok.config.config_manager import ConfigManager
+from sok.file_operations.mixins.parsing import FileParsingMixin
 from sok.core.batch import (
     STATUS_READY,
     BatchMatch,
@@ -416,6 +417,9 @@ class Searcher:
                 for path, name in zip(files, names)
             ],
             "episodes_found": len(details["episodes"]) if details else None,
+            # What the scene shows without opening the files.
+            "size": _size(files),
+            "quality": _quality(files[0]) if files else None,
         }
 
     def destination(self, row: Any) -> Optional[str]:
@@ -511,7 +515,17 @@ def _candidate(candidate: Dict[str, Any]) -> Dict[str, Any]:
         "year": candidate_year(candidate),
         "poster": candidate.get("poster_path") or candidate.get("image_url"),
         "overview": overview[:OVERVIEW_LENGTH],
+        # Of a book, when its service gives them.
+        "publisher": _first(candidate.get("publisher") or candidate.get("publishers")),
+        "isbn": candidate.get("isbn13") or _first(candidate.get("isbn")),
     }
+
+
+def _first(value: Any) -> Optional[str]:
+    """A text, or the first text of a list (Open Library gives lists)."""
+    if isinstance(value, list):
+        value = next((v for v in value if isinstance(v, str) and v), None)
+    return value if isinstance(value, str) and value else None
 
 
 def _by(candidate: Dict[str, Any]) -> Optional[str]:
@@ -529,3 +543,32 @@ def search_error(exc: SearchStopped) -> Dict[str, Any]:
     if exc.others:
         error["others"] = [{"code": o.code, "service": o.service} for o in exc.others]
     return error
+
+
+def _size(files: List[str]) -> int:
+    """The size of the files of a row in bytes, those still there."""
+    size = 0
+    for path in files:
+        try:
+            size += os.stat(path).st_size
+        except OSError:
+            continue
+    return size
+
+
+def _quality(path: str) -> Optional[str]:
+    """The quality read from a file name: "2160p · x265 · DTS", or None."""
+    info = FileParsingMixin.extract_quality_metadata(Path(path).name)
+    parts = [info.get(part) for part in ("quality", "codec", "audio")]
+    return " · ".join(part for part in parts if part) or None
+
+
+def poster_of(row: Any) -> Optional[str]:
+    """The poster of the result picked for a row, if it has one."""
+    if row["selected"] is None:
+        return None
+    candidates = json.loads(row["candidates"])
+    if not 0 <= row["selected"] < len(candidates):
+        return None
+    candidate = candidates[row["selected"]]
+    return candidate.get("poster_path") or candidate.get("image_url")
