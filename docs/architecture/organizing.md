@@ -221,8 +221,9 @@ where Plex, Jellyfin and Kodi look for it:
 | Book         | `cover.jpg` in the book folder                     |
 
 An image already in place is kept, and a failed download is only logged. Games
-get none: RAWG gives screenshots, not covers. Like the batch engine, the module
-has no Qt dependency.
+get none: RAWG gives a wide picture of the game, not a cover, so its
+`poster_path` is only shown on the screens (IGDB gives real covers). Like the
+batch engine, the module has no Qt dependency.
 
 ### Subtitles
 
