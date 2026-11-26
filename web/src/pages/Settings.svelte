@@ -133,6 +133,9 @@
   let block = $state<Block>(untrack(() => blockOf(router.path)));
   // The address the page set itself while scrolling: not a move to make.
   let followed = "";
+  // The block asked for by an address: at the end of the page several blocks
+  // fit on the screen, so the one asked for stays the block read.
+  let aimed: Block | null = null;
 
   /** The block read: the last one whose top is above the top third. */
   function follow() {
@@ -144,6 +147,8 @@
     for (const element of pane.querySelectorAll<HTMLElement>("[data-block]")) {
       if (element.getBoundingClientRect().top <= line) found = element.dataset.block as Block;
     }
+    if (!atEnd) aimed = null;
+    else if (aimed) found = aimed;
     if (found !== block) {
       block = found;
       followed = addressOf(found);
@@ -163,6 +168,7 @@
           pane.scrollTop -
           20;
     block = target;
+    aimed = target;
   }
 
   // An address given (a link, the start): go to its block once it is there.
@@ -478,7 +484,7 @@
   {/if}
 
   {#if data}
-    <div class="pb-[40vh]">
+    <div class="pb-12">
       <!-- Folders -->
       <section
         data-block="folders"
