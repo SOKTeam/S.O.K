@@ -304,6 +304,8 @@ def for_the_demo(data: dict) -> dict:
     settings["settings"].update({"auto_sort": True, "auto_sort_minutes": 5})
     settings["notifications"]["discord"]["set"] = True
     settings["notifications"]["jellyfin"] = {"url": "http://jellyfin:8096", "set": True}
+    # The folder of the settings, as in the Docker image (not the temporary one).
+    settings["about"]["data"] = "/config"
 
     # The automatic sorting of the evening before, the renames by hand of
     # two days before.
