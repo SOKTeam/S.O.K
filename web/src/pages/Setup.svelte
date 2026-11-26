@@ -252,7 +252,7 @@
   <button
     type="button"
     class={[
-      "cursor-pointer bg-[length:6px_1.5px] bg-bottom bg-repeat-x pb-0.5 text-left font-mono tracking-[-0.02em]",
+      "max-w-full cursor-pointer bg-[length:6px_1.5px] bg-bottom bg-repeat-x pb-0.5 text-left font-mono tracking-[-0.02em] [overflow-wrap:anywhere]",
       current
         ? "bg-[linear-gradient(90deg,var(--color-accent)_50%,transparent_0)] text-accent-text"
         : "bg-[linear-gradient(90deg,var(--color-line-strong)_50%,transparent_0)] text-ink hover:text-accent-text",
@@ -397,7 +397,9 @@
           <div class="mt-[22px] grid gap-2.5 text-[30px] leading-[1.3]">
             {#each sources as source (source)}
               <div class="flex items-baseline gap-[18px]">
-                <span class="font-mono tracking-[-0.02em] text-ink">{source}</span>
+                <span class="min-w-0 font-mono tracking-[-0.02em] [overflow-wrap:anywhere] text-ink"
+                  >{source}</span
+                >
                 <button
                   type="button"
                   class="cursor-pointer text-[13px] text-faint hover:text-ink"
@@ -437,14 +439,15 @@
               {@const [name, verb, stay] = ROW[type]()}
               {@const folder = data.folders[type][0]}
               <div
-                class="grid grid-cols-[150px_auto] items-baseline gap-x-4 text-[22px] font-semibold tracking-[-0.02em] sm:grid-cols-[170px_96px_auto]"
+                class="grid grid-cols-[150px_minmax(0,1fr)] items-baseline gap-x-4 text-[22px] font-semibold tracking-[-0.02em] sm:grid-cols-[170px_96px_minmax(0,1fr)]"
               >
                 <span>{name}</span>
                 {#if folder}
                   <span class="hidden text-[15px] font-normal tracking-normal text-faint sm:inline"
                     >{verb}</span
                   >
-                  <span class="min-w-0 truncate text-[22px] font-normal">
+                  <!-- The path as a block: the name of the type follows its first line. -->
+                  <span class="min-w-0 text-[22px] leading-[1.3] font-normal *:block">
                     {@render path(folder, target === type, () => browse(type))}
                   </span>
                 {:else}
@@ -565,7 +568,8 @@
             class="mt-[26px] max-w-[680px] text-[26px] leading-[1.5] font-medium tracking-[-0.02em]"
           >
             {#each summary as part, i (i)}{#if part.value}<span
-                  class="font-mono text-[23px] font-normal">{part.text}</span
+                  class="font-mono text-[23px] font-normal [overflow-wrap:anywhere]"
+                  >{part.text}</span
                 >{:else}{part.text}{/if}{/each}
             {data.settings.auto_sort
               ? t("web_setup_ready_auto", "The automatic sorting looks every {n} minutes.", {
@@ -630,7 +634,7 @@
           </div>
           <p class="mt-[22px] max-w-[360px] text-center text-[14px] leading-[1.5] text-muted">
             {#each fillParts( t("web_setup_ready_scene", "The first analysis will fill these places with what it finds in {folder}."), { folder: sources[0] ?? "" } ) as part, i (i)}{#if part.value}<code
-                  class="font-mono text-[13px] text-ink">{part.text}</code
+                  class="font-mono text-[13px] [overflow-wrap:anywhere] text-ink">{part.text}</code
                 >{:else}{part.text}{/if}{/each}
           </p>
         {:else}

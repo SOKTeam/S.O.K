@@ -471,7 +471,7 @@
                 )}
           </b>
           {t("web_last_to", "to")}
-          <code class="font-mono text-[13px]">{destinationOf(last)}</code>.
+          <code class="font-mono text-[13px] [overflow-wrap:anywhere]">{destinationOf(last)}</code>.
         </span>
         <button type="button" class="key key-sm" onclick={() => (asking = true)}>
           {t("web_undo_this", "Undo this")}
