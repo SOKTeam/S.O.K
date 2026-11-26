@@ -137,12 +137,17 @@
   // fit on the screen, so the one asked for stays the block read.
   let aimed: Block | null = null;
 
-  /** The block read: the last one whose top is above the top third. */
+  /** The block read: the last one whose top is above the reading line. */
   function follow() {
     if (!pane) return;
     const top = pane.getBoundingClientRect().top;
-    const atEnd = pane.scrollTop + pane.clientHeight >= pane.scrollHeight - 2;
-    const line = top + (atEnd ? pane.clientHeight * 0.6 : 110);
+    // The last blocks never reach the top: over the last half screen of
+    // scrolling, the reading line slides down so each one gets its turn.
+    const remaining = pane.scrollHeight - pane.clientHeight - pane.scrollTop;
+    const atEnd = remaining <= 2;
+    const reach = pane.clientHeight / 2;
+    const slide = remaining >= reach ? 0 : 1 - remaining / reach;
+    const line = top + 110 + slide * (pane.clientHeight - 190);
     let found: Block = "folders";
     for (const element of pane.querySelectorAll<HTMLElement>("[data-block]")) {
       if (element.getBoundingClientRect().top <= line) found = element.dataset.block as Block;
