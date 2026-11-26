@@ -141,6 +141,9 @@ class RAWGApi(BaseAPI):
                     "rating": game.get("rating"),
                     "platforms": platforms,
                     "genres": [g.get("name") for g in game.get("genres", [])],
+                    # RAWG has no box art: its image is a wide picture of the
+                    # game, still better than no picture at all.
+                    "poster_path": game.get("background_image") or "",
                 }
             )
 
@@ -177,6 +180,7 @@ class RAWGApi(BaseAPI):
             "metacritic_score": response.get("metacritic"),
             "platforms": platforms,
             "genres": [g.get("name") for g in response.get("genres", [])],
+            "poster_path": response.get("background_image") or "",
             "developers": [d.get("name") for d in response.get("developers", [])],
             "publishers": [p.get("name") for p in response.get("publishers", [])],
             "esrb_rating": response.get("esrb_rating", {}).get("name")
