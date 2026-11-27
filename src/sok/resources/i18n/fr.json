@@ -798,5 +798,11 @@
     "web_menu": "Menu",
     "web_menu_nothing": "rien",
     "web_menu_waiting": "{n} à ranger",
-    "web_touch_to_toggle": "Touche une ligne pour l'ajouter ou l'enlever."
+    "web_touch_to_toggle": "Touche une ligne pour l'ajouter ou l'enlever.",
+    "web_error_not_enough_space": "Pas assez de place sur {folder} : il faut {needed}, plus {margin} à garder libre, et il en reste {free}. Rien n'a été déplacé.",
+    "web_free_space_keep": "Garder libre sur chaque disque",
+    "web_free_space_keep_gb": "Garder libre sur chaque disque (Go)",
+    "web_gb": "Go",
+    "web_free_space_hint": "Avant de ranger, le serveur vérifie que les disques qui reçoivent des copies gardent cette place. Un lien dur, ou un déplacement sur le même disque, n'en prend pas.",
+    "notify_not_enough_space": "Pas rangé : pas assez de place sur {folder} (il faut {needed} + {margin} à garder libre, il reste {free})."
 }

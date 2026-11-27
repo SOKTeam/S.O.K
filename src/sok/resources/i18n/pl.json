@@ -848,5 +848,11 @@
     "web_menu": "Menu",
     "web_menu_nothing": "nic",
     "web_menu_waiting": "do uporządkowania: {n}",
-    "web_touch_to_toggle": "Dotknij wiersza, aby go dodać lub usunąć."
+    "web_touch_to_toggle": "Dotknij wiersza, aby go dodać lub usunąć.",
+    "web_error_not_enough_space": "Za mało miejsca na {folder}: potrzeba {needed}, plus {margin} do zostawienia wolnego, a zostało {free}. Nic nie zostało przeniesione.",
+    "web_free_space_keep": "Zostaw wolne na każdym dysku",
+    "web_free_space_keep_gb": "Zostaw wolne na każdym dysku (GB)",
+    "web_gb": "GB",
+    "web_free_space_hint": "Przed porządkowaniem serwer sprawdza, czy dyski, na które trafiają kopie, zachowają tyle miejsca. Twarde dowiązanie lub przeniesienie na tym samym dysku nie zajmuje miejsca.",
+    "notify_not_enough_space": "Nie uporządkowano: za mało miejsca na {folder} (potrzeba {needed} + {margin} wolnego, wolne {free})."
 }
