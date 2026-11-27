@@ -201,10 +201,13 @@ class TMDBApi(BaseAPI):
             language: Language code for results.
 
         Returns:
-            Dictionary with series metadata.
+            Dictionary with series metadata, with its alternative_titles and
+            external_ids (TVDB, IMDb) in the same request: they find the
+            folder a series already has.
         """
         params = self._get_base_params()
         params["language"] = language
+        params["append_to_response"] = "alternative_titles,external_ids"
         return await self._make_request(f"tv/{tv_id}", params, self._get_headers())
 
     async def get_tv_episodes(
