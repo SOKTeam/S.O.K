@@ -814,5 +814,11 @@
     "web_seasons_already": "{seasons} già sistemate.",
     "web_episodes_already": "{episodes} già lì.",
     "web_seasons_list": "Stagioni {list}",
-    "web_existing_chosen": "Cartella esistente, scelta da te."
+    "web_existing_chosen": "Cartella esistente, scelta da te.",
+    "web_error_not_enough_space": "Spazio insufficiente su {folder}: servono {needed}, più {margin} da lasciare liberi, e ne restano {free}. Non è stato spostato nulla.",
+    "web_free_space_keep": "Lascia libero su ogni disco",
+    "web_free_space_keep_gb": "Lascia libero su ogni disco (GB)",
+    "web_gb": "GB",
+    "web_free_space_hint": "Prima di sistemare, il server controlla che i dischi che ricevono copie mantengano questo spazio. Un collegamento fisico, o uno spostamento sullo stesso disco, non ne occupa.",
+    "notify_not_enough_space": "Non sistemato: spazio insufficiente su {folder} (servono {needed} + {margin} liberi, restano {free})."
 }

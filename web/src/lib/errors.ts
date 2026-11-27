@@ -1,7 +1,8 @@
 // The text of an error of the API, in the language of the interface.
 
 import { ApiError } from "./api";
-import { t } from "./i18n.svelte";
+import { sizeText } from "./disks";
+import { i18n, t } from "./i18n.svelte";
 import { MEDIA_PAGES } from "./pages";
 import type { WatchProblem } from "./watch.svelte";
 
@@ -58,6 +59,24 @@ export function errorText(error: unknown): string {
     }
     case "no_sources":
       return t("web_error_no_sources", "Add a source folder in the settings first.");
+    case "not_enough_space": {
+      const detail = error.detail as {
+        destination?: string;
+        needed?: string;
+        free?: string;
+        margin?: string;
+      };
+      return t(
+        "web_error_not_enough_space",
+        "Not enough room on {folder}: {needed} needed, plus {margin} to keep free, and {free} left. Nothing was moved.",
+        {
+          folder: detail.destination ?? "",
+          needed: sizeText(Number(detail.needed ?? 0), i18n.language),
+          free: sizeText(Number(detail.free ?? 0), i18n.language),
+          margin: sizeText(Number(detail.margin ?? 0), i18n.language),
+        },
+      );
+    }
     default:
       return t("web_error_unknown", "Something went wrong. Try again.");
   }

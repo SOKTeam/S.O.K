@@ -18,7 +18,9 @@ posters of the settings; the whole rename is one operation of the history.
 
 With hard links, every source and destination of the rename are tested
 first: if one pair cannot be linked, nothing is renamed and the error says
-which folders. The files renamed leave the table; a file that fails, or is
+which folders. A copy, or a move to another disk, needs room: if a disk
+would keep less than the free_space_margin_gb setting, nothing is renamed
+either (not_enough_space). The files renamed leave the table; a file that fails, or is
 skipped as a duplicate, stays on its row with why.
 """
 
@@ -26,6 +28,7 @@ import asyncio
 import json
 import logging
 import os
+import shutil
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,7 +36,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from sok.config.config_manager import ConfigManager
 from sok.core.batch import STATUS_READY
-from sok.core.history import LINK, MOVE, content_kind, record
+from sok.core.history import COPY, LINK, MOVE, content_kind, record
 from sok.file_operations.artwork import save_artwork
 from sok.file_operations.base_operations import can_hard_link
 from sok.server.db import Database
@@ -47,6 +50,8 @@ from sok.server.settings import (
     MEDIA_TYPES,
     MISSING_FOLDER,
     NO_HARD_LINKS,
+    SERVER_SETTINGS,
+    Settings,
 )
 
 logger = logging.getLogger(__name__)
@@ -57,6 +62,11 @@ DONE = "done"
 FAILED = "failed"
 INTERRUPTED = "interrupted"
 
+# A rename that would fill a disk.
+NOT_ENOUGH_SPACE = "not_enough_space"
+# Decimal, as the disks of the interface count.
+GB = 1000**3
+
 # Why a file stayed on its row (rows.errors).
 ALREADY_EXISTS = "already_exists"
 RENAME_FAILED = "failed"
@@ -64,8 +74,9 @@ RENAME_FAILED = "failed"
 
 class RenameError(Exception):
     """A rename that cannot start: unknown_type, nothing_to_rename,
-    no_destination, scan_running, already_running, or a hard link problem
-    (different_drives, no_hard_links, missing_folder) with the folders."""
+    no_destination, scan_running, already_running, a hard link problem
+    (different_drives, no_hard_links, missing_folder) with the folders, or
+    not_enough_space with the destination, and the bytes needed and free."""
 
     def __init__(self, code: str, **details: str) -> None:
         super().__init__(code)
@@ -105,8 +116,10 @@ class Renamer:
         history: History,
         jobs: Jobs,
         notifier: Optional[Notifier] = None,
+        settings: Optional[Settings] = None,
     ) -> None:
         self._db = db
+        self._settings = settings
         self._config = config
         self._events = events
         self._searcher = searcher
@@ -153,8 +166,18 @@ class Renamer:
             raise RenameError("nothing_to_rename")
         if self._searcher.destination(rows[0]) is None:
             raise RenameError("no_destination")
-        if self._config.get("file_mode", MOVE) == LINK:
+        mode = self._config.get("file_mode", MOVE)
+        if mode == LINK:
             self._check_links(rows)
+        else:
+            try:
+                self._check_space(rows, mode)
+            except RenameError as exc:
+                if auto and self._notifier is not None:
+                    self._notifier.problem_later(
+                        {"media_type": media_type, "auto": True, **exc.detail()}
+                    )
+                raise
         with self._db.transaction() as conn:
             rename_id = conn.execute(
                 "INSERT INTO renames (media_type, started, status, auto)"
@@ -207,6 +230,56 @@ class Renamer:
                         source=str(Path(file).parent),
                         destination=destination,
                     )
+
+    def _margin(self) -> int:
+        """The bytes a rename leaves free on each disk."""
+        key = "free_space_margin_gb"
+        value = (
+            self._settings.value(key)
+            if self._settings is not None
+            else SERVER_SETTINGS[key]
+        )
+        return int(value) * GB
+
+    def _check_space(self, rows: List[Any], mode: str) -> None:
+        """Check each disk that receives copies keeps the margin free.
+
+        A copy takes the size of its file on the disk of its destination; a
+        move takes it only to another disk (on the same one, it is a rename).
+
+        Raises:
+            RenameError: not_enough_space, for the first disk short of room.
+        """
+        needed: Dict[int, int] = defaultdict(int)
+        folder_of: Dict[int, str] = {}
+        for row in rows:
+            destination = self._searcher.destination(row)
+            assert destination is not None
+            try:
+                device = os.stat(destination).st_dev
+            except OSError:
+                # A missing destination fails on its own when renaming.
+                continue
+            folder_of.setdefault(device, destination)
+            for file in json.loads(row["files"]):
+                try:
+                    stat = os.stat(file)
+                except OSError:
+                    continue
+                if mode == COPY or stat.st_dev != device:
+                    needed[device] += stat.st_size
+        margin = self._margin()
+        for device, size in needed.items():
+            folder = folder_of[device]
+            free = shutil.disk_usage(folder).free
+            if size + margin > free:
+                raise RenameError(
+                    NOT_ENOUGH_SPACE,
+                    destination=folder,
+                    needed=str(size),
+                    free=str(free),
+                    margin=str(margin),
+                )
 
     # ------------------------------------------------------------ Running
 

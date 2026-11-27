@@ -8,7 +8,8 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-"""The notifications of S.O.K Server, after each rename that moved files.
+"""The notifications of S.O.K Server, after each rename that moved files,
+and when the automatic sorting cannot rename a tab for lack of room.
 
 Each target set in the settings gets the rename, by hand or automatic:
 
@@ -18,6 +19,10 @@ Each target set in the settings gets the rename, by hand or automatic:
 - a script: the command of SOK_AFTER_RENAME, run without a shell, with the
   JSON on its standard input and SOK_EVENT, SOK_MEDIA_TYPE, SOK_RENAMED and
   SOK_AUTO in its environment.
+
+A problem ("event": "not_enough_space", with media_type, destination,
+needed, free and margin in bytes) goes to Discord, the webhook and the
+script only: Jellyfin and Plex have nothing to refresh.
 
 A target that fails is logged and does not stop the others, nor the rename.
 """
@@ -62,6 +67,11 @@ Request = Callable[[str, str, Dict[str, str], Optional[Any]], Awaitable[int]]
 
 class NotifyError(Exception):
     """A target that did not take the notification: why, in a few words."""
+
+
+def _gigabytes(size: int) -> str:
+    """ "42.5 GB": a size for a message."""
+    return f"{size / 1000**3:.1f} GB"
 
 
 def _now() -> str:
@@ -113,6 +123,34 @@ class Notifier:
         results: Dict[str, Optional[str]] = {}
         for target in self._targets():
             results[target] = await self._send(target, event)
+        return results
+
+    def problem_later(self, event: Dict[str, Any]) -> None:
+        """Send a problem in the background (called by the Renamer)."""
+        task = asyncio.get_running_loop().create_task(self.problem(event))
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
+
+    async def problem(self, event: Dict[str, Any]) -> Dict[str, Optional[str]]:
+        """Send a problem of the automatic sorting to the targets that can
+        tell it.
+
+        Args:
+            event: {"media_type", "auto", "code", ...the details of the
+                code}; "event" (the code), "date", "renamed" (0) and "files"
+                ([]) are added.
+        """
+        event = {
+            "event": event["code"],
+            "date": _now(),
+            "renamed": 0,
+            "files": [],
+            **{k: v for k, v in event.items() if k != "code"},
+        }
+        results: Dict[str, Optional[str]] = {}
+        for target in self._targets():
+            if target in ("discord", "webhook", "script"):
+                results[target] = await self._send(target, event)
         return results
 
     async def test(self, target: str) -> Optional[str]:
@@ -232,6 +270,21 @@ class Notifier:
         if event["event"] == "test":
             return t("notify_test", "S.O.K Server: the notifications work.")
         key, english = TAB_NAMES.get(event["media_type"], ("", event["media_type"]))
+        if event["event"] == "not_enough_space":
+            return "\n".join(
+                [
+                    f"**S.O.K Server** · {t(key, english) if key else english}",
+                    t(
+                        "notify_not_enough_space",
+                        "Not sorted: not enough room on {folder}"
+                        " ({needed} needed + {margin} kept free, {free} free).",
+                        folder=event["destination"],
+                        needed=_gigabytes(int(event["needed"])),
+                        margin=_gigabytes(int(event["margin"])),
+                        free=_gigabytes(int(event["free"])),
+                    ),
+                ]
+            )
         lines = [
             f"**S.O.K Server** · {t(key, english) if key else english}",
             t(

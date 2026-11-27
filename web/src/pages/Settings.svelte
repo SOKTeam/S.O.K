@@ -277,6 +277,22 @@
     if (await save({ settings: { auto_sort: on } })) loadWatch().catch(() => {});
   }
 
+  // The free room kept on each disk, while typed.
+  let margin = $state<string | null>(null);
+
+  async function saveMargin() {
+    const value = Number(margin);
+    if (
+      margin !== null &&
+      Number.isInteger(value) &&
+      value !== data?.settings.free_space_margin_gb
+    ) {
+      await save({ settings: { free_space_margin_gb: value } });
+    }
+    // A refused value gives the field back its saved one.
+    margin = null;
+  }
+
   async function saveMinutes() {
     const value = Number(minutes);
     if (minutes !== null && Number.isInteger(value) && value !== data?.settings.auto_sort_minutes) {
@@ -583,6 +599,29 @@
               />
             {/each}
           </div>
+          <Line label={t("web_free_space_keep", "Keep free on each disk")}>
+            <label
+              class="flex h-7 items-center gap-1 rounded-[7px] bg-raised px-2.5 font-mono text-[13px] text-ink shadow-[inset_0_0_0_1px_var(--color-line-strong)] focus-within:shadow-[inset_0_0_0_1px_var(--color-accent)]"
+            >
+              <input
+                type="number"
+                min="0"
+                max="10000"
+                class="w-12 [appearance:textfield] bg-transparent text-right outline-none [&::-webkit-inner-spin-button]:appearance-none"
+                value={margin ?? data.settings.free_space_margin_gb ?? 1}
+                oninput={(event) => (margin = event.currentTarget.value)}
+                onchange={saveMargin}
+                aria-label={t("web_free_space_keep_gb", "Keep free on each disk (GB)")}
+              />
+              {t("web_gb", "GB")}
+            </label>
+          </Line>
+          {@render hint(
+            t(
+              "web_free_space_hint",
+              "Before sorting, the server checks that the disks receiving copies keep this room. A hard link, or a move on the same disk, takes none.",
+            ),
+          )}
         </div>
       </section>
 
