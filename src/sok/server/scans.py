@@ -40,7 +40,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from sok.core.batch import group_game_files
+from sok.core.batch import STATUS_AMBIGUOUS, group_game_files
 from sok.core.interfaces import ContentType
 from sok.core.utils import natural_key
 from sok.file_operations.detection import (
@@ -240,6 +240,8 @@ class Scans:
             await self._searcher.search_pending(
                 lambda done, total: self._set_progress("search", done, total)
             )
+            # The folders of the series, new or kept: the library changed.
+            await asyncio.to_thread(self._searcher.refresh_folders)
         except SearchStopped as exc:
             self._finish(scan_id, FAILED, search_error(exc), missing)
             return
@@ -366,8 +368,10 @@ class Scans:
                 for media_type in MEDIA_TYPES
             }
             for row in conn.execute(
-                "SELECT media_type, status, COUNT(*) AS n FROM rows"
-                " GROUP BY media_type, status"
+                # A series waiting for the choice of its folder is to pick.
+                "SELECT media_type, CASE WHEN folder_pending THEN ? ELSE status"
+                " END AS status, COUNT(*) AS n FROM rows GROUP BY 1, 2",
+                (STATUS_AMBIGUOUS,),
             ):
                 counts[row["media_type"]][row["status"]] = row["n"]
             covers: Dict[str, List[str]] = {
