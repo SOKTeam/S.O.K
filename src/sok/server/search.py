@@ -14,8 +14,11 @@ The batch engine of the desktop app (BatchMatcher) searches each row, as
 the batch pages of the desktop app do: a movie, a track, a book or a game
 by its file name, a series by its title, an album by its tags or its
 folder. A series that is Ready, or picked by hand, gets its details and
-the titles of its episodes, which name the episodes. A missing key or a
-used quota stops the search (SearchStopped); the rows keep what they had.
+the titles of its episodes, which name the episodes, and the folder it
+already has in a TV destination (refresh_folders): one folder found is
+used as it is, several wait for a choice (rows.folder_pending). A missing
+key or a used quota stops the search (SearchStopped); the rows keep what
+they had.
 """
 
 import json
@@ -23,7 +26,7 @@ import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from sok.config.config_manager import ConfigManager
 from sok.file_operations.mixins.parsing import FileParsingMixin
@@ -47,7 +50,13 @@ from sok.core.batch import (
 from sok.core.exceptions import APIAuthenticationError, APIError, APIRateLimitError
 from sok.core.interfaces import ContentType, MediaType
 from sok.core.media_manager import get_media_manager
-from sok.core.series import fetch_episode_titles, season_folders
+from sok.core.series import (
+    SeriesIdentity,
+    fetch_episode_titles,
+    find_series_folders,
+    season_folders,
+    series_identity,
+)
 from sok.file_operations.book_operations import BookFileOperations
 from sok.file_operations.game_operations import GameFileOperations
 from sok.file_operations.music_operations import MusicFileOperations
@@ -141,11 +150,17 @@ class UnknownRow(LookupError):
 
 
 class InvalidChange(ValueError):
-    """A change of a row that cannot be: invalid_selection, invalid_destination."""
+    """A change of a row that cannot be: invalid_selection,
+    invalid_destination, invalid_folder."""
 
     def __init__(self, code: str) -> None:
         super().__init__(code)
         self.code = code
+
+
+# The choice of a new folder for a series that has some already
+# (rows.series_folder "chosen").
+NEW_FOLDER = "new"
 
 
 def api_language(language: str) -> str:
@@ -245,6 +260,8 @@ class Searcher:
         text = (query or "").strip() or None
         match = await self._run(self._matcher(kind).match(files, text))
         await self._save_match(row_id, kind, match)
+        if kind == "episode":
+            self.refresh_folders([row_id])
 
     def _matcher(self, kind: str) -> BatchMatcher:
         search = SEARCHES[kind]
@@ -306,8 +323,16 @@ class Searcher:
         except APIError as exc:
             logger.warning("Details failed for series %s: %s", series_id, exc)
             return None
+        identity = series_identity(candidate, details, self._video_service())
         return {
             "id": series_id,
+            # What finds the folder the series already has.
+            "identity": {
+                "title": identity.title,
+                "year": identity.year,
+                "titles": identity.titles,
+                "ids": identity.ids,
+            },
             "number_of_seasons": details.get("number_of_seasons") or 0,
             "seasons": [
                 {"season_number": s.get("season_number"), "name": s.get("name")}
@@ -324,18 +349,23 @@ class Searcher:
         selected: Optional[int] = None,
         destination: Optional[int] = None,
         destinations: int = 1,
+        folder: Optional[Union[int, str]] = None,
     ) -> None:
-        """Pick a candidate (the row is then Ready) or a destination folder.
+        """Pick a candidate (the row is then Ready), a destination folder, or
+        the folder of a series that has several.
 
         Args:
             row_id: The row.
             selected: Index of the candidate picked.
             destination: Index of the destination folder of its media type.
             destinations: How many destination folders the media type has.
+            folder: Index of the existing folder of the series picked, or
+                NEW_FOLDER for a new one.
 
         Raises:
             UnknownRow: No row has this id.
-            InvalidChange: invalid_selection or invalid_destination.
+            InvalidChange: invalid_selection, invalid_destination or
+                invalid_folder.
         """
         row = self._row(row_id)
         candidates = json.loads(row["candidates"])
@@ -343,6 +373,8 @@ class Searcher:
             raise InvalidChange("invalid_selection")
         if destination is not None and not 0 <= destination < max(destinations, 1):
             raise InvalidChange("invalid_destination")
+        if folder is not None:
+            self._choose_folder(row, folder)
 
         details = row["details"]
         if selected is not None and row["kind"] == "episode":
@@ -362,6 +394,140 @@ class Searcher:
                     "UPDATE rows SET destination = ? WHERE id = ?",
                     (destination, row_id),
                 )
+        if selected is not None and row["kind"] == "episode":
+            self.refresh_folders([row_id])
+
+    # ------------------------------------------------- Existing series folder
+
+    def _video_service(self) -> str:
+        """The service of the ids of the series: "tvdb" or "tmdb"."""
+        api = get_media_manager().get_current_api(MediaType.VIDEO)
+        return "tvdb" if "tvdb" in type(api).__name__.lower() else "tmdb"
+
+    def _identity(self, row: Any) -> Optional[SeriesIdentity]:
+        """The identity of the series picked for a row, or None before a
+        match. Rows matched before 1.6 have no identity in their details:
+        the search result gives its title and its id."""
+        candidates = json.loads(row["candidates"])
+        selected = row["selected"]
+        if selected is None or not 0 <= selected < len(candidates):
+            return None
+        details = json.loads(row["details"]) if row["details"] else {}
+        saved = details.get("identity")
+        if saved:
+            return SeriesIdentity(
+                saved.get("title") or "",
+                saved.get("year"),
+                list(saved.get("titles") or []),
+                dict(saved.get("ids") or {}),
+            )
+        return series_identity(candidates[selected], None, self._video_service())
+
+    def known_folders(self, ids: Dict[str, str]) -> List[str]:
+        """The folders S.O.K put a series in before, from its ids."""
+        keys = [f"{service}:{value}" for service, value in ids.items()]
+        if not keys:
+            return []
+        marks = ",".join("?" * len(keys))
+        with self._db.transaction() as conn:
+            return [
+                r["path"]
+                for r in conn.execute(
+                    f"SELECT path FROM series_folders WHERE series IN ({marks})", keys
+                )
+            ]
+
+    def remember_folder(self, row: Any, folder: str, date: str) -> None:
+        """Keep the folder a series was put in, for its next episodes."""
+        identity = self._identity(row)
+        if identity is None:
+            return
+        with self._db.transaction() as conn:
+            conn.executemany(
+                "INSERT OR REPLACE INTO series_folders (series, path, date)"
+                " VALUES (?, ?, ?)",
+                [(f"{s}:{v}", folder, date) for s, v in identity.ids.items()],
+            )
+
+    def refresh_folders(self, row_ids: Optional[Iterable[int]] = None) -> None:
+        """Look again for the folder each series already has.
+
+        One folder found is chosen (and its destination with it); several
+        wait for a choice. A choice made by hand stays while the same
+        folders are found.
+
+        Args:
+            row_ids: These rows only; every episode row when None.
+        """
+        with self._db.transaction() as conn:
+            rows = conn.execute(
+                "SELECT * FROM rows WHERE kind = 'episode' ORDER BY id"
+            ).fetchall()
+        if row_ids is not None:
+            wanted = set(row_ids)
+            rows = [r for r in rows if r["id"] in wanted]
+        roots = self._settings.folders()["tv"]
+        for row in rows:
+            identity = self._identity(row) if row["status"] == STATUS_READY else None
+            matches = (
+                find_series_folders(identity, roots, self.known_folders(identity.ids))
+                if identity is not None
+                else []
+            )
+            found: Optional[Dict[str, Any]] = None
+            destination = row["destination"]
+            if matches:
+                paths = [m.path for m in matches]
+                before = json.loads(row["series_folder"] or "null")
+                chosen: Optional[Union[int, str]] = 0 if len(matches) == 1 else None
+                if before and [m["path"] for m in before["matches"]] == paths:
+                    chosen = before.get("chosen", chosen)
+                found = {"matches": [m.to_dict() for m in matches], "chosen": chosen}
+                if isinstance(chosen, int):
+                    destination = matches[chosen].root
+            pending = int(found is not None and found["chosen"] is None)
+            with self._db.transaction() as conn:
+                conn.execute(
+                    "UPDATE rows SET series_folder = ?, folder_pending = ?,"
+                    " destination = ? WHERE id = ?",
+                    (
+                        json.dumps(found) if found else None,
+                        pending,
+                        destination,
+                        row["id"],
+                    ),
+                )
+
+    def _choose_folder(self, row: Any, folder: Union[int, str]) -> None:
+        """Pick one of the folders a series has, or NEW_FOLDER."""
+        found = json.loads(row["series_folder"] or "null")
+        if not found:
+            raise InvalidChange("invalid_folder")
+        matches = found["matches"]
+        if folder != NEW_FOLDER and not (
+            isinstance(folder, int) and 0 <= folder < len(matches)
+        ):
+            raise InvalidChange("invalid_folder")
+        found["chosen"] = folder
+        destination = row["destination"]
+        if isinstance(folder, int):
+            destination = matches[folder]["root"]
+        with self._db.transaction() as conn:
+            conn.execute(
+                "UPDATE rows SET series_folder = ?, folder_pending = 0,"
+                " destination = ? WHERE id = ?",
+                (json.dumps(found), destination, row["id"]),
+            )
+
+    @staticmethod
+    def chosen_folder(row: Any) -> Optional[Dict[str, Any]]:
+        """The existing folder a row's series goes into, or None for a new
+        one (also when another destination was picked since)."""
+        found = json.loads(row["series_folder"] or "null")
+        if not found or not isinstance(found.get("chosen"), int):
+            return None
+        match = found["matches"][found["chosen"]]
+        return match if match["root"] == row["destination"] else None
 
     # ---------------------------------------------------------- Reading
 
@@ -417,6 +583,10 @@ class Searcher:
                 for path, name in zip(files, names)
             ],
             "episodes_found": len(details["episodes"]) if details else None,
+            # The folders the series already has: {"matches", "chosen"}, and
+            # whether the row waits for a choice among them.
+            "series_folder": json.loads(row["series_folder"] or "null"),
+            "folder_pending": bool(row["folder_pending"]),
             # What the scene shows without opening the files.
             "size": _size(files),
             "quality": _quality(files[0]) if files else None,
@@ -454,6 +624,10 @@ class Searcher:
         if isinstance(item, Series) and details:
             season_word = self._config.load_language().get("season", "Season")
             item.seasons = season_folders(details, season_word)
+        if isinstance(item, Series):
+            existing = self.chosen_folder(row)
+            if existing:
+                item.folder_name = os.path.basename(existing["path"].rstrip("/\\"))
         return item
 
     def new_names(

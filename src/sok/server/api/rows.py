@@ -11,11 +11,11 @@
 """The rows of the tabs: /api/rows, /api/rows/{id}, /api/rows/{id}/search.
 
 An error gives a code in "detail": unknown_type, unknown_row,
-invalid_selection, invalid_destination, or the code of a
+invalid_selection, invalid_destination, invalid_folder, or the code of a
 stopped search ({"code": "missing_key", "service": "tmdb"}).
 """
 
-from typing import Optional
+from typing import Literal, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
@@ -38,6 +38,9 @@ class RowChange(BaseModel):
     selected: Optional[int] = None
     # Index of the destination folder of its media type.
     destination: Optional[int] = None
+    # The folder of a series that has several: the index of one of
+    # series_folder.matches, or "new".
+    folder: Optional[Union[int, Literal["new"]]] = None
 
 
 class RowSearch(BaseModel):
@@ -76,7 +79,7 @@ async def change_row(row_id: int, change: RowChange, request: Request) -> dict:
         media_type = searcher(request).row(row_id)["media_type"]
         destinations = len(request.app.state.settings.folders()[media_type])
         await searcher(request).change(
-            row_id, change.selected, change.destination, destinations
+            row_id, change.selected, change.destination, destinations, change.folder
         )
     except UnknownRow:
         raise _not_found()

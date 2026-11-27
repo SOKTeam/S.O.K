@@ -123,7 +123,10 @@ operations:
 - **TV shows** (`VideoFileOperations.organize_files_list`): the files go to
   `Series/Season N/`, or to a season folder that already exists in the
   destination (`episode_folder()`, which S.O.K Server also uses for its
-  preview). Each name comes from the episode format setting, with the episode
+  preview). A new season folder next to existing ones takes their style
+  (`Season 05` next to `Season 01`, `S5` next to `S1`). The series folder is
+  `Series.folder_name` when it is set: S.O.K Server sets it to the folder the
+  series already has (`find_series_folders()` of `sok.core.series`). Each name comes from the episode format setting, with the episode
   title of the series: `{title} S{season}E{episode} {episode_title}`. The season
   folders and the episode titles come from `sok.core.series` (no Qt, shared with
   S.O.K Server): `season_folders(details, season_word)` names each season

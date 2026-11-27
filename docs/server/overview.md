@@ -106,36 +106,36 @@ the server (the desktop app moves).
 
 JSON under `/api`. FastAPI's own `/docs` page is turned off.
 
-| Route                                  | Login | Does                                                                                                              |
-| -------------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------- |
-| `GET /api/health`                      | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker                                               |
-| `GET /api/session`                     | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`, `configured` (a source and a destination are set) |
-| `POST /api/setup`                      | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)                                       |
-| `POST /api/login`                      | No    | Opens a session (`401` for a wrong login, `429` while waiting)                                                    |
-| `POST /api/logout`                     | Yes   | Closes the session                                                                                                |
-| `GET /api/i18n?lang=fr`                | No    | The texts of the interface (see [Interface](#interface))                                                          |
-| `GET /api/settings`                    | Yes   | The settings, the keys, the folders and the link checks (see below)                                               |
-| `PATCH /api/settings`                  | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`                                          |
-| `POST /api/settings/test-link`         | Yes   | `{source, destination}`: whether a hard link works between them                                                   |
-| `GET /api/settings/disks`              | Yes   | The disks of the folders and the average size of the movies waiting (see [Analyses](#analyses))                   |
-| `GET /api/settings/browse?path=`       | Yes   | The subfolders of a folder of the server, for the folder browser (`404` `unreadable_folder`)                      |
-| `POST /api/settings/test-key`          | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key))                             |
-| `POST /api/settings/test-notification` | Yes   | `{target}`: sends a test (see [Notifications](#notifications)); answers `{"ok", "error"}`                         |
-| `POST /api/scans`                      | Yes   | Starts an analysis (`202`, `{"id"}`); `409` with `already_running`, `rename_running` or `no_sources`              |
-| `GET /api/scans/current`               | Yes   | The last analysis, the counts of the rows and the files to check (see [Analyses](#analyses))                      |
-| `POST /api/to-check`                   | Yes   | `{path, kind}`: gives a file to check its type and searches its row; answers the summary                          |
-| `GET /api/events`                      | Yes   | Server-sent events (see [Live events](#live-events))                                                              |
-| `GET /api/watch`                       | Yes   | The automatic sorting: on or off, last check, last run (see [Automatic sorting](#automatic-sorting))              |
-| `GET /api/rows?type=movies`            | Yes   | The rows of a tab (see [Rows](#rows))                                                                             |
-| `GET /api/rows/{id}`                   | Yes   | One row                                                                                                           |
-| `PATCH /api/rows/{id}`                 | Yes   | `{selected?, destination?}`: picks a candidate (the row is then Ready) or a destination folder                    |
-| `POST /api/rows/{id}/search`           | Yes   | `{query?}`: searches the row again, with the text typed; `409` when a key stops it                                |
-| `POST /api/renames`                    | Yes   | `{type, rows?}`: renames the Ready rows of a tab (`202`, `{"id"}`); see [Renames](#renames)                       |
-| `GET /api/renames/current`             | Yes   | The last rename: its progress, then its result                                                                    |
-| `GET /api/history`                     | Yes   | The operations of the history, newest first (see [History](#history))                                             |
-| `POST /api/history/{id}/undo`          | Yes   | `{index?}`: undoes the operation, or one of its files; answers what was put back                                  |
-| `GET /api/processed`                   | Yes   | The files already processed (see [Files already processed](#files-already-processed))                             |
-| `POST /api/processed/forget`           | Yes   | `{paths}`: the next analysis takes these files again; answers `{"forgotten"}`                                     |
+| Route                                  | Login | Does                                                                                                                             |
+| -------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/health`                      | No    | `{"status": "ok", "version", "db"}`, for the health check of Docker                                                              |
+| `GET /api/session`                     | No    | `auth` (`login` or `none`), `account`, `logged_in`, `username`, `configured` (a source and a destination are set)                |
+| `POST /api/setup`                      | No    | Creates the account (`username`, `password`) and logs in; once only (`409`)                                                      |
+| `POST /api/login`                      | No    | Opens a session (`401` for a wrong login, `429` while waiting)                                                                   |
+| `POST /api/logout`                     | Yes   | Closes the session                                                                                                               |
+| `GET /api/i18n?lang=fr`                | No    | The texts of the interface (see [Interface](#interface))                                                                         |
+| `GET /api/settings`                    | Yes   | The settings, the keys, the folders and the link checks (see below)                                                              |
+| `PATCH /api/settings`                  | Yes   | Changes some of them (`settings`, `keys`, `folders`); answers like `GET`                                                         |
+| `POST /api/settings/test-link`         | Yes   | `{source, destination}`: whether a hard link works between them                                                                  |
+| `GET /api/settings/disks`              | Yes   | The disks of the folders and the average size of the movies waiting (see [Analyses](#analyses))                                  |
+| `GET /api/settings/browse?path=`       | Yes   | The subfolders of a folder of the server, for the folder browser (`404` `unreadable_folder`)                                     |
+| `POST /api/settings/test-key`          | Yes   | `{service, key?, secret?}`: whether a key works (see [Testing a key](#testing-a-key))                                            |
+| `POST /api/settings/test-notification` | Yes   | `{target}`: sends a test (see [Notifications](#notifications)); answers `{"ok", "error"}`                                        |
+| `POST /api/scans`                      | Yes   | Starts an analysis (`202`, `{"id"}`); `409` with `already_running`, `rename_running` or `no_sources`                             |
+| `GET /api/scans/current`               | Yes   | The last analysis, the counts of the rows and the files to check (see [Analyses](#analyses))                                     |
+| `POST /api/to-check`                   | Yes   | `{path, kind}`: gives a file to check its type and searches its row; answers the summary                                         |
+| `GET /api/events`                      | Yes   | Server-sent events (see [Live events](#live-events))                                                                             |
+| `GET /api/watch`                       | Yes   | The automatic sorting: on or off, last check, last run (see [Automatic sorting](#automatic-sorting))                             |
+| `GET /api/rows?type=movies`            | Yes   | The rows of a tab (see [Rows](#rows))                                                                                            |
+| `GET /api/rows/{id}`                   | Yes   | One row                                                                                                                          |
+| `PATCH /api/rows/{id}`                 | Yes   | `{selected?, destination?, folder?}`: picks a candidate (the row is then Ready), a destination folder, or the folder of a series |
+| `POST /api/rows/{id}/search`           | Yes   | `{query?}`: searches the row again, with the text typed; `409` when a key stops it                                               |
+| `POST /api/renames`                    | Yes   | `{type, rows?}`: renames the Ready rows of a tab (`202`, `{"id"}`); see [Renames](#renames)                                      |
+| `GET /api/renames/current`             | Yes   | The last rename: its progress, then its result                                                                                   |
+| `GET /api/history`                     | Yes   | The operations of the history, newest first (see [History](#history))                                                            |
+| `POST /api/history/{id}/undo`          | Yes   | `{index?}`: undoes the operation, or one of its files; answers what was put back                                                 |
+| `GET /api/processed`                   | Yes   | The files already processed (see [Files already processed](#files-already-processed))                                            |
+| `POST /api/processed/forget`           | Yes   | `{paths}`: the next analysis takes these files again; answers `{"forgotten"}`                                                    |
 
 The interface starts with `GET /api/session`: no account → the first launch
 assistant; an account and no session → the login page; a session on a server
@@ -625,11 +625,52 @@ analysis only searches the new rows.
 | `size`                                | The size of its files still there, in bytes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `quality`                             | The quality read from the first file name (`"2160p · x265 · DTS"`), or `null`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `episodes_found`                      | For a series: how many episode titles were found, or `null`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `series_folder`, `folder_pending`     | For a series: the folders it already has (see below), or `null`, and whether the row waits for a choice among them                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 `PATCH /api/rows/{id}` with `selected` makes the row Ready, as picking a match
 does in the desktop app; for a series, it reads the episodes of the new choice.
 `destination` is an index in the destination folders of its type
-(`invalid_destination` beyond them).
+(`invalid_destination` beyond them). `folder` picks one of the existing
+folders of a series (an index in `series_folder.matches`) or `"new"` for a new
+one (`invalid_folder` otherwise).
+
+### Existing series folders
+
+Before a series gets a new folder, `Searcher.refresh_folders()` looks for the
+one it already has, in every TV destination: at the end of each analysis (for
+the rows found again too, since the library may have changed), and when a row
+is searched again or gets another match. `find_series_folders()` of
+`sok.core.series` compares the folders right under each destination, the
+surest way first:
+
+1. an id in the folder name (`[tvdbid-81189]`, `{tmdb-1396}`, `(imdb
+tt0903747)`) or in its `tvshow.nfo` (Kodi, Jellyfin, Emby);
+2. a folder S.O.K put the series in before: the `series_folders` table, filled
+   after each rename with every id of the series (`tmdb:1396`, `tvdb:81189`);
+3. the name, without case, accents, punctuation, the tags in brackets and the
+   year at its end, against every title of the series: its title, its original
+   title and its alternative titles. TMDB gives them with the ids of the other
+   services in the details request (`append_to_response=alternative_titles,
+external_ids`), TVDB as `aliases` and `remote_ids`.
+
+A folder whose id belongs to another series is never taken, nor a folder whose
+year is more than one year away from the series'. Only the matches of the
+surest way found count. The identity of the series (`title`, `year`, `titles`,
+`ids`) is kept in `details.identity`; a row matched before has none, and its
+search result gives its title and id.
+
+`series_folder` is `{"matches": [...], "chosen": ...}`. Each match has `path`,
+`root` (the index of its destination), `how` (`id`, `history` or `title`),
+`source` (the service of the id, or `nfo`), `title` (the title its name
+matched), and the `seasons` and `episodes` it already holds. With one match,
+`chosen` is `0` and the row takes its destination. With several, `chosen` is
+`null` and `folder_pending` is set: the summary counts the row as `ambiguous`,
+renames and the automatic sorting leave it out until `PATCH` with `folder`. A
+choice made by hand stays while the same folders are found.
+
+The chosen folder replaces the title in the new names (`Series.folder_name`),
+and the folder is never renamed. A new season folder follows the style of the
+season folders the series already has (`Season 05` next to `Season 01`).
 
 ### Live events
 
@@ -709,7 +750,8 @@ Every 30 seconds (`TICK`) it looks at the clock; when `auto_sort` is on and
 4. if a finished file is new or changed since the last automatic sorting, and
    not already processed, starts an analysis (`Scans.start(auto=True)`), waits
    for it, then renames, tab by tab, the Ready rows whose files are all
-   finished (`Renamer.start(..., auto=True)`).
+   finished (`Renamer.start(..., auto=True)`); a series that waits for the
+   choice of its folder is left out.
 
 The analyses and renames have `auto` set (columns of `scans` and `renames`, and
 in their summaries). The last run is kept in the `options` table
@@ -818,19 +860,20 @@ user_version` says how many are applied, and the missing ones run when the
 database opens. A released entry is never changed: a change of the schema is a
 new entry.
 
-| Table          | Contents                                                                                                                                                                       |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `account`      | The account: `username`, `password_hash`, `created`                                                                                                                            |
-| `sessions`     | The open sessions: `token_hash`, `created`, `expires`                                                                                                                          |
-| `folders`      | The folders: `role` (`sources` or a media type), `position`, `path`                                                                                                            |
-| `scans`        | The analyses: `started`, `finished`, `status`, `error`, `missing_sources`, `processed`, `auto`                                                                                 |
-| `rows`         | The rows of the tabs: `key`, `media_type`, `kind`, `title`, `files`, then the search (`query`, `year`, `candidates`, `selected`, `status`), `destination`, `details`, `errors` |
-| `to_check`     | The files to check of the last analysis                                                                                                                                        |
-| `type_choices` | The types the user gave to files to check                                                                                                                                      |
-| `renames`      | The renames: `media_type`, `started`, `finished`, `status`, `error`, `result`, `auto`                                                                                          |
-| `options`      | The settings of the server only, the notification fields and the last automatic sorting: `key`, `value` (JSON)                                                                 |
-| `processed`    | The files already processed: `path`, `size`, `mtime_ns`, `target`, `operation_id`, `date`                                                                                      |
-| `history`      | The rename history: `id`, `position`, `date`, `kind`, `media_type`, and the `operation` as JSON                                                                                |
+| Table            | Contents                                                                                                                                                                                                          |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `account`        | The account: `username`, `password_hash`, `created`                                                                                                                                                               |
+| `sessions`       | The open sessions: `token_hash`, `created`, `expires`                                                                                                                                                             |
+| `folders`        | The folders: `role` (`sources` or a media type), `position`, `path`                                                                                                                                               |
+| `scans`          | The analyses: `started`, `finished`, `status`, `error`, `missing_sources`, `processed`, `auto`                                                                                                                    |
+| `rows`           | The rows of the tabs: `key`, `media_type`, `kind`, `title`, `files`, then the search (`query`, `year`, `candidates`, `selected`, `status`), `destination`, `details`, `errors`, `series_folder`, `folder_pending` |
+| `series_folders` | The folders S.O.K put each series in: `series` (`tmdb:1396`), `path`, `date`                                                                                                                                      |
+| `to_check`       | The files to check of the last analysis                                                                                                                                                                           |
+| `type_choices`   | The types the user gave to files to check                                                                                                                                                                         |
+| `renames`        | The renames: `media_type`, `started`, `finished`, `status`, `error`, `result`, `auto`                                                                                                                             |
+| `options`        | The settings of the server only, the notification fields and the last automatic sorting: `key`, `value` (JSON)                                                                                                    |
+| `processed`      | The files already processed: `path`, `size`, `mtime_ns`, `target`, `operation_id`, `date`                                                                                                                         |
+| `history`        | The rename history: `id`, `position`, `date`, `kind`, `media_type`, and the `operation` as JSON                                                                                                                   |
 
 `Database.transaction()` runs a block of statements together, under a lock: the
 requests of the server share one connection.
