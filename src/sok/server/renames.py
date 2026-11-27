@@ -173,7 +173,7 @@ class Renamer:
         with self._db.transaction() as conn:
             rows = conn.execute(
                 "SELECT * FROM rows WHERE media_type = ? AND status = ?"
-                " AND selected IS NOT NULL ORDER BY id",
+                " AND selected IS NOT NULL AND folder_pending = 0 ORDER BY id",
                 (media_type, STATUS_READY),
             ).fetchall()
         if row_ids is not None:
@@ -226,6 +226,8 @@ class Renamer:
             plans = [self._plan(row) for row in rows if row is not None]
             result = await asyncio.to_thread(self._rename, media_type, plans)
             result["covers"] = _covers(plans, result)
+            if media_type == "tv":
+                self._remember_folders(plans, result)
             self._apply(plans, result)
         except Exception as exc:  # noqa: BLE001 - the rename must end
             logger.exception("Rename %s failed", rename_id, exc_info=exc)
@@ -306,6 +308,18 @@ class Renamer:
             "errors": [e for r in reports for e in r.get("errors", [])],
             "operation": journal.operation_id,
         }
+
+    def _remember_folders(
+        self, plans: List[Tuple[Any, Any, str, List[Path]]], result: Dict[str, Any]
+    ) -> None:
+        """Keep the folder of each series renamed: its next episodes go
+        there, even when its name matches no title."""
+        moved = {str(m["from"]) for m in result["moved"]}
+        for row, item, destination, files in plans:
+            if item is None or not any(str(f) in moved for f in files):
+                continue
+            folder = os.path.join(destination, item.get_folder_structure()[0])
+            self._searcher.remember_folder(row, folder, _now())
 
     def _apply(
         self, plans: List[Tuple[Any, Any, str, List[Path]]], result: Dict[str, Any]

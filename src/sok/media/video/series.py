@@ -51,6 +51,9 @@ class Series(BaseMedia):
         )
         self.seasons: Dict[str, int] = {}
         self.episodes: Dict[str, str] = {}
+        # The folder the series already has in the library, kept as it is
+        # (S.O.K Server): its name replaces the formatted title.
+        self.folder_name: Optional[str] = None
 
     def get_formatted_name(self) -> str:
         """Return the formatted series name.
@@ -64,9 +67,10 @@ class Series(BaseMedia):
         """Return the recommended folder structure for the series.
 
         Returns:
-            List of folder names (e.g., ['Breaking Bad', 'Season 01']).
+            List of folder names (e.g., ['Breaking Bad', 'Season 01']); the
+            first is folder_name when the series already has a folder.
         """
-        folders = [self.get_formatted_name()]
+        folders = [self.folder_name or self.get_formatted_name()]
         for season_name in self.seasons.keys():
             folders.append(format_name(season_name))
         return folders

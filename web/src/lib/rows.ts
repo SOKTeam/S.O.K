@@ -46,6 +46,45 @@ export interface Row {
    * file name ("2160p · x265"); absent in the recorded demo. */
   size?: number;
   quality?: string | null;
+  /** The folders the series already has in its destinations (S.O.K
+   * Server, absent before 1.6), and whether the row waits for a choice. */
+  series_folder?: SeriesFolder | null;
+  folder_pending?: boolean;
+}
+
+/** A folder of the library that already holds a series. */
+export interface FolderMatch {
+  path: string;
+  /** Index of the destination folder that holds it. */
+  root: number;
+  /** How it was found: by an id, by an earlier rename, by a title. */
+  how: "id" | "history" | "title";
+  /** The service of the id ("tvdb"), or "nfo" for a tvshow.nfo. */
+  source: string | null;
+  /** The title its name matched. */
+  title: string | null;
+  seasons: number[];
+  episodes: number;
+}
+
+export interface SeriesFolder {
+  matches: FolderMatch[];
+  /** The match used, "new" for a new folder, null while it waits. */
+  chosen: number | "new" | null;
+}
+
+/** The status the screens show: a series waiting for the choice of its
+ * folder is to pick, though its match is Ready. */
+export function statusOf(row: Row): RowStatus {
+  return row.folder_pending ? "ambiguous" : row.status;
+}
+
+/** The existing folder a row goes into, or null for a new one. */
+export function existingFolder(row: Row): FolderMatch | null {
+  const found = row.series_folder;
+  if (!found || typeof found.chosen !== "number") return null;
+  const match = found.matches[found.chosen];
+  return match && match.root === row.destination ? match : null;
 }
 
 /** The result picked for a row, or null. */
@@ -64,7 +103,7 @@ export async function loadRows(mediaType: string): Promise<Row[]> {
 
 export function changeRow(
   id: number,
-  change: { selected?: number; destination?: number },
+  change: { selected?: number; destination?: number; folder?: number | "new" },
 ): Promise<Row> {
   return api<Row>(`/api/rows/${id}`, { method: "PATCH", body: change });
 }

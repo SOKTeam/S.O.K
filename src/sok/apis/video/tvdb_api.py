@@ -278,6 +278,13 @@ class TVDBApi(BaseAPI):
                 "genres": [g.get("name", "") for g in series_data.get("genres", [])],
                 "network": series_data.get("originalNetwork", {}).get("name", ""),
                 "poster_path": series_data.get("image", ""),
+                # Other names and ids, to find the folder a series has.
+                "aliases": [
+                    a.get("name", "")
+                    for a in series_data.get("aliases") or []
+                    if isinstance(a, dict)
+                ],
+                "remote_ids": _remote_ids(series_data.get("remoteIds") or []),
             }
 
         except (aiohttp.ClientError, APIError, KeyError, ValueError, TypeError) as exc:
@@ -412,3 +419,19 @@ class TVDBApi(BaseAPI):
         except (aiohttp.ClientError, APIError, KeyError, ValueError, TypeError) as exc:
             logger.exception("Error retrieving all TVDB episodes", exc_info=exc)
             return {}
+
+
+# The remote ids of TVDB, by the name of their source.
+REMOTE_SOURCES = {"themoviedb.com": "tmdb", "imdb": "imdb"}
+
+
+def _remote_ids(remote_ids: List[Any]) -> Dict[str, str]:
+    """The TMDB and IMDb ids of a TVDB series: {"tmdb": "1396"}."""
+    ids: Dict[str, str] = {}
+    for remote in remote_ids:
+        if not isinstance(remote, dict):
+            continue
+        service = REMOTE_SOURCES.get(str(remote.get("sourceName", "")).lower())
+        if service and remote.get("id"):
+            ids.setdefault(service, str(remote["id"]))
+    return ids

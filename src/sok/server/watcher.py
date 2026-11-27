@@ -209,7 +209,7 @@ class Watcher:
         with self._db.transaction() as conn:
             rows = conn.execute(
                 "SELECT id, files FROM rows WHERE media_type = ? AND status = 'ok'"
-                " AND selected IS NOT NULL ORDER BY id",
+                " AND selected IS NOT NULL AND folder_pending = 0 ORDER BY id",
                 (media_type,),
             ).fetchall()
         return [

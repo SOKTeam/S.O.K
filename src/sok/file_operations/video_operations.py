@@ -294,12 +294,36 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         )
         if existing:
             return existing
+        styled = self._season_like_others(base_path, season_num) if on_disk else None
+        if styled:
+            return os.path.join(base_path, styled)
         return os.path.join(
             base_path,
             self._find_season_in_structure(
                 media_item.get_folder_structure(), season_num
             ),
         )
+
+    @staticmethod
+    def _season_like_others(series_path: str, season_num: int) -> Optional[str]:
+        """The name of a new season folder in the style of the season
+        folders the series already has: "Season 05" next to "Season 01",
+        "S5" next to "S1"; None when it has none.
+        """
+        try:
+            names = sorted(e.name for e in os.scandir(series_path) if e.is_dir())
+        except OSError:
+            return None
+        for name in names:
+            match = re.match(
+                r"^(season|saison|staffel|temporada|stagione|s)(\s*)(\d+)\b",
+                name,
+                re.IGNORECASE,
+            )
+            if match:
+                word, space, digits = match.groups()
+                return f"{word}{space}{str(season_num).zfill(len(digits))}"
+        return None
 
     def generate_new_filename(
         self, media_item: MediaItem, original_filename: str
