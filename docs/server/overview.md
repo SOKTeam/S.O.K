@@ -446,23 +446,24 @@ interface at each change and sends the `/api` requests to the server.
 
 `GET /api/settings` answers:
 
-| Field           | Contents                                                                                                                                                                                                                       |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `settings`      | `language`, `file_mode`, the behavior switches, the five name formats, the service of each media type (`preferred_api_video`, `_music`, `_books`, `_games`), `auto_sort` and `auto_sort_minutes` (`SETTINGS` in `settings.py`) |
-| `languages`     | The languages of the interface                                                                                                                                                                                                 |
-| `services`      | The services each `preferred_api_*` can pick, per media type (`video`, `music`, `books`, `games`): `{"id", "name"}`                                                                                                            |
-| `keys`          | Each service (`service`, `name`, `media_type`, `url` to get a key) and its keys: `{"key", "set", "locked"}`, never the value                                                                                                   |
-| `folders`       | `sources`, and the destination folders of `movies`, `tv`, `music`, `books`, `games`, in order                                                                                                                                  |
-| `link_checks`   | In `link` mode, one check per source and destination: `ok`, `problem`, `tested`                                                                                                                                                |
-| `notifications` | `discord`, `webhook`: `{"set"}`; `jellyfin`, `plex`: `{"url", "set"}`; `script`: whether `SOK_AFTER_RENAME` is set (see [Notifications](#notifications))                                                                       |
-| `about`         | `version` of the server, and `data`: the folder of its database (`SOK_CONFIG_DIR`, `/config` in Docker)                                                                                                                        |
+| Field           | Contents                                                                                                                                                                                                                                               |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `settings`      | `language`, `file_mode`, the behavior switches, the five name formats, the service of each media type (`preferred_api_video`, `_music`, `_books`, `_games`), `auto_sort`, `auto_sort_minutes` and `free_space_margin_gb` (`SETTINGS` in `settings.py`) |
+| `languages`     | The languages of the interface                                                                                                                                                                                                                         |
+| `services`      | The services each `preferred_api_*` can pick, per media type (`video`, `music`, `books`, `games`): `{"id", "name"}`                                                                                                                                    |
+| `keys`          | Each service (`service`, `name`, `media_type`, `url` to get a key) and its keys: `{"key", "set", "locked"}`, never the value                                                                                                                           |
+| `folders`       | `sources`, and the destination folders of `movies`, `tv`, `music`, `books`, `games`, in order                                                                                                                                                          |
+| `link_checks`   | In `link` mode, one check per source and destination: `ok`, `problem`, `tested`                                                                                                                                                                        |
+| `notifications` | `discord`, `webhook`: `{"set"}`; `jellyfin`, `plex`: `{"url", "set"}`; `script`: whether `SOK_AFTER_RENAME` is set (see [Notifications](#notifications))                                                                                               |
+| `about`         | `version` of the server, and `data`: the folder of its database (`SOK_CONFIG_DIR`, `/config` in Docker)                                                                                                                                                |
 
 - **Where they are kept.** The settings and the keys shared with the desktop
   app stay in `config.json`, through the `ConfigManager`: the core reads them
   there. The folders, which only the server has, are in the `folders` table,
   and the settings of the server only (`SERVER_SETTINGS`: `auto_sort`, off by
-  default, and `auto_sort_minutes`, 5 by default, from 1 to 1440) in the
-  `options` table.
+  default, `auto_sort_minutes`, 5 by default, from 1 to 1440, and
+  `free_space_margin_gb`, 1 by default, from 0 to 10000) in the `options`
+  table.
 - **Changing them.** `PATCH /api/settings` takes any of `settings`, `keys`,
   `folders` and `notifications`. Everything is checked before anything is saved; the first problem
   answers `422` with `{"code", "item"}` in `detail`: `unknown_setting`,
@@ -655,10 +656,17 @@ answers `409` with a code:
 | `no_destination`                                      | The media type has no destination folder                                                    |
 | `scan_running`, `already_running`                     | An analysis or a rename runs (`Jobs`); an analysis answers `rename_running` during a rename |
 | `different_drives`, `no_hard_links`, `missing_folder` | In link mode: `{"code", "source", "destination"}`, the folders that cannot be linked        |
+| `not_enough_space`                                    | In copy or move mode: `{"code", "destination", "needed", "free", "margin"}`, bytes as text  |
 
 In link mode, one test link (`can_hard_link`) is made for each drive of the
 files and each destination: a pair that fails stops the whole rename before
-any file moves. An unknown `type` answers `422`.
+any file moves. In copy or move mode, `_check_space()` adds up, for each disk
+of the destinations, the size of the files that take room there: every file
+in copy mode, only the files of another disk in move mode (a move on the same
+disk is a rename). When a disk would keep less than `free_space_margin_gb`
+(decimal GB, as the disks of the interface count) after them, nothing is
+renamed. The size is an upper bound: a duplicate skipped takes no room. An
+unknown `type` answers `422`.
 
 The rename then runs in a thread, inside `record()` of `sok.core.history`
 with the `History` of the server: one operation for the whole tab. Each
@@ -734,6 +742,11 @@ the rename, as they are.
 - **The event**: `{"event": "renamed", "date", "media_type", "auto",
 "renamed", "files": [{"from", "to"}]}`; a test sends `"event": "test"` with
   no file.
+- **A problem**: when the automatic sorting cannot rename a tab for lack of
+  room, the `Renamer` sends `{"event": "not_enough_space", "date",
+"media_type", "auto": true, "renamed": 0, "files": [], "destination",
+"needed", "free", "margin"}` (`Notifier.problem()`) to Discord, the webhook
+  and the script only: Jellyfin and Plex have nothing to refresh.
 - **Where they are kept**: the `options` table (`notify_<field>`). The URL of
   Discord and of the webhook, the key of Jellyfin and the token of Plex are
   secrets: `GET /api/settings` only says whether they are set. An empty value

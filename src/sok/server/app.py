@@ -94,6 +94,7 @@ def create_app(folder: Optional[Path] = None) -> FastAPI:
             app.state.history,
             app.state.jobs,
             app.state.notifier,
+            app.state.settings,
         )
         app.state.watcher = Watcher(
             db,

@@ -57,8 +57,11 @@ PREFERRED_API_SETTINGS = {
 SERVER_SETTINGS: Dict[str, Any] = {
     "auto_sort": False,
     "auto_sort_minutes": 5,
+    # The room a rename leaves free on each disk it copies to, in GB.
+    "free_space_margin_gb": 1,
 }
 AUTO_SORT_MINUTES = (1, 1440)
+FREE_SPACE_MARGIN_GB = (0, 10_000)
 
 # Where the server tells that files were renamed (see notify.py), kept in
 # the options table as notify_<field>. The secret ones are never sent back:
@@ -302,6 +305,12 @@ class Settings:
                     and isinstance(value, int)
                     and not isinstance(value, bool)
                     and AUTO_SORT_MINUTES[0] <= value <= AUTO_SORT_MINUTES[1]
+                )
+                or (
+                    key == "free_space_margin_gb"
+                    and isinstance(value, int)
+                    and not isinstance(value, bool)
+                    and FREE_SPACE_MARGIN_GB[0] <= value <= FREE_SPACE_MARGIN_GB[1]
                 )
                 or (key in FORMAT_SETTINGS and isinstance(value, str) and value.strip())
                 or (key == "file_mode" and value in FILE_MODES)
