@@ -798,5 +798,21 @@
     "web_menu": "Menu",
     "web_menu_nothing": "nada",
     "web_menu_waiting": "{n} por arrumar",
-    "web_touch_to_toggle": "Toca numa linha para a juntar ou retirar."
+    "web_touch_to_toggle": "Toca numa linha para a juntar ou retirar.",
+    "web_status_folder_to_pick": "pasta por escolher",
+    "web_which_folder": "Em que pasta?",
+    "web_folder_exists": "{title} já tem uma pasta nas tuas séries.",
+    "web_folders_exist": "{title} já tem várias pastas nas tuas séries.",
+    "web_new_folder": "Pasta nova",
+    "web_change_folder": "Mudar de pasta",
+    "web_existing_by_id": "Pasta existente, reconhecida pelo seu identificador {service}.",
+    "web_existing_by_nfo": "Pasta existente, reconhecida pelo seu ficheiro tvshow.nfo.",
+    "web_existing_by_history": "Pasta existente, onde o S.O.K já arrumou esta série.",
+    "web_existing_by_name": "Pasta existente, reconhecida pelo nome.",
+    "web_existing_by_title": "Pasta existente, reconhecida por outro título, {title}.",
+    "web_season_already": "{season} já arrumada.",
+    "web_seasons_already": "{seasons} já arrumadas.",
+    "web_episodes_already": "{episodes} já lá.",
+    "web_seasons_list": "Temporadas {list}",
+    "web_existing_chosen": "Pasta existente, escolhida por ti."
 }

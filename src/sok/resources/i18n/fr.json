@@ -798,5 +798,21 @@
     "web_menu": "Menu",
     "web_menu_nothing": "rien",
     "web_menu_waiting": "{n} à ranger",
-    "web_touch_to_toggle": "Touche une ligne pour l'ajouter ou l'enlever."
+    "web_touch_to_toggle": "Touche une ligne pour l'ajouter ou l'enlever.",
+    "web_status_folder_to_pick": "dossier à choisir",
+    "web_which_folder": "Dans quel dossier ?",
+    "web_folder_exists": "{title} a déjà un dossier dans tes séries.",
+    "web_folders_exist": "{title} a déjà plusieurs dossiers dans tes séries.",
+    "web_new_folder": "Nouveau dossier",
+    "web_change_folder": "Changer de dossier",
+    "web_existing_by_id": "Dossier existant, reconnu par son identifiant {service}.",
+    "web_existing_by_nfo": "Dossier existant, reconnu par son fichier tvshow.nfo.",
+    "web_existing_by_history": "Dossier existant, où S.O.K a déjà rangé cette série.",
+    "web_existing_by_name": "Dossier existant, reconnu par son nom.",
+    "web_existing_by_title": "Dossier existant, reconnu par un autre titre, {title}.",
+    "web_season_already": "{season} déjà rangée.",
+    "web_seasons_already": "{seasons} déjà rangées.",
+    "web_episodes_already": "{episodes} déjà là.",
+    "web_seasons_list": "Saisons {list}",
+    "web_existing_chosen": "Dossier existant, choisi par toi."
 }

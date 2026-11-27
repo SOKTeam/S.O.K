@@ -32,7 +32,10 @@
     matchOf,
     posterUrl,
     searchRow,
+    statusOf,
+    existingFolder,
     titleOf,
+    type FolderMatch,
     type Row,
   } from "../lib/rows";
   import { undo } from "../lib/history";
@@ -92,7 +95,7 @@
         untrack(() => {
           if (openId === null || !found.some((row) => row.id === openId)) {
             // The first Ready row; else the first one, on its results.
-            const first = found.find((row) => row.status === "ok") ?? found[0];
+            const first = found.find((row) => statusOf(row) === "ok") ?? found[0];
             openId = first?.id ?? null;
             view = first && first.status !== "ok" ? "pick" : "scene";
             query = first ? (first.query ?? titleOf(first)) : "";
@@ -122,9 +125,9 @@
   });
 
   const shown = $derived(
-    rows === null ? [] : filter === "all" ? rows : rows.filter((row) => row.status === filter),
+    rows === null ? [] : filter === "all" ? rows : rows.filter((row) => statusOf(row) === filter),
   );
-  const ready = $derived(rows?.filter((row) => row.status === "ok") ?? []);
+  const ready = $derived(rows?.filter((row) => statusOf(row) === "ok") ?? []);
   const open = $derived(rows?.find((row) => row.id === openId) ?? null);
   const selection = $derived(ready.filter((row) => chosen.includes(row.id)));
   const destinations = $derived(settings.data?.folders[mediaType] ?? []);
@@ -181,11 +184,13 @@
   const TRACKS_SHOWN = 6;
 
   function count(status: RowStatus): number {
-    return units(rows?.filter((row) => row.status === status) ?? []);
+    return units(rows?.filter((row) => statusOf(row) === status) ?? []);
   }
 
   // The episodes of the open series: all of them, or the first ones.
   let allEpisodes = $state(false);
+  // "Change folder": the question of the folders of the open series again.
+  let askFolder = $state(false);
   // The episodes of the open series folded away (a click on its row again).
   let folded = $state(false);
   const EPISODES_SHOWN = 4;
@@ -215,7 +220,7 @@
   }
 
   function toggle(row: Row) {
-    if (row.status !== "ok") return;
+    if (statusOf(row) !== "ok") return;
     chosen = chosen.includes(row.id) ? chosen.filter((id) => id !== row.id) : [...chosen, row.id];
     anchor = row.id;
     if (!chosen.length) endPicking();
@@ -229,7 +234,7 @@
     const [a, b] = from < to ? [from, to] : [to, from];
     const inRange = shown
       .slice(Math.max(0, a), b + 1)
-      .filter((one) => one.status === "ok")
+      .filter((one) => statusOf(one) === "ok")
       .map((one) => one.id);
     chosen = [...new Set([...chosen, ...inRange])];
   }
@@ -251,14 +256,14 @@
     if (event.metaKey || event.ctrlKey) {
       picking = true;
       chosen = [open, row]
-        .filter((one): one is Row => one?.status === "ok")
+        .filter((one): one is Row => !!one && statusOf(one) === "ok")
         .map((one) => one.id)
         .filter((id, i, all) => all.indexOf(id) === i);
       anchor = row.id;
       if (!chosen.length) endPicking();
       return;
     }
-    if (event.shiftKey && row.status === "ok") {
+    if (event.shiftKey && statusOf(row) === "ok") {
       picking = true;
       range(row);
       return;
@@ -270,6 +275,7 @@
     if (row.id !== openId) {
       allEpisodes = false;
       folded = false;
+      askFolder = false;
     } else if (episodic && !screen.narrow) {
       // The open series again: fold or unfold its episodes. Narrow, a click
       // opens the scene over the list, so the fold is the word under them.
@@ -326,6 +332,18 @@
         exc instanceof ApiError && exc.status === 409 ? searchErrorText(exc) : errorText(exc);
     } finally {
       searching = false;
+    }
+  }
+
+  /** The folder of a series that has some already, or "new". */
+  async function chooseFolder(folder: number | "new") {
+    if (!open) return;
+    error = "";
+    try {
+      replace(await changeRow(open.id, { folder }));
+      askFolder = false;
+    } catch (exc) {
+      error = errorText(exc);
     }
   }
 
@@ -416,6 +434,72 @@
     if (!episodic && !(music && row.kind === "album")) return `${folder}/${name}`;
     const parts = name.split("/").slice(0, -1);
     return `${folder}/${parts.join("/")}/`;
+  }
+
+  /** "Season 2", "Seasons 1 and 3", "Seasons 1 to 4". */
+  function seasonsText(seasons: number[]): string {
+    if (seasons.length === 1) return t("web_season_n", "Season {n}", { n: seasons[0] });
+    const [from, to] = [seasons[0], seasons[seasons.length - 1]];
+    if (seasons.length > 2 && to - from === seasons.length - 1) {
+      return t("web_seasons_range", "Seasons {from}–{to}", { from, to });
+    }
+    const list = new Intl.ListFormat(i18n.language, { type: "conjunction" }).format(
+      seasons.map(String),
+    );
+    return t("web_seasons_list", "Seasons {list}", { list });
+  }
+
+  /** What a folder already holds: "Seasons 1 and 2 · 28 episodes". */
+  function contentOf(match: FolderMatch): string {
+    return [
+      match.seasons.length ? seasonsText(match.seasons) : "",
+      match.episodes ? tn("web_n_episodes", match.episodes, "{n} episode", "{n} episodes") : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  }
+
+  /** The line under the path: how the folder was found, what it holds. */
+  function foundText(match: FolderMatch, row: Row): string {
+    const services: Record<string, string> = { tmdb: "TMDB", tvdb: "TVDB", imdb: "IMDb" };
+    let how: string;
+    if ((row.series_folder?.matches.length ?? 0) > 1) {
+      how = t("web_existing_chosen", "Existing folder, chosen by you.");
+    } else if (match.how === "id" && match.source === "nfo") {
+      how = t("web_existing_by_nfo", "Existing folder, recognized by its tvshow.nfo file.");
+    } else if (match.how === "id") {
+      how = t("web_existing_by_id", "Existing folder, recognized by its {service} id.", {
+        service: services[match.source ?? ""] ?? match.source ?? "",
+      });
+    } else if (match.how === "history") {
+      how = t("web_existing_by_history", "Existing folder, where S.O.K put this series before.");
+    } else if (match.title && match.title !== titleOf(row)) {
+      how = t("web_existing_by_title", "Existing folder, recognized by another title, {title}.", {
+        title: match.title,
+      });
+    } else {
+      how = t("web_existing_by_name", "Existing folder, recognized by its name.");
+    }
+    let content = "";
+    if (match.seasons.length === 1) {
+      content = t("web_season_already", "{season} already put away.", {
+        season: seasonsText(match.seasons),
+      });
+    } else if (match.seasons.length) {
+      content = t("web_seasons_already", "{seasons} already put away.", {
+        seasons: seasonsText(match.seasons),
+      });
+    } else if (match.episodes) {
+      content = t("web_episodes_already", "{episodes} already there.", {
+        episodes: tn("web_n_episodes", match.episodes, "{n} episode", "{n} episodes"),
+      });
+    }
+    return [how, content].filter(Boolean).join(" ");
+  }
+
+  /** A path that breaks after its slashes, never inside a name. */
+  function breakable(path: string): string[] {
+    return path.split(/(?<=\/)/);
   }
 
   function folderOf(row: Row): string {
@@ -511,7 +595,11 @@
 </script>
 
 {#snippet status(row: Row)}
-  {#if row.status === "ok"}
+  {#if row.folder_pending}
+    <span class="text-[12.5px] text-accent-text"
+      >{t("web_status_folder_to_pick", "folder to pick")}</span
+    >
+  {:else if row.status === "ok"}
     <Gauge notches={5} />
   {:else if row.status === "ambiguous"}
     <span class="flex items-center gap-2.5 text-[12.5px] text-accent-text">
@@ -693,14 +781,14 @@
               ]}
               onclick={(event) => click(row, event)}
               onkeydown={(event) => event.key === "Enter" && openRow(row)}
-              use:longpress={() => row.status === "ok" && mark(row)}
+              use:longpress={() => statusOf(row) === "ok" && mark(row)}
             >
               <Thumb
                 tile
                 poster={match?.poster ?? null}
                 chosen={isChosen}
                 marks={picking}
-                selectable={row.status === "ok"}
+                selectable={statusOf(row) === "ok"}
                 label={t("web_choose_row", "Choose {title}", { title: titleOf(row) })}
                 onmark={() => mark(row)}
               />
@@ -745,7 +833,7 @@
               ]}
               onclick={(event) => click(row, event)}
               onkeydown={(event) => event.key === "Enter" && openRow(row)}
-              use:longpress={() => row.status === "ok" && mark(row)}
+              use:longpress={() => statusOf(row) === "ok" && mark(row)}
               tabindex="0"
             >
               <Thumb
@@ -753,7 +841,7 @@
                 poster={match?.poster ?? null}
                 chosen={isChosen}
                 marks={picking}
-                selectable={row.status === "ok"}
+                selectable={statusOf(row) === "ok"}
                 label={t("web_choose_row", "Choose {title}", { title: titleOf(row) })}
                 onmark={() => mark(row)}
               />
@@ -1180,13 +1268,96 @@
           {/if}
           <div class="mt-[26px] w-full"><Facts {facts} /></div>
         {/if}
-        {#if open.files[0]?.new_name && folderOf(open)}
+        {@const existing = existingFolder(open)}
+        {#if episodic && open.series_folder && (open.folder_pending || askFolder)}
+          <!-- The series has folders already: which one? -->
+          {@const found = open.series_folder}
+          <div class="mt-6 w-full">
+            <p class="text-[17px] font-semibold tracking-[-0.01em]">
+              {t("web_which_folder", "Which folder?")}
+            </p>
+            <p class="mt-1 text-[13.5px] text-muted">
+              {found.matches.length > 1
+                ? t("web_folders_exist", "{title} already has several folders in your series.", {
+                    title: titleOf(open),
+                  })
+                : t("web_folder_exists", "{title} already has a folder in your series.", {
+                    title: titleOf(open),
+                  })}
+            </p>
+            <div class="mt-3.5 grid gap-0.5">
+              {#each [...found.matches.map( (match, index) => ({ index, match }) ), null] as option (option?.index ?? "new")}
+                {@const value = option ? option.index : "new"}
+                {@const on = !open.folder_pending && found.chosen === value}
+                <button
+                  type="button"
+                  class={[
+                    "group grid cursor-pointer grid-cols-[14px_minmax(0,1fr)] items-start gap-3 rounded-[9px] px-3 py-2.5 text-left hover:bg-raised hover:shadow-[inset_0_1px_0_var(--color-hi)]",
+                    !option &&
+                      "mt-1.5 rounded-t-none border-t border-dotted border-line-strong pt-3.5",
+                  ]}
+                  aria-pressed={on}
+                  onclick={() => chooseFolder(value)}
+                >
+                  <span
+                    class={[
+                      "mt-[3px] size-3 rounded-full",
+                      on
+                        ? "bg-accent"
+                        : "shadow-[inset_0_0_0_1.5px_var(--color-line-strong)] group-hover:shadow-[inset_0_0_0_1.5px_var(--color-accent)]",
+                    ]}
+                  ></span>
+                  <span class="min-w-0">
+                    <span
+                      class={[
+                        "block font-mono text-[13px] leading-[1.4] [overflow-wrap:anywhere]",
+                        option ? "text-ink" : "text-muted",
+                      ]}
+                    >
+                      {#if option}
+                        {#each breakable(`${option.match.path}/`) as part, i (i)}{part}<wbr
+                          />{/each}
+                      {:else}
+                        {#each breakable(`${folderOf(open)}/${titleOf(open)}/`) as part, i (i)}{part}<wbr
+                          />{/each}
+                      {/if}
+                    </span>
+                    <span class="mt-[3px] block text-[12.5px] text-muted">
+                      {option ? contentOf(option.match) : t("web_new_folder", "New folder")}
+                    </span>
+                  </span>
+                </button>
+              {/each}
+            </div>
+          </div>
+        {:else if open.files[0]?.new_name && folderOf(open)}
           <div class="mt-[22px] w-full">
             <p class="text-[13px] text-muted">{t("web_will_go_here", "Will be put here")}</p>
-            <p class="mt-1.5 font-mono text-[13px] leading-[1.4] break-all">
-              {targetOf(open)}
+            <p class="mt-1.5 font-mono text-[13px] leading-[1.4] [overflow-wrap:anywhere]">
+              {#if existing && targetOf(open).startsWith(`${existing.path}/`)}
+                <span class="text-ink"
+                  >{#each breakable(`${existing.path}/`) as part, i (i)}{part}<wbr />{/each}</span
+                ><span class="text-faint"
+                  >{#each breakable(targetOf(open).slice(existing.path.length + 1)) as part, i (i)}{part}<wbr
+                    />{/each}</span
+                >
+              {:else}
+                {#each breakable(targetOf(open)) as part, i (i)}{part}<wbr />{/each}
+              {/if}
             </p>
-            {#if destinations.length > 1}
+            {#if existing}
+              <p class="mt-2 text-[12.5px] text-muted">{foundText(existing, open)}</p>
+            {/if}
+            {#if episodic && open.series_folder}
+              <button
+                type="button"
+                class="mt-2 cursor-pointer text-[12.5px] text-accent-text underline decoration-dotted underline-offset-[3px]"
+                onclick={() => (askFolder = true)}
+              >
+                {t("web_change_folder", "Change folder")}
+              </button>
+            {/if}
+            {#if destinations.length > 1 && !existing}
               <div class="mt-2.5 flex flex-wrap gap-3.5 font-mono text-[13px] text-faint">
                 {#each destinations as folder, index (folder)}
                   {@const on =

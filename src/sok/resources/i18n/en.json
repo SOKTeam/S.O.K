@@ -798,5 +798,21 @@
     "web_menu": "Menu",
     "web_menu_nothing": "nothing",
     "web_menu_waiting": "{n} to sort",
-    "web_touch_to_toggle": "Touch a row to add or remove it."
+    "web_touch_to_toggle": "Touch a row to add or remove it.",
+    "web_status_folder_to_pick": "folder to pick",
+    "web_which_folder": "Which folder?",
+    "web_folder_exists": "{title} already has a folder in your series.",
+    "web_folders_exist": "{title} already has several folders in your series.",
+    "web_new_folder": "New folder",
+    "web_change_folder": "Change folder",
+    "web_existing_by_id": "Existing folder, recognized by its {service} id.",
+    "web_existing_by_nfo": "Existing folder, recognized by its tvshow.nfo file.",
+    "web_existing_by_history": "Existing folder, where S.O.K put this series before.",
+    "web_existing_by_name": "Existing folder, recognized by its name.",
+    "web_existing_by_title": "Existing folder, recognized by another title, {title}.",
+    "web_season_already": "{season} already put away.",
+    "web_seasons_already": "{seasons} already put away.",
+    "web_episodes_already": "{episodes} already there.",
+    "web_seasons_list": "Seasons {list}",
+    "web_existing_chosen": "Existing folder, chosen by you."
 }
