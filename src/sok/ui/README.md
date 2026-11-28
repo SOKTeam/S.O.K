@@ -13,20 +13,31 @@ ui/
 ├── components/          # Reusable components (Widgets)
 │   ├── integrations/    # Third-party modules (Discord RPC, Updates, OAuth)
 │   ├── base.py          # Base elements (Cards, Buttons, Toggles)
-│   ├── dialogs.py       # Custom dialog boxes
+│   ├── file_row.py      # Row of a media list (before/after, tags, gauge)
 │   ├── inputs.py        # Input elements and Drop Zones
-│   ├── layouts.py       # Custom layouts (FlowLayout)
-│   ├── search.py        # Widgets dedicated to search results
-│   ├── sidebar.py       # Sidebar navigation components
-│   └── window.py        # Window controls (Custom title bar)
+│   ├── media_visual.py  # Dominant color, stand-in for a missing poster
+│   ├── organize/        # Parts of the media pages (list, pick panel, rename summary…)
+│   ├── search.py        # Loading of posters and covers in the background
+│   ├── settings/        # Sections of the settings, their blocks and the live preview
+│   ├── nav.py           # Navigation (media types as words, icons)
+│   ├── scene.py         # Scene: the selected item shown large, lit
+│   ├── thin_scroll_bar.py # Thin scroll bar, shown only while scrolling
+│   └── window.py        # Window keys of Windows and Linux (in the nav row)
 ├── pages/               # Main application pages
 │   ├── home_page.py     # Dashboard
-│   ├── organize_page.py # Generic organization page
-│   └── settings_page.py # Settings page
+│   ├── batch_page.py    # Base of the media pages: list, scene, rename run
+│   ├── movies_page.py   # Movies (and books_page, games_page)
+│   ├── series_page.py   # TV shows, several series at once
+│   ├── music_page.py    # Music: albums and loose tracks, as a grid
+│   ├── history_page.py  # History of the renames, with undo
+│   └── settings_page.py # Settings: sections on the left, live preview on the right
 ├── workers/             # Asynchronous tasks (QThreads)
 ├── i18n.py              # Translation system
 ├── main_window.py       # Main window (Container)
-└── theme.py             # Style and palette definitions (Orange/Dark mode)
+├── motion.py            # The few animations and their durations
+├── responsive.py        # Sizes that follow the window (side column, titles, max width)
+├── theme.py             # Palettes (dark and light) and theme helpers
+└── tokens.py            # Colors of the art direction (generated)
 ```
 
 ## Development Principles
@@ -35,13 +46,48 @@ ui/
 in `workers`.
 2. **Translations**: All displayed texts must go through the `tr()` function
 from the `i18n` module.
-3. **Theming**: Use the palettes defined in `theme.py`.
-The interface supports a dynamic dark mode.
-4. **Modularity**: Prefer creating new components in `components/` rather than
+3. **Theming**: Use the palettes defined in `theme.py`, never a hard-coded
+color. Their colors come from `tokens.py`, generated from the `tokens.json` of
+the SOKTeam art direction by `scripts/make_theme_tokens.py`: never edit it by
+hand. The interface supports a dynamic dark mode.
+4. **Window sizes**: a page sizes its right column with `side_width()`,
+its big title with `fit_display()`, and shrinks its decorations around
+`LOW_HEIGHT` with `presence()`, from its `resizeEvent` (see
+`responsive.py`). Nothing jumps at a threshold while the window is resized:
+the title follows the width pixel by pixel, and the decorations shrink and
+fade out over `FADE_BAND`. Under `NARROW_WIDTH` the right column
+(`SidePanel`) slides out to the right while the list widens into its place,
+and slides back past `NARROW_WIDTH + NARROW_MARGIN` (the live preview of the
+settings too, whose column of section titles narrows with the room). Past
+`MAX_CONTENT_WIDTH` the navigation and the pages are centered.
+5. **Motion**: only the moments that change the state of things move (a
+panel coming in or leaving, an item recognized or sorted, the end of a
+rename, the switch to the pick panel, the press of a key), at most 250ms,
+with the helpers of `motion.py`. A view that replaces another goes through
+`crossfade()`, so the place is never empty. Between the scene, the pick
+panel and the summary, the poster travels to its new place with `fly()`
+(about 400ms: to its line in the results, from a result to the scene, to
+the cover fan of the summary) while the lines of the new view come in one
+after the other with `cascade()` and `rise()`. These flights only happen
+when the right column is beside the list; a page whose light follows the
+view gives `lights()` (each light with its opacity) instead of
+`light_source()`. Connect a callback to an animation directly, never through
+a lambda: freeing its widget right after the end then crashes Qt. What is
+done over and over (moving in a list, changing page, typing, scrolling,
+hovering) never moves.
+6. **Scroll bars**: every scroll area gets `thin_scroll_bar()` in place of
+the bar of the system, which stays hidden and keeps doing the scrolling: a
+thin bar over the content, invisible at rest, shown while the content
+scrolls or when the mouse nears the right edge, wider under the mouse.
+Leave 14px free at the right of the content for it.
+7. **Modularity**: Prefer creating new components in `components/` rather than
 overloading page files.
 
 ## Graphic Style
 
-S.O.K uses a custom frameless interface, inspired by modern macOS design
-with a distinctive "Orange" touch. Rendering is managed through a mix of
+S.O.K uses a custom frameless interface following the SOKTeam art direction:
+dark by default, with the S.O.K coral as the only accent. The fonts are Geist
+for the interface and Geist Mono for data (paths, file names, years, figures),
+bundled in `resources/fonts/` and loaded on every system. `theme.ui_font()`
+gives an exact size and weight (stylesheets round 650 down to 600). Rendering is managed through a mix of
 **QSS** (Qt Style Sheets) and custom drawing in `paintEvent`.

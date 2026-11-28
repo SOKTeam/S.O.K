@@ -7,35 +7,48 @@ description:
 
 Renaming happens on two kinds of pages:
 
-- **Batch pages**, where every file (or group of files) gets its own online
-  item: Movies, Books, Games and the Tracks tab of Music.
-- **One-item pages**, where all the files belong to one item chosen by the user:
-  TV shows (one series) and the Albums tab of Music (one album).
+All of them are **batch pages**, where every file (or group of files) gets its
+own online item: Movies, TV shows (a row per series), Music (a row per album or
+loose track), Books and Games.
 
 The batch engine, `sok.core.batch`, has no Qt dependency: S.O.K Server will use
 it as it is.
 
 ## Batch pages
 
-| Page   | One row is                           | Organized by                                |
-| ------ | ------------------------------------ | ------------------------------------------- |
-| Movies | a video file                         | `VideoFileOperations.organize_movies_batch` |
-| Books  | a book file                          | `BookFileOperations.organize_items_batch`   |
-| Games  | a ROM, or the .cue/.bin files of one | `GameFileOperations.organize_items_batch`   |
-| Tracks | an audio file                        | `MusicFileOperations.organize_items_batch`  |
+| Page     | One row is                           | Organized by                                                    |
+| -------- | ------------------------------------ | --------------------------------------------------------------- |
+| Movies   | a video file                         | `VideoFileOperations.organize_movies_batch`                     |
+| TV shows | the episodes of one series           | `VideoFileOperations.organize_files_list`, one series at a time |
+| Books    | a book file                          | `BookFileOperations.organize_items_batch`                       |
+| Games    | a ROM, or the .cue/.bin files of one | `GameFileOperations.organize_items_batch`                       |
+| Music    | an album folder, or a loose track    | `MusicFileOperations.organize_items_batch`                      |
 
 Each page is a subclass of `BatchPage` (`sok/ui/pages/batch_page.py`), which
-holds the table, the workers and the buttons. A subclass only sets class
-attributes (media type, content type, how to read a file name, how rows are
-grouped) and a few texts.
+holds the list, the scene, the workers and the buttons. A subclass only sets
+class attributes (media type, content type, how to read a file name, how rows
+are grouped, the `kind` of its texts and the `scene_shape` of its items).
+
+The page has two screens: an empty one, centered (three empty places in the
+shape of its items, a sentence, "Choose a folder" and "How it works", which
+opens the guide of the website in the language of the app, and what S.O.K
+recognizes: `known_tags()`, the accepted formats, or the consoles on the games
+page),
+and the work screen (a sentence such as "18 movies to sort.", the list of
+`FileRow`s and the `Scene` of the selected item). The work screen also shows a
+rename while it runs and once it is over (see [Renaming](#5-renaming)). The texts
+of each kind are in `KIND_TEXTS`; sentences with a number use `trn()`, which
+picks the plural form of the language (`sok.ui.i18n.plural_form`).
 
 ### 1. Adding files
 
 Files dropped on the page, picked in the file dialog or sent from the home page
-(`BatchPage.load_files`) go to the table, `MediaBatchTable`. Its `group_files`
-function makes the rows: one per file by default, one per game for games
+(`BatchPage.load_files`) go to the list, `MediaList`
+(`sok/ui/components/organize/media_list.py`), which keeps an `Entry` per row
+(files, query, results, chosen result, status). Its `group_files` function
+makes the rows: one per file by default, one per game for games
 (`group_game_files`: a .cue, .m3u or .gdi takes the files it lists). Files that
-are already in the table are skipped.
+are already in the list are skipped.
 
 ### 2. Reading the file names
 
@@ -93,14 +106,44 @@ on a compilation or a live album (`same_track`). A track found only on compilati
 live or remix releases is never Ready (`on_other_release`): the album it came
 out on is still unknown.
 
-The user can change the selected result of a row, or type another search (the
-row is searched again with that text as its title).
+The five notches of a row show its status: 5 when Ready and the name gave the
+year too, 4 when Ready from the title only, 2 for Pick one, 0 for Missing
+(`Entry.confidence`).
+
+A row to pick or missing opens the pick panel in place of the scene
+(`PickPanel`), and so does "This is not it" on the scene of a Ready row: the
+user picks another result or types another search (the row is searched again
+with that text as its title, and its results must then be picked). The scene
+shows what S.O.K knows without opening the files: quality read from the name
+(movies), format, size, the service that found it, and the final path.
 
 ### 5. Renaming
 
-"Rename all" only takes the Ready rows. The page builds a `sok.media` item for
+The main key ("Sort the movies", with the count of Ready rows and Ctrl/Cmd+R)
+only takes the Ready rows, and starts at once: no question is asked, since the
+rename can be stopped and undone. The page builds a `sok.media` item for
 each one (`create_media_item`) and starts `BatchOrganizeWorker` with
-`(file, item)` pairs. The organize method of the file operations moves each file
+`(file, item)` pairs.
+
+**While it runs** (`BatchPage._phase == "running"`), the worker emits
+`file_started(name, number, total)` before each file, and the list follows it:
+each row has a phase (`Entry.phase`: waiting, current, done, stays for the
+items not ready, failed), the scene shows the item being moved, and the
+bottom shows Stop and a line such as "6 / 17 · 64,3 GB moved · 48 MB/s ·
+1 min 40 left", from the sizes of the files finished (S.O.K cannot see inside
+one file). Stop (`request_stop()`) raises `StopRequested` from the progress
+callback, so the rename ends between two files; what moved is taken from the
+journal and stays in the history.
+
+**Once it is over** (`"end"`), the list puts first what is left (items to pick,
+with a Pick key; files that did not move, with their reason and a Retry key),
+then the sorted items with their new path (status `STATUS_DONE`, never renamed
+again). The right column becomes a `RenameSummary`: covers, a dotted sheet
+(sorted, time, size moved, left in place, destination), Open the folder and
+Undo the renaming. Dropping new files clears the sorted items and goes back to
+`"idle"`.
+
+The organize method of the file operations moves each file
 where `batch_target(item, file, alone)` says:
 
 | Type  | Destination                                                                                                                                          |
@@ -113,12 +156,15 @@ where `batch_target(item, file, alone)` says:
 The platform of a game comes from a `[SNES]` tag, the extension or the folder
 name (`GameFileOperations.detect_platform`).
 
-## One-item pages
+## TV shows
 
-On TV shows and Albums, the user searches and selects one series or one album
-(`SearchWorker`, then `DetailsWorker` for the episodes or the tracks). The page
-builds the item, and `OrganizeWorker` calls `organize_files_list` of the file
-operations:
+The TV shows page (`sok/ui/pages/series_page.py`, a `BatchPage`) groups the
+dropped episodes by series with the type detector of the home page
+(`group_by_series`) and searches each series with `parse_series`, like S.O.K
+Server. Once a series is Ready, `DetailsWorker` loads its seasons and the titles
+of its episodes, one series at a time; the list then shows the episodes under
+the selected series, and the scene a square per episode of each season.
+Renaming calls `organize_files_list` for each series:
 
 - **TV shows** (`VideoFileOperations.organize_files_list`): the files go to
   `Series/Season N/`, or to a season folder that already exists in the
@@ -133,9 +179,20 @@ operations:
   ("Season 2", or "Season 2 - The Return" when the season has a name of its
   own), and `fetch_episode_titles()` reads the episodes of each season
   (`S01E01` → title); a season that fails is skipped.
-- **Albums**: each track is named from the music format, with the artist, album
-  and year of the album found online, and the title and number of its tags (or
-  of its file name).
+
+## Music
+
+The Music page (`sok/ui/pages/music_page.py`) groups the dropped audio files
+with the type detector: the tracks of an album folder make one row, searched as
+an album (`parse_album`, `same_album`); a track on its own is a row searched as
+a track (`parse_track`, `same_track`). A page says how each row is searched with
+`BatchPage.search_spec(files)`; the searches of each kind run one after the
+other. The scene lists the tracks of the album with their length (from the
+tags).
+
+Each track of an album is named from the music format, with the artist, album
+and year of the album found online, and the title and number of its tags (or of
+its file name) (`MusicFileOperations.batch_target`).
 
 ## From the home page
 
@@ -146,9 +203,14 @@ per album. Files whose type is a guess (an `.iso` can be a movie or a game) are
 listed for the user to confirm, as is a video without a year among the episodes
 of one series (a bonus?); next to the episodes of several series, as in a
 downloads folder, a video stays a movie. A video read by an episode pattern of the
-settings is an episode, one read by a movie pattern is a movie. Opening a group calls `MainWindow._open_group`,
-which shows the page of its type and gives it the files (`load_files` on a batch
-page).
+settings is an episode, one read by a movie pattern is a movie. Each group goes
+straight to the page of its type (`MainWindow._send_group` calls `load_files`),
+which searches it; the home page stays open and shows a row per media type with
+what its page has to sort (`BatchPage.summary()`), and the files to confirm
+(`CheckRow`), each sent to the page of the type chosen. The home page also shows
+the last rename, with Undo, and every disk of the computer (`DiskWorker`): the
+disks of the default folders first, then the others from `system_volumes()`
+(volumes under 1 GB left out); its right column scrolls when they do not fit.
 
 ## Names and safety settings
 
@@ -250,8 +312,8 @@ When two videos of a folder can claim a subtitle (`Movie.mkv` and
 The report lists them in `"subtitles"`, apart from `"moved"`, so the counts
 and the posters stay those of the videos; a skipped or failed subtitle joins
 `"skipped"` or `"errors"`. The rename workers pass their number on as
-`"subtitles"`: the end message adds "With 3 subtitle(s).", and the History page
-counts them apart and shows each one under its video.
+`"subtitles"`, and the History page counts the videos only ("6 movies
+sorted").
 
 :::tip
 A rename can be undone: see [Rename history](#rename-history) below.
@@ -259,10 +321,21 @@ A rename can be undone: see [Rename history](#rename-history) below.
 
 ## Rename history
 
-Each rename can be undone, from the message shown at its end ("Undo rename") or
-from the History page. `sok/core/history.py` keeps the history, without Qt.
+Each rename can be undone, from its page once it is over ("Undo the
+renaming"), from the
+band of the home page (the last one), or from the History page. That page groups
+the renames by day (today, yesterday, earlier this month; the older months fold
+into one row each, the month of the last rename always shown) and shows the one
+selected on a scene: where from, where to, how (moved, hard links, copied), its
+size, and its files with what each one was and a key to put it back (the
+first four; "and N other files" lists them all in a list that scrolls past
+five, so any file can be put back alone). The
+shortened paths of where from and where to show whole under the mouse. The
+posters are read at the height they are drawn (`read_poster`, at most
+`POSTER_HEIGHT`) and kept, so a long history opens fast.
+`sok/core/history.py` keeps the history, without Qt.
 
-**Recording.** `BatchOrganizeWorker` and `OrganizeWorker` run the rename and the
+**Recording.** `BatchOrganizeWorker` runs the rename and the
 poster downloads inside `history.record(kind)`. While it runs, three functions
 report what they do to the active journal (`current_journal()`):
 

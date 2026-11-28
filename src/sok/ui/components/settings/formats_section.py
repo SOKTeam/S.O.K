@@ -8,175 +8,261 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-"""File formats section for settings page.
+"""File names section: the name model of each media type, as a dotted sheet.
 
-Allows users to customize the naming templates used when organizing
-media files (TV series, movies, music).
+A line per type (Movies, TV shows, Music, Books, Games) with its model; a
+click opens it to edit the model, its variables under the field. The
+preview of the settings screen follows the line open, as it is typed.
 """
 
-from typing import Dict
+from string import Formatter
+from typing import Dict, List, NamedTuple
+
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
 )
-from sok.ui.components.base import Card
-from sok.ui.controllers.ui_helpers import make_section_label
+
+from sok.config.config_manager import AppConfig
+from sok.ui.components.settings.layout import SheetRow, VariableChip
 from sok.ui.i18n import tr
-from sok.ui.theme import card_shadow
+from sok.ui.theme import ui_font
+
+
+class NameModel(NamedTuple):
+    """A name model of the settings."""
+
+    config_key: str
+    tr_key: str  # word of the type, as in the navigation
+    default: str
+    variables: List[str]
+
+
+MODELS: List[NameModel] = [
+    NameModel(
+        "movie_format",
+        "movies",
+        "Movies",
+        ["title", "year", "quality"],
+    ),
+    NameModel(
+        "video_format",
+        "tv_shows",
+        "TV Shows",
+        ["title", "season", "episode", "episode_title"],
+    ),
+    NameModel(
+        "music_format",
+        "music",
+        "Music",
+        ["artist", "album", "track", "title", "year"],
+    ),
+    NameModel(
+        "book_format",
+        "books",
+        "Books",
+        ["author", "title", "year", "series", "series_number"],
+    ),
+    NameModel(
+        "game_format",
+        "games",
+        "Games",
+        ["title", "year", "platform", "tags"],
+    ),
+]
+
+# Variables the engine fills without a key for them.
+HIDDEN_VARIABLES: Dict[str, List[str]] = {"video_format": ["season_num", "episode_num"]}
+
+
+def allowed_variables(model: "NameModel") -> List[str]:
+    return model.variables + HIDDEN_VARIABLES.get(model.config_key, [])
+
+
+# The models whose default gives the names Plex, Jellyfin and Kodi read.
+MEDIA_SERVER_MODELS = ("movie_format", "video_format")
+
+
+def default_model(config_key: str) -> str:
+    """The model S.O.K uses when the setting is not changed."""
+    return str(getattr(AppConfig(), config_key))
+
+
+def model_error(model: str, variables: List[str]) -> str:
+    """Why a model cannot be used, or "" if it can.
+
+    A variable the type does not have stops the renaming of movies and TV
+    shows, so it is refused for every type.
+    """
+    if not model.strip():
+        return tr("settings_model_empty", "The model is empty.")
+    try:
+        fields = [
+            f for _text, f, _spec, _conv in Formatter().parse(model) if f is not None
+        ]
+    except ValueError:
+        return tr("pattern_error_braces", "A brace { or } is not closed.")
+    for name in fields:
+        if name not in variables:
+            return tr("pattern_error_unknown", "Unknown variable: {name}").format(
+                name="{" + name + "}"
+            )
+    return ""
 
 
 class FormatsSection(QWidget):
-    """File formats section for settings page.
+    """The name model of each media type, as a dotted sheet.
 
-    Allows users to customize the naming templates used when
-    organizing media files (TV series, movies, music).
+    A line per type: its name, then its model in Geist Mono. A click opens
+    the line: the field of the model, its variables in faint text (a click
+    inserts one), why it cannot be used, and a note when it gives the names
+    of Plex, Jellyfin and Kodi.
+
+    Signals:
+        model_changed(str, str): Setting and text of the model shown, at
+            each key typed or line opened.
     """
 
-    def __init__(self, config, parent=None):
-        """Initialize the formats section.
+    model_changed = Signal(str, str)
 
-        Args:
-            config: Configuration manager instance.
-            parent: Parent widget.
-        """
+    def __init__(self, config, parent=None):
         super().__init__(parent)
         self._config = config
-        self._inputs: Dict[str, QLineEdit] = {}
+        self._key = MODELS[0].config_key
+        self._editing = False  # a line is open
+        self._rows: Dict[str, SheetRow] = {}
+        self._chips: Dict[str, QWidget] = {}
         self._build()
 
     def _build(self):
-        """Build the section UI."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setSpacing(6)
+        for model in MODELS:
+            row = SheetRow(mono_value=True)
+            row.clicked.connect(lambda k=model.config_key: self._toggle(k))
+            self._rows[model.config_key] = row
+            layout.addWidget(row)
 
-        self.label = make_section_label("file_formats", "Output Formats")
-        layout.addWidget(self.label)
+        # One editor, moved into the line that is open.
+        self._editor = QWidget()
+        editor = QVBoxLayout(self._editor)
+        editor.setContentsMargins(0, 4, 0, 0)
+        editor.setSpacing(8)
+        self._input = QLineEdit()
+        self._input.setFont(ui_font(14, 400, mono=True))
+        self._input.textChanged.connect(self._typed)
+        self._input.editingFinished.connect(self._save)
+        editor.addWidget(self._input)
+        for model in MODELS:
+            line = QWidget()
+            line_layout = QHBoxLayout(line)
+            line_layout.setContentsMargins(0, 0, 0, 0)
+            line_layout.setSpacing(12)
+            for variable in model.variables:
+                chip = VariableChip("{" + variable + "}")
+                chip.picked.connect(self._insert)
+                line_layout.addWidget(chip)
+            line_layout.addStretch()
+            self._chips[model.config_key] = line
+            editor.addWidget(line)
+        self._error = QLabel()
+        self._error.setFont(ui_font(13))
+        self._error.setProperty("tone", "warn")
+        editor.addWidget(self._error)
+        self._compatible = QLabel()
+        self._compatible.setObjectName("SettingHint")
+        self._compatible.setFont(ui_font(13))
+        editor.addWidget(self._compatible)
+        self._editor.setVisible(False)
 
-        card = Card()
-        card.add(
-            self._create_format_row(
-                "tv_series",
-                "TV Series",
-                "{title} S{season}E{episode} {episode_title}",
-                "video_format",
-                "Variables: {title}, {season}, {episode}, {episode_title}",
-            )
+    # ------------------------------------------------------------ Models
+
+    def current(self) -> NameModel:
+        return next(m for m in MODELS if m.config_key == self._key)
+
+    def text(self) -> str:
+        if self._editing:
+            return self._input.text()
+        return self._config.get(self._key, "") or ""
+
+    def _toggle(self, config_key: str) -> None:
+        """Open a line, or close it if it is the open one."""
+        row = self._rows[config_key]
+        self._save()
+        if row.is_open():
+            row.set_open(False)
+            self._editor.setVisible(False)
+            self._editing = False
+            self._show_values()
+            return
+        for other in self._rows.values():
+            other.set_open(False)
+        self._key = config_key
+        row.details_layout.addWidget(self._editor)
+        for key, line in self._chips.items():
+            line.setVisible(key == config_key)
+        self._input.blockSignals(True)
+        self._input.setText(self._config.get(config_key, "") or "")
+        self._input.blockSignals(False)
+        self._editor.setVisible(True)
+        self._editing = True
+        row.set_open(True)
+        self._show_values()
+        self._typed()
+        self._input.setFocus()
+
+    def _show_values(self) -> None:
+        for key, row in self._rows.items():
+            if not (row.is_open() and self._editing):
+                row.value.setText(self._config.get(key, "") or "")
+
+    def _typed(self, *_args) -> None:
+        model = self.current()
+        text = self._input.text()
+        error = model_error(text, allowed_variables(model))
+        self._error.setText(error)
+        self._error.setVisible(bool(error))
+        self._compatible.setVisible(
+            not error
+            and model.config_key in MEDIA_SERVER_MODELS
+            and text.strip() == default_model(model.config_key)
         )
-        card.add(
-            self._create_format_row(
-                "movie",
-                "Movies",
-                "{title} ({year})",
-                "movie_format",
-                "Variables: {title}, {year}, {quality}",
-            )
-        )
-        card.add(
-            self._create_format_row(
-                "music",
-                "Music",
-                "{track} - {title}",
-                "music_format",
-                "Variables: {artist}, {album}, {track}, {title}, {year}",
-            )
-        )
-        card.add(
-            self._create_format_row(
-                "book",
-                "Book",
-                "{author} - {title} ({year})",
-                "book_format",
-                "Variables: {author}, {title}, {year}, {series}, {series_number}",
-            )
-        )
-        card.add(
-            self._create_format_row(
-                "game",
-                "Game",
-                "{title} {tags}",
-                "game_format",
-                "Variables: {title}, {year}, {platform}, {tags}",
-            )
-        )
+        self._rows[model.config_key].value.setText(text)
+        self.model_changed.emit(model.config_key, text)
 
-        card.setGraphicsEffect(card_shadow())
-        card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        layout.addWidget(card)
+    def _save(self) -> None:
+        """Save the model being edited, if it can be filled."""
+        if not self._editing:
+            return
+        model = self.current()
+        text = self._input.text().strip()
+        error = model_error(text, allowed_variables(model))
+        if not error and text != self._config.get(model.config_key, ""):
+            self._config.set(model.config_key, text)
 
-    def _create_format_row(
-        self, tr_key: str, default: str, placeholder: str, config_key: str, hint: str
-    ) -> QWidget:
-        """Create a row with format input.
-
-        Args:
-            tr_key: Translation key for the label.
-            default: Default label text.
-            placeholder: Input placeholder text.
-            config_key: Configuration key for the format.
-            hint: Hint text showing available variables.
-
-        Returns:
-            Widget containing the row.
-        """
-        row = QWidget()
-        row.setFixedHeight(60)
-        layout = QVBoxLayout(row)
-        layout.setContentsMargins(12, 6, 12, 6)
-        layout.setSpacing(4)
-
-        header = QHBoxLayout()
-        title_lbl = QLabel()
-        title_lbl.setProperty("tr_key", tr_key)
-        title_lbl.setProperty("tr_default", default)
-        title_lbl.setObjectName("RowTitle")
-
-        hint_lbl = QLabel(hint)
-        hint_lbl.setObjectName("RowSubtitle")
-
-        header.addWidget(title_lbl)
-        header.addStretch()
-        header.addWidget(hint_lbl)
-        layout.addLayout(header)
-
-        input_field = QLineEdit()
-        input_field.setPlaceholderText(placeholder)
-        input_field.setObjectName("SettingsFormatInput")
-        input_field.setProperty("config_key", config_key)
-        input_field.editingFinished.connect(
-            lambda: self._config.set(config_key, input_field.text())
-        )
-        self._inputs[config_key] = input_field
-
-        layout.addWidget(input_field)
-        return row
+    def _insert(self, variable: str) -> None:
+        self._input.insert(variable)
+        self._input.setFocus()
+        self._save()
 
     def load(self):
-        """Load settings values into UI."""
-        for key, input_field in self._inputs.items():
-            input_field.setText(self._config.get(key, ""))
+        if self._editing:
+            self._input.blockSignals(True)
+            self._input.setText(self._config.get(self._key, "") or "")
+            self._input.blockSignals(False)
+            self._typed()
+        self._show_values()
+        self.model_changed.emit(self._key, self.text())
 
     def retranslate(self):
-        """Update translatable UI text."""
-        self.label.setText(tr("file_formats", "Output Formats"))
-        for input_field in self._inputs.values():
-            row = input_field.parentWidget()
-            if not row:
-                continue
-            row_layout = row.layout()
-            if not row_layout:
-                continue
-            header_layout_item = row_layout.itemAt(0)
-            header_layout = header_layout_item.layout() if header_layout_item else None
-            if header_layout:
-                title_item = header_layout.itemAt(0)
-                title_lbl = title_item.widget() if title_item else None
-                if title_lbl and hasattr(title_lbl, "setText"):
-                    tr_key = title_lbl.property("tr_key")
-                    default = title_lbl.property("tr_default")
-                    title_lbl.setText(tr(tr_key, default or ""))  # type: ignore[union-attr]
+        for model in MODELS:
+            self._rows[model.config_key].name.setText(tr(model.tr_key, model.default))
+        self._compatible.setText(
+            tr("settings_media_servers", "Compatible with Plex, Jellyfin and Kodi")
+        )
         self.load()

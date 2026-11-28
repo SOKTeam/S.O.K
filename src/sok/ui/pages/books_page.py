@@ -10,12 +10,15 @@
 # ===----------------------------------------------------------------------=== #
 """Page for batch-renaming books, each with its own online book."""
 
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, List
 
 from sok.core.batch import parse_book, same_book
 from sok.core.interfaces import ContentType, MediaType
 from sok.file_operations import BookFileOperations
 from sok.ui.i18n import tr
+from sok.ui.components.scene import Shape
+from sok.ui.components.file_row import RowData
+from sok.ui.components.organize.media_list import Entry
 from sok.ui.pages.batch_page import BatchPage
 
 
@@ -35,6 +38,9 @@ class BooksPage(BatchPage):
     "Author - Title (Year)". The editions of a book count as one match.
     """
 
+    kind = "books"
+    scene_shape = Shape.BOOK
+    show_found_in = False
     default_path_type = "book"
     media_type = MediaType.BOOK
     content_type = ContentType.BOOK
@@ -54,11 +60,20 @@ class BooksPage(BatchPage):
     def page_title(self) -> str:
         return tr("books", "Books")
 
-    def empty_hint(self) -> str:
-        return tr("books_drop_hint", "Drop book files or folders, or click to browse")
-
-    def add_more_text(self) -> str:
-        return tr("add_more_books", "+ Add more books")
-
     def query_placeholder(self) -> str:
         return tr("book_title_author", "Title (optional author)")
+
+    def lead_prefix(self, entries: List[Entry]) -> List[str]:
+        return [tr("batch_books_by_author", "Filed by author.")] if entries else []
+
+    def _row_data(self, entry: Entry) -> RowData:
+        """A book: its spine at the left, the author, the format as a tag."""
+        data = super()._row_data(entry)
+        data.book = True
+        data.by_tone = "ink-muted"
+        data.year = ""
+        formats = sorted(
+            {f.suffix.lstrip(".").upper() for f in entry.files if f.suffix}
+        )
+        data.tags = formats[:1]
+        return data

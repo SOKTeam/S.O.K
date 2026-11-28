@@ -17,7 +17,7 @@ from sok.ui.theme import Theme
 Role = QPalette.ColorRole
 
 
-@pytest.mark.parametrize("theme", [Theme.DARK, Theme.ORANGE, Theme.MAC_LIGHT])
+@pytest.mark.parametrize("theme", [Theme.DARK, Theme.LIGHT])
 def test_text_roles_use_the_theme_text_color(qapp, theme):
     pal = MainWindow._theme_palette(theme)
 
@@ -30,4 +30,4 @@ def test_disabled_text_is_dimmed(qapp):
     pal = MainWindow._theme_palette(Theme.DARK)
 
     disabled = pal.color(QPalette.ColorGroup.Disabled, Role.Text)
-    assert disabled == QColor(Theme.DARK["tertiary"])
+    assert disabled == QColor(Theme.DARK["tone_disabled"])

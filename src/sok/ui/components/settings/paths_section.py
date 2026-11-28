@@ -8,153 +8,135 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-"""Default paths section for settings page.
+"""Destinations section: the default folder of each media type.
 
-Provides folder selection controls for setting default destination
-paths for each media type (videos, music, books, games).
+One line per type of the navigation (Movies, TV shows, Music, Books,
+Games): its name, the folder in Geist Mono and a "Change" key. TV shows
+go with the movies until they get a folder of their own.
 """
 
-from typing import Dict
-from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QLabel,
-    QFileDialog,
-    QSizePolicy,
-)
-from sok.ui.components.base import Card, ActionButton
-from sok.ui.controllers.ui_helpers import make_section_label
+from typing import Dict, List, Tuple
+
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QSizePolicy, QWidget
+
+from sok.ui.components.base import KeyButton
+from sok.ui.components.settings.layout import Lines
 from sok.ui.i18n import tr
-from sok.ui.theme import card_shadow
+from sok.ui.theme import ui_font
+
+# (translation key, default, setting) of each line, in the navigation order.
+DESTINATIONS: List[Tuple[str, str, str]] = [
+    ("movies", "Movies", "default_video_path"),
+    ("tv_shows", "TV Shows", "default_series_path"),
+    ("music", "Music", "default_music_path"),
+    ("books", "Books", "default_books_path"),
+    ("games", "Games", "default_games_path"),
+]
+
+
+class PathLabel(QLabel):
+    """A folder in Geist Mono, shortened in the middle when too long."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("SettingPath")
+        self.setFont(ui_font(13, 400, mono=True))
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self._full = ""
+
+    def set_path(self, text: str, empty: bool = False) -> None:
+        self._full = text
+        self.setToolTip(text if not empty else "")
+        self.setProperty("empty", "true" if empty else "false")
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self._elide()
+
+    def resizeEvent(self, e):  # noqa: N802 - Qt API
+        super().resizeEvent(e)
+        self._elide()
+
+    def _elide(self) -> None:
+        text = self.fontMetrics().elidedText(
+            self._full, Qt.TextElideMode.ElideMiddle, max(40, self.width())
+        )
+        if text != self.text():
+            self.setText(text)
 
 
 class PathsSection(QWidget):
-    """Default paths section for settings page.
+    """The default folder of each media type.
 
-    Provides folder selection controls for setting default destination
-    paths for each media type (videos, music, books, games).
+    Signals:
+        changed: A folder was chosen (the preview shows it).
     """
 
-    def __init__(self, config, parent=None):
-        """Initialize the paths section.
+    changed = Signal()
 
-        Args:
-            config: Configuration manager instance.
-            parent: Parent widget.
-        """
+    def __init__(self, config, parent=None):
         super().__init__(parent)
         self._config = config
-        self._path_labels: Dict[str, QLabel] = {}
-        self._title_labels: Dict[str, QLabel] = {}
-        self._browse_buttons: Dict[str, ActionButton] = {}
+        self._names: Dict[str, QLabel] = {}
+        self._paths: Dict[str, PathLabel] = {}
+        self._keys: List[KeyButton] = []
         self._build()
 
     def _build(self):
-        """Build the section UI."""
-        layout = QVBoxLayout(self)
+        layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
-
-        self.label = make_section_label("default_folders", "Default Folders")
-        layout.addWidget(self.label)
-
-        card = Card()
-        for tr_key, default, config_key in [
-            ("videos", "Videos", "default_video_path"),
-            ("music", "Music", "default_music_path"),
-            ("books", "Books", "default_books_path"),
-            ("games", "Games", "default_games_path"),
-        ]:
-            card.add(self._create_path_row(tr_key, default, config_key))
-
-        card.setGraphicsEffect(card_shadow())
-        card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        layout.addWidget(card)
-
-    def _create_path_row(self, tr_key: str, default: str, config_key: str) -> QWidget:
-        """Create a row with path display and browse button.
-
-        Args:
-            tr_key: Translation key for the label.
-            default: Default label text.
-            config_key: Configuration key for the path.
-
-        Returns:
-            Widget containing the row.
-        """
-        row = QWidget()
-        row.setFixedHeight(44)
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(12, 0, 12, 0)
-
-        title_lbl = QLabel()
-        title_lbl.setProperty("tr_key", tr_key)
-        title_lbl.setProperty("tr_default", default)
-        title_lbl.setObjectName("RowTitle")
-
-        path_lbl = QLabel()
-        path_lbl.setObjectName("RowValue")
-        path_lbl.setProperty("config_key", config_key)
-        self._path_labels[config_key] = path_lbl
-        self._title_labels[config_key] = title_lbl
-
-        browse_btn = ActionButton("")
-        browse_btn.setProperty("tr_key", "browse")
-        browse_btn.setProperty("tr_default", "Browse")
-        browse_btn.setText(tr("browse", "Browse"))
-        browse_btn.clicked.connect(lambda: self._browse_path(config_key))
-        self._browse_buttons[config_key] = browse_btn
-
-        layout.addWidget(title_lbl)
-        layout.addStretch()
-        layout.addWidget(path_lbl)
-        layout.addWidget(browse_btn)
-        return row
+        lines = Lines()
+        layout.addWidget(lines)
+        for tr_key, default, config_key in DESTINATIONS:
+            row = QWidget()
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(0, 0, 0, 0)
+            row_layout.setSpacing(12)
+            name = QLabel()
+            name.setObjectName("SettingMuted")
+            name.setFont(ui_font(14))
+            name.setFixedWidth(86)
+            name.setProperty("tr_key", tr_key)
+            name.setProperty("tr_default", default)
+            path = PathLabel()
+            key = KeyButton("", small=True)
+            key.clicked.connect(lambda _=False, k=config_key: self._browse_path(k))
+            row_layout.addWidget(name)
+            row_layout.addWidget(path, 1)
+            row_layout.addWidget(key)
+            self._names[config_key] = name
+            self._paths[config_key] = path
+            self._keys.append(key)
+            lines.add(row)
 
     def _browse_path(self, key: str):
-        """Open folder browser dialog.
-
-        Args:
-            key: Configuration key for the path.
-        """
-        current = self._config.get(key, "")
+        current = self._config.get(key, "") or self._config.get(
+            "default_video_path", ""
+        )
         path = QFileDialog.getExistingDirectory(
             self, tr("choose_folder", "Choose a folder"), current
         )
         if path:
             self._config.set(key, path)
-            self._update_path_label(key, path)
-
-    def _update_path_label(self, key: str, path: str):
-        """Update the path label with truncation.
-
-        Args:
-            key: Configuration key.
-            path: Full path to display.
-        """
-        label = self._path_labels.get(key)
-        if label:
-            display = path if len(path) < 40 else f"...{path[-37:]}"
-            label.setText(display)
+            self.load()
+            self.changed.emit()
 
     def load(self):
-        """Load settings values into UI."""
-        for key, label in self._path_labels.items():
+        """Show the folders of the settings."""
+        for key, label in self._paths.items():
             path = self._config.get(key, "")
-            label.setText(path if path else tr("not_defined", "Not defined"))
+            if path:
+                label.set_path(path)
+            elif key == "default_series_path" and self._config.get(
+                "default_video_path", ""
+            ):
+                label.set_path(tr("settings_same_as_movies", "Same as movies"), True)
+            else:
+                label.set_path(tr("not_defined", "Not defined"), True)
 
     def retranslate(self):
-        """Update translatable UI text."""
-        self.label.setText(tr("default_folders", "Default Folders"))
-        for key, title_lbl in self._title_labels.items():
-            tr_key = title_lbl.property("tr_key")
-            default = title_lbl.property("tr_default")
-            if tr_key:
-                title_lbl.setText(tr(tr_key, default or ""))
-        for btn in self._browse_buttons.values():
-            tr_key = btn.property("tr_key")
-            tr_default = btn.property("tr_default")
-            if tr_key:
-                btn.setText(tr(tr_key, tr_default or ""))
+        for label in self._names.values():
+            label.setText(tr(label.property("tr_key"), label.property("tr_default")))
+        for key in self._keys:
+            key.setText(tr("change", "Change"))
         self.load()

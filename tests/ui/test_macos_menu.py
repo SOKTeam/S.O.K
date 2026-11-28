@@ -31,7 +31,6 @@ class FakeWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self._go = MagicMock()
-        self._toggle_sidebar = MagicMock()
         self.page = QWidget()
         self.page.focus_search = MagicMock()
 
@@ -73,7 +72,8 @@ class TestMacMenuBar:
         action_with_shortcut(window, "Ctrl+2").trigger()
         action_with_shortcut(window, QKeySequence.StandardKey.Preferences).trigger()
 
-        assert [c.args for c in window._go.call_args_list] == [(1,), (6,)]
+        # Cmd+2 opens Movies, the first media type of the navigation.
+        assert [c.args for c in window._go.call_args_list] == [(2,), (6,)]
 
     def test_find_focuses_the_page_search(self, window):
         action_with_shortcut(window, QKeySequence.StandardKey.Find).trigger()

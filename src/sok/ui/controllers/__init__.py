@@ -17,12 +17,10 @@ that support the main UI components.
 from sok.ui.controllers.worker_runner import WorkerRunner
 from sok.ui.controllers.ui_helpers import make_section_label
 from sok.ui.controllers.ui_state import set_progress, set_empty_state
-from sok.ui.controllers.organize_preview import OrganizePreviewController
 
 __all__ = [
     "WorkerRunner",
     "make_section_label",
     "set_progress",
     "set_empty_state",
-    "OrganizePreviewController",
 ]

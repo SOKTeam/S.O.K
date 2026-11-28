@@ -281,11 +281,11 @@ GROUP_LABELS = {
 CATEGORY_ORDER = ["video", "music", "books", "games", "images", "other"]
 
 CATEGORY_LABELS = {
-    "video": ("category_video", "Video (Movies & Series)"),
+    "video": ("category_video", "Movies and TV shows"),
     "music": ("category_music", "Music"),
     "books": ("category_books", "Books"),
-    "games": ("category_games", "Video Games"),
-    "images": ("category_images", "Artwork & Images"),
+    "games": ("category_games", "Games"),
+    "images": ("category_images", "Posters and covers"),
     "other": ("category_other", "Other services"),
 }
 

@@ -13,16 +13,15 @@ Design Tokens and Theme Utilities for S.O.K
 """
 
 import logging
-import sys
-import os
-from PySide6.QtGui import QColor, QFontDatabase, QPainter, QPixmap
+from PySide6.QtGui import QColor, QFont, QFontDatabase, QPainter, QPixmap
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
 from PySide6.QtSvg import QSvgRenderer
 import re
 
 from sok.config.config_manager import resources_dir
-from sok.ui.platform import IS_LINUX, IS_MACOS, system_accent_color
+from sok.ui import tokens
+from sok.ui.platform import IS_LINUX
 
 logger = logging.getLogger(__name__)
 
@@ -35,130 +34,79 @@ APP_ICON = ASSETS_DIR / ("logo_linux.png" if IS_LINUX else "logo.ico")
 
 
 def load_bundled_fonts() -> None:
-    """Register the bundled Inter font, the Linux UI font (see Theme.FONT).
+    """Register the bundled Geist and Geist Mono fonts (see Theme.FONT).
 
-    Few distributions install Inter; shipping it gives the same rendering on
-    all of them. Needs a QGuiApplication.
+    The art direction uses them on every system, so they ship with the app
+    (variable fonts, SIL Open Font License). Needs a QGuiApplication.
     """
     for path in sorted(FONTS_DIR.glob("*.ttf")):
         if QFontDatabase.addApplicationFont(str(path)) < 0:
             logger.warning("Could not load font %s", path.name)
 
 
+def _legacy_palette(t: dict[str, str]) -> dict[str, str]:
+    """Return a palette with the color names the widgets use, from tokens.
+
+    The widgets still read names such as "text" or "card"; each one points to
+    a token of the art direction. The tokens themselves are included too, for
+    the widgets drawn with them.
+
+    Args:
+        t: Color tokens of one theme (see sok.ui.tokens).
+    """
+    return {
+        **t,
+        "bg": t["bg"],
+        "card": t["surface"],
+        "card_bg": t["surface"],
+        "sidebar": t["surface"],
+        "sidebar_selection": t["surface-raised"],
+        "dropdown_bg": t["surface-raised"],
+        "input_bg": t["surface-raised"],
+        "hover": t["surface-raised"],
+        "text": t["ink"],
+        "secondary": t["ink-muted"],
+        "tertiary": t["key"],
+        "icon_secondary": t["ink-muted"],
+        "separator": t["line"],
+        "accent": t["accent"],
+        "accent_text": t["on-accent"],
+        "red": t["danger"],
+        # No success color: "ok" and "renamed" use the normal text color,
+        # next to a word that says it.
+        "tone_ok": t["ink"],
+        "tone_warn": t["caution"],
+        "tone_error": t["danger"],
+        "tone_info": t["ink-muted"],
+        "tone_disabled": t["ink-faint"],
+        "tone_file": t["ink-muted"],
+        "tone_pending": t["ink-faint"],
+        "tone_renamed": t["ink"],
+        "tone_ambiguous": t["caution"],
+        "tone_missing": t["danger"],
+    }
+
+
 class Theme:
     """Design tokens and color palettes for S.O.K UI.
 
-    Provides LIGHT and DARK color dictionaries plus platform-aware
-    font selection.
+    The colors come from the SOKTeam art direction (sok.ui.tokens, generated
+    by scripts/make_theme_tokens.py), the same on every system.
 
     Attributes:
-        FONT: UI font name (macOS system font, Segoe UI, or the bundled
-            Inter on Linux).
-        ORANGE: Orange theme color dictionary.
-        MAC_LIGHT: macOS light theme: white and gray, orange accents.
-        LIGHT: Light theme of the current platform.
-        DARK: Dark theme color dictionary.
+        FONT: UI font name (the bundled Geist).
+        MONO: Font name for data: paths, file names, years, figures,
+            shortcuts (the bundled Geist Mono).
+        LIGHT: Light theme color dictionary.
+        DARK: Dark theme color dictionary, the one screens are judged on.
     """
 
-    FONT = (
-        # Name Qt gives the macOS system font (SF Pro): "SF Pro Text" is not
-        # an installed family name, so Qt fell back to it with a warning.
-        ".AppleSystemUIFont"
-        if sys.platform == "darwin"
-        else ("Segoe UI Variable" if os.name == "nt" else "Inter")
-    )
+    FONT = "Geist"
+    MONO = "Geist Mono"
 
-    ORANGE = {
-        "bg": "#FB6048",
-        "card": "#FB6048",
-        "card_bg": "rgba(255, 255, 255, 0.15)",
-        "dropdown_bg": "#DD513F",
-        "text": "#FFFFFF",
-        "secondary": "rgba(255, 255, 255, 0.9)",
-        "tertiary": "rgba(255, 255, 255, 0.6)",
-        "accent": "#FFFFFF",
-        "accent_text": "#FB6048",
-        "green": "#50FA7B",
-        "red": "#FF5555",
-        "separator": "rgba(255, 255, 255, 0.3)",
-        "hover": "rgba(255, 255, 255, 0.3)",
-        "input_bg": "rgba(255, 255, 255, 0.25)",
-        "icon_secondary": "#FFFFFF",
-        "tone_ok": "#50FA7B",
-        "tone_warn": "#FFB86C",
-        "tone_error": "#FF6B6B",
-        "tone_info": "rgba(255, 255, 255, 0.7)",
-        "tone_disabled": "rgba(255, 255, 255, 0.4)",
-        "tone_file": "#B3B3B3",
-        "tone_pending": "#404040",
-        "tone_renamed": "#30D158",
-        "tone_ambiguous": "#FFB347",
-        "tone_missing": "#FF453A",
-        "font": FONT,
-    }
+    LIGHT = {**_legacy_palette(tokens.LIGHT), "font": FONT}
 
-    MAC_LIGHT = {
-        "bg": "#FFFFFF",
-        "card": "#F5F5F7",
-        "sidebar": "#EDEDF0",
-        "sidebar_selection": "rgba(0, 0, 0, 0.1)",
-        "card_bg": "#F5F5F7",
-        "dropdown_bg": "#FFFFFF",
-        "text": "#1D1D1F",
-        "secondary": "#6E6E73",
-        "tertiary": "#C7C7CC",
-        "accent": "#FB6048",
-        "accent_text": "#FFFFFF",
-        "green": "#248A3D",
-        "red": "#D70015",
-        "separator": "#E3E3E8",
-        "hover": "rgba(0, 0, 0, 0.06)",
-        "input_bg": "#FFFFFF",
-        "icon_secondary": "#6E6E73",
-        "tone_ok": "#248A3D",
-        "tone_warn": "#B25000",
-        "tone_error": "#D70015",
-        "tone_info": "#6E6E73",
-        "tone_disabled": "#AEAEB2",
-        "tone_file": "#6E6E73",
-        "tone_pending": "#AEAEB2",
-        "tone_renamed": "#248A3D",
-        "tone_ambiguous": "#B25000",
-        "tone_missing": "#D70015",
-        "font": FONT,
-    }
-
-    LIGHT = MAC_LIGHT if IS_MACOS else ORANGE
-
-    DARK = {
-        "bg": "#121212",
-        "card": "#1E1E1E",
-        "card_bg": "#1E1E1E",
-        "dropdown_bg": "#2C2C2E",
-        "text": "#FFFFFF",
-        "secondary": "#B3B3B3",
-        "tertiary": "#404040",
-        "accent": "#FB6048",
-        "accent_text": "#FFFFFF",
-        "green": "#30D158",
-        "red": "#FF453A",
-        "separator": "#333333",
-        "hover": "rgba(255, 255, 255, 0.1)",
-        "input_bg": "#2C2C2E",
-        "icon_secondary": "#B3B3B3",
-        "sidebar_selection": "rgba(255, 255, 255, 0.1)",
-        "tone_ok": "#50FA7B",
-        "tone_warn": "#FFB86C",
-        "tone_error": "#FF6B6B",
-        "tone_info": "rgba(255, 255, 255, 0.7)",
-        "tone_disabled": "rgba(255, 255, 255, 0.4)",
-        "tone_file": "#B3B3B3",
-        "tone_pending": "#404040",
-        "tone_renamed": "#30D158",
-        "tone_ambiguous": "#FFB347",
-        "tone_missing": "#FF453A",
-        "font": FONT,
-    }
+    DARK = {**_legacy_palette(tokens.DARK), "font": FONT}
 
     R = 10
 
@@ -166,18 +114,37 @@ class Theme:
     TONE_PREFIX = "tone_"
 
 
-def palette(dark: bool, system_accent: bool = False) -> dict[str, str]:
+def palette(dark: bool) -> dict[str, str]:
     """Return the color palette to use.
 
     Args:
         dark: True for the dark theme.
-        system_accent: Replace the orange accent with the system accent
-            color (macOS setting).
     """
-    c = dict(Theme.DARK if dark else Theme.LIGHT)
-    if system_accent and IS_MACOS:
-        c["accent"] = system_accent_color()
-    return c
+    return dict(Theme.DARK if dark else Theme.LIGHT)
+
+
+def ui_font(
+    px: int, weight: int = 400, mono: bool = False, tabular: bool = False
+) -> QFont:
+    """Return a font of the art direction at an exact size and weight.
+
+    Stylesheets round a weight to the nearest named one (650 becomes 600);
+    this sets the weight axis of the variable font, so any weight works.
+
+    Args:
+        px: Size in pixels.
+        weight: Weight, 100 to 900 (the titles use 650).
+        mono: Geist Mono instead of Geist.
+        tabular: Figures of equal width, for columns of numbers (Geist Mono
+            always has them).
+    """
+    font = QFont(Theme.MONO if mono else Theme.FONT)
+    font.setPixelSize(px)
+    font.setWeight(QFont.Weight(min(max(weight, 100), 900)))
+    font.setVariableAxis(QFont.Tag("wght"), float(weight))
+    if tabular:
+        font.setFeature(QFont.Tag("tnum"), 1)
+    return font
 
 
 def tone_stylesheet(c: dict[str, str]) -> str:

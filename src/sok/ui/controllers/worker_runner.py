@@ -61,6 +61,10 @@ class WorkerRunner:
         # Keeps the GUI-thread callbacks of each running thread alive.
         self._callbacks: dict[QThread, list[_GuiCallback]] = {}
 
+    def is_running(self) -> bool:
+        """True while a worker started by run() has not finished."""
+        return self._current_worker is not None
+
     def stop(self, cancel=False):
         """Stop the current worker and thread.
 

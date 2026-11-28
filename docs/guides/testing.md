@@ -146,9 +146,9 @@ pytest-qt gives the `qtbot` fixture. Register each widget you create, so that it
 is closed after the test:
 
 ```python
-def test_only_ready_rows_are_renamed(qtbot):
-    table = MediaBatchTable([".mkv"])
-    qtbot.addWidget(table)
+def test_only_ready_items_are_renamed(qtbot):
+    media = MediaList(make_row, [".mkv"])
+    qtbot.addWidget(media)
     ...
 ```
 

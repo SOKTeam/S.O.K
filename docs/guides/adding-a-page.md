@@ -97,14 +97,16 @@ A page is a widget, usually a `QScrollArea` with the object name `Page`. The
 window places the pages in a `QStackedWidget` and selects them by **index**:
 
 1. Create the page in `sok/ui/pages/` and export it in `pages/__init__.py`.
-2. Add it in `MainWindow` (`main_window.py`) with `self._pages.addWidget()`, in
-   sidebar order. The History page is the exception: it is the last one of the
-   stack (`HISTORY_PAGE = 7`) but its button sits above Settings.
-3. Add its sidebar button (the list of `(text_key, icon_name, index)` in
-   `MainWindow`) and its title in `_nav_titles()`.
+2. Add it in `MainWindow` (`main_window.py`) with `self._pages.addWidget()`.
+   The constants `HOME_PAGE`, `SETTINGS_PAGE` and `HISTORY_PAGE` give the
+   indexes of the pages outside the navigation.
+3. Give it its place in the navigation: a media type goes in `NAV_PAGES` (the
+   order of the words, Movies first), and its title in `_nav_titles()`.
+   Anything else is an icon at the right of the `NavBar`, next to History and
+   Settings.
 4. On macOS, add it to `PAGE_ACTIONS` in `macos_menu.py` (it gives the
-   <kbd>Cmd</kbd>+<kbd>1</kbd>… shortcuts) and update `SETTINGS_PAGE` and
-   `HISTORY_PAGE`.
+   <kbd>Cmd</kbd>+<kbd>1</kbd>… shortcuts, in the order of the navigation) and
+   update `SETTINGS_PAGE` and `HISTORY_PAGE` in both files.
 5. If the home page can send files to it, add its type to `PAGE_BY_KIND`.
 
 :::caution
@@ -135,13 +137,22 @@ The colors come from the main window stylesheet (`MainWindow`), which styles the
 widgets by object name: `Page`, `PageTitle`, `Card`, `SectionLabel`, `Progress`…
 Give a widget the object name of its role and it follows the theme, light or
 dark. A widget without one keeps the Qt default: a progress bar without the name
-`Progress` is blue instead of orange.
+`Progress` is blue instead of coral.
+
+Every action is a button, never a text link: `KeyButton` (or `ActionButton`,
+the same) from `sok.ui.components.base` draws itself with the theme. It is
+graphite by default; pass `primary=True` for the one main action of the page
+(coral), and `small=True` inside a row or a card (32px instead of 44px).
+`set_count(n)` adds the number of items it applies to, `set_shortcut("⌘R")` the
+shortcut, and `set_danger(True)` writes a destructive action in red.
 
 Other helpers of `sok.ui.theme` and `sok.ui.controllers`:
 
 - `set_tone(widget, "ok")` colors a text with a tone of the palette (`ok`,
   `error`, `ambiguous`…).
 - `card_shadow()` gives a card its shadow.
+- `ui_font(px, weight, mono=False, tabular=False)` gives a Geist or Geist Mono
+  font at an exact size and weight.
 - `make_section_label(key, default)` makes a section title.
 - `set_progress(bar, label, visible, message, value)` shows or hides a progress
   bar and its text.

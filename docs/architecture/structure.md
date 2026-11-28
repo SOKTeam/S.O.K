@@ -31,7 +31,7 @@ S.O.K/
 | `config/`          | Settings and folders, keys and sessions, service registry, OAuth providers                                                                                                                                   |
 | `server/`          | S.O.K Server, the FastAPI application (see [S.O.K Server](/server/overview/))                                                                                                                                |
 | `ui/`              | The PySide6 interface (see [Architecture](/architecture/overview/#interface-sokui))                                                                                                                          |
-| `resources/`       | Icons and logos (`assets/`), Inter font for Linux (`fonts/`), translations (`i18n/`)                                                                                                                         |
+| `resources/`       | Icons and logos (`assets/`), Geist and Geist Mono fonts (`fonts/`), translations (`i18n/`)                                                                                                                   |
 
 `ui/designer/` holds old Qt Designer mockups and `ui/generated/` is the empty
 folder meant for the code generated from them. Neither is used by the app.

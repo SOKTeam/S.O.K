@@ -14,7 +14,7 @@ from PySide6.QtWidgets import QLabel, QWidget
 
 from sok.ui.theme import Theme, set_tone, tone_stylesheet
 
-PALETTES = [Theme.ORANGE, Theme.MAC_LIGHT, Theme.DARK]
+PALETTES = [Theme.LIGHT, Theme.DARK]
 
 
 def tone_names(c):
@@ -42,19 +42,18 @@ def text_color(widget):
 
 class TestTones:
     def test_every_palette_defines_the_same_tones(self):
-        assert tone_names(Theme.ORANGE) == tone_names(Theme.MAC_LIGHT)
-        assert tone_names(Theme.DARK) == tone_names(Theme.MAC_LIGHT)
+        assert tone_names(Theme.DARK) == tone_names(Theme.LIGHT)
 
     @pytest.mark.parametrize("palette", PALETTES)
     def test_tone_colors_the_text(self, label, palette):
         lbl = label(palette)
 
-        set_tone(lbl, "ok")
+        set_tone(lbl, "warn")
 
-        assert text_color(lbl) == QColor(palette["tone_ok"])
+        assert text_color(lbl) == QColor(palette["tone_warn"])
 
     def test_clearing_the_tone_restores_the_default_color(self, label):
-        lbl = label(Theme.MAC_LIGHT)
+        lbl = label(Theme.LIGHT)
         default = text_color(lbl)
         set_tone(lbl, "error")
 

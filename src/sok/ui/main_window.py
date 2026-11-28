@@ -10,54 +10,63 @@
 # ===----------------------------------------------------------------------=== #
 """
 S.O.K - Main Interface
-Orange / Frameless / Modern Style
+Frameless / Modern Style
 """
 
 import sys
 from ctypes.wintypes import MSG
 from pathlib import Path
+from typing import Optional
 
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
-    QLabel,
     QStackedWidget,
     QFrame,
     QApplication,
     QSizePolicy,
-    QGraphicsOpacityEffect,
+    QStyle,
+    QStyleOption,
 )
 from PySide6.QtCore import (
+    QEvent,
     Qt,
     QTimer,
-    QVariantAnimation,
     QPropertyAnimation,
     QEasingCurve,
+    QPoint,
+    QPointF,
+    QRectF,
 )
-from PySide6.QtGui import QIcon, QPalette
+from PySide6.QtGui import QIcon, QPainter, QPainterPath, QPalette
 
-from sok.ui.theme import Theme, APP_ICON, ASSETS_DIR, palette, tone_stylesheet
+from sok.ui.theme import Theme, APP_ICON, palette, tone_stylesheet
 from sok.ui.platform import (
     IS_LINUX,
     IS_MACOS,
+    IS_WINDOWS,
     MACOS_TITLEBAR_HEIGHT,
+    SYSTEM_THEME,
     apply_color_scheme,
     hide_native_title,
     is_dark_theme,
+    round_native_corners,
     use_native_title_bar,
     use_srgb_windows,
 )
 from sok.ui.macos_menu import MacMenuBar
 from sok.ui.components.base import parse_color
-from sok.ui.components.sidebar import SidebarButton, SidebarToggleButton
+from sok.ui.components.nav import NavBar
+from sok.ui.responsive import MAX_CONTENT_WIDTH, CenteredColumn
 from sok.ui.components.window import WindowControlButton
+from sok.ui.tokens import SPACE
 from sok.ui.controllers.window_chrome import ResizeGrips, hit_test_resize
 from sok.ui.pages.home_page import HomePage
-from sok.ui.pages.organize_page import OrganizePage
 from sok.ui.pages.batch_page import BatchPage
 from sok.ui.pages.movies_page import MoviesPage
+from sok.ui.pages.series_page import SeriesPage
 from sok.ui.pages.books_page import BooksPage
 from sok.ui.pages.games_page import GamesPage
 from sok.ui.pages.music_page import MusicPage
@@ -72,7 +81,12 @@ from sok.ui.i18n import tr, reload_language
 
 # Page of the stack that organizes each kind of detected file.
 # Index of the history page in the stack.
+HOME_PAGE = 0
+SETTINGS_PAGE = 6
 HISTORY_PAGE = 7
+# Media pages in the order of the navigation: Movies, TV shows, Music,
+# Books, Games.
+NAV_PAGES = (2, 1, 3, 4, 5)
 
 PAGE_BY_KIND = {
     ContentType.EPISODE: 1,
@@ -82,6 +96,56 @@ PAGE_BY_KIND = {
     ContentType.BOOK: 4,
     ContentType.GAME: 5,
 }
+
+
+# Width of each window key (minimize, maximize, close) on Windows and Linux.
+WINDOW_KEY_WIDTH = 46
+
+
+class LightColumn(QWidget):
+    """The column of the navigation and the pages, which paints their
+    background (from the stylesheet) and the light of the page open over
+    all of it: under the navigation, the list and the margins, so the light
+    of a scene fades out instead of stopping at the edge of its column.
+
+    A page gives the widget of its light with light_source(): a widget with
+    paint_light_into(p, offset, area), or None. A page whose light can
+    crossfade gives instead lights(): (widget, opacity) pairs.
+    """
+
+    def __init__(self, window: "MainWindow"):
+        super().__init__()
+        self._window = window
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+
+    def paintEvent(self, e):  # noqa: N802 - Qt API
+        option = QStyleOption()
+        option.initFrom(self)
+        p = QPainter(self)
+        self.style().drawPrimitive(QStyle.PrimitiveElement.PE_Widget, option, p, self)
+        pages = getattr(self._window, "_pages", None)
+        page = pages.currentWidget() if pages is not None else None
+        get_lights = getattr(page, "lights", None)
+        if get_lights is not None:
+            lights = get_lights()
+        else:
+            get_source = getattr(page, "light_source", None)
+            source = get_source() if get_source is not None else None
+            lights = []
+            if source is not None and source.isVisible():
+                lights.append((source, 1.0))
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        # Inside the rounded corners of the see-through window (Linux).
+        radius = getattr(self._window, "outer_radius", 0)
+        if radius:
+            corners = QPainterPath()
+            corners.addRoundedRect(QRectF(self.rect()), radius, radius)
+            p.setClipPath(corners)
+        for source, opacity in lights:
+            p.setOpacity(opacity)
+            offset = QPointF(source.mapTo(self, QPoint(0, 0)))
+            source.paint_light_into(p, offset, QRectF(self.rect()))
+        p.end()
 
 
 class MainWindow(QMainWindow):
@@ -104,7 +168,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self._config = get_config_manager()
-        theme_pref = self._config.get("theme", "orange")
+        theme_pref = self._config.get("theme", SYSTEM_THEME)
         apply_color_scheme(theme_pref)
 
         self.dark = is_dark_theme(theme_pref)
@@ -136,7 +200,11 @@ class MainWindow(QMainWindow):
             use_native_title_bar(self)
         else:
             self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
-            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+            # Windows rounds the corners of an opaque window itself (see
+            # round_native_corners); Linux has the see-through one, which
+            # draws them.
+            if not IS_WINDOWS:
+                self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         if APP_ICON.exists():
             self.setWindowIcon(QIcon(str(APP_ICON)))
@@ -168,34 +236,11 @@ class MainWindow(QMainWindow):
         main_layout = QHBoxLayout(central)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-        self._sidebar = self._build_sidebar()
-        main_layout.addWidget(self._sidebar)
 
         right_col = self._build_right_column()
         main_layout.addWidget(right_col, 1)
 
-        self._window_title: QLabel | None = None
-        if IS_MACOS:
-            # Replaces the native title: builds made with the macOS 26 SDK
-            # left-align it, over the sidebar button. Centered on the whole
-            # window, it lets clicks through to drag the window.
-            self._window_title = QLabel(central)
-            self._window_title.setObjectName("WindowTitle")
-            self._window_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self._window_title.setAttribute(
-                Qt.WidgetAttribute.WA_TransparentForMouseEvents
-            )
-            self._window_title.raise_()
-
-            # Stays next to the traffic lights whatever the sidebar width.
-            toggle = SidebarToggleButton(central)
-            toggle.setToolTip(tr("toggle_sidebar", "Show/Hide Sidebar"))
-            toggle.clicked.connect(self._toggle_sidebar)
-            toggle.move(74, (MACOS_TITLEBAR_HEIGHT - toggle.height()) // 2)
-            toggle.raise_()
-
-        self._nav[0].setChecked(True)
-        self._go(0)
+        self._go(HOME_PAGE)
 
         self.setMouseTracking(True)
         central.setMouseTracking(True)
@@ -205,107 +250,61 @@ class MainWindow(QMainWindow):
         # Linux has no native hit test for frameless windows (see nativeEvent).
         self._resize_grips = ResizeGrips(self) if IS_LINUX else None
 
-    def _build_sidebar(self) -> QWidget:
-        """Build the navigation sidebar.
-
-        Returns:
-            Configured sidebar widget with navigation buttons.
-        """
-        sidebar = QFrame()
-        sidebar.setObjectName("Sidebar")
-        sidebar.setFixedWidth(220)
-        self._sidebar_expanded = True
-        self._sidebar_labels = []
-        self._nav = []
-
-        sb_layout = QVBoxLayout(sidebar)
-        # On macOS, leave room for the traffic lights above the menu button.
-        top_margin = MACOS_TITLEBAR_HEIGHT + 8 if IS_MACOS else 0
-        sb_layout.setContentsMargins(0, top_margin, 0, 12)
-        sb_layout.setSpacing(0)
-
-        # macOS shows a sidebar button next to the traffic lights instead
-        # (see _build).
-        self._menu_btn: SidebarButton | None = None
-        if not IS_MACOS:
-            self._menu_btn = SidebarButton("", "menu")
-            self._menu_btn.clicked.connect(self._toggle_sidebar)
-            sb_layout.addWidget(self._menu_btn)
-
-        self.lbl_library = QLabel(tr("library", "Library"))
-        self.lbl_library.setObjectName("SidebarSection")
-        section1_effect = QGraphicsOpacityEffect(self.lbl_library)
-        section1_effect.setOpacity(1.0)
-        self.lbl_library.setGraphicsEffect(section1_effect)
-        self._sidebar_labels.append(section1_effect)
-        sb_layout.addWidget(self.lbl_library)
-
-        home_btn = SidebarButton(tr("home", "Home"), "home")
-        home_btn.clicked.connect(lambda: self._go(0))
-        sb_layout.addWidget(home_btn)
-        self._nav.append(home_btn)
-
-        for text_key, icon_name, idx in [
-            ("tv_shows", "video", 1),
-            ("movies", "video", 2),
-            ("music", "music", 3),
-            ("books", "book", 4),
-            ("games", "game", 5),
-        ]:
-            default_text = {
-                "tv_shows": "TV Shows",
-                "movies": "Movies",
-                "music": "Music",
-                "books": "Books",
-                "games": "Games",
-            }[text_key]
-            btn = SidebarButton(tr(text_key, default_text), icon_name)
-            btn.clicked.connect(lambda _, i=idx: self._go(i))
-            sb_layout.addWidget(btn)
-            self._nav.append(btn)
-
-        sb_layout.addStretch()
-
-        self.lbl_general = QLabel(tr("general", "General"))
-        self.lbl_general.setObjectName("SidebarSection")
-        section2_effect = QGraphicsOpacityEffect(self.lbl_general)
-        section2_effect.setOpacity(1.0)
-        self.lbl_general.setGraphicsEffect(section2_effect)
-        self._sidebar_labels.append(section2_effect)
-        sb_layout.addWidget(self.lbl_general)
-
-        # History is the last page (7) but sits above Settings.
-        history_btn = SidebarButton(tr("history", "History"), "history")
-        history_btn.clicked.connect(lambda: self._go(HISTORY_PAGE))
-        sb_layout.addWidget(history_btn)
-
-        settings_btn = SidebarButton(tr("settings", "Settings"), "settings")
-        settings_btn.clicked.connect(lambda: self._go(6))
-        sb_layout.addWidget(settings_btn)
-        self._nav.append(settings_btn)
-        self._nav.append(history_btn)
-
-        return sidebar
-
     def _build_right_column(self) -> QWidget:
         """Build the main content column.
 
         Returns:
             Widget containing header, pages stack, and status bar.
         """
-        right_col = QWidget()
+        right_col = LightColumn(self)
         right_col.setObjectName("RightCol")
+        self._right_col = right_col
         right_layout = QVBoxLayout(right_col)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
 
-        header = self._build_header()
-        right_layout.addWidget(header)
+        # macOS: a title row for the traffic lights. Windows and Linux: no
+        # row, the window keys sit in the top right corner, on the line of
+        # the navigation (see _place_window_keys).
+        self._window_keys: Optional[QWidget] = None
+        if IS_MACOS:
+            right_layout.addWidget(self._build_header())
+
+        # The media types in the art direction's order: Movies before TV
+        # shows, unlike the page indexes.
+        self._navbar = NavBar(
+            HOME_PAGE,
+            [(i, self._nav_titles()[i]) for i in NAV_PAGES],
+            [(HISTORY_PAGE, "history"), (SETTINGS_PAGE, "settings")],
+        )
+        self._navbar.navigate.connect(self._go)
+        self._set_nav_tooltips()
 
         self._pages = QStackedWidget()
         self._pages.setObjectName("Content")
         self._add_pages()
-        right_layout.addWidget(self._pages, 1)
+        # The pages say when their light moves; the window paints it.
+        for i in range(self._pages.count()):
+            page = self._pages.widget(i)
+            signal = getattr(page, "light_changed", None)
+            if signal is not None:
+                signal.connect(right_col.update)
+
+        # The navigation and the pages stop growing past MAX_CONTENT_WIDTH,
+        # centered on a very wide window.
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
+        content_layout.addWidget(self._navbar)
+        content_layout.addWidget(self._pages, 1)
+        right_layout.addWidget(CenteredColumn(content), 1)
+        if not IS_MACOS:
+            self._window_keys = self._build_window_keys(right_col)
+            # Placed when the column itself takes its size: at the window's
+            # own resize, the column may still have its old one (Windows,
+            # at start), which put the keys away from the corner.
+            right_col.installEventFilter(self)
 
         self._status = self.statusBar()
         if self._status:
@@ -316,11 +315,60 @@ class MainWindow(QMainWindow):
 
         return right_col
 
+    def _build_window_keys(self, parent: QWidget) -> QWidget:
+        """Minimize, maximize and close, in the top right corner of the
+        window (Windows and Linux), as high as the navigation row: their
+        signs line up with its icons, and the corner closes the window."""
+        keys = QWidget(parent)
+        keys.setObjectName("WindowKeys")
+        layout = QHBoxLayout(keys)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        min_btn = WindowControlButton("minimize")
+        min_btn.clicked.connect(self.showMinimized)
+        self._max_btn = WindowControlButton("square")
+        self._max_btn.clicked.connect(self._toggle_maximize)
+        self._close_btn = WindowControlButton("cross", "#FF5555")
+        self._close_btn.top_right_radius = 12
+        self._close_btn.clicked.connect(self.close)
+        for button in (min_btn, self._max_btn, self._close_btn):
+            button.setFixedWidth(WINDOW_KEY_WIDTH)
+            layout.addWidget(button)
+        keys.setFixedSize(3 * WINDOW_KEY_WIDTH, self._navbar.sizeHint().height())
+        keys.raise_()
+        return keys
+
+    def _place_window_keys(self) -> None:
+        """Keep the window keys in the corner, and keep the icons of the
+        navigation clear of them when it reaches the right edge."""
+        keys = self._window_keys
+        if keys is None:
+            return
+        width = self._right_col.width()
+        keys.move(width - keys.width(), 0)
+        keys.raise_()
+        # The navigation is centered past MAX_CONTENT_WIDTH: its margin
+        # beside the keys.
+        margin = max(0, (width - MAX_CONTENT_WIDTH) // 2)
+        room = max(0, keys.width() + SPACE["4"] - margin)
+        nav = self._navbar.layout()
+        if nav is not None:
+            m = nav.contentsMargins()
+            if m.right() != SPACE["6"] + room:
+                nav.setContentsMargins(m.left(), m.top(), SPACE["6"] + room, m.bottom())
+
+    def _title_bottom(self) -> int:
+        """Bottom of the area that moves the window: the macOS title row,
+        or the navigation row elsewhere (outside its words and icons)."""
+        if IS_MACOS:
+            return self._header_height()
+        return self._navbar.mapTo(self, QPoint(0, self._navbar.height())).y()
+
     def _build_header(self) -> QWidget:
-        """Build the window header bar.
+        """Build the macOS title row, under the native traffic lights.
 
         Returns:
-            Header widget with logo, title, and window controls.
+            The empty row, which moves the window.
         """
         header = QFrame()
         header.setObjectName("Header")
@@ -329,51 +377,12 @@ class MainWindow(QMainWindow):
         header_layout.setContentsMargins(24, 0, 0, 0)
         header_layout.setSpacing(0)
 
-        # macOS windows show no icon in their title bar.
-        if not IS_MACOS:
-            self._logo_label = QLabel()
-            logo_icon = ASSETS_DIR / "logo.ico"
-            if logo_icon.exists():
-                self._logo_label.setPixmap(QIcon(str(logo_icon)).pixmap(28, 28))
-            else:
-                logo_png = ASSETS_DIR / "logo.png"
-                if logo_png.exists():
-                    self._logo_label.setPixmap(QIcon(str(logo_png)).pixmap(28, 28))
-            self._logo_label.setFixedSize(36, 42)
-            self._logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            header_layout.addWidget(self._logo_label)
-
-        self._title_label = QLabel(f"S.O.K - {tr('videos', 'Videos')}")
-        self._title_label.setObjectName("AppTitle")
-        header_layout.addWidget(self._title_label)
-        # macOS shows the title across the whole window (see _build).
-        # Hide only once parented: showing a parentless widget opens it as
-        # a separate top-level window, which flashed at startup on Windows.
-        if IS_MACOS:
-            self._title_label.hide()
-
         self._drag_area = QWidget()
         self._drag_area.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         self._drag_area.setStyleSheet("background: transparent;")
         header_layout.addWidget(self._drag_area)
-
-        # macOS provides the native traffic lights instead.
-        if not IS_MACOS:
-            min_btn = WindowControlButton("minimize")
-            min_btn.clicked.connect(self.showMinimized)
-            header_layout.addWidget(min_btn)
-
-            self._max_btn = WindowControlButton("square")
-            self._max_btn.clicked.connect(self._toggle_maximize)
-            header_layout.addWidget(self._max_btn)
-
-            self._close_btn = WindowControlButton("cross", "#FF5555")
-            self._close_btn.top_right_radius = 12
-            self._close_btn.clicked.connect(self.close)
-            header_layout.addWidget(self._close_btn)
-
         return header
 
     @staticmethod
@@ -392,10 +401,11 @@ class MainWindow(QMainWindow):
         """
         home_page = HomePage()
         home_page.navigate.connect(self._go)
-        home_page.open_group.connect(self._open_group)
+        home_page.open_group.connect(self._send_group)
         self._pages.addWidget(home_page)
+        self._home = home_page
 
-        self._pages.addWidget(OrganizePage("video"))
+        self._pages.addWidget(SeriesPage())
         self._pages.addWidget(MoviesPage())
         self._pages.addWidget(MusicPage())
         self._pages.addWidget(BooksPage())
@@ -406,6 +416,24 @@ class MainWindow(QMainWindow):
         self._pages.addWidget(settings_page)
 
         self._pages.addWidget(HistoryPage())
+
+        # The done screen of the batch pages opens the history.
+        for page in self._pages.findChildren(BatchPage):
+            page.history_requested.connect(lambda: self._go(HISTORY_PAGE))
+
+        # The home page shows what each media page has to sort.
+        titles = self._nav_titles
+        self._home.set_pages(
+            [
+                (
+                    index,
+                    lambda i=index: titles()[i],
+                    self._pages.widget(index),
+                    index == 3,
+                )
+                for index in NAV_PAGES
+            ]
+        )
 
     def _on_language_changed(self, lang_code):
         """Handle language change from settings.
@@ -430,15 +458,34 @@ class MainWindow(QMainWindow):
 
         Called after language changes to refresh UI strings.
         """
-        self.lbl_library.setText(tr("library", "Library"))
-        self.lbl_general.setText(tr("general", "General"))
         titles = self._nav_titles()
-
-        for i, btn in enumerate(self._nav):
-            if i < len(titles):
-                btn.setText(titles[i])
+        for index, word in self._navbar.words.items():
+            word.setText(titles[index])
+        self._set_nav_tooltips()
 
         self._update_title_by_index(self._pages.currentIndex())
+
+    def set_nav_count(self, page: QWidget, count: int) -> None:
+        """Write the number of items a page has to sort in the navigation.
+
+        Args:
+            page: The page, or a page inside it (the tracks of Music).
+            count: Items to sort; 0 hides the number.
+        """
+        for index in NAV_PAGES:
+            widget = self._pages.widget(index)
+            if widget is page or widget.isAncestorOf(page):
+                self._navbar.set_count(index, count or None)
+        home = getattr(self, "_home", None)
+        if home is not None and self._pages.currentWidget() is home:
+            home.update_summary()
+
+    def _set_nav_tooltips(self):
+        """Name the S.O.K mark and the icons of the navigation."""
+        titles = self._nav_titles()
+        self._navbar.mark.setToolTip(titles[HOME_PAGE])
+        for index, icon in self._navbar.icons.items():
+            icon.setToolTip(titles[index])
 
     def changeEvent(self, event):
         """Re-apply styles when the maximized state or the accent changes.
@@ -562,18 +609,25 @@ class MainWindow(QMainWindow):
         grips = getattr(self, "_resize_grips", None)
         if grips:
             grips.update_geometry(self.width(), self.height())
-        title = getattr(self, "_window_title", None)
-        if title:
-            title.setGeometry(0, 0, self.width(), MACOS_TITLEBAR_HEIGHT)
+        self._navbar.fit(self.width())
+        self._place_window_keys()
+
+    def eventFilter(self, watched, event):  # noqa: N802 - Qt API
+        """Keep the window keys in the corner of the column."""
+        if watched is self._right_col and event.type() == QEvent.Type.Resize:
+            self._place_window_keys()
+        return super().eventFilter(watched, event)
 
     def showEvent(self, event):
-        """Hide the native macOS title once the window exists.
+        """Hide the native macOS title, or round the Windows corners, once
+        the window exists.
 
         Args:
             event: Show event.
         """
         super().showEvent(event)
         hide_native_title(self)
+        round_native_corners(self)
 
     def mouseDoubleClickEvent(self, event):
         """Handle double-click to toggle maximize.
@@ -582,7 +636,7 @@ class MainWindow(QMainWindow):
             event: Mouse event.
         """
         if event.button() == Qt.MouseButton.LeftButton:
-            if event.position().y() < self._header_height():
+            if event.position().y() < self._title_bottom():
                 if IS_MACOS:
                     # Native zoom, like double-clicking a macOS title bar.
                     if self.isMaximized():
@@ -599,7 +653,7 @@ class MainWindow(QMainWindow):
             event: Mouse event.
         """
         if event.button() == Qt.MouseButton.LeftButton:
-            if event.position().y() < self._header_height():
+            if event.position().y() < self._title_bottom():
                 if IS_MACOS or IS_LINUX:
                     # Native move: keeps the system snapping (macOS Spaces,
                     # GNOME/KDE tiling); Wayland forbids moving it ourselves.
@@ -657,37 +711,27 @@ class MainWindow(QMainWindow):
             idx: Page index to navigate to.
         """
         self._pages.setCurrentIndex(idx)
+        self._right_col.update()
         self._update_title_by_index(idx)
 
-        for i, btn in enumerate(self._nav):
-            btn.setChecked(i == idx)
+        self._navbar.set_current(idx)
 
         # The home page reads the drives again, the history its operations.
         page = self._pages.widget(idx)
         if hasattr(page, "refresh"):
             page.refresh()  # type: ignore[union-attr]
 
-    def _open_group(self, group: MediaGroup, files: list[Path]):
-        """Open files sorted on the home page in the page of their type.
+    def _send_group(self, group: MediaGroup, files: list[Path]):
+        """Give files sorted on the home page to the page of their type,
+        which searches them; the home page stays open.
 
         Args:
             group: The group of the detection report.
-            files: Its files that are still in place.
+            files: Its files.
         """
-        idx = PAGE_BY_KIND[group.kind]
-        self._go(idx)
-        page = self._pages.widget(idx)
-        if isinstance(page, MusicPage):
-            if group.kind == ContentType.TRACK:
-                page.show_tracks()
-                page.tracks.load_files(files)
-            else:
-                page.show_albums()
-                page.albums.load_sources(files, group.title, "album")
-        elif isinstance(page, BatchPage):
+        page = self._pages.widget(PAGE_BY_KIND[group.kind])
+        if isinstance(page, BatchPage):
             page.load_files(files)
-        elif isinstance(page, OrganizePage):
-            page.load_sources(files, group.title, "series")
 
     def current_page(self) -> QWidget:
         """Return the page currently shown."""
@@ -718,52 +762,9 @@ class MainWindow(QMainWindow):
         """
         titles = self._nav_titles()
         if 0 <= idx < len(titles):
-            self._title_label.setText(f"S.O.K - {titles[idx]}")
-            if self._window_title:
-                # Also used by the Window menu and Mission Control.
-                self.setWindowTitle(titles[idx])
-                self._window_title.setText(titles[idx])
-
-    def _toggle_sidebar(self):
-        """Toggle sidebar between expanded and collapsed states.
-
-        Animates the width transition and fades labels in/out.
-        """
-        if hasattr(self, "_sidebar_anim") and self._sidebar_anim:
-            self._sidebar_anim.stop()
-
-        self._sidebar_anim = QVariantAnimation(self)
-        self._sidebar_anim.setDuration(250)
-        self._sidebar_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
-
-        if self._sidebar_expanded:
-            self._sidebar_anim.setStartValue(1.0)
-            self._sidebar_anim.setEndValue(0.0)
-            self._sidebar_expanded = False
-        else:
-            self._sidebar_anim.setStartValue(0.0)
-            self._sidebar_anim.setEndValue(1.0)
-            self._sidebar_expanded = True
-
-        def on_value_changed(value):
-            """Handle sidebar animation progress update.
-
-            Args:
-                value: Animation progress value (0.0 to 1.0).
-            """
-            width = int(72 + 148 * value)
-            self._sidebar.setFixedWidth(width)
-
-            for btn in self._nav:
-                btn.set_progress(value)
-            if self._menu_btn:
-                self._menu_btn.set_progress(value)
-
-            for effect in self._sidebar_labels:
-                effect.setOpacity(value)
-
-        self._sidebar_anim.valueChanged.connect(on_value_changed)
-        self._sidebar_anim.start()
+            # Shown by the taskbar, the Window menu and Mission Control; the
+            # navigation shows the page in the window.
+            self.setWindowTitle(f"S.O.K - {titles[idx]}")
 
     def _toggle_theme(self, dark: bool):
         """Switch between light and dark themes.
@@ -775,7 +776,7 @@ class MainWindow(QMainWindow):
             dark: True for dark theme, False for light.
         """
         self.dark = dark
-        self._theme_name = self._config.get("theme", "orange")
+        self._theme_name = self._config.get("theme", SYSTEM_THEME)
         self.c = self._palette(dark)
 
         self._style()
@@ -787,11 +788,11 @@ class MainWindow(QMainWindow):
         Args:
             dark: True for the dark theme.
         """
-        return palette(dark, bool(self._config.get("use_system_accent")))
+        return palette(dark)
 
     def _on_system_scheme_changed(self, _scheme):
         """Follow the system appearance when the theme is set to "system"."""
-        theme = self._config.get("theme", "orange")
+        theme = self._config.get("theme", SYSTEM_THEME)
         if is_dark_theme(theme) != self.dark:
             self._toggle_theme(is_dark_theme(theme))
 
@@ -826,7 +827,9 @@ class MainWindow(QMainWindow):
             pal.setColor(color_role, parse_color(color))
         for color_role in (role.WindowText, role.Text, role.ButtonText):
             pal.setColor(
-                QPalette.ColorGroup.Disabled, color_role, parse_color(c["tertiary"])
+                QPalette.ColorGroup.Disabled,
+                color_role,
+                parse_color(c["tone_disabled"]),
             )
         return pal
 
@@ -878,19 +881,8 @@ class MainWindow(QMainWindow):
         """
         return f"""
             /* Window title, drawn like the native one */
-            #WindowTitle {{
-                font-size: 13px;
-                font-weight: 600;
-                color: {c["text"]};
-            }}
 
             /* Finder sidebar headings: gray, not capitalized */
-            #SidebarSection {{
-                color: {c["secondary"]};
-                padding: 18px 20px 6px 20px;
-                text-transform: none;
-                letter-spacing: 0;
-            }}
 
             /* Section headings in sentence case, like System Settings */
             #SectionLabel, #CategoryLabel {{
@@ -901,11 +893,6 @@ class MainWindow(QMainWindow):
             #SectionLabel {{
                 font-size: 13px;
                 color: {c["text"]};
-            }}
-
-            #ActionBtn, #DestructiveBtn {{
-                border-radius: 6px;
-                padding: 0 12px;
             }}
 
             #SearchBar, #SettingsInput, #SettingsFormatInput, QComboBox {{
@@ -977,8 +964,10 @@ class MainWindow(QMainWindow):
         font = Theme.FONT
         if is_maximized is None:
             is_maximized = self.isMaximized()
-        # The native macOS window draws its own rounded corners.
-        outer_radius = 0 if is_maximized or IS_MACOS else 12
+        # The native macOS and Windows windows draw their own rounded
+        # corners.
+        outer_radius = 0 if is_maximized or IS_MACOS or IS_WINDOWS else 12
+        self.outer_radius = outer_radius
         if hasattr(self, "_close_btn"):
             self._close_btn.top_right_radius = outer_radius
             self._close_btn.update()
@@ -1001,27 +990,12 @@ class MainWindow(QMainWindow):
             }}
 
             /* Sidebar */
-            #Sidebar {{
-                background: {c.get("sidebar", c["card"])};
-                border-right: 1px solid {c["separator"]};
-                border-top-left-radius: {outer_radius}px;
-                border-bottom-left-radius: {outer_radius}px;
-            }}
 
-            #SidebarSection {{
-                font-size: 11px;
-                font-weight: 600;
-                color: {c["secondary"]};
-                padding: 16px 20px 6px 20px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }}
 
             /* Right Column (Background + Radius) */
             #RightCol {{
                 background: {c["bg"]};
-                border-top-right-radius: {outer_radius}px;
-                border-bottom-right-radius: {outer_radius}px;
+                border-radius: {outer_radius}px;
             }}
 
             /* Header */
@@ -1031,12 +1005,6 @@ class MainWindow(QMainWindow):
                 /* border-bottom: 1px solid {c["separator"]}; */
             }}
 
-            #AppTitle {{
-                font-size: 13px;
-                font-weight: 600;
-                color: {c["text"]};
-                padding-left: 4px;
-            }}
 
             /* Content Area (Transparent to show RightCol background) */
             #Content {{
@@ -1114,17 +1082,7 @@ class MainWindow(QMainWindow):
                 font-size: 13px;
             }}
 
-            #LinkBtn {{
-                background: transparent;
-                border: none;
-                color: {c["secondary"]};
-                font-size: 13px;
-            }}
 
-            #LinkBtn:hover {{
-                color: {c["text"]};
-                text-decoration: underline;
-            }}
 
             #PatternRemoveBtn {{
                 background: {c["hover"]};
@@ -1189,31 +1147,9 @@ class MainWindow(QMainWindow):
             }}
 
             /* Buttons */
-            #ActionBtn {{
-                background: {c["accent"]};
-                border-radius: 16px;
-                color: {c["accent_text"]};
-                font-weight: 600;
-                font-size: 13px;
-                padding: 0 16px;
-                border: none;
-            }}
 
-            #ActionBtn:hover {{
-                background: {c["accent"]};
-                opacity: 0.9;
-            }}
 
-            #ActionBtn:pressed {{
-                background: {c["accent"]};
-                margin-top: 1px;
-                margin-bottom: -1px;
-            }}
 
-            #ActionBtn:disabled {{
-                background: {c["separator"]};
-                color: {c["secondary"]};
-            }}
 
             #SmallBtn {{
                 background: {c["accent"]};
@@ -1231,22 +1167,6 @@ class MainWindow(QMainWindow):
                 background: {c["accent"]};
             }}
 
-            #DestructiveBtn {{
-                background: {c.get("red", "#FF5555")};
-                border-radius: 16px;
-                color: white;
-                font-weight: 600;
-            }}
-
-            #DestructiveBtn:hover {{
-                background: #FF6B6B;
-            }}
-
-            #DestructiveBtn:pressed {{
-                background: #EE4444;
-                margin-top: 1px;
-                margin-bottom: -1px;
-            }}
 
             {scrollbar_rules}
 

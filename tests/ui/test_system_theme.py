@@ -10,7 +10,7 @@
 # ===----------------------------------------------------------------------=== #
 import pytest
 
-from sok.ui import platform, theme
+from sok.ui import platform
 from sok.ui.components.settings import appearance_section
 from sok.ui.components.settings.appearance_section import AppearanceSection
 
@@ -26,7 +26,7 @@ class FakeConfig:
         self._values[key] = value
 
     def get_available_languages(self):
-        return ["en"]
+        return ["fr", "en"]
 
 
 @pytest.fixture
@@ -56,43 +56,62 @@ class TestIsDarkTheme:
         assert platform.is_dark_theme(theme) is expected
 
 
-class TestAppearanceSectionOnMacOS:
+class TestAppearanceSection:
     @pytest.fixture
     def section(self, qtbot, monkeypatch, system_dark):
-        monkeypatch.setattr(appearance_section, "IS_MACOS", True)
-        config = FakeConfig(theme="light", language="en")
+        config = FakeConfig(theme="light", language="fr")
         widget = AppearanceSection(config)
         qtbot.addWidget(widget)
         widget.load()
         return widget, config
 
-    def test_following_the_system_saves_it_and_locks_dark_mode(self, section):
+    def test_choosing_system_saves_it_and_shows_the_system_look(self, section):
         widget, config = section
         emitted = []
         widget.theme_changed.connect(emitted.append)
 
-        widget._on_system_theme_change(True)
+        widget._on_theme_choice("system")
 
         assert config.get("theme") == "system"
         assert emitted == [True]
-        assert widget.toggle.isChecked()
-        assert not widget.toggle.isEnabled()
 
-    def test_leaving_system_mode_keeps_the_current_look(self, section):
+    def test_choosing_dark_or_light_saves_it(self, section):
         widget, config = section
-        widget._on_system_theme_change(True)
+        emitted = []
+        widget.theme_changed.connect(emitted.append)
 
-        widget._on_system_theme_change(False)
+        widget._on_theme_choice("dark")
+        widget._on_theme_choice("light")
 
-        assert config.get("theme") == "dark"
-        assert widget.toggle.isEnabled()
+        assert config.get("theme") == "light"
+        assert emitted == [True, False]
 
-    def test_no_system_row_on_other_platforms(self, qtbot, monkeypatch):
-        monkeypatch.setattr(appearance_section, "IS_MACOS", False)
-        widget = AppearanceSection(FakeConfig(theme="dark"))
-        qtbot.addWidget(widget)
+    def test_the_saved_theme_is_the_chosen_key(self, section):
+        widget, config = section
+        config.set("theme", "orange")  # the dropped orange theme reads as light
 
-        assert widget.system_toggle is None
+        widget.load()
+
+        assert widget.theme_choice.value() == "light"
+
+    def test_clicking_a_key_chooses_its_theme(self, section):
+        widget, config = section
+
+        widget.theme_choice._click("system")
+
+        assert config.get("theme") == "system"
+        assert widget.theme_choice.value() == "system"
+
+    def test_choosing_a_language_saves_it_and_shows_its_name(self, section):
+        widget, config = section
+        emitted = []
+        widget.language_changed.connect(emitted.append)
+
+        widget.lang_choice._click("en")
+
+        assert config.get("language") == "en"
+        assert emitted == ["en"]
+        assert widget._lang_row.value.text() == "English"
 
 
 class TestApplyColorScheme:
@@ -137,47 +156,6 @@ class TestApplyColorScheme:
         platform.apply_color_scheme("dark")
 
         assert calls == []
-
-
-class TestAccentColor:
-    @pytest.fixture
-    def system_accent(self, monkeypatch):
-        monkeypatch.setattr(theme, "IS_MACOS", True)
-        monkeypatch.setattr(theme, "system_accent_color", lambda: "#0a60ff")
-
-    def test_orange_accent_by_default(self, system_accent):
-        assert theme.palette(dark=True)["accent"] == theme.Theme.DARK["accent"]
-
-    def test_system_accent_replaces_orange(self, system_accent):
-        c = theme.palette(dark=False, system_accent=True)
-
-        assert c["accent"] == "#0a60ff"
-        assert theme.Theme.LIGHT["accent"] != "#0a60ff"
-
-    def test_system_accent_is_ignored_on_other_platforms(
-        self, system_accent, monkeypatch
-    ):
-        monkeypatch.setattr(theme, "IS_MACOS", False)
-
-        c = theme.palette(dark=True, system_accent=True)
-
-        assert c["accent"] == theme.Theme.DARK["accent"]
-
-    def test_toggle_saves_the_setting_and_restyles(
-        self, qtbot, monkeypatch, system_dark
-    ):
-        monkeypatch.setattr(appearance_section, "IS_MACOS", True)
-        config = FakeConfig(theme="dark", language="en")
-        widget = AppearanceSection(config)
-        qtbot.addWidget(widget)
-        widget.load()
-        emitted = []
-        widget.theme_changed.connect(emitted.append)
-
-        widget._on_accent_change(True)
-
-        assert config.get("use_system_accent") is True
-        assert emitted == [True]
 
 
 class TestSrgbWindows:

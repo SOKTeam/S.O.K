@@ -16,12 +16,16 @@ from sok.core.batch import parse_movie
 from sok.core.interfaces import ContentType, MediaType
 from sok.file_operations import VideoFileOperations
 from sok.ui.i18n import tr
+from sok.ui.components.scene import Shape
 from sok.ui.pages.batch_page import BatchPage
 
 
 class MoviesPage(BatchPage):
     """Page for batch movie renaming."""
 
+    kind = "movies"
+    scene_shape = Shape.POSTER
+    show_quality = True
     default_path_type = "video"
     media_type = MediaType.VIDEO
     content_type = ContentType.MOVIE
@@ -36,15 +40,6 @@ class MoviesPage(BatchPage):
 
     def page_title(self) -> str:
         return tr("movies", "Movies")
-
-    def empty_hint(self) -> str:
-        return tr("movies_drop_hint", "Drop video files or folders, or click to browse")
-
-    def add_more_text(self) -> str:
-        return tr("add_more_movies", "+ Add more movies")
-
-    def rename_confirm_text(self, count: int) -> str:
-        return tr("rename_confirm", "Rename {0} movie file(s)?").format(count)
 
     def nothing_ready_text(self) -> str:
         return tr("no_movies_ready", "No movies are ready to rename.")

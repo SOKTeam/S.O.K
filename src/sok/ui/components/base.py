@@ -12,7 +12,13 @@
 Base UI Components - Cards, Rows, Toggles and Buttons
 """
 
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QWidget, QPushButton
+from PySide6.QtWidgets import (
+    QFrame,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 from PySide6.QtCore import (
     Qt,
     Signal,
@@ -22,11 +28,21 @@ from PySide6.QtCore import (
     QPointF,
     QRect,
     QRectF,
+    QSize,
 )
-from PySide6.QtGui import QPainter, QColor, QFont, QPen
+from PySide6.QtGui import (
+    QColor,
+    QFont,
+    QFontMetrics,
+    QPainter,
+    QPainterPath,
+    QPen,
+)
 
 from sok.ui.platform import IS_MACOS
-from sok.ui.theme import Theme
+from sok.ui.theme import Theme, ui_font
+from sok.ui.motion import PRESS, animate
+from sok.ui.tokens import RADIUS, SPACE
 import logging
 
 logger = logging.getLogger(__name__)
@@ -355,7 +371,7 @@ class Toggle(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         c = self.window().c if hasattr(self.window(), "c") else Theme.DARK  # type: ignore[union-attr]
         if IS_MACOS:
-            p.setBrush(parse_color(c["green"] if self._on else c["tertiary"]))
+            p.setBrush(parse_color(c["accent"] if self._on else c["tertiary"]))
             p.setPen(Qt.PenStyle.NoPen)
             p.drawRoundedRect(0, 0, 38, 22, 11, 11)
             p.setBrush(parse_color("#FFFFFF"))
@@ -386,25 +402,240 @@ class Toggle(QWidget):
         p.drawEllipse(QPointF(cx, radius), knob_r, knob_r)
 
 
-class ActionButton(QPushButton):
-    """Primary action button.
+def _mix(a: QColor, b: QColor, t: float) -> QColor:
+    """The color t of the way from a to b."""
+    return QColor(
+        round(a.red() + (b.red() - a.red()) * t),
+        round(a.green() + (b.green() - a.green()) * t),
+        round(a.blue() + (b.blue() - a.blue()) * t),
+        round(a.alpha() + (b.alpha() - a.alpha()) * t),
+    )
 
-    Styled push button for primary actions.
+
+class KeyButton(QPushButton):
+    """The button of the art direction: a flat face lit from above.
+
+    A 1px light line inside the top edge, a 1px shadow line under the bottom
+    edge, no glow and no gradient. Pressed, the face gets darker and shrinks
+    a little (scale 0.985) without moving.
+
+    The primary button (coral face, near-black text) is used once per screen;
+    every other action is a secondary one (graphite face). After the label
+    come an optional count, in Geist Mono, and an optional shortcut engraved
+    after a thin vertical line.
 
     Attributes:
-        Inherits all QPushButton attributes.
+        HEIGHT: Height of the face (regular, small); the shadow line adds 1px.
     """
 
-    def __init__(self, text: str = "", parent=None):
-        """Initialize the action button.
+    HEIGHT = (44, 32)
+    PRESSED_SCALE = 0.985
+
+    def __init__(
+        self,
+        text: str = "",
+        parent=None,
+        primary: bool = False,
+        small: bool = False,
+    ):
+        """Initialize the button.
 
         Args:
-            text: Button label text.
+            text: Label.
             parent: Parent widget.
+            primary: Coral face, for the one main action of a screen.
+            small: 32px high, for actions inside a row or a panel.
         """
         super().__init__(text, parent)
-        # macOS push buttons are smaller than the Windows 11 ones.
-        self.setFixedHeight(28 if IS_MACOS else 32)
+        self._primary = primary
+        self._small = small
+        self._danger = False
+        self._count: int | None = None
+        self._shortcut = ""
+        self._hovered = False
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setObjectName("ActionBtn")
-        self.setStyleSheet("padding: 0 15px;")
+        self.setFixedHeight(self.HEIGHT[small] + 1)
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+        # The accent ring is drawn only for the keyboard (CSS :focus-visible);
+        # never the blue ring of macOS.
+        self.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, False)
+        self._keyboard_focus = False
+        # 0 at rest, 1 pressed: the face darkens and settles in 90ms.
+        self._press = 0.0
+        self.pressed.connect(lambda: self._animate_press(1.0))
+        self.released.connect(lambda: self._animate_press(0.0))
+
+    def _animate_press(self, target: float) -> None:
+        animate(self, PRESS, self._set_press, start=self._press, end=target)
+
+    def _set_press(self, value: float) -> None:
+        self._press = value
+        self.update()
+
+    def focusInEvent(self, e):  # noqa: N802 - Qt API
+        self._keyboard_focus = e.reason() in (
+            Qt.FocusReason.TabFocusReason,
+            Qt.FocusReason.BacktabFocusReason,
+        )
+        super().focusInEvent(e)
+
+    def focusOutEvent(self, e):  # noqa: N802 - Qt API
+        self._keyboard_focus = False
+        super().focusOutEvent(e)
+
+    def set_primary(self, primary: bool) -> None:
+        """Use the coral face (True) or the graphite one (False)."""
+        self._primary = primary
+        self.update()
+
+    def set_danger(self, danger: bool) -> None:
+        """Write the label in the danger color, for a destructive action."""
+        self._danger = danger
+        self.update()
+
+    def set_count(self, count: int | None) -> None:
+        """Show the number of items the action applies to, or hide it."""
+        self._count = count
+        self.updateGeometry()
+        self.update()
+
+    def set_shortcut(self, shortcut: str) -> None:
+        """Engrave a keyboard shortcut at the right ("⌘R"), or remove it."""
+        self._shortcut = shortcut
+        self.updateGeometry()
+        self.update()
+
+    def setText(self, text: str) -> None:  # noqa: N802 - Qt API
+        """Set the label and resize the button to fit it."""
+        super().setText(text)
+        self.updateGeometry()
+
+    def _fonts(self) -> tuple[QFont, QFont, QFont]:
+        """Return the fonts of the label, the count and the shortcut."""
+        size = 13 if self._small else 15
+        label = ui_font(size, 600)
+        label.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 99)
+        return label, ui_font(size, 500, mono=True), ui_font(11, 500, mono=True)
+
+    def _parts(self) -> list[tuple[str, QFont, int]]:
+        """Return the texts drawn left to right, with their font and gap."""
+        label, count, legend = self._fonts()
+        gap = SPACE["2"] if self._small else SPACE["3"]
+        parts = [(self.text(), label, 0)]
+        if self._count is not None:
+            parts.append((str(self._count), count, gap))
+        if self._shortcut:
+            # The vertical line, then the shortcut after a 12px padding.
+            parts.append((self._shortcut, legend, gap + SPACE["3"]))
+        return parts
+
+    def sizeHint(self) -> QSize:  # noqa: N802 - Qt API
+        """Width of the texts plus the side paddings."""
+        padding = self._padding()
+        width = sum(
+            QFontMetrics(font).horizontalAdvance(text) + gap
+            for text, font, gap in self._parts()
+        )
+        return QSize(width + 2 * padding, self.HEIGHT[self._small] + 1)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt API
+        return self.sizeHint()
+
+    def enterEvent(self, e):  # noqa: N802 - Qt API
+        self._hovered = True
+        self.update()
+        super().enterEvent(e)
+
+    def leaveEvent(self, e):  # noqa: N802 - Qt API
+        self._hovered = False
+        self.update()
+        super().leaveEvent(e)
+
+    def paintEvent(self, e):  # noqa: N802 - Qt API
+        """Paint the face, its two light lines, then the texts."""
+        c = getattr(self.window(), "c", None) or Theme.DARK
+        role = "accent" if self._primary else "key"
+        shadow = "shadow-key-primary" if self._primary else "shadow-key"
+        rest = c[f"{role}-hover"] if self._hovered and self.isEnabled() else c[role]
+        # Between its color at rest and pressed, as the press goes.
+        face_color = _mix(
+            parse_color(rest), parse_color(c[f"{role}-pressed"]), self._press
+        )
+        if self._primary:
+            ink = c["on-accent"]
+        else:
+            ink = c["danger"] if self._danger else c["ink"]
+
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if not self.isEnabled():
+            p.setOpacity(0.4)
+        height = self.HEIGHT[self._small]
+        face_rect = QRectF(0, 0, self.width(), height)
+        if self._press > 0:
+            scale = 1 - (1 - self.PRESSED_SCALE) * self._press
+            center = face_rect.center()
+            p.translate(center)
+            p.scale(scale, scale)
+            p.translate(-center)
+        radius = RADIUS["key-sm"] if self._small else RADIUS["key"]
+
+        p.setPen(Qt.PenStyle.NoPen)
+        # Shadow line: the same shape 1px lower, under the face.
+        p.setBrush(parse_color(c[f"{shadow}-drop"]))
+        p.drawRoundedRect(face_rect.translated(0, 1), radius, radius)
+        p.setBrush(face_color)
+        p.drawRoundedRect(face_rect, radius, radius)
+        # Light line inside the top edge: the face minus itself 1px lower.
+        light = QPainterPath()
+        light.addRoundedRect(face_rect, radius, radius)
+        below = QPainterPath()
+        below.addRoundedRect(face_rect.translated(0, 1), radius, radius)
+        p.setBrush(parse_color(c[f"{shadow}-light"]))
+        p.drawPath(light.subtracted(below))
+
+        if (
+            self.hasFocus()
+            and self._keyboard_focus
+            and self.focusPolicy() != Qt.FocusPolicy.NoFocus
+        ):
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.setPen(QPen(parse_color(c["accent"]), 2))
+            p.drawRoundedRect(face_rect.adjusted(-3, -3, 3, 3), radius + 3, radius + 3)
+
+        ink_color = parse_color(ink)
+        x = float(self._padding())
+        for i, (text, font, gap) in enumerate(self._parts()):
+            x += gap
+            is_shortcut = self._shortcut and i == len(self._parts()) - 1
+            if is_shortcut:
+                line = QColor(ink_color)
+                line.setAlphaF(0.6)
+                p.setPen(QPen(line, 1))
+                line_x = x - SPACE["3"] + 0.5
+                p.drawLine(QPointF(line_x, 12), QPointF(line_x, height - 12))
+            color = QColor(ink_color)
+            if is_shortcut:
+                color.setAlphaF(0.6)
+            p.setPen(color)
+            p.setFont(font)
+            width = QFontMetrics(font).horizontalAdvance(text)
+            p.drawText(
+                QRectF(x, 0, width + 1, height),
+                Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+                text,
+            )
+            x += width
+        p.end()
+
+    def _padding(self) -> int:
+        """Side padding of the texts."""
+        return SPACE["3"] if self._small else 18
+
+
+class ActionButton(KeyButton):
+    """A button for an action: secondary (graphite) unless primary=True.
+
+    Kept for the existing screens; it is a KeyButton.
+    """

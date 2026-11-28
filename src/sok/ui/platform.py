@@ -20,11 +20,16 @@ import sys
 import warnings
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColorSpace, QGuiApplication, QPalette, QSurfaceFormat
+from PySide6.QtGui import QColorSpace, QGuiApplication, QSurfaceFormat
 from PySide6.QtWidgets import QApplication, QWidget
 
 IS_MACOS = sys.platform == "darwin"
 IS_LINUX = sys.platform.startswith("linux")
+IS_WINDOWS = sys.platform == "win32"
+
+# DwmSetWindowAttribute: DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND.
+_DWM_CORNER_PREFERENCE = 33
+_DWM_ROUND = 2
 
 # Height of the macOS title bar the content is drawn under.
 MACOS_TITLEBAR_HEIGHT = 28
@@ -38,20 +43,44 @@ def system_prefers_dark() -> bool:
     return QGuiApplication.styleHints().colorScheme() == Qt.ColorScheme.Dark
 
 
-def system_accent_color() -> str:
-    """Return the accent color chosen in the system settings, as "#RRGGBB"."""
-    return QGuiApplication.palette().color(QPalette.ColorRole.Accent).name()
-
-
 def is_dark_theme(theme: str) -> bool:
     """Return True if the "theme" setting resolves to the dark palette.
 
     Args:
-        theme: Setting value: "dark", "light", "orange" or "system".
+        theme: Setting value: "dark", "light" or "system" ("orange", the
+            dropped orange theme, reads as "light").
     """
     if theme == SYSTEM_THEME:
         return system_prefers_dark()
     return theme == "dark"
+
+
+def round_native_corners(window: QWidget) -> bool:
+    """Ask Windows 11 to round the corners of a frameless window.
+
+    The window is then opaque: a see-through window, which drew its own
+    rounded corners, made Windows compose the whole window again at each
+    frame of an animation, and the transitions stuttered. Windows 10 knows
+    no rounded corners: the window keeps square ones there.
+
+    Returns:
+        True if Windows rounds them.
+    """
+    if not IS_WINDOWS:
+        return False
+    try:
+        import ctypes
+
+        preference = ctypes.c_int(_DWM_ROUND)
+        result = ctypes.windll.dwmapi.DwmSetWindowAttribute(  # type: ignore[attr-defined]
+            ctypes.c_void_p(int(window.winId())),
+            _DWM_CORNER_PREFERENCE,
+            ctypes.byref(preference),
+            ctypes.sizeof(preference),
+        )
+    except (OSError, AttributeError):
+        return False
+    return result == 0
 
 
 def use_srgb_windows() -> None:
@@ -77,7 +106,8 @@ def apply_color_scheme(theme: str) -> None:
     so system_prefers_dark() reports the real system appearance again.
 
     Args:
-        theme: Setting value: "dark", "light", "orange" or "system".
+        theme: Setting value: "dark", "light" or "system" ("orange", the
+            dropped orange theme, reads as "light").
     """
     if not IS_MACOS:
         return

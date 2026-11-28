@@ -31,15 +31,25 @@ blocked.
 
 Built in code with PySide6; no Qt Designer file is loaded at run time.
 
-- `main_window.py`: the window, the sidebar and the page stack. On Windows and
-  Linux the window is frameless with its own title bar; on macOS it keeps the
+- `main_window.py`: the window, the navigation (`components/nav.py`: the
+  media types as words, "● S.O.K" for home, History and Settings icons) and
+  the page stack. On Windows and
+  Linux the window is frameless, with no title row: its keys (minimize,
+  maximize, close) sit in the top right corner on the line of the
+  navigation, whose empty parts move the window (its words and icons take
+  the press themselves, so a click on them never starts a move). The keys
+  are placed when the column under them takes its size, not at the
+  window's own resize. On Windows the window is opaque and Windows 11 rounds
+  its corners (`round_native_corners()` in `platform.py`): see-through, it
+  made the animations stutter. On Linux it is see-through and draws its own
+  rounded corners. On macOS it keeps the
   native title bar, and the windows are tagged sRGB (`use_srgb_windows()` in
   `platform.py`, called before the application is created) so that macOS
   converts the theme colors for each screen instead of showing them raw on a
   wide-gamut one.
-- `pages/`: home, TV shows (`organize_page.py`), music (an Albums and a Tracks
-  tab), the batch pages (`batch_page.py` and its movies, books, games and tracks
-  subclasses), settings and the history of renames (`history_page.py`).
+- `pages/`: home, the batch pages (`batch_page.py` and its movies, TV shows,
+  music, books and games subclasses), settings and the history of renames
+  (`history_page.py`).
 - `components/`: reusable widgets (search results, preview, settings sections…).
 - `controllers/`: logic shared by the pages (source scanning, preview, window
   chrome, `WorkerRunner`).
@@ -48,7 +58,8 @@ Built in code with PySide6; no Qt Designer file is loaded at run time.
 - `dialogs/`: the update dialog.
 - `errors.py`: the messages shown for API errors.
 - `theme.py`, `platform.py`, `i18n.py`: colors and fonts, per-system behavior,
-  translations.
+  translations. The colors come from `tokens.py`, generated from the art
+  direction's `tokens.json` by `scripts/make_theme_tokens.py`.
 - `message_box.py`: message boxes, shown as sheets on macOS.
 - `macos_menu.py`: the native macOS menu bar.
 
@@ -109,10 +120,11 @@ static files that it serves. See [S.O.K Server](/server/overview/).
 
 ## The path of a search
 
-1. The user types in a search field. The page starts a `SearchWorker` with a
-   `WorkerRunner`, which moves it to a `QThread`.
-2. The worker creates its own asyncio event loop and calls
-   `get_media_manager().search(query, content_type)`.
+1. The user drops files on a media page, or types a search on its pick panel.
+   The page starts a `BatchSearchWorker` with a `WorkerRunner`, which moves it
+   to a `QThread`.
+2. The worker creates its own asyncio event loop and searches each item with
+   `BatchMatcher`, through `get_media_manager().search(query, content_type)`.
 3. The manager sends the query to the API selected for that media type.
 4. The API calls the service with `aiohttp` and returns its response.
 5. The manager passes it through the adapter of the content type.

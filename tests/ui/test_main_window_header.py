@@ -58,4 +58,3 @@ def test_building_the_header_opens_no_stray_window(qtbot, monkeypatch, is_macos)
     header.setParent(window)
 
     assert spy.shown == []
-    assert window._title_label.isHidden() is is_macos
