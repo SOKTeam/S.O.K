@@ -42,7 +42,8 @@ def test_only_the_windows_window_is_opaque(qtbot, monkeypatch, is_windows):
 
 
 def test_the_window_keys_take_the_ink_of_the_theme(qtbot, monkeypatch):
-    # Drawn white whatever the theme, they vanished on the light one.
+    # Drawn white whatever the theme, they vanished on the light one. And
+    # the four corners are rounded, not only the right ones.
     monkeypatch.setattr(main_window, "IS_MACOS", False)
     monkeypatch.setattr(main_window, "IS_WINDOWS", False)
     monkeypatch.setattr(MainWindow, "_setup_services", lambda self: None)
@@ -54,3 +55,4 @@ def test_the_window_keys_take_the_ink_of_the_theme(qtbot, monkeypatch):
     assert window.c["ink"].upper() != "#FFFFFF"
     window._close_btn._hovered = True
     assert window._close_btn.icon_color() == "#FFFFFF"
+    assert "border-radius: 12px;" in window.styleSheet()

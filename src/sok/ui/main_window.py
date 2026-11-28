@@ -40,7 +40,7 @@ from PySide6.QtCore import (
     QPointF,
     QRectF,
 )
-from PySide6.QtGui import QIcon, QPainter, QPalette
+from PySide6.QtGui import QIcon, QPainter, QPainterPath, QPalette
 
 from sok.ui.theme import Theme, APP_ICON, palette, tone_stylesheet
 from sok.ui.platform import (
@@ -135,6 +135,12 @@ class LightColumn(QWidget):
             if source is not None and source.isVisible():
                 lights.append((source, 1.0))
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        # Inside the rounded corners of the see-through window (Linux).
+        radius = getattr(self._window, "outer_radius", 0)
+        if radius:
+            corners = QPainterPath()
+            corners.addRoundedRect(QRectF(self.rect()), radius, radius)
+            p.setClipPath(corners)
         for source, opacity in lights:
             p.setOpacity(opacity)
             offset = QPointF(source.mapTo(self, QPoint(0, 0)))
@@ -961,6 +967,7 @@ class MainWindow(QMainWindow):
         # The native macOS and Windows windows draw their own rounded
         # corners.
         outer_radius = 0 if is_maximized or IS_MACOS or IS_WINDOWS else 12
+        self.outer_radius = outer_radius
         if hasattr(self, "_close_btn"):
             self._close_btn.top_right_radius = outer_radius
             self._close_btn.update()
@@ -988,8 +995,7 @@ class MainWindow(QMainWindow):
             /* Right Column (Background + Radius) */
             #RightCol {{
                 background: {c["bg"]};
-                border-top-right-radius: {outer_radius}px;
-                border-bottom-right-radius: {outer_radius}px;
+                border-radius: {outer_radius}px;
             }}
 
             /* Header */
