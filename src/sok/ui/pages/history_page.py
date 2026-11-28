@@ -561,15 +561,21 @@ class HistoryScene(QWidget):
         else:
             transfer = tr("history_moved", "moved")
         fields = []
+        # The paths are shortened; the whole one shows under the mouse.
+        tips = {}
         if source is not None:
-            fields.append((tr("history_field_from", "From"), display_path(source, 28)))
+            label = tr("history_field_from", "From")
+            fields.append((label, display_path(source, 28)))
+            tips[label] = str(source)
         if target is not None:
-            fields.append((tr("history_field_to", "To"), display_path(target, 28)))
+            label = tr("history_field_to", "To")
+            fields.append((label, display_path(target, 28)))
+            tips[label] = str(target)
         fields.append((tr("history_field_transfer", "Transfer"), transfer))
         size = operation_size(op)
         if size:
             fields.append((tr("batch_size", "Size"), human_size(size)))
-        self._sheet.set_fields(fields)
+        self._sheet.set_fields(fields, tips=tips)
         for index, move in enumerate(op.moves[:4] if len(op.moves) > 5 else op.moves):
             if move.follows is not None:
                 continue

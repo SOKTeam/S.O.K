@@ -21,7 +21,7 @@ muted line, a sheet of details joined by dotted leaders, the final path
 from dataclasses import dataclass, field
 from enum import Enum
 
-from PySide6.QtCore import QEasingCurve, QPointF, QRectF, QSize, Qt, Signal
+from PySide6.QtCore import QEasingCurve, QEvent, QPointF, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import (
     QColor,
     QFontMetrics,
@@ -33,7 +33,14 @@ from PySide6.QtGui import (
     QRadialGradient,
     QTextOption,
 )
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QSizePolicy,
+    QToolTip,
+    QVBoxLayout,
+    QWidget,
+)
 
 from sok.ui.components.base import KeyButton, parse_color
 from sok.ui.components.media_visual import (
@@ -329,6 +336,7 @@ class _Sheet(QWidget):
         super().__init__(parent)
         self._fields: list[tuple[str, str]] = []
         self._tones: dict[str, str] = {}
+        self._tips: dict[str, str] = {}
         # While the rows come in one after the other (reveal()): the time
         # since the start, the delay of the first row and the gap between
         # two rows, in ms.
@@ -358,15 +366,38 @@ class _Sheet(QWidget):
         return delay + step * len(self._fields)
 
     def set_fields(
-        self, fields: list[tuple[str, str]], tones: dict[str, str] | None = None
+        self,
+        fields: list[tuple[str, str]],
+        tones: dict[str, str] | None = None,
+        tips: dict[str, str] | None = None,
     ) -> None:
         """Show (label, value) rows; tones gives the palette color of the
-        value of some labels (ink by default)."""
+        value of some labels (ink by default), tips the text shown under the
+        mouse on some rows (a whole path whose value is shortened)."""
         self._fields = fields
         self._tones = tones or {}
+        self._tips = tips or {}
         self.setFixedHeight(max(0, len(fields) * self.ROW - 4))
         self.setVisible(bool(fields))
         self.update()
+
+    def tip_at(self, y: float) -> str:
+        """The tip of the row at this height, or ""."""
+        index = int(y // self.ROW)
+        if 0 <= index < len(self._fields):
+            return self._tips.get(self._fields[index][0], "")
+        return ""
+
+    def event(self, e):  # noqa: N802 - Qt API
+        if e.type() == QEvent.Type.ToolTip:
+            tip = self.tip_at(e.pos().y())
+            if tip:
+                QToolTip.showText(e.globalPos(), tip, self)
+            else:
+                QToolTip.hideText()
+                e.ignore()
+            return True
+        return super().event(e)
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
         c = _palette(self)

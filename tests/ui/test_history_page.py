@@ -177,3 +177,23 @@ def test_posters_are_read_small_and_once(qtbot, tmp_path):
     assert history_page.read_poster(str(path)) is first
     assert history_page.read_poster(str(tmp_path / "gone.jpg")) is None
 
+
+def test_the_whole_paths_show_under_the_mouse(qtbot, rename_history):
+    rename_history.add(operation("a"))
+    page = HistoryPage()
+    qtbot.addWidget(page)
+    page._select("a")
+    sheet = page._scene._sheet
+    labels = [label for label, _value in sheet._fields]
+
+    from_row = labels.index(tr("history_field_from", "From"))
+    to_row = labels.index(tr("history_field_to", "To"))
+
+    assert sheet.tip_at(from_row * sheet.ROW + 5) == str(Path("/in"))
+    assert sheet.tip_at(to_row * sheet.ROW + 5) == str(Path("/out"))
+    assert (
+        sheet.tip_at(
+            labels.index(tr("history_field_transfer", "Transfer")) * sheet.ROW + 5
+        )
+        == ""
+    )

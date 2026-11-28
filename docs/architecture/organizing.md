@@ -324,6 +324,7 @@ the renames by day (today, yesterday, earlier this month; the older months fold
 into one row each, the month of the last rename always shown) and shows the one
 selected on a scene: where from, where to, how (moved, hard links, copied), its
 size, and its files with what each one was and a key to put it back. The
+shortened paths of where from and where to show whole under the mouse. The
 posters are read at the height they are drawn (`read_poster`, at most
 `POSTER_HEIGHT`) and kept, so a long history opens fast.
 `sok/core/history.py` keeps the history, without Qt.
