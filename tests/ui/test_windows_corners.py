@@ -39,3 +39,18 @@ def test_only_the_windows_window_is_opaque(qtbot, monkeypatch, is_windows):
     translucent = window.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
     assert translucent is not is_windows
     assert window._close_btn.top_right_radius == (0 if is_windows else 12)
+
+
+def test_the_window_keys_take_the_ink_of_the_theme(qtbot, monkeypatch):
+    # Drawn white whatever the theme, they vanished on the light one.
+    monkeypatch.setattr(main_window, "IS_MACOS", False)
+    monkeypatch.setattr(main_window, "IS_WINDOWS", False)
+    monkeypatch.setattr(MainWindow, "_setup_services", lambda self: None)
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window._toggle_theme(False)
+
+    assert window._close_btn.icon_color() == window.c["ink"]
+    assert window.c["ink"].upper() != "#FFFFFF"
+    window._close_btn._hovered = True
+    assert window._close_btn.icon_color() == "#FFFFFF"

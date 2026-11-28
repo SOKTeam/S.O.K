@@ -66,6 +66,14 @@ class WindowControlButton(QPushButton):
         self._hovered = False
         self.update()
 
+    def icon_color(self) -> str:
+        """The ink of the theme (dark on the light one), white on the red of
+        the close key under the mouse."""
+        if self._hovered and self._hover_color:
+            return "#FFFFFF"
+        c = getattr(self.window(), "c", None) or Theme.DARK
+        return c["ink"]
+
     def paintEvent(self, e):
         """Paint the control button.
 
@@ -94,7 +102,7 @@ class WindowControlButton(QPushButton):
             else:
                 p.fillRect(self.rect(), color)
 
-        icon = svg_icon(self._icon_name, "#FFFFFF", 20)
+        icon = svg_icon(self._icon_name, self.icon_color(), 20)
         p.drawPixmap((self.width() - 20) // 2, (self.height() - 20) // 2, icon)
 
 
