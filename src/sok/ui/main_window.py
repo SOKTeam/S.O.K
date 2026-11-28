@@ -46,11 +46,13 @@ from sok.ui.theme import Theme, APP_ICON, palette, tone_stylesheet
 from sok.ui.platform import (
     IS_LINUX,
     IS_MACOS,
+    IS_WINDOWS,
     MACOS_TITLEBAR_HEIGHT,
     SYSTEM_THEME,
     apply_color_scheme,
     hide_native_title,
     is_dark_theme,
+    round_native_corners,
     use_native_title_bar,
     use_srgb_windows,
 )
@@ -192,7 +194,11 @@ class MainWindow(QMainWindow):
             use_native_title_bar(self)
         else:
             self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
-            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+            # Windows rounds the corners of an opaque window itself (see
+            # round_native_corners); Linux has the see-through one, which
+            # draws them.
+            if not IS_WINDOWS:
+                self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         if APP_ICON.exists():
             self.setWindowIcon(QIcon(str(APP_ICON)))
@@ -607,13 +613,15 @@ class MainWindow(QMainWindow):
         return super().eventFilter(watched, event)
 
     def showEvent(self, event):
-        """Hide the native macOS title once the window exists.
+        """Hide the native macOS title, or round the Windows corners, once
+        the window exists.
 
         Args:
             event: Show event.
         """
         super().showEvent(event)
         hide_native_title(self)
+        round_native_corners(self)
 
     def mouseDoubleClickEvent(self, event):
         """Handle double-click to toggle maximize.
@@ -950,8 +958,9 @@ class MainWindow(QMainWindow):
         font = Theme.FONT
         if is_maximized is None:
             is_maximized = self.isMaximized()
-        # The native macOS window draws its own rounded corners.
-        outer_radius = 0 if is_maximized or IS_MACOS else 12
+        # The native macOS and Windows windows draw their own rounded
+        # corners.
+        outer_radius = 0 if is_maximized or IS_MACOS or IS_WINDOWS else 12
         if hasattr(self, "_close_btn"):
             self._close_btn.top_right_radius = outer_radius
             self._close_btn.update()

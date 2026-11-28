@@ -39,7 +39,10 @@ Built in code with PySide6; no Qt Designer file is loaded at run time.
   navigation, whose empty parts move the window (its words and icons take
   the press themselves, so a click on them never starts a move). The keys
   are placed when the column under them takes its size, not at the
-  window's own resize. On macOS it keeps the
+  window's own resize. On Windows the window is opaque and Windows 11 rounds
+  its corners (`round_native_corners()` in `platform.py`): see-through, it
+  made the animations stutter. On Linux it is see-through and draws its own
+  rounded corners. On macOS it keeps the
   native title bar, and the windows are tagged sRGB (`use_srgb_windows()` in
   `platform.py`, called before the application is created) so that macOS
   converts the theme colors for each screen instead of showing them raw on a
