@@ -31,6 +31,8 @@ def test_only_the_windows_window_is_opaque(qtbot, monkeypatch, is_windows):
     monkeypatch.setattr(main_window, "IS_MACOS", False)
     monkeypatch.setattr(main_window, "IS_WINDOWS", is_windows)
     monkeypatch.setattr(main_window, "round_native_corners", lambda _w: True)
+    # No update check or Discord: they would outlive the window.
+    monkeypatch.setattr(MainWindow, "_setup_services", lambda self: None)
     window = MainWindow()
     qtbot.addWidget(window)
 
