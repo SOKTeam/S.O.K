@@ -36,7 +36,10 @@ Built in code with PySide6; no Qt Designer file is loaded at run time.
   the page stack. On Windows and
   Linux the window is frameless, with no title row: its keys (minimize,
   maximize, close) sit in the top right corner on the line of the
-  navigation, whose empty parts move the window. On macOS it keeps the
+  navigation, whose empty parts move the window (its words and icons take
+  the press themselves, so a click on them never starts a move). The keys
+  are placed when the column under them takes its size, not at the
+  window's own resize. On macOS it keeps the
   native title bar, and the windows are tagged sRGB (`use_srgb_windows()` in
   `platform.py`, called before the application is created) so that macOS
   converts the theme colors for each screen instead of showing them raw on a

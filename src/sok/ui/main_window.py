@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QStyleOption,
 )
 from PySide6.QtCore import (
+    QEvent,
     Qt,
     QTimer,
     QPropertyAnimation,
@@ -288,6 +289,10 @@ class MainWindow(QMainWindow):
         right_layout.addWidget(CenteredColumn(content), 1)
         if not IS_MACOS:
             self._window_keys = self._build_window_keys(right_col)
+            # Placed when the column itself takes its size: at the window's
+            # own resize, the column may still have its old one (Windows,
+            # at start), which put the keys away from the corner.
+            right_col.installEventFilter(self)
 
         self._status = self.statusBar()
         if self._status:
@@ -594,6 +599,12 @@ class MainWindow(QMainWindow):
             grips.update_geometry(self.width(), self.height())
         self._navbar.fit(self.width())
         self._place_window_keys()
+
+    def eventFilter(self, watched, event):  # noqa: N802 - Qt API
+        """Keep the window keys in the corner of the column."""
+        if watched is self._right_col and event.type() == QEvent.Type.Resize:
+            self._place_window_keys()
+        return super().eventFilter(watched, event)
 
     def showEvent(self, event):
         """Hide the native macOS title once the window exists.
