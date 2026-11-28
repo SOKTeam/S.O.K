@@ -29,6 +29,7 @@ from PySide6.QtGui import (
     QColor,
     QDesktopServices,
     QFontMetrics,
+    QImageReader,
     QPainter,
     QPen,
     QPixmap,
@@ -143,6 +144,41 @@ def operation_state(operation: Operation) -> Tuple[str, str]:
     return "", ""
 
 
+# Height the posters are read at: the scene draws them 210px tall, on
+# screens up to 3x. Read full size (often 2000x3000), 100 renames took
+# seconds to show and each paint scaled them down again.
+POSTER_HEIGHT = 630
+# Posters read, by path, size and date of the file.
+_posters: Dict[Tuple[str, int, int], QPixmap] = {}
+_MAX_POSTERS = 400
+
+
+def read_poster(path: str) -> Optional[QPixmap]:
+    """A saved poster at POSTER_HEIGHT at most, read once, or None."""
+    try:
+        stat = os.stat(path)
+    except OSError:
+        return None
+    key = (path, stat.st_size, stat.st_mtime_ns)
+    pixmap = _posters.get(key)
+    if pixmap is not None:
+        return pixmap
+    reader = QImageReader(path)
+    size = reader.size()
+    if size.isValid() and size.height() > POSTER_HEIGHT:
+        reader.setScaledSize(
+            size.scaled(size.width(), POSTER_HEIGHT, Qt.AspectRatioMode.KeepAspectRatio)
+        )
+    image = reader.read()
+    if image.isNull():
+        return None
+    if len(_posters) >= _MAX_POSTERS:
+        _posters.clear()
+    pixmap = QPixmap.fromImage(image)
+    _posters[key] = pixmap
+    return pixmap
+
+
 def operation_covers(
     operation: Operation, count: int = 3
 ) -> List[Tuple[Optional[QPixmap], str]]:
@@ -151,9 +187,9 @@ def operation_covers(
     for art in operation.artwork:
         if len(covers) >= count:
             break
-        if not art.removed and os.path.exists(art.path):
-            pixmap = QPixmap(art.path)
-            if not pixmap.isNull():
+        if not art.removed:
+            pixmap = read_poster(art.path)
+            if pixmap is not None:
                 covers.append((pixmap, Path(art.path).stem))
     for move in main_moves(operation):
         if len(covers) >= count:

@@ -8,6 +8,8 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
+from pathlib import Path
+
 from PySide6.QtCore import QEvent, QObject
 from PySide6.QtWidgets import QApplication, QLabel, QWidget
 
@@ -158,3 +160,20 @@ def test_a_batch_rename_gives_the_operation_to_undo(qtbot, tmp_path, rename_hist
     assert rename_history.get(operation_id).kind == "book"
     rename_history.undo(operation_id)
     assert source.read_text() == "d"
+
+
+def test_posters_are_read_small_and_once(qtbot, tmp_path):
+    from PySide6.QtGui import QColor, QImage
+
+    path = tmp_path / "poster.jpg"
+    image = QImage(1000, 1500, QImage.Format.Format_RGB32)
+    image.fill(QColor(120, 60, 30))
+    image.save(str(path))
+
+    first = history_page.read_poster(str(path))
+
+    assert first is not None
+    assert first.height() == history_page.POSTER_HEIGHT
+    assert history_page.read_poster(str(path)) is first
+    assert history_page.read_poster(str(tmp_path / "gone.jpg")) is None
+
