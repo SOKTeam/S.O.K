@@ -772,7 +772,7 @@
     "web_free_space_keep": "Zostaw wolne na każdym dysku",
     "web_free_space_keep_gb": "Zostaw wolne na każdym dysku (GB)",
     "web_gb": "GB",
-    "web_free_space_hint": "Przed porządkowaniem serwer sprawdza, czy dyski, na które trafiają kopie, zachowają tyle miejsca. Twarde dowiązanie lub przeniesienie na tym samym dysku nie zajmuje miejsca.",
+    "web_free_space_hint": "Przed porządkowaniem serwer sprawdza, czy dyski, na które trafiają kopie, zachowają tyle miejsca. Twarde dowiązanie lub przeniesienie na tym samym dysku nie zajmuje miejsca. Film przekonwertowany do MKV to nowy plik: zajmuje tyle, ile waży.",
     "notify_not_enough_space": "Nie uporządkowano: za mało miejsca na {folder} (potrzeba {needed} + {margin} wolnego, wolne {free}).",
     "batch_title_movies_one": "{n} film do uporządkowania.",
     "batch_title_movies_few": "{n} filmy do uporządkowania.",
@@ -1028,5 +1028,10 @@
     "batch_consoles_known_few": "{n} rozpoznawane konsole",
     "batch_consoles_known_many": "{n} rozpoznawanych konsol",
     "batch_consoles_known_other": "{n} rozpoznawanych konsol",
-    "back_to_list": "Lista"
+    "back_to_list": "Lista",
+    "web_convert_mkv": "Konwertuj filmy do MKV",
+    "web_convert_mkv_hint": "Filmy MP4, M4V, MOV i TS trafiają do pliku MKV, bez utraty jakości. Przy przenoszeniu oryginał jest usuwany dopiero po sprawdzeniu pliku MKV.",
+    "web_convert_mkv_link": "Nie z twardymi dowiązaniami: MKV byłby nowym plikiem, a torrent zachowałby stary. Wybierz Kopiuj lub Przenieś.",
+    "web_convert_mkv_missing": "mkvmerge (MKVToolNix) nie jest zainstalowany na tym serwerze. Obraz Dockera go zawiera.",
+    "web_transfer_converted": "{transfer}, przekonwertowane do MKV"
 }

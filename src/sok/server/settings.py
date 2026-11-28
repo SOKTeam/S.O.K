@@ -25,7 +25,7 @@ from typing import Any, Dict, Iterator, List, Optional
 
 from sok.config.api_registry import get_all_services, get_services_by_media_type
 from sok.config.config_manager import ConfigManager
-from sok.core.history import FILE_MODES
+from sok.core.history import FILE_MODES, LINK, MOVE
 from sok.core.utils import natural_key
 from sok.file_operations.base_operations import can_hard_link
 from sok.server.db import Database
@@ -59,6 +59,9 @@ SERVER_SETTINGS: Dict[str, Any] = {
     "auto_sort_minutes": 5,
     # The room a rename leaves free on each disk it copies to, in GB.
     "free_space_margin_gb": 1,
+    # Convert the MP4, M4V, MOV and TS videos to MKV while renaming them,
+    # in copy or move mode only (file_operations/remux.py).
+    "convert_to_mkv": False,
 }
 AUTO_SORT_MINUTES = (1, 1440)
 FREE_SPACE_MARGIN_GB = (0, 10_000)
@@ -248,6 +251,13 @@ class Settings:
         """One setting, as values() gives it."""
         return self.values()[key]
 
+    def to_mkv(self) -> bool:
+        """Whether the renames convert the videos to MKV: the setting is on
+        and the file mode makes new files (never a hard link)."""
+        return bool(self.value("convert_to_mkv")) and (
+            self._config.get("file_mode", MOVE) != LINK
+        )
+
     # ------------------------------------------------------ Notifications
 
     def notify_values(self) -> Dict[str, str]:
@@ -299,7 +309,10 @@ class Settings:
             if key not in SETTINGS:
                 raise InvalidSetting("unknown_setting", key)
             valid = (
-                (key in BOOL_SETTINGS + ("auto_sort",) and isinstance(value, bool))
+                (
+                    key in BOOL_SETTINGS + ("auto_sort", "convert_to_mkv")
+                    and isinstance(value, bool)
+                )
                 or (
                     key == "auto_sort_minutes"
                     and isinstance(value, int)

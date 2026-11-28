@@ -65,6 +65,8 @@ class Move:
     # New path of the file it goes with (the video of a subtitle).
     follows: Optional[str] = None
     mode: str = MOVE
+    # Converted to MKV on the way (remux.py): the target is a new file.
+    converted: bool = False
 
 
 @dataclass
@@ -135,6 +137,7 @@ class Journal:
         backup: Optional[str],
         follows: Optional[str] = None,
         mode: str = MOVE,
+        converted: bool = False,
     ) -> None:
         self.moves.append(
             Move(
@@ -143,6 +146,7 @@ class Journal:
                 backup,
                 follows=follows and str(follows),
                 mode=mode,
+                converted=converted,
             )
         )
 
@@ -300,17 +304,32 @@ def _is_original(move: Move) -> bool:
         return False
 
 
+def back_path(move: Move) -> str:
+    """Where undoing a file puts it: its source, or for a video converted to
+    MKV, its source with the .mkv extension (the original is gone)."""
+    if move.converted:
+        return os.path.splitext(move.source)[0] + os.path.splitext(move.target)[1]
+    return move.source
+
+
 def _put_back(move: Move) -> Optional[str]:
     """Put a file back as it was; return why it could not be, if so.
 
     A moved file goes back to its source. A link or a copy is deleted when
     the source is still the original; with the source gone, it goes back
-    in its place.
+    in its place. A video converted to MKV is deleted when its original is
+    still there (a copy), else goes back next to where it was, as an MKV.
     """
     if not os.path.exists(move.target):
         return MISSING
     remove = False
-    if os.path.exists(move.source):
+    back = back_path(move)
+    if move.converted:
+        if os.path.exists(move.source):
+            remove = True
+        elif os.path.exists(back):
+            return OCCUPIED
+    elif os.path.exists(move.source):
         if move.mode == MOVE or not _is_original(move):
             return OCCUPIED
         remove = True
@@ -318,11 +337,11 @@ def _put_back(move: Move) -> Optional[str]:
         if remove:
             os.remove(move.target)
         else:
-            os.makedirs(os.path.dirname(move.source) or ".", exist_ok=True)
+            os.makedirs(os.path.dirname(back) or ".", exist_ok=True)
             try:
-                os.replace(move.target, move.source)
+                os.replace(move.target, back)
             except OSError:
-                shutil.move(move.target, move.source)
+                shutil.move(move.target, back)
         if move.backup and os.path.exists(move.backup):
             os.replace(move.backup, move.target)
     except OSError as exc:

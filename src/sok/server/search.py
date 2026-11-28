@@ -643,11 +643,14 @@ class Searcher:
         (an existing season folder of the destination first), the other kinds
         the folders and the name the desktop batches give them
         (batch_target): the artist and album folder of a track, the author
-        folder of a book, the platform folder of a game.
+        folder of a book, the platform folder of a game. A video converted
+        to MKV (convert_to_mkv) gets .mkv.
         """
+        to_mkv = self._settings.to_mkv()
         if media_type == "movies":
             return [
-                self._video.generate_new_filename(item, Path(f).name) for f in files
+                self._video.generate_new_filename(item, Path(f).name, to_mkv)
+                for f in files
             ]
         if media_type == "tv":
             root = destination or ""
@@ -660,7 +663,7 @@ class Searcher:
                 )
                 path = os.path.join(
                     os.path.relpath(folder, root) if root else folder,
-                    self._video.generate_new_filename(item, name),
+                    self._video.generate_new_filename(item, name, to_mkv),
                 )
                 names.append(Path(path).as_posix())
             return names

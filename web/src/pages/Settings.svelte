@@ -270,6 +270,25 @@
     ["subtitles_follow_video", () => t("subtitles_follow_video", "Move subtitles with videos")],
   ] as const;
 
+  // The conversion to MKV makes new files: copy or move only, with mkvmerge.
+  const mkvPossible = $derived(Boolean(data?.mkvmerge) && mode !== "link");
+  const mkvText = $derived(
+    !data?.mkvmerge
+      ? t(
+          "web_convert_mkv_missing",
+          "mkvmerge (MKVToolNix) is not installed on this server. The Docker image has it.",
+        )
+      : mode === "link"
+        ? t(
+            "web_convert_mkv_link",
+            "Not with hard links: the MKV would be a new file and the torrent would keep the old one. Choose Copy or Move.",
+          )
+        : t(
+            "web_convert_mkv_hint",
+            "MP4, M4V, MOV and TS videos get an MKV file, without losing quality. When moving, the original is deleted only once the MKV is checked.",
+          ),
+  );
+
   // ------------------------------------------------------------ Automatic sorting
 
   async function saveAuto(on: boolean) {
@@ -598,6 +617,14 @@
                 onchange={(checked) => save({ settings: { [key]: checked } })}
               />
             {/each}
+            <!-- A new file: never with hard links, and only with mkvmerge. -->
+            <Switch
+              label={t("web_convert_mkv", "Convert videos to MKV")}
+              checked={mkvPossible && Boolean(data.settings.convert_to_mkv)}
+              disabled={!mkvPossible}
+              onchange={(checked) => save({ settings: { convert_to_mkv: checked } })}
+            />
+            {@render hint(mkvText)}
           </div>
           <Line label={t("web_free_space_keep", "Keep free on each disk")}>
             <label
@@ -619,7 +646,7 @@
           {@render hint(
             t(
               "web_free_space_hint",
-              "Before sorting, the server checks that the disks receiving copies keep this room. A hard link, or a move on the same disk, takes none.",
+              "Before sorting, the server checks that the disks receiving copies keep this room. A hard link, or a move on the same disk, takes none. A video converted to MKV is a new file: it takes its size.",
             ),
           )}
         </div>

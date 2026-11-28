@@ -34,10 +34,13 @@ on Linux and macOS for each pull request to `develop` or `main`.
 
 Name the file `test_<what>.py` and write tests as sentences:
 `test_a_wrong_key_is_an_authentication_error`. Each file builds what it needs,
-so a test reads on its own. The only shared fixture is in `tests/conftest.py`:
+so a test reads on its own. The shared fixtures are in `tests/conftest.py`:
 `rename_history` gives every test a rename history of its own in `tmp_path`, so
 no test ever writes to yours. Take it as an argument to read what a rename
-recorded.
+recorded. `fake_mkvmerge` answers for `mkvmerge` (`FakeMkvmerge`: the MKV is a
+copy of the original), so the conversion to MKV is tested without
+MKVToolNix; set its `fail`, `tracks` or `duration` to make a conversion
+go wrong.
 
 ## Tests of the web interface
 

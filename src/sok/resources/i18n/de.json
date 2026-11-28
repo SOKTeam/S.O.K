@@ -722,7 +722,7 @@
     "web_free_space_keep": "Auf jedem Laufwerk frei halten",
     "web_free_space_keep_gb": "Auf jedem Laufwerk frei halten (GB)",
     "web_gb": "GB",
-    "web_free_space_hint": "Vor dem Einsortieren prüft der Server, dass die Laufwerke, die Kopien erhalten, diesen Platz behalten. Ein Hardlink oder ein Verschieben auf demselben Laufwerk braucht keinen.",
+    "web_free_space_hint": "Vor dem Einsortieren prüft der Server, dass die Laufwerke, die Kopien erhalten, diesen Platz behalten. Ein Hardlink oder ein Verschieben auf demselben Laufwerk braucht keinen. Ein in MKV umgewandeltes Video ist eine neue Datei: Es braucht seine Größe.",
     "notify_not_enough_space": "Nicht einsortiert: nicht genug Platz auf {folder} ({needed} nötig + {margin} frei halten, {free} frei).",
     "batch_title_movies_one": "{n} Film zum Sortieren.",
     "batch_title_movies_other": "{n} Filme zum Sortieren.",
@@ -935,5 +935,10 @@
     "batch_formats_accepted_other": "{n} Formate akzeptiert",
     "batch_consoles_known_one": "{n} Konsole erkannt",
     "batch_consoles_known_other": "{n} Konsolen erkannt",
-    "back_to_list": "Liste"
+    "back_to_list": "Liste",
+    "web_convert_mkv": "Videos in MKV umwandeln",
+    "web_convert_mkv_hint": "MP4-, M4V-, MOV- und TS-Videos bekommen eine MKV-Datei, ohne Qualitätsverlust. Beim Verschieben wird das Original erst gelöscht, wenn die MKV geprüft ist.",
+    "web_convert_mkv_link": "Nicht mit harten Links: Die MKV wäre eine neue Datei und der Torrent behielte die alte. Wähle Kopieren oder Verschieben.",
+    "web_convert_mkv_missing": "mkvmerge (MKVToolNix) ist auf diesem Server nicht installiert. Das Docker-Image hat es.",
+    "web_transfer_converted": "{transfer}, in MKV umgewandelt"
 }

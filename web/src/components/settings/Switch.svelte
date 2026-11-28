@@ -1,5 +1,6 @@
 <script lang="ts">
-  // A switch of the settings, its name at the left: coral when it is on.
+  // A switch of the settings, its name at the left: coral when it is on;
+  // dimmed when it cannot change.
   let {
     label,
     checked,
@@ -18,7 +19,7 @@
   role="switch"
   aria-checked={checked}
   {disabled}
-  class="flex min-h-[34px] w-full cursor-pointer items-center justify-between gap-4 text-left text-[14px] font-medium text-ink disabled:cursor-default"
+  class="flex min-h-[34px] w-full cursor-pointer items-center justify-between gap-4 text-left text-[14px] font-medium text-ink disabled:cursor-default disabled:opacity-45"
   onclick={() => onchange(!checked)}
 >
   {label}

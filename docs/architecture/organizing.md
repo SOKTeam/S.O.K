@@ -266,6 +266,10 @@ network shares). When it fails, `move_file` raises `HardLinkError`: the file is
 an error of the report, never copied instead. A file already at its destination
 (the same file) is left as it is.
 
+S.O.K Server can also convert the videos to MKV while renaming them, in
+`move` or `copy` mode only (`to_mkv` of the video batches, see
+[Conversion to MKV](/server/overview/#conversion-to-mkv)).
+
 Before a rename in `link` mode, the pages call `hard_link_blocked`
 (`sok/ui/controllers/file_mode.py`): `can_hard_link` makes one test link per
 drive of the files, and a failure stops the rename with a message that says how
@@ -379,6 +383,7 @@ report what they do to the active journal (`current_journal()`):
 | Function                           | Reports                                                 |
 | ---------------------------------- | ------------------------------------------------------- |
 | `move_file` (`base_operations`)    | Each file moved, and the `.backup` of a replaced file   |
+| `convert_to_mkv` (`remux`)         | Each video converted to MKV (`Move.converted`)          |
 | `make_folders` (`base_operations`) | Each folder created (use it instead of `os.makedirs`)   |
 | `save_artwork` (`artwork`)         | Each poster or cover saved, and the files it belongs to |
 
@@ -395,7 +400,9 @@ and listed in the `UndoReport`. A file renamed in `link` or `copy` mode
 (`Move.mode`) is deleted when its source is still the original (the same file
 for a link, the same size for a copy); with the source gone, it goes back in its
 place, and with another file there, it stays (`OCCUPIED`). The `.backup` of a
-replaced file is put back. A poster is deleted once all its files are back. The
+replaced file is put back. A video converted to MKV (`Move.converted`, S.O.K
+Server) is deleted when its original is still there, else goes back where it
+was with the `.mkv` extension (`back_path()`). A poster is deleted once all its files are back. The
 folders the rename created are removed when they are empty (or hold only
 `.DS_Store`, `Thumbs.db` or `desktop.ini`). The UI runs it in `UndoWorker`.
 

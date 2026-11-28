@@ -20,9 +20,11 @@ RUN npm run build
 
 FROM python:3.13-slim-trixie
 
-# tzdata for TZ; util-linux gives setpriv, which drops to PUID:PGID.
+# tzdata for TZ; util-linux gives setpriv, which drops to PUID:PGID;
+# mkvtoolnix (its command-line tools only, GPL, run as a separate program)
+# gives mkvmerge, for the conversion of the videos to MKV.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends tzdata util-linux \
+    && apt-get install -y --no-install-recommends tzdata util-linux mkvtoolnix \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=uv /uv /usr/local/bin/uv

@@ -7,6 +7,8 @@ export interface HistoryFile {
   source: string;
   target: string;
   mode: "move" | "link" | "copy";
+  /** Converted to MKV on the way. */
+  converted?: boolean;
   undone: boolean;
   /** The new path of the video a subtitle goes with. */
   follows: string | null;

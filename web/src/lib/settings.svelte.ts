@@ -36,6 +36,8 @@ export interface SettingsData {
   folders: Record<string, string[]>;
   link_checks: LinkCheck[];
   notifications: Notifications;
+  /** Whether mkvmerge is installed, for the convert_to_mkv setting. */
+  mkvmerge: boolean;
   /** The version of the server, and the folder of its database. */
   about: { version: string; data: string };
 }

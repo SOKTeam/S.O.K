@@ -33,7 +33,13 @@ import sqlite3
 from dataclasses import asdict
 from typing import Any, Dict, Iterable, List, Optional, Set
 
-from sok.core.history import MAX_OPERATIONS, HistoryStore, Operation, UndoReport
+from sok.core.history import (
+    MAX_OPERATIONS,
+    HistoryStore,
+    Operation,
+    UndoReport,
+    back_path,
+)
 from sok.server.db import Database
 
 # The media type (tab) of the kind of an operation, a ContentType value.
@@ -200,6 +206,8 @@ def describe(
                 "source": move.source,
                 "target": move.target,
                 "mode": move.mode,
+                # Converted to MKV on the way.
+                "converted": move.converted,
                 "undone": move.undone,
                 # The new path of the video a subtitle goes with.
                 "follows": move.follows,
@@ -212,7 +220,7 @@ def describe(
 def undo_report(report: UndoReport) -> Dict[str, Any]:
     """What an undo did, for the answer of the request."""
     return {
-        "restored": [move.source for move in report.restored],
+        "restored": [back_path(move) for move in report.restored],
         "skipped": [
             {"source": move.source, "target": move.target, "reason": reason}
             for move, reason in report.skipped

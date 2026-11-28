@@ -28,6 +28,7 @@ from sok.config.api_registry import get_service
 from sok.config.config_manager import data_dir
 from sok.core.history import LINK
 from sok.core.media_manager import reset_media_manager
+from sok.file_operations.remux import mkvmerge_path
 from sok.server.api.auth import require_login
 from sok.server.disks import disks
 from sok.server.settings import (
@@ -91,6 +92,8 @@ def _read(request: Request) -> dict:
             if values["file_mode"] == LINK
             else []
         ),
+        # Whether MKVToolNix is there, for the convert_to_mkv setting.
+        "mkvmerge": mkvmerge_path() is not None,
         # The About block: the version, and the folder of the database.
         "about": {"version": __version__, "data": str(data_dir())},
     }

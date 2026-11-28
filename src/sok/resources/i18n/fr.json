@@ -722,7 +722,7 @@
     "web_free_space_keep": "Garder libre sur chaque disque",
     "web_free_space_keep_gb": "Garder libre sur chaque disque (Go)",
     "web_gb": "Go",
-    "web_free_space_hint": "Avant de ranger, le serveur vérifie que les disques qui reçoivent des copies gardent cette place. Un lien dur, ou un déplacement sur le même disque, n'en prend pas.",
+    "web_free_space_hint": "Avant de ranger, le serveur vérifie que les disques qui reçoivent des copies gardent cette place. Un lien dur, ou un déplacement sur le même disque, n'en prend pas. Une vidéo convertie en MKV est un nouveau fichier : elle prend sa taille.",
     "notify_not_enough_space": "Pas rangé : pas assez de place sur {folder} (il faut {needed} + {margin} à garder libre, il reste {free}).",
     "batch_title_movies_one": "{n} film à ranger.",
     "batch_title_movies_other": "{n} films à ranger.",
@@ -935,5 +935,10 @@
     "batch_formats_accepted_other": "{n} formats acceptés",
     "batch_consoles_known_one": "{n} console reconnue",
     "batch_consoles_known_other": "{n} consoles reconnues",
-    "back_to_list": "Liste"
+    "back_to_list": "Liste",
+    "web_convert_mkv": "Convertir les vidéos en MKV",
+    "web_convert_mkv_hint": "Les vidéos MP4, M4V, MOV et TS passent dans un fichier MKV, sans perte de qualité. En déplacement, l'original n'est supprimé qu'une fois le MKV vérifié.",
+    "web_convert_mkv_link": "Pas avec les liens durs : le MKV serait un nouveau fichier et le torrent garderait l'ancien. Choisis Copier ou Déplacer.",
+    "web_convert_mkv_missing": "mkvmerge (MKVToolNix) n'est pas installé sur ce serveur. L'image Docker l'a.",
+    "web_transfer_converted": "{transfer}, convertis en MKV"
 }

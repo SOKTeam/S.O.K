@@ -281,6 +281,13 @@
   }
 
   function transferOf(op: Operation): string {
+    const transfer = modeWordOf(op);
+    return op.files.some((file) => file.converted)
+      ? t("web_transfer_converted", "{transfer}, converted to MKV", { transfer })
+      : transfer;
+  }
+
+  function modeWordOf(op: Operation): string {
     switch (op.files[0]?.mode) {
       case "link":
         return t("web_transfer_link", "hard links");
