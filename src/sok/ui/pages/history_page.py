@@ -401,8 +401,10 @@ class _FileLine(QWidget):
         layout.addLayout(texts, 1)
         self.button = KeyButton("↺", small=True)
         self.button.setToolTip(tr("history_undo_file", "Put this file back"))
-        self.button.setVisible(not done)
+        # In the line first: shown before, it would flash as a window of its
+        # own on Windows and Linux.
         layout.addWidget(self.button)
+        self.button.setVisible(not done)
         self._done = done
 
     def restyle(self) -> None:

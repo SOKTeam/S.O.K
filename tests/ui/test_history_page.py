@@ -8,7 +8,8 @@
 # See LICENSE for license information
 #
 # ===----------------------------------------------------------------------=== #
-from PySide6.QtWidgets import QLabel
+from PySide6.QtCore import QEvent, QObject
+from PySide6.QtWidgets import QApplication, QLabel, QWidget
 
 from sok.core.history import Move, Operation, UndoReport, MISSING
 from sok.ui import message_box
@@ -30,6 +31,23 @@ def operation(op_id="a", undone=(False, False)):
     )
 
 
+class ShownWindowSpy(QObject):
+    """Record every top-level widget shown while installed."""
+
+    def __init__(self):
+        super().__init__()
+        self.shown = []
+
+    def eventFilter(self, obj, event):  # noqa: N802 - Qt API
+        if (
+            event.type() == QEvent.Type.Show
+            and isinstance(obj, QWidget)
+            and obj.isWindow()
+        ):
+            self.shown.append(type(obj).__name__)
+        return False
+
+
 def texts(widget):
     return [lbl.text() for lbl in widget.findChildren(QLabel)]
 
@@ -43,6 +61,23 @@ def test_the_page_lists_the_operations_newest_first(qtbot, rename_history):
 
     assert [row.operation.id for row in page._rows] == ["b", "a"]
     assert page._current == "b"
+
+
+def test_opening_the_history_shows_no_stray_window(qtbot, rename_history):
+    # A key shown before it was in its line flashed as a window of its own
+    # on Windows and Linux, at start and on each visit.
+    rename_history.add(operation("a"))
+    spy = ShownWindowSpy()
+    app = QApplication.instance()
+    app.installEventFilter(spy)
+    try:
+        page = HistoryPage()
+        qtbot.addWidget(page)
+        page.refresh()
+    finally:
+        app.removeEventFilter(spy)
+
+    assert spy.shown == []
 
 
 def test_an_empty_history_says_so(qtbot):
