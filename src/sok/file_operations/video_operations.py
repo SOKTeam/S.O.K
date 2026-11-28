@@ -28,7 +28,8 @@ from sok.file_operations.base_operations import (
     make_folders,
     move_file,
 )
-from sok.core.history import MOVE
+from sok.core.history import LINK, MOVE
+from sok.file_operations.remux import MKV, convert_to_mkv, convertible
 from sok.file_operations.subtitles import move_subtitles
 
 import os
@@ -326,7 +327,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         return None
 
     def generate_new_filename(
-        self, media_item: MediaItem, original_filename: str
+        self, media_item: MediaItem, original_filename: str, to_mkv: bool = False
     ) -> str:
         """Generate a new filename for a video.
 
@@ -338,6 +339,8 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         Args:
             media_item: The media item.
             original_filename: Original filename.
+            to_mkv: The video is converted to MKV (remux.py): the formats
+                converted get .mkv.
 
         Returns:
             New filename.
@@ -346,6 +349,8 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         config = get_config_manager()
         info = self.extract_info_from_filename(original_filename)
         extension = info["extension"]
+        if to_mkv and convertible(original_filename):
+            extension = MKV
 
         if isinstance(media_item, Series):
             series_item = media_item
@@ -522,6 +527,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         media_item: MediaItem,
         dry_run: bool = False,
         progress_callback: Optional[Callable[[int, int, str], None]] = None,
+        to_mkv: bool = False,
     ) -> Dict[str, Any]:
         """Organize a list of video files into a folder structure.
 
@@ -534,6 +540,8 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             media_item: The media item.
             dry_run: If True, simulate without making changes.
             progress_callback: Function called with (current, total, filename).
+            to_mkv: Convert the MP4, M4V, MOV and TS videos to MKV (S.O.K
+                Server, never with hard links); see remux.py.
 
         Returns:
             Organization report.
@@ -545,6 +553,8 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         backup_before_rename = config.get("backup_before_rename", False)
         file_mode = config.get("file_mode", MOVE)
         log_operations = config.get("log_operations", True)
+        # A hard link is the file of the torrent: never a new MKV.
+        to_mkv = to_mkv and file_mode != LINK
 
         report: Dict[str, Any] = {
             "moved": [],
@@ -593,7 +603,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
 
             dest_folder = self.episode_folder(media_item, file, base_path)
 
-            new_filename = self.generate_new_filename(media_item, file)
+            new_filename = self.generate_new_filename(media_item, file, to_mkv)
             dest_file = os.path.join(dest_folder, new_filename)
 
             if skip_duplicates and os.path.exists(dest_file):
@@ -618,11 +628,12 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                             )
                             continue
 
-                    backup_path = move_file(
+                    backup_path = _place(
                         source_file,
                         dest_file,
-                        backup=backup_before_rename,
-                        mode=file_mode,
+                        backup_before_rename,
+                        file_mode,
+                        to_mkv,
                     )
                     if backup_path and log_operations:
                         logger.info("Backup created: %s", backup_path)
@@ -651,6 +662,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         dest_path: str,
         dry_run: bool = False,
         progress_callback: Optional[Callable[[int, int, str], None]] = None,
+        to_mkv: bool = False,
     ) -> Dict[str, Any]:
         """Organize a list of movie files, each with its own Movie metadata.
 
@@ -663,6 +675,8 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
             dest_path: Destination folder.
             dry_run: If True, simulate without making changes.
             progress_callback: Called with (current, total, filename).
+            to_mkv: Convert the MP4, M4V, MOV and TS videos to MKV (S.O.K
+                Server, never with hard links); see remux.py.
 
         Returns:
             Organization report with moved/errors/skipped.
@@ -672,6 +686,8 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
         backup_before_rename = config.get("backup_before_rename", False)
         file_mode = config.get("file_mode", MOVE)
         log_operations = config.get("log_operations", True)
+        # A hard link is the file of the torrent: never a new MKV.
+        to_mkv = to_mkv and file_mode != LINK
 
         report: Dict[str, Any] = {
             "moved": [],
@@ -700,7 +716,7 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                 )
                 continue
 
-            new_filename = self.generate_new_filename(movie, file)
+            new_filename = self.generate_new_filename(movie, file, to_mkv)
             dest_file = os.path.join(dest_path, new_filename)
 
             if skip_duplicates and os.path.exists(dest_file):
@@ -718,11 +734,12 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
                 continue
 
             try:
-                backup_path = move_file(
+                backup_path = _place(
                     source_file,
                     dest_file,
-                    backup=backup_before_rename,
-                    mode=file_mode,
+                    backup_before_rename,
+                    file_mode,
+                    to_mkv,
                 )
                 if backup_path and log_operations:
                     logger.info("Backup created: %s", backup_path)
@@ -826,3 +843,24 @@ class VideoFileOperations(FileParsingMixin, FileValidationMixin):
     def find_files(self, directory: str, recursive: bool = True) -> List[str]:
         """Unified alias for find_video_files."""
         return self.find_video_files(directory, recursive)
+
+
+def _place(
+    source: str, destination: str, backup: bool, mode: str, to_mkv: bool
+) -> Optional[str]:
+    """Put a video at its new path: converted to MKV when asked and its
+    format is converted (never with a hard link), else moved, linked or
+    copied.
+
+    Raises:
+        OSError: As move_file, or RemuxError for a conversion that failed.
+    """
+    # The name kept its extension when no new name could be made.
+    if (
+        to_mkv
+        and mode != LINK
+        and convertible(source)
+        and destination.lower().endswith(MKV)
+    ):
+        return convert_to_mkv(source, destination, backup=backup, mode=mode)
+    return move_file(source, destination, backup=backup, mode=mode)

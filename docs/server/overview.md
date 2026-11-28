@@ -28,6 +28,7 @@ SOK_CONFIG_DIR=/tmp/sok-config uv run sok-server
 | `SOK_AFTER_RENAME`             | A command run after each rename (see [Notifications](#notifications))  |
 | `SOK_AUTH=none`                | Turns the login off, behind a reverse proxy that asks for one          |
 | `SOK_LOG_LEVEL`                | Level of the log: `DEBUG`, `INFO` (default)…                           |
+| `SOK_MKVMERGE`                 | Path of `mkvmerge`, when it is not in the `PATH` (conversion to MKV)   |
 | `SOK_WEB_DIR`                  | Folder of the built interface, `web/dist` of the repository by default |
 
 Without a built interface (no `index.html` in `SOK_WEB_DIR`), the server
@@ -56,6 +57,9 @@ docker run -p 8080:8080 -v ./config:/config -v /mnt/storage:/data sok-server
   `SOK_ENV_KEYS_WIN=1` (the keys given to the container win),
   `SOK_HOST=0.0.0.0`, `SOK_PORT=8080`, `PUID=1000`, `PGID=1000`. `TZ` works
   (tzdata is installed).
+- **MKVToolNix.** The command-line tools of the Debian package `mkvtoolnix`
+  (no interface) give `mkvmerge`, for [the conversion to MKV](#conversion-to-mkv).
+  It is GPL and runs as a separate program.
 - **User.** `packaging/docker/entrypoint.sh` starts as root, gives `/config` to
   `PUID:PGID` and runs the server as that user (`setpriv`), so its files belong
   to the user of the NAS. The media folders keep their owners. Started with
@@ -271,7 +275,8 @@ interface at each change and sends the `/api` requests to the server.
   `OpenBox` for what an open line sets). The blocks: **Folders** (the
   sources, then the destinations of each type, the first one "default";
   `FolderRole`), **Behavior** (the file mode, the hard link problems, the
-  switches), **Automatic sorting**, **Notifications**, **File names**,
+  switches, the last one "Convert videos to MKV" with its hint, greyed in
+  link mode or without `mkvmerge`), **Automatic sorting**, **Notifications**, **File names**,
   **Sources** (per media type: "Searched first", then each service and the
   state of its key: free, set, to set up, set by an environment variable),
   **Appearance** (theme of the browser, language), **Account** and
@@ -446,24 +451,25 @@ interface at each change and sends the `/api` requests to the server.
 
 `GET /api/settings` answers:
 
-| Field           | Contents                                                                                                                                                                                                                                               |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `settings`      | `language`, `file_mode`, the behavior switches, the five name formats, the service of each media type (`preferred_api_video`, `_music`, `_books`, `_games`), `auto_sort`, `auto_sort_minutes` and `free_space_margin_gb` (`SETTINGS` in `settings.py`) |
-| `languages`     | The languages of the interface                                                                                                                                                                                                                         |
-| `services`      | The services each `preferred_api_*` can pick, per media type (`video`, `music`, `books`, `games`): `{"id", "name"}`                                                                                                                                    |
-| `keys`          | Each service (`service`, `name`, `media_type`, `url` to get a key) and its keys: `{"key", "set", "locked"}`, never the value                                                                                                                           |
-| `folders`       | `sources`, and the destination folders of `movies`, `tv`, `music`, `books`, `games`, in order                                                                                                                                                          |
-| `link_checks`   | In `link` mode, one check per source and destination: `ok`, `problem`, `tested`                                                                                                                                                                        |
-| `notifications` | `discord`, `webhook`: `{"set"}`; `jellyfin`, `plex`: `{"url", "set"}`; `script`: whether `SOK_AFTER_RENAME` is set (see [Notifications](#notifications))                                                                                               |
-| `about`         | `version` of the server, and `data`: the folder of its database (`SOK_CONFIG_DIR`, `/config` in Docker)                                                                                                                                                |
+| Field           | Contents                                                                                                                                                                                                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `settings`      | `language`, `file_mode`, the behavior switches, the five name formats, the service of each media type (`preferred_api_video`, `_music`, `_books`, `_games`), `auto_sort`, `auto_sort_minutes`, `free_space_margin_gb` and `convert_to_mkv` (`SETTINGS` in `settings.py`) |
+| `languages`     | The languages of the interface                                                                                                                                                                                                                                           |
+| `services`      | The services each `preferred_api_*` can pick, per media type (`video`, `music`, `books`, `games`): `{"id", "name"}`                                                                                                                                                      |
+| `keys`          | Each service (`service`, `name`, `media_type`, `url` to get a key) and its keys: `{"key", "set", "locked"}`, never the value                                                                                                                                             |
+| `folders`       | `sources`, and the destination folders of `movies`, `tv`, `music`, `books`, `games`, in order                                                                                                                                                                            |
+| `link_checks`   | In `link` mode, one check per source and destination: `ok`, `problem`, `tested`                                                                                                                                                                                          |
+| `notifications` | `discord`, `webhook`: `{"set"}`; `jellyfin`, `plex`: `{"url", "set"}`; `script`: whether `SOK_AFTER_RENAME` is set (see [Notifications](#notifications))                                                                                                                 |
+| `mkvmerge`      | Whether `mkvmerge` is installed (`mkvmerge_path()`), for `convert_to_mkv`                                                                                                                                                                                                |
+| `about`         | `version` of the server, and `data`: the folder of its database (`SOK_CONFIG_DIR`, `/config` in Docker)                                                                                                                                                                  |
 
 - **Where they are kept.** The settings and the keys shared with the desktop
   app stay in `config.json`, through the `ConfigManager`: the core reads them
   there. The folders, which only the server has, are in the `folders` table,
   and the settings of the server only (`SERVER_SETTINGS`: `auto_sort`, off by
   default, `auto_sort_minutes`, 5 by default, from 1 to 1440, and
-  `free_space_margin_gb`, 1 by default, from 0 to 10000) in the `options`
-  table.
+  `free_space_margin_gb`, 1 by default, from 0 to 10000, and
+  `convert_to_mkv`, off by default) in the `options` table.
 - **Changing them.** `PATCH /api/settings` takes any of `settings`, `keys`,
   `folders` and `notifications`. Everything is checked before anything is saved; the first problem
   answers `422` with `{"code", "item"}` in `detail`: `unknown_setting`,
@@ -704,7 +710,7 @@ files and each destination: a pair that fails stops the whole rename before
 any file moves. In copy or move mode, `_check_space()` adds up, for each disk
 of the destinations, the size of the files that take room there: every file
 in copy mode, only the files of another disk in move mode (a move on the same
-disk is a rename). When a disk would keep less than `free_space_margin_gb`
+disk is a rename), and every video converted to MKV (a new file). When a disk would keep less than `free_space_margin_gb`
 (decimal GB, as the disks of the interface count) after them, nothing is
 renamed. The size is an upper bound: a duplicate skipped takes no room. An
 unknown `type` answers `422`.
@@ -731,6 +737,36 @@ deleted. A file skipped (`skip_duplicates`) or failed stays, with its reason in
 "total"}`, also sent as `progress` events with `"phase": "rename"`), and once
 done `result`: `renamed`, `subtitles`, `skipped`, `errors` and the id of the
 `operation` in the history.
+
+### Conversion to MKV
+
+With `convert_to_mkv` on, the `Renamer` passes `to_mkv` to the batches of
+movies and TV shows (`Settings.to_mkv()`: the setting, and a file mode other
+than `link`). The MP4, M4V, MOV and TS videos (`CONVERTIBLE_EXTENSIONS`; never
+AVI, whose sound goes out of sync) get `.mkv` in their new name, in the
+preview too (`Searcher.new_names`), and `convert_to_mkv()` of
+`sok.file_operations.remux` puts them in place instead of `move_file`:
+
+1. `mkvmerge --identify` reads the source: a container it supports, with a
+   video track.
+2. `mkvmerge --output` writes the MKV under a temporary name next to the
+   destination. Only the container changes: no quality is lost.
+3. The MKV is read again and checked: a Matroska file with the same number of
+   tracks of each kind, the same duration (2 seconds apart at most, when the
+   source gives one) and at least half the size of the source.
+4. It takes its place (with the `.backup` of a file replaced), then a move
+   deletes the original; a copy keeps it.
+
+A conversion that fails or is not right raises `RemuxError`: the temporary
+file is deleted, the original is untouched, and the file stays on its row with
+the error (`failed`), as a failed move. Without `mkvmerge` (the server run from
+source), the switch of Settings is greyed with why, and so is it in link mode:
+the MKV would be a new file, and the torrent would keep the old one.
+`SOK_MKVMERGE` can give the path of `mkvmerge`.
+
+The history saves `converted` on the file. Undoing it deletes the MKV when the
+original is still there (a copy), else puts it back where the video was, with
+its old name and `.mkv` (`back_path()`), never over another file.
 
 ## Automatic sorting
 
@@ -821,8 +857,9 @@ newest), with its `media_type`.
 `renames` row whose result names the operation is automatic), `covers` (up
 to 3 posters of the rows it renamed, kept in the result of its rename by
 `Renamer`; `[]` before 1.6), and `files`:
-`index`, `source`, `target`, `mode`, `undone`, `follows` (the new path of the
-video of a subtitle).
+`index`, `source`, `target`, `mode`, `converted` (to MKV, see
+[Conversion to MKV](#conversion-to-mkv)), `undone`, `follows` (the new path of
+the video of a subtitle). The scene says "moved, converted to MKV".
 
 `POST /api/history/{id}/undo` undoes the whole operation, or with `{"index"}`
 one file and its subtitles. It answers `restored` (the paths put back),

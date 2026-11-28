@@ -722,7 +722,7 @@
     "web_free_space_keep": "Keep free on each disk",
     "web_free_space_keep_gb": "Keep free on each disk (GB)",
     "web_gb": "GB",
-    "web_free_space_hint": "Before sorting, the server checks that the disks receiving copies keep this room. A hard link, or a move on the same disk, takes none.",
+    "web_free_space_hint": "Before sorting, the server checks that the disks receiving copies keep this room. A hard link, or a move on the same disk, takes none. A video converted to MKV is a new file: it takes its size.",
     "notify_not_enough_space": "Not sorted: not enough room on {folder} ({needed} needed + {margin} kept free, {free} free).",
     "batch_title_movies_one": "{n} movie to sort.",
     "batch_title_movies_other": "{n} movies to sort.",
@@ -935,5 +935,10 @@
     "batch_formats_accepted_other": "{n} formats accepted",
     "batch_consoles_known_one": "{n} console recognized",
     "batch_consoles_known_other": "{n} consoles recognized",
-    "back_to_list": "List"
+    "back_to_list": "List",
+    "web_convert_mkv": "Convert videos to MKV",
+    "web_convert_mkv_hint": "MP4, M4V, MOV and TS videos get an MKV file, without losing quality. When moving, the original is deleted only once the MKV is checked.",
+    "web_convert_mkv_link": "Not with hard links: the MKV would be a new file and the torrent would keep the old one. Choose Copy or Move.",
+    "web_convert_mkv_missing": "mkvmerge (MKVToolNix) is not installed on this server. The Docker image has it.",
+    "web_transfer_converted": "{transfer}, converted to MKV"
 }

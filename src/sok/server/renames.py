@@ -20,7 +20,9 @@ With hard links, every source and destination of the rename are tested
 first: if one pair cannot be linked, nothing is renamed and the error says
 which folders. A copy, or a move to another disk, needs room: if a disk
 would keep less than the free_space_margin_gb setting, nothing is renamed
-either (not_enough_space). The files renamed leave the table; a file that fails, or is
+either (not_enough_space). A video converted to MKV (convert_to_mkv, copy
+or move mode) is a new file: it needs its size even on the same disk. The
+files renamed leave the table; a file that fails (a conversion too), or is
 skipped as a duplicate, stays on its row with why.
 """
 
@@ -39,6 +41,7 @@ from sok.core.batch import STATUS_READY
 from sok.core.history import COPY, LINK, MOVE, content_kind, record
 from sok.file_operations.artwork import save_artwork
 from sok.file_operations.base_operations import can_hard_link
+from sok.file_operations.remux import convertible
 from sok.server.db import Database
 from sok.server.events import EventBus
 from sok.server.history import History
@@ -66,6 +69,9 @@ INTERRUPTED = "interrupted"
 NOT_ENOUGH_SPACE = "not_enough_space"
 # Decimal, as the disks of the interface count.
 GB = 1000**3
+
+# The tabs whose files can be converted to MKV.
+VIDEO_TYPES = ("movies", "tv")
 
 # Why a file stayed on its row (rows.errors).
 ALREADY_EXISTS = "already_exists"
@@ -231,6 +237,10 @@ class Renamer:
                         destination=destination,
                     )
 
+    def _to_mkv(self) -> bool:
+        """Whether the videos are converted to MKV (never with hard links)."""
+        return self._settings is not None and self._settings.to_mkv()
+
     def _margin(self) -> int:
         """The bytes a rename leaves free on each disk."""
         key = "free_space_margin_gb"
@@ -245,13 +255,15 @@ class Renamer:
         """Check each disk that receives copies keeps the margin free.
 
         A copy takes the size of its file on the disk of its destination; a
-        move takes it only to another disk (on the same one, it is a rename).
+        move takes it only to another disk (on the same one, it is a rename),
+        or when the video is converted to MKV (a new file).
 
         Raises:
             RenameError: not_enough_space, for the first disk short of room.
         """
         needed: Dict[int, int] = defaultdict(int)
         folder_of: Dict[int, str] = {}
+        to_mkv = self._to_mkv()
         for row in rows:
             destination = self._searcher.destination(row)
             assert destination is not None
@@ -266,7 +278,10 @@ class Renamer:
                     stat = os.stat(file)
                 except OSError:
                     continue
-                if mode == COPY or stat.st_dev != device:
+                converted = (
+                    to_mkv and row["media_type"] in VIDEO_TYPES and convertible(file)
+                )
+                if mode == COPY or stat.st_dev != device or converted:
                     needed[device] += stat.st_size
         margin = self._margin()
         for device, size in needed.items():
@@ -353,6 +368,8 @@ class Renamer:
                 mappings_by_dest[destination].extend((f, item) for f in files)
         first = next((item for _, item, _, _ in plans if item is not None), None)
         ops = self._searcher.batch_ops(media_type)
+        # Only the videos can be converted to MKV.
+        options = {"to_mkv": self._to_mkv()} if media_type in VIDEO_TYPES else {}
         with record(content_kind(first), store=self._history) as journal:
             for destination, mappings in mappings_by_dest.items():
                 start = len(reports)
@@ -367,7 +384,9 @@ class Renamer:
                 else:
                     batches = [(mappings, ops.organize_items_batch)]
                 for batch, organize in batches:
-                    report = organize(batch, destination, progress_callback=progress)
+                    report = organize(
+                        batch, destination, progress_callback=progress, **options
+                    )
                     _spread_errors(report, [f for f, _ in batch])
                     reports.append(report)
                     done_before += len(batch)
