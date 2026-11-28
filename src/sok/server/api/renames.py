@@ -84,9 +84,11 @@ def current_rename(request: Request) -> dict:
 def list_history(request: Request) -> dict:
     """The operations of the history, newest first."""
     automatic = history(request).automatic()
+    covers = history(request).covers()
     return {
         "operations": [
-            describe(op, op.id in automatic) for op in history(request).operations()
+            describe(op, op.id in automatic, covers.get(op.id))
+            for op in history(request).operations()
         ]
     }
 

@@ -31,7 +31,7 @@ import json
 import os
 import sqlite3
 from dataclasses import asdict
-from typing import Any, Dict, Iterable, List, Set
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 from sok.core.history import MAX_OPERATIONS, HistoryStore, Operation, UndoReport
 from sok.server.db import Database
@@ -113,6 +113,19 @@ class History(HistoryStore):
                     _processed(operation),
                 )
 
+    def covers(self) -> Dict[str, List[str]]:
+        """The posters of each operation, as its rename kept them."""
+        with self._db.transaction() as conn:
+            rows = conn.execute(
+                "SELECT result FROM renames WHERE result IS NOT NULL"
+            ).fetchall()
+        found: Dict[str, List[str]] = {}
+        for row in rows:
+            result = json.loads(row["result"])
+            if result.get("operation"):
+                found[result["operation"]] = result.get("covers", [])
+        return found
+
     def automatic(self) -> Set[str]:
         """The ids of the operations made by the automatic sorting."""
         with self._db.transaction() as conn:
@@ -162,12 +175,15 @@ def _processed(operation: Operation) -> Iterable[tuple]:
         )
 
 
-def describe(operation: Operation, auto: bool = False) -> Dict[str, Any]:
+def describe(
+    operation: Operation, auto: bool = False, covers: Optional[List[str]] = None
+) -> Dict[str, Any]:
     """An operation as the History page shows it.
 
     Args:
         operation: The operation.
         auto: Made by the automatic sorting.
+        covers: The posters its rename kept (up to 3).
     """
     return {
         "id": operation.id,
@@ -175,6 +191,7 @@ def describe(operation: Operation, auto: bool = False) -> Dict[str, Any]:
         "kind": operation.kind,
         "media_type": MEDIA_TYPE_OF_KIND.get(operation.kind, ""),
         "auto": auto,
+        "covers": covers or [],
         "undone": operation.undone,
         "partly_undone": operation.partly_undone,
         "files": [

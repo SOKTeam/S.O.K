@@ -149,6 +149,13 @@ it creates every service that has its key, then selects the one in the
 `preferred_api_<type>` setting, or the first one available.
 `set_current_api_for_media_type()` changes it while the app runs.
 
+IGDB takes a Twitch token, not its keys: `get_igdb_token()`
+(`sok.config.session_manager`) asks Twitch for one with `igdb_client_id` and
+`igdb_client_secret` (client credentials), keeps it in memory until an hour
+before it expires (about 60 days), and `IGDBApi` asks for a new one and tries
+again once when IGDB refuses it. Nothing is saved: the server and the desktop
+app each ask for their own.
+
 ## Exceptions
 
 All exceptions derive from `SOKBaseError` (`sok.core.exceptions`):

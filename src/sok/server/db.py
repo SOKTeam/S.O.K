@@ -119,6 +119,15 @@ MIGRATIONS: List[str] = [
         value TEXT NOT NULL
     );
     """,
+    """
+    ALTER TABLE rows ADD COLUMN series_folder TEXT;
+    ALTER TABLE rows ADD COLUMN folder_pending INTEGER NOT NULL DEFAULT 0;
+    CREATE TABLE series_folders (
+        series TEXT PRIMARY KEY,
+        path TEXT NOT NULL,
+        date TEXT NOT NULL
+    );
+    """,
 ]
 
 

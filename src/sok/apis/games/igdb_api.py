@@ -15,8 +15,10 @@ API Documentation: https://api-docs.igdb.com/
 Note: Requires Twitch Client ID and Access Token.
 """
 
-from typing import Dict, List, Any
+import asyncio
+from typing import Any, Callable, Dict, List, Optional
 from sok.apis.base_api import BaseAPI
+from sok.core.exceptions import APIAuthenticationError
 from sok.core.interfaces import MediaType, ContentType
 from datetime import datetime
 
@@ -31,15 +33,38 @@ class IGDBApi(BaseAPI):
     Note: Requires Twitch authentication (Client ID + Access Token).
     """
 
-    def __init__(self, client_id: str, access_token: str):
+    def __init__(
+        self,
+        client_id: str,
+        access_token: str,
+        renew: Optional[Callable[[], Optional[str]]] = None,
+    ):
         """Initialize IGDB API.
 
         Args:
             client_id: Twitch Client ID.
             access_token: Twitch Access Token.
+            renew: Gives a new token when IGDB refuses this one (expired).
         """
         super().__init__(access_token, "https://api.igdb.com/v4/")
         self.client_id = client_id
+        self.renew = renew
+
+    async def _games(self, body: str) -> Any:
+        """POST a query to the games endpoint, once more with a new token
+        when IGDB refuses the token (it expires after about 60 days)."""
+        try:
+            return await self._make_request(
+                "games", headers=self._get_headers(), method="POST", data=body
+            )
+        except APIAuthenticationError:
+            token = await asyncio.to_thread(self.renew) if self.renew else None
+            if not token:
+                raise
+            self.api_key = token
+            return await self._make_request(
+                "games", headers=self._get_headers(), method="POST", data=body
+            )
 
     @property
     def supported_media_types(self) -> List[MediaType]:
@@ -93,9 +118,7 @@ class IGDBApi(BaseAPI):
             limit {limit};
         """
 
-        response = await self._make_request(
-            "games", headers=self._get_headers(), method="POST", data=body
-        )
+        response = await self._games(body)
 
         results: List[Dict[str, Any]] = []
         if isinstance(response, list):
@@ -152,9 +175,7 @@ class IGDBApi(BaseAPI):
                    game_modes.name, player_perspectives.name, themes.name;
         """
 
-        response = await self._make_request(
-            "games", headers=self._get_headers(), method="POST", data=body
-        )
+        response = await self._games(body)
 
         if not isinstance(response, list) or not response:
             return {}
@@ -230,9 +251,7 @@ class IGDBApi(BaseAPI):
             fields similar_games.name, similar_games.cover.url;
         """
 
-        response = await self._make_request(
-            "games", headers=self._get_headers(), method="POST", data=body
-        )
+        response = await self._games(body)
 
         if not isinstance(response, list) or not response:
             return []

@@ -89,6 +89,18 @@ def test_the_analysis_searches_the_movies(client):
     assert movies["Unknown.Thing.2003.mkv"]["files"][0]["new_name"] is None
 
 
+def test_a_row_gives_its_size_and_quality(client):
+    scan(client)
+
+    movies = rows(client, "movies")
+    # The files hold their own name.
+    assert movies["Dune.2021.1080p.mkv"]["size"] == len("Dune.2021.1080p.mkv")
+    assert movies["Dune.2021.1080p.mkv"]["quality"] == "1080p"
+    assert movies["Dune.mkv"]["quality"] is None
+    series = client.get("/api/rows?type=tv").json()["rows"][0]
+    assert series["size"] == 2 * len("Severance/Season 1/Severance.S01E01.mkv")
+
+
 def test_a_ready_series_gets_its_episode_titles(client):
     scan(client)
 
@@ -275,6 +287,12 @@ def test_a_result_names_its_artist_or_its_authors(client, library):
 
     assert [c["by"] for c in album["candidates"]] == ["Daft Punk", "Data Punk"]
     assert book["candidates"][0]["by"] == "Frank Herbert"
+    # The publisher and the ISBN of a book, from a text or a list.
+    assert [(c["publisher"], c["isbn"]) for c in book["candidates"]] == [
+        ("Pocket", "9782266320481"),
+        ("Laffont", "2221252306"),
+    ]
+    assert album["candidates"][0]["publisher"] is None
 
 
 def test_a_missing_key_names_the_service_of_each_type(client, library, media_manager):

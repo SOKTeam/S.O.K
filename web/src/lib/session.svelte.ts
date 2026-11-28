@@ -8,6 +8,8 @@ export interface Session {
   account: boolean;
   logged_in: boolean;
   username: string | null;
+  /** A source and a destination are set: else the first launch assistant. */
+  configured: boolean;
   language: string;
 }
 

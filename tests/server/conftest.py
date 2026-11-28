@@ -50,7 +50,12 @@ class FakeManager:
 
     RESULTS = {
         "dune": [
-            {"id": 438631, "title": "Dune", "release_date": "2021-09-15"},
+            {
+                "id": 438631,
+                "title": "Dune",
+                "release_date": "2021-09-15",
+                "poster_path": "/dune.jpg",
+            },
             {"id": 841, "title": "Dune", "release_date": "1984-12-14"},
         ],
         "the matrix": [
@@ -74,8 +79,20 @@ class FakeManager:
             }
         ],
         "dune frank herbert": [
-            {"id": "B1", "title": "Dune", "authors": ["Frank Herbert"]},
-            {"id": "B2", "title": "Dune", "authors": ["Frank Herbert"]},
+            {
+                "id": "B1",
+                "title": "Dune",
+                "authors": ["Frank Herbert"],
+                "publisher": "Pocket",
+                "isbn13": "9782266320481",
+            },
+            {
+                "id": "B2",
+                "title": "Dune",
+                "authors": ["Frank Herbert"],
+                "publishers": ["Laffont"],
+                "isbn": ["2221252306"],
+            },
         ],
         "chrono trigger": [
             {"id": 4205, "title": "Chrono Trigger", "release_date": "1995-03-11"}

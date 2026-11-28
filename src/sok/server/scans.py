@@ -40,7 +40,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from sok.core.batch import group_game_files
+from sok.core.batch import STATUS_AMBIGUOUS, group_game_files
 from sok.core.interfaces import ContentType
 from sok.core.utils import natural_key
 from sok.file_operations.detection import (
@@ -52,8 +52,8 @@ from sok.server.db import Database
 from sok.server.events import EventBus
 from sok.server.history import unchanged
 from sok.server.jobs import SCAN, Busy, Jobs
-from sok.server.search import Searcher, SearchStopped, search_error
-from sok.server.settings import MEDIA_TYPES, Settings
+from sok.server.search import Searcher, SearchStopped, poster_of, search_error
+from sok.server.settings import MEDIA_TYPES, SOURCES, Settings
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +68,8 @@ INTERRUPTED = "interrupted"
 # batch engine (ok, ambiguous, missing).
 PENDING = "pending"
 ROW_STATUSES = (PENDING, "ok", "ambiguous", "missing")
+# The covers of a media type the summary gives, for the Analysis screen.
+COVERS = 3
 
 MEDIA_TYPE_OF = {
     ContentType.MOVIE: "movies",
@@ -238,6 +240,8 @@ class Scans:
             await self._searcher.search_pending(
                 lambda done, total: self._set_progress("search", done, total)
             )
+            # The folders of the series, new or kept: the library changed.
+            await asyncio.to_thread(self._searcher.refresh_folders)
         except SearchStopped as exc:
             self._finish(scan_id, FAILED, search_error(exc), missing)
             return
@@ -364,10 +368,23 @@ class Scans:
                 for media_type in MEDIA_TYPES
             }
             for row in conn.execute(
-                "SELECT media_type, status, COUNT(*) AS n FROM rows"
-                " GROUP BY media_type, status"
+                # A series waiting for the choice of its folder is to pick.
+                "SELECT media_type, CASE WHEN folder_pending THEN ? ELSE status"
+                " END AS status, COUNT(*) AS n FROM rows GROUP BY 1, 2",
+                (STATUS_AMBIGUOUS,),
             ):
                 counts[row["media_type"]][row["status"]] = row["n"]
+            covers: Dict[str, List[str]] = {
+                media_type: [] for media_type in MEDIA_TYPES
+            }
+            files: List[str] = []
+            for row in conn.execute(
+                "SELECT media_type, files, candidates, selected FROM rows ORDER BY id"
+            ):
+                files.extend(json.loads(row["files"]))
+                poster = poster_of(row)
+                if poster and len(covers[row["media_type"]]) < COVERS:
+                    covers[row["media_type"]].append(poster)
             to_check = [
                 {
                     "path": row["path"],
@@ -397,7 +414,39 @@ class Scans:
             },
             "counts": counts,
             "to_check": to_check,
+            "covers": covers,
+            "sources": self._sources(files + [item["path"] for item in to_check]),
         }
+
+    def _sources(self, files: List[str]) -> List[Dict[str, Any]]:
+        """Each source folder: the files of it waiting, and whether it is
+        there."""
+        result = []
+        for folder in self._settings.folders()[SOURCES]:
+            prefix = folder.rstrip("/") + "/"
+            result.append(
+                {
+                    "path": folder,
+                    "files": sum(1 for path in files if path.startswith(prefix)),
+                    "missing": not Path(folder).is_dir(),
+                }
+            )
+        return result
+
+    def movie_size(self) -> Optional[int]:
+        """The average size of the movie files waiting, in bytes, or None
+        without one: what "room for about N movies" counts with."""
+        sizes = []
+        with self._db.transaction() as conn:
+            for row in conn.execute(
+                "SELECT files FROM rows WHERE media_type = 'movies'"
+            ):
+                for path in json.loads(row["files"]):
+                    try:
+                        sizes.append(Path(path).stat().st_size)
+                    except OSError:
+                        continue
+        return sum(sizes) // len(sizes) if sizes else None
 
     # -------------------------------------------------------- To check
 

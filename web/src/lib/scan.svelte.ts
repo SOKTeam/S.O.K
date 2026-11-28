@@ -45,10 +45,20 @@ export interface ToCheck {
   reason: string;
 }
 
+/** A source folder: the files of it waiting, and whether it is there. */
+export interface Source {
+  path: string;
+  files: number;
+  missing: boolean;
+}
+
 export interface Summary {
   scan: Scan | null;
   counts: Record<string, Counts>;
   to_check: ToCheck[];
+  /** Up to 3 posters of the matches of each media type. */
+  covers: Record<string, string[]>;
+  sources: Source[];
 }
 
 const state = $state<{ summary: Summary | null; changes: number }>({

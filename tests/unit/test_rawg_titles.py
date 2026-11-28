@@ -60,6 +60,27 @@ def test_search_and_details_give_clean_titles():
     assert details["name"] == "Pokemon: Emerald Version"
 
 
+def test_search_and_details_keep_the_picture_of_the_game():
+    api = RAWGApi()
+    picture = "https://media.rawg.io/media/games/emerald.jpg"
+    game = {"id": 1, "name": "Pokemon: Emerald Version", "background_image": picture}
+
+    async def fake_request(endpoint, params):
+        return (
+            {"results": [game, {"id": 2, "name": "No picture"}]}
+            if endpoint == "games"
+            else game
+        )
+
+    api._make_request = fake_request
+    found = asyncio.run(api.search("Pokemon Emerald", ContentType.GAME))
+    details = asyncio.run(api.get_details("1", ContentType.GAME))
+
+    assert found["results"][0]["poster_path"] == picture
+    assert found["results"][1]["poster_path"] == ""
+    assert details["poster_path"] == picture
+
+
 def test_a_rom_matches_a_title_without_its_console():
     parsed = parse_game([Path("Pokemon - Emerald Version (USA).gba")])
     candidate = {"title": clean_title("Pokemon: Emerald Version (GBA)"), "id": 1}
