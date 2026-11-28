@@ -297,14 +297,51 @@ With `subtitles_follow_video` on (the default), each video moved by
 (`sok.file_operations.subtitles`, no Qt dependency). A subtitle is a `.srt`,
 `.ass`, `.ssa`, `.sub`, `.idx` or `.vtt` file next to the video whose name
 starts with the video's name and a dot. It gets the new name of the video and
-keeps the rest of its own:
+keeps the rest of its own. When that rest says no language, the language read
+from the text is added, only when it is sure:
 
-| Before             | After                |
-| ------------------ | -------------------- |
-| `dune.2021.mkv`    | `Dune (2021).mkv`    |
-| `dune.2021.srt`    | `Dune (2021).srt`    |
-| `dune.2021.fr.srt` | `Dune (2021).fr.srt` |
-| `dune.2021.nfo`    | Left where it is     |
+| Before                           | After                       |
+| -------------------------------- | --------------------------- |
+| `dune.2021.mkv`                  | `Dune (2021).mkv`           |
+| `dune.2021.fr.srt`               | `Dune (2021).fr.srt`        |
+| `dune.2021.srt` (French text)    | `Dune (2021).fr.srt`        |
+| `dune.2021.forced.srt` (English) | `Dune (2021).en.forced.srt` |
+| `dune.2021.srt` (unsure)         | `Dune (2021).srt`           |
+| `dune.2021.nfo`                  | Left where it is            |
+
+A **`Subs` folder** (or `Subtitles`, any case) next to the video gives its
+subtitles too: `Subs/<video name>/` for an episode of a pack, the files right
+in `Subs/` only when the video is the only one of its folder (a movie). They
+are named from the language of their name (`2_English.srt`) or else of their
+text, then their flags (`forced`, `sdh`, `cc`, `hi`), in the order of their
+leading number, numbered when a name comes twice:
+
+| In `Subs/`          | After                       |
+| ------------------- | --------------------------- |
+| `2_English.srt`     | `Dune (2021).en.srt`        |
+| `3_English.srt`     | `Dune (2021).en.2.srt`      |
+| `4_English_SDH.srt` | `Dune (2021).en.sdh.srt`    |
+| `10_French.srt`     | `Dune (2021).fr.srt`        |
+
+`plan_subtitles` makes these names, so two subtitles never get the same one:
+a guessed language that would take the name of another subtitle is left out.
+A VobSub `.idx` and its `.sub` keep one name between them. The `Subs` folder
+itself stays where it is.
+
+**The language** (`sok.file_operations.subtitle_language`) is read from the
+name first: a two- or three-letter code or an English name (`fr`, `fre`,
+`French`, `VOSTFR`, `Brazilian`…), written as a two-letter code (`pt-BR` for
+Brazilian Portuguese), the form Kodi, Jellyfin and Plex read. Otherwise
+langdetect reads the dialogue, without numbers, timings and tags (the
+`Dialogue:` lines of `.ass`/`.ssa`). The guess counts only with at least
+`MIN_LINES` (30) lines and `MIN_LETTERS` (600) letters, a probability of
+`MIN_PROBABILITY` (0.95) or more, and the same language in both halves of the
+text. Files are read as UTF-8 or UTF-16; another encoding only as
+Windows-1252 when nearly all its letters are ASCII, since an old Cyrillic or
+Greek code page would come out as nonsense. A VobSub `.idx` says its language
+on its `id:` line; its picture `.sub` cannot be read. The desktop build keeps
+langdetect's profiles with `--include-package-data=langdetect`
+(`scripts/build_sok.py`).
 
 When two videos of a folder can claim a subtitle (`Movie.mkv` and
 `Movie.Part2.mkv` for `Movie.Part2.srt`), the longest name wins.
