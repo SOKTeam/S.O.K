@@ -52,6 +52,14 @@ class _Clickable(QWidget):
         self._hovered = False
         self.update()
 
+    def mousePressEvent(self, e):  # noqa: N802 - Qt API
+        # Taken here: left to the window, the press in the navigation row
+        # would start moving it (Linux), and the click would never end here.
+        if e.button() == Qt.MouseButton.LeftButton:
+            e.accept()
+        else:
+            super().mousePressEvent(e)
+
     def mouseReleaseEvent(self, e):  # noqa: N802 - Qt API
         if e.button() == Qt.MouseButton.LeftButton and self.rect().contains(
             e.position().toPoint()

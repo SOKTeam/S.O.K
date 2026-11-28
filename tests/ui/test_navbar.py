@@ -10,6 +10,7 @@
 # ===----------------------------------------------------------------------=== #
 import pytest
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QWidget
 
 from sok.ui.components.nav import NavBar
 
@@ -31,6 +32,27 @@ def test_clicks_open_their_page(qtbot, bar):
     qtbot.mouseClick(bar.icons[6], Qt.MouseButton.LeftButton)
 
     assert pages == [1, 0, 6]
+
+
+def test_a_press_on_a_word_stays_in_the_navigation(qtbot):
+    # Left to the window, the press started moving it on Linux and the
+    # click never reached the word.
+    presses = []
+
+    class Window(QWidget):
+        def mousePressEvent(self, e):  # noqa: N802 - Qt API
+            presses.append(e)
+
+    window = Window()
+    bar = NavBar(0, [(2, "Movies")], [(7, "history")], window)
+    qtbot.addWidget(window)
+    window.show()
+
+    for widget in (bar.words[2], bar.mark, bar.icons[7]):
+        qtbot.mousePress(widget, Qt.MouseButton.LeftButton)
+        qtbot.mouseRelease(widget, Qt.MouseButton.LeftButton)
+
+    assert presses == []
 
 
 def test_only_the_current_page_is_active(bar):
