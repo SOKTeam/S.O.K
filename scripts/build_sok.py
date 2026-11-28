@@ -351,6 +351,8 @@ def build(allow_missing_keys: bool = False):
         + str(ROOT_DIR / "src" / "sok" / "resources")
         + "=resources",
         "--include-module=sok.core.constants",
+        # The language profiles that guess a subtitle's language.
+        "--include-package-data=langdetect",
         f"--windows-icon-from-ico={ROOT_DIR}/src/sok/resources/assets/logo.ico",
         "--output-dir=" + str(dist_dir),
         "--no-pyi-file",
