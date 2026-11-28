@@ -205,7 +205,9 @@ straight to the page of its type (`MainWindow._send_group` calls `load_files`),
 which searches it; the home page stays open and shows a row per media type with
 what its page has to sort (`BatchPage.summary()`), and the files to confirm
 (`CheckRow`), each sent to the page of the type chosen. The home page also shows
-the last rename, with Undo, and the disks of the default folders (`DiskWorker`).
+the last rename, with Undo, and every disk of the computer (`DiskWorker`): the
+disks of the default folders first, then the others from `system_volumes()`
+(volumes under 1 GB left out); its right column scrolls when they do not fit.
 
 ## Names and safety settings
 

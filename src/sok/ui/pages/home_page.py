@@ -127,6 +127,42 @@ def linux_volumes() -> dict[str, str]:
     return volumes
 
 
+def windows_volumes() -> dict[str, str]:
+    """Return the Windows drives that are mounted, by letter.
+
+    Returns:
+        Names such as "Data (D:)", or "D:" for a drive without a label, by
+        root path ("D:\\").
+    """
+    volumes = {}
+    for volume in QStorageInfo.mountedVolumes():
+        if not (volume.isValid() and volume.isReady()):
+            continue
+        root = volume.rootPath().replace("/", "\\")
+        letter = root.rstrip("\\")
+        if len(letter) != 2 or letter[1] != ":":
+            continue
+        label = volume.name()
+        volumes[root] = f"{label} ({letter})" if label else letter
+    return volumes
+
+
+def system_volumes() -> dict[str, str]:
+    """Every disk of this computer that files can go to, by root path."""
+    if sys.platform == "darwin":
+        return mac_volumes()
+    if sys.platform.startswith("linux"):
+        return linux_volumes()
+    if sys.platform == "win32":
+        return windows_volumes()
+    return {}
+
+
+# Smaller volumes (recovery partitions, empty card readers) are left out,
+# unless files go there.
+MIN_DISK_SIZE = 1024**3
+
+
 def first_name() -> str:
     """First name of the account of the computer, or "" when unknown."""
     try:
@@ -204,18 +240,35 @@ class DiskWorker(QObject):
         """Nothing to stop: reading a disk is quick."""
 
     def run(self) -> None:
-        disks: List[Disk] = []
-        seen: set[str] = set()
+        # The disks the files go to first (the first one is the one of the
+        # movies, whose free room the home page counts in movies), then
+        # every other disk of the computer.
+        places: List[Tuple[str, str, bool]] = []
         for folder in self._folders:
             try:
                 root, name = _volume_of(folder)
-                if root in seen:
-                    continue
-                total, _used, free = shutil.disk_usage(root)
             except OSError as exc:
                 logger.debug("Disk read failed for %s: %s", folder, exc)
                 continue
-            seen.add(root)
+            places.append((root, name, True))
+        try:
+            places += [(r, n, False) for r, n in system_volumes().items()]
+        except OSError as exc:
+            logger.debug("Disk list failed: %s", exc)
+        disks: List[Disk] = []
+        seen: set[str] = set()
+        for root, name, destination in places:
+            key = os.path.normcase(os.path.normpath(root))
+            if key in seen:
+                continue
+            try:
+                total, _used, free = shutil.disk_usage(root)
+            except OSError as exc:
+                logger.debug("Disk read failed for %s: %s", root, exc)
+                continue
+            if not destination and total < MIN_DISK_SIZE:
+                continue
+            seen.add(key)
             disks.append(Disk(name, total, free))
         self.finished.emit(disks)
 
@@ -366,6 +419,7 @@ class HomeScene(QWidget):
 
     def set_covers(self, covers: List[Tuple[Optional[QPixmap], str]]) -> None:
         self._covers = covers[:4]
+        self._fit_height()
         if covers:
             pixmap, title = covers[0]
             self._color = dominant_color(pixmap) if pixmap else standin_colors(title)[0]
@@ -391,9 +445,22 @@ class HomeScene(QWidget):
         self.light_changed.emit()
 
     def set_disks(self, disks: List[Disk], room: str = "") -> None:
-        self._disks = disks[:2]
+        self._disks = list(disks)
         self._room = room
+        self._fit_height()
         self.update()
+
+    def _fit_height(self) -> None:
+        """As tall as what paintEvent draws: past the window, the column
+        scrolls."""
+        height = 60
+        if self._covers:
+            height += 225 + 70
+        if self._disks:
+            height += 34 + 80 * len(self._disks)
+            if self._room:
+                height += 30
+        self.setMinimumHeight(height + 24)
 
     def paintEvent(self, e):  # noqa: N802 - Qt API
         c = _palette(self)
@@ -626,10 +693,21 @@ class HomePage(QWidget):
         columns.addLayout(column, 1)
 
         self._scene = HomeScene()
-        self._scene.setFixedWidth(side_width(1440))
         self._scene.inline_light = True
         self._scene.light_changed.connect(self.light_changed.emit)
-        columns.addWidget(self._scene)
+        # In a scroll area: a computer with many disks makes it taller than
+        # the window.
+        scene_scroll = QScrollArea()
+        thin_scroll_bar(scene_scroll)
+        scene_scroll.setWidgetResizable(True)
+        scene_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scene_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scene_scroll.setFixedWidth(side_width(1440))
+        scene_scroll.setWidget(self._scene)
+        scene_scroll.viewport().setStyleSheet("background: transparent;")
+        scene_scroll.verticalScrollBar().valueChanged.connect(self.light_changed)
+        self._scene_scroll = scene_scroll
+        columns.addWidget(scene_scroll)
 
         shortcut = QShortcut(QKeySequence("Ctrl+O"), self)
         shortcut.activated.connect(self._browse)
@@ -672,7 +750,7 @@ class HomePage(QWidget):
     def resizeEvent(self, e):  # noqa: N802 - Qt API
         """The scene, the title and the key follow the size of the page."""
         super().resizeEvent(e)
-        self._scene.setFixedWidth(side_width(self.width()))
+        self._scene_scroll.setFixedWidth(side_width(self.width()))
         fit_display([self._title], self.width())
         narrow = self.width() - side_width(self.width()) < 560
         self._actions.setDirection(
