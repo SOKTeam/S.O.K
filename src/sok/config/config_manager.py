@@ -74,7 +74,9 @@ def get_base_path() -> Path:
         # The AppImage is mounted read-only and replaced by updates.
         return xdg_dir("XDG_DATA_HOME", ".local/share")
     if IS_COMPILED:
-        return Path(sys.executable).parent
+        # Resolved: Windows may give the short form of the folder
+        # (C:\PROGRA~1\SOED4C~1.K), which the history page then showed.
+        return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parents[3]
 
 

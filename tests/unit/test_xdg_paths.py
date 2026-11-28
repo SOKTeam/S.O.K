@@ -28,3 +28,20 @@ def test_ignores_relative_variable(monkeypatch):
     monkeypatch.setenv("XDG_DATA_HOME", "relative/dir")
     expected = Path.home() / ".local/share" / "S.O.K"
     assert xdg_dir("XDG_DATA_HOME", ".local/share") == expected
+
+
+def test_the_windows_install_folder_is_the_resolved_one(monkeypatch, tmp_path):
+    # Windows may give the executable in its short form (C:\PROGRA~1\...),
+    # shown as it was on the history page; resolving gives the real path.
+    from sok.config import config_manager
+
+    real = tmp_path / "S.O.K"
+    real.mkdir()
+    (real / "SOK.exe").touch()
+    alias = tmp_path / "SOED4C~1.K"
+    alias.symlink_to(real)
+    monkeypatch.setattr(config_manager, "IS_COMPILED", True)
+    monkeypatch.setattr(config_manager.sys, "platform", "win32")
+    monkeypatch.setattr(config_manager.sys, "executable", str(alias / "SOK.exe"))
+
+    assert config_manager.get_base_path() == real.resolve()
