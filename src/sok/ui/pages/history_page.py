@@ -24,7 +24,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from PySide6.QtCore import QDate, QLocale, QPointF, QRectF, Qt, QUrl, Signal
+from PySide6.QtCore import QDate, QLocale, QPointF, QRectF, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import (
     QColor,
     QDesktopServices,
@@ -48,7 +48,7 @@ from PySide6.QtWidgets import (
 from sok.config import get_config_manager
 from sok.core.history import COPY, LINK, Move, Operation, get_history
 from sok.ui import message_box
-from sok.ui.components.thin_scroll_bar import thin_scroll_bar
+from sok.ui.components.thin_scroll_bar import RAIL, thin_scroll_bar
 from sok.ui.components.base import KeyButton, parse_color
 from sok.ui.components.media_visual import draw_fan, standin_colors
 from sok.ui.components.scene import _Sheet
@@ -452,6 +452,53 @@ class _FileLine(QWidget):
         self.was.setStyleSheet(f"color: {c['ink-faint']}; {mono}")
 
 
+# Files listed before "and N other files", and how many lines the list shows
+# once opened before it scrolls.
+SHOWN_FILES = 4
+OPEN_FILES_LINES = 5
+
+
+class _MoreFiles(QLabel):
+    """ "and N other files": a click lists them all."""
+
+    clicked = Signal()
+
+    def __init__(self):
+        super().__init__()
+        self.setFont(ui_font(13))
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._hovered = False
+        self._colors = ("", "")
+
+    def set_colors(self, rest: str, hover: str) -> None:
+        self._colors = (rest, hover)
+        self._paint_color()
+
+    def _paint_color(self) -> None:
+        color = self._colors[1] if self._hovered else self._colors[0]
+        underline = "underline" if self._hovered else "none"
+        self.setStyleSheet(
+            f"color: {color}; background: transparent; text-decoration: {underline};"
+        )
+
+    def enterEvent(self, e):  # noqa: N802 - Qt API
+        self._hovered = True
+        self._paint_color()
+
+    def leaveEvent(self, e):  # noqa: N802 - Qt API
+        self._hovered = False
+        self._paint_color()
+
+    def mousePressEvent(self, e):  # noqa: N802 - Qt API
+        e.accept()
+
+    def mouseReleaseEvent(self, e):  # noqa: N802 - Qt API
+        if e.button() == Qt.MouseButton.LeftButton and self.rect().contains(
+            e.position().toPoint()
+        ):
+            self.clicked.emit()
+
+
 class HistoryScene(QWidget):
     """The rename selected: covers, title, details, files and keys.
 
@@ -497,12 +544,29 @@ class HistoryScene(QWidget):
         self._sheet = _Sheet()
         layout.addWidget(self._sheet)
         layout.addSpacing(12)
-        self._files = QVBoxLayout()
+        # The files, in their own scroll area: all of them listed, it
+        # scrolls past OPEN_FILES_LINES and the keys stay in view.
+        self._files_box = QWidget()
+        self._files_box.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self._files = QVBoxLayout(self._files_box)
+        self._files.setContentsMargins(0, 0, 0, 0)
         self._files.setSpacing(0)
-        layout.addLayout(self._files)
-        self._more = QLabel()
-        self._more.setFont(ui_font(13))
+        self._files_scroll = QScrollArea()
+        thin_scroll_bar(self._files_scroll)
+        self._files_scroll.setWidgetResizable(True)
+        self._files_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._files_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self._files_scroll.viewport().setStyleSheet("background: transparent;")
+        self._files_scroll.setWidget(self._files_box)
+        layout.addWidget(self._files_scroll)
+        self._more = _MoreFiles()
+        self._more.clicked.connect(self._open_files)
         layout.addWidget(self._more)
+        # The rename shown, and whether all its files are listed.
+        self._operation: Optional[Operation] = None
+        self._all_files = False
         layout.addSpacing(16)
         keys = QHBoxLayout()
         keys.addStretch()
@@ -534,8 +598,25 @@ class HistoryScene(QWidget):
         super().resizeEvent(e)
         self.light_changed.emit()
 
+    def _open_files(self) -> None:
+        """List every file of the rename, in a scrolling list."""
+        self._all_files = True
+        self.show_operation(self._operation)
+
     def show_operation(self, op: Optional[Operation]) -> None:
+        same = (
+            op is not None
+            and self._operation is not None
+            and op.id == self._operation.id
+        )
+        if not same:
+            self._all_files = False
+        # Kept when the same rename is shown again (after a file put back).
+        scrolled = self._files_scroll.verticalScrollBar().value() if same else 0
+        self._operation = op
         for line in self._lines:
+            self._files.removeWidget(line)
+            line.hide()
             line.deleteLater()
         self._lines = []
         self.setVisible(op is not None)
@@ -576,9 +657,15 @@ class HistoryScene(QWidget):
         if size:
             fields.append((tr("batch_size", "Size"), human_size(size)))
         self._sheet.set_fields(fields, tips=tips)
-        for index, move in enumerate(op.moves[:4] if len(op.moves) > 5 else op.moves):
+        # A single file left over is listed rather than "and 1 other file".
+        listed = 0
+        cut = not self._all_files and len(moves) > SHOWN_FILES + 1
+        for index, move in enumerate(op.moves):
             if move.follows is not None:
                 continue
+            if cut and listed == SHOWN_FILES:
+                break
+            listed += 1
             try:
                 new = (
                     str(Path(move.target).relative_to(target))
@@ -600,6 +687,7 @@ class HistoryScene(QWidget):
             else ""
         )
         self._more.setVisible(rest > 0)
+        self._fit_files(scrolled)
         self.undo_btn.setText(tr("home_undo_last", "Undo this rename"))
         self.open_btn.setText(tr("batch_open_folder", "Open the folder"))
         self.undo_btn.setVisible(not op.undone)
@@ -607,11 +695,26 @@ class HistoryScene(QWidget):
         self.update()
         self.light_changed.emit()
 
+    def _fit_files(self, scrolled: int = 0) -> None:
+        """As tall as the files, OPEN_FILES_LINES at most."""
+        # From the lines: just added, Qt shows them only at the next turn,
+        # and the box counts them for nothing until then.
+        heights = [line.sizeHint().height() for line in self._lines]
+        height = sum(heights[:OPEN_FILES_LINES])
+        # Room for the scroll bar, clear of the keys of the lines.
+        right = RAIL if len(heights) > OPEN_FILES_LINES else 0
+        self._files.setContentsMargins(0, 0, right, 0)
+        self._files_scroll.setFixedHeight(height)
+        self._files_scroll.setVisible(bool(self._lines))
+        bar = self._files_scroll.verticalScrollBar()
+        # Once the bar knows its new range.
+        QTimer.singleShot(0, bar, lambda: bar.setValue(scrolled))
+
     def _restyle(self) -> None:
         c = _palette(self)
         self._when.setStyleSheet(f"color: {c['ink-faint']}; background: transparent;")
         self._title.setStyleSheet(f"color: {c['ink']}; background: transparent;")
-        self._more.setStyleSheet(f"color: {c['ink-muted']}; background: transparent;")
+        self._more.set_colors(c["ink-muted"], c["ink"])
         for line in self._lines:
             line.restyle()
 

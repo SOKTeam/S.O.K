@@ -197,3 +197,47 @@ def test_the_whole_paths_show_under_the_mouse(qtbot, rename_history):
         )
         == ""
     )
+
+
+def test_other_files_open_into_a_scrolling_list(qtbot):
+    op = operation("a", undone=(False,) * 12)
+    scene = history_page.HistoryScene()
+    qtbot.addWidget(scene)
+    scene.show_operation(op)
+    assert len(scene._lines) == history_page.SHOWN_FILES
+    assert not scene._more.isHidden()
+
+    scene._more.clicked.emit()
+
+    assert len(scene._lines) == 12
+    assert scene._more.isHidden()
+    line = scene._lines[0].sizeHint().height()
+    assert scene._files_scroll.height() == line * history_page.OPEN_FILES_LINES
+    # The 10th file puts back the 10th file, not one of the first four.
+    undone = []
+    scene.undo_file.connect(undone.append)
+    scene._lines[9].button.click()
+    assert undone == [9]
+
+
+def test_another_rename_lists_its_first_files_only(qtbot):
+    scene = history_page.HistoryScene()
+    qtbot.addWidget(scene)
+    scene.show_operation(operation("a", undone=(False,) * 12))
+    scene._more.clicked.emit()
+
+    scene.show_operation(operation("a", undone=(True,) + (False,) * 11))
+    assert len(scene._lines) == 12
+
+    scene.show_operation(operation("b", undone=(False,) * 12))
+    assert len(scene._lines) == history_page.SHOWN_FILES
+
+
+def test_one_file_left_over_is_listed(qtbot):
+    scene = history_page.HistoryScene()
+    qtbot.addWidget(scene)
+
+    scene.show_operation(operation("a", undone=(False,) * 5))
+
+    assert len(scene._lines) == 5
+    assert scene._more.isHidden()
